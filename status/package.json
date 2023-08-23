@@ -1,0 +1,27 @@
+{
+  "name": "status",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "ts-node --project tsconfig.scripts.json scripts/build.ts",
+    "start": "node build/index.js"
+  },
+  "dependencies": {
+    "@fastify/static": "^6.11.2",
+    "axios": "^1.5.1",
+    "fastify": "^4.23.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.2",
+    "@types/node": "^20.8.2",
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "@typescript-eslint/parser": "^6.7.4",
+    "esbuild": "^0.19.4",
+    "eslint": "^8.50.0",
+    "fs-extra": "^11.1.1",
+    "prettier": "^3.0.3",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  }
+}

@@ -1,0 +1,4 @@
+../.idea
+nixserver.iml
+container-control-service/containers.json
+container-control-service/node_modules
