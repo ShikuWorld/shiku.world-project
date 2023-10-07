@@ -2,18 +2,21 @@
 {
   security.acme.acceptTerms = true;
   security.acme.certs = {
-    "nixtest.shiku.world".email = "server@shiku.world";
-    "dockertest.shiku.world".email = "server@shiku.world";
+    "status.shiku.world".email = "server@shiku.world";
   };
-  services.nginx.package = pkgs.nginxMainline;
-  services.nginx.enable = true;
-  services.nginx.logError = "stderr debug";
-  services.nginx.virtualHosts = {
-    "dockertest.shiku.world" = {
-      forceSSL = true;
-      enableACME = true;
-      locations."/" = {
-        proxyPass = "http://localhost:3333";
+  services.nginx = {
+    package = pkgs.nginxMainline;
+    enable = true;
+    logError = "stderr debug";
+    recommendedProxySettings = true;
+    recommendedTlsSettings = true;
+    virtualHosts = {
+      "status.shiku.world" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:3333";
+        };
       };
     };
   };
