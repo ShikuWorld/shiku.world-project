@@ -9,6 +9,7 @@
     ./container-control-service.nix
     ./container-volumes-setup.nix
     ./containers.nix
+    ./webserver.nix
   ];
   virtualisation.podman.enable = true;
   system.stateVersion="23.05";
