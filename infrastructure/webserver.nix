@@ -9,16 +9,11 @@
   services.nginx.enable = true;
   services.nginx.logError = "stderr debug";
   services.nginx.virtualHosts = {
-    "nixtest.shiku.world" = {
-      forceSSL = true;
-      enableACME = true;
-      root = ./www;
-    };
     "dockertest.shiku.world" = {
       forceSSL = true;
       enableACME = true;
       locations."/" = {
-        proxyPass = "http://localhost:8080";
+        proxyPass = "http://localhost:3333";
       };
     };
   };

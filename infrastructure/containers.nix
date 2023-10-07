@@ -25,4 +25,11 @@ in
       ];
     };
   };
+    virtualisation.oci-containers.containers = {
+      "shiku-world-status" = {
+        image = "build.shiku.world/shiku-world-status:latest";
+        login = credentials;
+        ports = ["3333:3000"];
+      };
+    };
 }
