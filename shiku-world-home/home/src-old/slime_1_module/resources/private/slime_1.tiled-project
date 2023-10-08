@@ -1,0 +1,1155 @@
+{
+    "automappingRulesFile": "",
+    "commands": [
+    ],
+    "extensionsPath": ".",
+    "folders": [
+    ],
+    "propertyTypes": [
+        {
+            "color": "#ffa0a0a4",
+            "id": 66,
+            "members": [
+                {
+                    "name": "layer_name",
+                    "propertyType": "LayerName",
+                    "type": "string",
+                    "value": "FG5"
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "AnxietyBar",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 41,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "BGDecoration",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffdc00ca",
+            "id": 42,
+            "members": [
+                {
+                    "name": "blue_heart",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "cave_open",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "door_to_remove",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "red_heart",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                },
+                {
+                    "name": "yellow_heart",
+                    "type": "object",
+                    "value": 0
+                }
+            ],
+            "name": "CaveHeartWall",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffdf0000",
+            "id": 43,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "torch",
+                    "type": "object",
+                    "value": 0
+                }
+            ],
+            "name": "DeathArea",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 44,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "RigidBody"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "DeathProp",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffb6eef7",
+            "id": 45,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "DeathReviveArea",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 46,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                },
+                {
+                    "name": "revive_area",
+                    "type": "object",
+                    "value": 0
+                }
+            ],
+            "name": "DeathReviveStatue",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 47,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "DeathTorch",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 48,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "Debris",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ff00a489",
+            "id": 49,
+            "members": [
+                {
+                    "name": "is_open",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "open_change_position",
+                    "propertyType": "Tween",
+                    "type": "class",
+                    "value": {
+                    }
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "StaticRigidBody"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "Door",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ff00ff1e",
+            "id": 38,
+            "members": [
+                {
+                    "name": "first",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "slot_id",
+                    "type": "string",
+                    "value": ""
+                }
+            ],
+            "name": "EnterArea",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffffee00",
+            "id": 39,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "slot_id",
+                    "type": "string",
+                    "value": ""
+                }
+            ],
+            "name": "ExitArea",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 50,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "GreatWaterfallTiles",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa4008e",
+            "id": 11,
+            "members": [
+                {
+                    "name": "flipped",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "RigidBody"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "Guest",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 51,
+            "members": [
+                {
+                    "name": "flame",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "heart_color",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                },
+                {
+                    "name": "slime",
+                    "type": "object",
+                    "value": 0
+                }
+            ],
+            "name": "GuestDead",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 12,
+            "members": [
+                {
+                    "name": "layer_name",
+                    "propertyType": "LayerName",
+                    "type": "string",
+                    "value": "FG0"
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "Text"
+                }
+            ],
+            "name": "GuestNameplate",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa40003",
+            "id": 52,
+            "members": [
+                {
+                    "name": "color",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "Heart",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 53,
+            "members": [
+                {
+                    "name": "color",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "HeartSmoll",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 54,
+            "members": [
+                {
+                    "name": "color",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "HeartWallGlow",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "id": 6,
+            "name": "LayerName",
+            "storageType": "string",
+            "type": "enum",
+            "values": [
+                "Terrain",
+                "GameObjects",
+                "Guest",
+                "BG0",
+                "FG0",
+                "FG3",
+                "FG10"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 16,
+            "members": [
+                {
+                    "name": "layer_name",
+                    "propertyType": "LayerName",
+                    "type": "string",
+                    "value": "FG3"
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "Observer",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ff37a43e",
+            "id": 55,
+            "members": [
+                {
+                    "name": "door_to_open_1",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "door_to_open_2",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "door_to_open_3",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "door_to_open_4",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "opener_variant",
+                    "type": "string",
+                    "value": "default"
+                },
+                {
+                    "name": "physics_col_activation",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "physics_col_platform",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "StaticRigidBody"
+                },
+                {
+                    "name": "physics_position",
+                    "type": "string",
+                    "value": "platform"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "OpeningAreaPlate",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Physics",
+            "storageType": "string",
+            "type": "enum",
+            "values": [
+                "RigidBody",
+                "Area",
+                "None",
+                "StaticRigidBody"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "id": 5,
+            "name": "Property",
+            "storageType": "string",
+            "type": "enum",
+            "values": [
+                "PositionY",
+                "PositionX"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "id": 3,
+            "name": "Render",
+            "storageType": "string",
+            "type": "enum",
+            "values": [
+                "StaticImage",
+                "None",
+                "Text",
+                "Timer"
+            ],
+            "valuesAsFlags": false
+        },
+        {
+            "color": "#ffffff1e",
+            "id": 65,
+            "members": [
+                {
+                    "name": "direction",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "None"
+                }
+            ],
+            "name": "Rolling",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 56,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "secret_name",
+                    "type": "string",
+                    "value": "string"
+                }
+            ],
+            "name": "Secret",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 57,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "SlimeCharge",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ff2e8aa4",
+            "id": 58,
+            "members": [
+                {
+                    "name": "layer_name",
+                    "propertyType": "LayerName",
+                    "type": "string",
+                    "value": "BG0"
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "SlimeLight",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#fff7ef00",
+            "id": 59,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "None"
+                }
+            ],
+            "name": "TeleportEnd",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ff36f700",
+            "id": 60,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "teleport_end",
+                    "type": "object",
+                    "value": 0
+                }
+            ],
+            "name": "TeleportStart",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a000",
+            "id": 63,
+            "members": [
+                {
+                    "name": "layer_name",
+                    "propertyType": "LayerName",
+                    "type": "string",
+                    "value": "FG10"
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "Text"
+                }
+            ],
+            "name": "Text",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 24,
+            "members": [
+                {
+                    "name": "layer_name",
+                    "propertyType": "LayerName",
+                    "type": "string",
+                    "value": "FG3"
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "None"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "Timer"
+                }
+            ],
+            "name": "Timer",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 4,
+            "members": [
+                {
+                    "name": "add_value",
+                    "type": "float",
+                    "value": 0
+                },
+                {
+                    "name": "property",
+                    "propertyType": "Property",
+                    "type": "string",
+                    "value": "PositionY"
+                },
+                {
+                    "name": "repeat",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "time",
+                    "type": "float",
+                    "value": 0
+                }
+            ],
+            "name": "Tween",
+            "type": "class",
+            "useAs": [
+                "property"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "id": 64,
+            "members": [
+                {
+                    "name": "add_value",
+                    "type": "float",
+                    "value": 0
+                },
+                {
+                    "name": "property",
+                    "propertyType": "Property",
+                    "type": "string",
+                    "value": "PositionY"
+                },
+                {
+                    "name": "repeat",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "time",
+                    "type": "float",
+                    "value": 0
+                }
+            ],
+            "name": "Tween",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ff40813b",
+            "id": 61,
+            "members": [
+                {
+                    "name": "off",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "opener",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "opener_2",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "opener_3",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "physics_col_platform",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "StaticRigidBody"
+                },
+                {
+                    "name": "physics_col_sensor",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "physics_position",
+                    "type": "string",
+                    "value": "platform"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                },
+                {
+                    "name": "wall_variant",
+                    "type": "string",
+                    "value": "default"
+                }
+            ],
+            "name": "WallPlatform",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ff58a488",
+            "id": 62,
+            "members": [
+                {
+                    "name": "active",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "heart_color",
+                    "type": "string",
+                    "value": "default"
+                },
+                {
+                    "name": "opener_variant",
+                    "type": "string",
+                    "value": "default"
+                },
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "WallPlatformOpener",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffaaffaa",
+            "id": 67,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "Area"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "IceCrack",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        },
+        {
+            "color": "#ffaaffaa",
+            "id": 68,
+            "members": [
+                {
+                    "name": "physics",
+                    "propertyType": "Physics",
+                    "type": "string",
+                    "value": "RigidBody"
+                },
+                {
+                    "name": "render",
+                    "propertyType": "Render",
+                    "type": "string",
+                    "value": "StaticImage"
+                }
+            ],
+            "name": "Props",
+            "type": "class",
+            "useAs": [
+                "object",
+                "tile"
+            ]
+        }
+    ]
+}

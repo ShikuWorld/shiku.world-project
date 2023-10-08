@@ -1,0 +1,11 @@
+{
+  "gravity": [0.0, 6.0],
+  "guest_move_force": 0.03,
+  "guest_jump_move_force": 0.01,
+  "guest_jump_force": 0.036,
+  "guest_in_air_nudging_force": 0.035,
+  "guest_linear_dampening": 2,
+  "guest_bounciness": 1,
+  "light_power_multiplier": 1.5,
+  "afk_time": 60
+}

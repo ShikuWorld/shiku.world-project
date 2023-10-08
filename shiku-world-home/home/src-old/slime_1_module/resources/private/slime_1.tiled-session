@@ -1,0 +1,592 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Guest.tsx",
+    "automapping.whileDrawing": false,
+    "expandedProjectPaths": [
+        "F:/shikuworld/home2/home/src/slime_1_module/resources"
+    ],
+    "file.lastUsedOpenFilter": "All Files (*)",
+    "fileStates": {
+        "Entities/Guest.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/private/argument.tmx": {
+            "expandedObjectLayers": [
+                23
+            ],
+            "scale": 0.75,
+            "selectedLayer": 7,
+            "viewCenter": {
+                "x": 0,
+                "y": 766.6666666666667
+            }
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/private/map.tmx": {
+            "scale": 1,
+            "selectedLayer": 6,
+            "viewCenter": {
+                "x": 2092,
+                "y": 531.5
+            }
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/blue.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 0.25
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/AnxietyBar.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 8
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Guest.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 0.33,
+            "scaleInEditor": 0.33
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Guest_red.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 0.33
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_01.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_02.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_03.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_04.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Props.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.25,
+            "scaleInEditor": 0.125
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Stick.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/terrain/Background.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 0.125,
+            "scaleInEditor": 0.25
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/private/Misc.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/private/Objects.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/private/Walls.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/private/lobby.tmx": {
+            "expandedObjectLayers": [
+                2,
+                7
+            ],
+            "scale": 1.5,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 567.6666666666666,
+                "y": 289.3333333333333
+            }
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/entities/Guest.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 0.5
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/entities/Slime.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/terrain/Floors.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/terrain/FloorsB.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/terrain/Futuristic.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 2,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/terrain/Interior.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 2
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/terrain/Misc.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/terrain/Objects.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/terrain/Walls.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 2
+        },
+        "F:/shikuworld/home2/home/src/lobby_module/resources/shared/terrain/WaterAndGrass.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/Tileset.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/map.tmx": {
+            "scale": 2,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 964.5,
+                "y": 968
+            }
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/CaveHeartWall.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/DeathProp.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/DeathReviveStatue.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/DeathTorch.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/Door.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/DoorOpenSign.tsx": {
+            "dynamicWrapping": false
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/DoorSign.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 3
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/Guest.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/GuestDead.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 3
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/Heart.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/HeartSmoll.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 3
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/HeartWallGlow.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/Hearts.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/Items.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/Observer.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/Obstacles.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/OpeningArea.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/OpeningAreaPlate.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 5.5
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/SlimeCharge.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/SlimeLight.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 3
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/Spikes.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/entities/WallPlatformOpener.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 3
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/BG.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/BGDecoration.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/Barrier.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/CaveTileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 2,
+            "scaleInEditor": 5.5
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/CaveTilesetLava.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 2,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/Debris.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/Decoration.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/Forest.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 3
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/Furnace.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 3
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/Glitch.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/Grass.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/GreatWaterfall.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/WallPlatform.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 8
+        },
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/cave_tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/private/forest.tmx": {
+            "expandedObjectLayers": [
+                3,
+                14
+            ],
+            "scale": 1,
+            "selectedLayer": 8,
+            "viewCenter": {
+                "x": 114.5,
+                "y": -138.5
+            }
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/private/foresttmp.tmx": {
+            "scale": 0.0927734375,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 4489.431578947368,
+                "y": 2813.305263157895
+            }
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/private/map.tmx": {
+            "scale": 2,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 43.25,
+                "y": 10.75
+            }
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/private/rule1.tmx": {
+            "scale": 1.9712500000000002,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 156.75332910589725,
+                "y": 59.86049461001902
+            }
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/CaveHeartWall.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/Door.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/DoorSign.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/Guest.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/Heart.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/HeartSmoll.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/HeartWallGlow.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/Observer.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/OpeningAreaPlate.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/SlimeCharge.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/entities/SlimeLight.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/terrain/BG.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/terrain/BGDecoration.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/terrain/Barrier.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/terrain/CaveTileset.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/terrain/Debris.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/terrain/Furnace.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/terrain/Grass.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "F:/shikuworld/home2/home/src/slime_2_module/resources/shared/terrain/GreatWaterfall.tsx": {
+            "scaleInDock": 1
+        },
+        "F:/shikuworld/test/unbenannt.tmx": {
+            "scale": 1.5,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1044.6666666666665,
+                "y": 1604
+            }
+        },
+        "F:/shikuworld/tiledbugs/infiniteautomapping/Tileset.tsx": {
+            "scaleInDock": 1.5
+        },
+        "F:/shikuworld/tiledbugs/infiniteautomapping/infinite_automapping_bug.tmx": {
+            "scale": 0.25,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1040,
+                "y": 846
+            }
+        },
+        "F:/shikuworld/tiledbugs/infiniteautomapping/rule1.tmx": {
+            "scale": 2.790625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 159.8208286674132,
+                "y": 160
+            }
+        },
+        "F:/shikuworld/tiledbugs/infiniteautomapping/unbenannt.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": -7.5,
+                "y": 8
+            }
+        },
+        "Guest.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "Test2.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "Tileset.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "cave_tileset.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "map.tmx": {
+            "expandedObjectLayers": [
+                26,
+                22,
+                25,
+                24,
+                9
+            ],
+            "scale": 2,
+            "selectedLayer": 16,
+            "viewCenter": {
+                "x": 9215.75,
+                "y": 2815.5
+            }
+        },
+        "objects.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "obstacles.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "portal.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "portals.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "rule1.tmx": {
+            "scale": 4,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 159.125,
+                "y": 159.125
+            }
+        },
+        "test_tileset.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "frame.defaultDuration": 65,
+    "last.externalTilesetPath": "F:/shikuworld/home2/home/src/argument_module/resources/shared/terrain",
+    "last.imagePath": "F:/shikuworld/home2/home/src/argument_module/resources/shared/images/props",
+    "last.objectTemplatePath": "F:/shikuworld/home2/home/src/lobby_module/resources/shared",
+    "last.objectTypesPath": "F:/shikuworld/home2/home/src/argument_module/resources/private/objecttypes.xml",
+    "last.worldFilePath": "F:/shikuworld/home2/home/src/slime_1_module/resources/private",
+    "loadedWorlds": [
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/private/slime_1.world"
+    ],
+    "map.fixedSize": false,
+    "map.height": 20,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 32,
+    "map.tileWidth": 32,
+    "map.width": 20,
+    "mapScene.enableWorlds": true,
+    "openFiles": [
+        "F:/shikuworld/home2/home/src/argument_module/resources/private/argument.tmx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/AnxietyBar.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Guest.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Guest_red.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Props.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/terrain/Background.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Stick.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_01.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_04.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_03.tsx",
+        "map.tmx",
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/WallPlatform.tsx"
+    ],
+    "project": "slime_1.tiled-project",
+    "property.type": "string",
+    "recentFiles": [
+        "F:/shikuworld/home2/home/src/argument_module/resources/private/argument.tmx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/AnxietyBar.tsx",
+        "F:/shikuworld/home2/home/src/slime_1_module/resources/shared/terrain/WallPlatform.tsx",
+        "map.tmx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_03.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_04.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack_01.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/IceCrack.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Stick.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/terrain/Background.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Props.tsx",
+        "F:/shikuworld/home2/home/src/argument_module/resources/shared/entities/Guest_red.tsx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 180,
+        "width": 100
+    },
+    "tileset.transparentColor": "#7e7e7e",
+    "tileset.type": 0
+}

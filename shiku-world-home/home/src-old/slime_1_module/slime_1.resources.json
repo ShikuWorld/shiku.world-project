@@ -1,0 +1,198 @@
+{
+  "module_name": "Slime1Module",
+  "resources": [{
+    "kind": "Menu",
+    "meta_name": "Slime1ModuleMenu",
+    "path": "slime_1.menu.json"
+  },{
+    "kind": "Font",
+    "meta_name": "ChevyRay - Express Mono",
+    "path": "fonts/ChevyRay - Express Mono.fnt"
+  },{
+    "kind": "Font",
+    "meta_name": "ChevyRay - Express s",
+    "path": "fonts/ChevyRay - Express s.fnt"
+  },{
+    "kind": "Image",
+    "meta_name": "MouseMove",
+    "path": "mouse_tutorial/move.png"
+  },
+    {
+      "kind": "Image",
+      "meta_name": "MouseSmallJump",
+      "path": "mouse_tutorial/small_jump.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "MouseHighJump",
+      "path": "mouse_tutorial/high_jump.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "MouseDirectionalJump",
+      "path": "mouse_tutorial/high_directional_jump.png"
+    },
+
+    {
+      "kind": "Image",
+      "meta_name": "KeyboardMove",
+      "path": "keyboard_tutorial/tutorial1_keyboard.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "KeyboardSmallJump",
+      "path": "keyboard_tutorial/tutorial2_keyboard.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "KeyboardHighJump",
+      "path": "keyboard_tutorial/tutorial3_keyboard.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "KeyboardDirectionalJump",
+      "path": "keyboard_tutorial/tutorial4_keyboard.png"
+    },
+
+    {
+      "kind": "Image",
+      "meta_name": "ControllerMove",
+      "path": "controller_tutorial/tutorial1_controller.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "ControllerSmallJump",
+      "path": "controller_tutorial/tutorial2_controller.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "ControllerHighJump",
+      "path": "controller_tutorial/tutorial3_controller.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "ControllerDirectionalJump",
+      "path": "controller_tutorial/tutorial4_controller.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard1",
+      "path": "shards/emerald_piece_A_1.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard2",
+      "path": "shards/emerald_piece_A_2.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard3",
+      "path": "shards/emerald_piece_A_3.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard4",
+      "path": "shards/emerald_piece_A_4.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard5",
+      "path": "shards/emerald_piece_B.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard6",
+      "path": "shards/emerald_piece_C.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard7",
+      "path": "shards/emerald_piece_D.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard8",
+      "path": "shards/emerald_piece_E.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard9",
+      "path": "shards/emerald_piece_F.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard10",
+      "path": "shards/emerald_piece_G.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard11",
+      "path": "shards/emerald_piece_H.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard12",
+      "path": "shards/emerald_piece_I.png"
+    },
+
+    {
+      "kind": "Image",
+      "meta_name": "Shard1Off",
+      "path": "shards/emerald_piece_A_1_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard2Off",
+      "path": "shards/emerald_piece_A_2_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard3Off",
+      "path": "shards/emerald_piece_A_3_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard4Off",
+      "path": "shards/emerald_piece_A_4_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard5Off",
+      "path": "shards/emerald_piece_B_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard6Off",
+      "path": "shards/emerald_piece_C_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard7Off",
+      "path": "shards/emerald_piece_D_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard8Off",
+      "path": "shards/emerald_piece_E_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard9Off",
+      "path": "shards/emerald_piece_F_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard10Off",
+      "path": "shards/emerald_piece_G_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard11Off",
+      "path": "shards/emerald_piece_H_off.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "Shard12Off",
+      "path": "shards/emerald_piece_I_off.png"
+    }]
+}

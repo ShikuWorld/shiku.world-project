@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ResourceFile",
+  "type": "object",
+  "required": [
+    "module_name",
+    "resources"
+  ],
+  "properties": {
+    "module_name": {
+      "type": "string"
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ResourceConfig"
+      }
+    }
+  },
+  "definitions": {
+    "ResourceConfig": {
+      "type": "object",
+      "required": [
+        "kind",
+        "meta_name",
+        "path"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/definitions/ResourceKind"
+        },
+        "meta_name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "ResourceKind": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Menu",
+            "Image",
+            "Font",
+            "Sound"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "TileSet"
+          ],
+          "properties": {
+            "TileSet": {
+              "$ref": "#/definitions/TileSetResourceDef"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TileSetResourceDef": {
+      "type": "object",
+      "required": [
+        "start_gid"
+      ],
+      "properties": {
+        "start_gid": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+CREATE TABLE persisted_guest_states (
+    id SERIAL PRIMARY KEY,
+    twitch_id VARCHAR(20) UNIQUE NOT NULL DEFAULT '',
+    display_name VARCHAR(15) NOT NULL DEFAULT 'BROKEN',
+    is_observer BOOLEAN NOT NULL DEFAULT FALSE,
+    is_tester BOOLEAN NOT NULL DEFAULT FALSE
+);

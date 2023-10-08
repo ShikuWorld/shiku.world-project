@@ -1,0 +1,10 @@
+{
+  "module_name": "ArgumentModule",
+  "resources": [
+    {
+      "kind": "Menu",
+      "meta_name": "ArgumentModuleMenu",
+      "path": "argument.menu.json"
+    }
+  ]
+}

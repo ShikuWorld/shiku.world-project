@@ -1,0 +1,8 @@
+{
+  "afk_time": 30,
+  "stick_offset_x": 50.0,
+  "stick_offset_y": 50.0,
+  "throw_force_x": 2.0,
+  "throw_force_y": -5.00,
+  "stick_gravity": 0.04
+}

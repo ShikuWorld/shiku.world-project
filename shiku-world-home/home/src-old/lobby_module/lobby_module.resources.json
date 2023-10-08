@@ -1,0 +1,14 @@
+{
+  "module_name": "LobbyModule",
+  "resources": [    {
+    "kind": "Menu",
+    "meta_name": "LobbyModuleMenu",
+    "path": "lobby.menu.json"
+  },
+    {
+      "kind": "Font",
+      "meta_name": "ChevyRay - Express Mono",
+      "path": "fonts/ChevyRay - Express Mono.fnt"
+    }]
+}
+

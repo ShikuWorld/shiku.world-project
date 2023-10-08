@@ -1,0 +1,16 @@
+//pub const NORMAL: u32 = 0;
+pub const ADD: u32 = 1;
+//pub const SUBTRACT: u32 = 2;
+pub const MULTIPLY: u32 = 3;
+//pub const XOR: u32 = 4;
+//pub const SRC_IN: u32 = 5;
+//pub const SRC_OUT: u32 = 6;
+//pub const SRC_ATOP: u32 = 7;d
+//pub const DST_OVER: u32 = 8;
+//pub const DST_IN: u32 = 9;
+//pub const DST_OUT: u32 = 10;
+//pub const DST_ATOP: u32 = 11;
+//pub const SCREEN: u32 = 12;
+//pub const OVERLAY: u32 = 13;
+//pub const SOFT_LIGHT: u32 = 14;
+//pub const HARD_LIGHT: u32 = 15;

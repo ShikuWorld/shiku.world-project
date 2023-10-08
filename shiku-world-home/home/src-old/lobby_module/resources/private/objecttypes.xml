@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objecttypes>
+ <objecttype name="Guest" color="#a4008e">
+  <property name="layer_name" type="string" propertytype="LayerName" default="FG0"/>
+  <property name="physics" type="string" propertytype="Physics" default="RigidBody"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="EnterArea" color="#00ff1e">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+  <property name="slot_id" type="string" default=""/>
+ </objecttype>
+ <objecttype name="Rolling" color="#ffff1e">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+  <property name="direction" type="string" default=""/>
+ </objecttype>
+ <objecttype name="ExitArea" color="#ffee00">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+  <property name="info" type="object" default="0"/>
+  <property name="guests" type="int" default="0"/>
+  <property name="open" type="bool" default="false"/>
+  <property name="slot_id" type="string" default=""/>
+ </objecttype>
+ <objecttype name="GuestNameplate" color="#a0a0a4">
+  <property name="layer_name" type="string" propertytype="LayerName" default="FG0"/>
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="Text"/>
+ </objecttype>
+ <objecttype name="Observer" color="#a0a0a4">
+  <property name="layer_name" type="string" propertytype="LayerName" default="FG3"/>
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="Timer" color="#a0a0a4">
+  <property name="layer_name" type="string" propertytype="LayerName" default="FG3"/>
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="Timer"/>
+ </objecttype>
+ <objecttype name="Tween" color="#a0a0a4">
+  <property name="add_value" type="float" default="0"/>
+  <property name="property" type="string" propertytype="Property" default="PositionY"/>
+  <property name="repeat" type="bool" default="false"/>
+  <property name="time" type="float" default="0"/>
+ </objecttype>
+ <objecttype name="Text" color="#a0a000">
+  <property name="layer_name" type="string" propertytype="LayerName" default="FG10"/>
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="Text"/>
+ </objecttype>
+</objecttypes>

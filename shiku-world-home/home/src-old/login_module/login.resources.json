@@ -1,0 +1,25 @@
+{
+  "module_name": "LoginModule",
+  "resources": [
+    {
+      "kind": "Menu",
+      "meta_name": "LoginModuleMenu",
+      "path": "login.menu.json"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "TwitchButton",
+      "path": "twitch_button.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "TwitchButtonHover",
+      "path": "twitch_button_hover.png"
+    },
+    {
+      "kind": "Image",
+      "meta_name": "TwitchButtonDisabled",
+      "path": "twitch_button_disabled.png"
+    }
+  ]
+}

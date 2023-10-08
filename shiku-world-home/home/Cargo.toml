@@ -1,0 +1,48 @@
+[package]
+name = "home"
+version = "0.2.0"
+edition = "2018"
+build = "build.rs"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+local = []
+
+[dependencies]
+tokio = { version = "1.28.1", features = ["full"] }
+tungstenite = "0.19.0"
+tokio-tungstenite = "0.19.0"
+flume = { version="0.10.14" }
+spin_sleep = "1.1.1"
+chrono = "0.4.24"
+rapier2d = { version = "0.17.2", features = [ "simd-stable" ] }
+rs-snowflake= "0.6.0"
+ts-rs="6.2.1"
+schemars="0.8.12"
+futures="0.3.28"
+log = "0.4.17"
+reqwest = { version = "0.11.18", features = ["json", "blocking"] }
+url = "2.3.1"
+warp = "0.3.5"
+env_logger = "0.10.0"
+dotenv = "0.15.0"
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = { version = "1.0.96" }
+serde_with = { version = "3.0.0" }
+crossbeam-channel = "0.5.8"
+xml-rs = "0.8.11"
+notify-debouncer-mini = "0.3.0"
+notify = { version = "6.0.0" }
+anyhow = "1.0.71"
+thiserror = "1.0.40"
+rand = "0.8.5"
+codegen = "0.2.0"
+tiled= "0.11.1"
+convert_case = "0.6.0"
+diesel = { version = "2.1.0", features = ["postgres", "r2d2", "serde_json", "chrono"] }
+jsonwebtoken = "8.3.0"
+apecs = "0.7.0"
+rhai = "1.14.0"
+flatbuffers = "23.5.26"
+[build-dependencies]
+convert_case = "0.6.0"

@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objecttypes>
+ <objecttype name="BGDecoration" color="#a0a0a4">
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="CaveHeartWall" color="#dc00ca">
+  <property name="blue_heart" type="object" default="0"/>
+  <property name="cave_open" type="bool" default="false"/>
+  <property name="door_to_remove" type="object" default="0"/>
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="red_heart" type="object" default="0"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+  <property name="yellow_heart" type="object" default="0"/>
+ </objecttype>
+ <objecttype name="DeathArea" color="#df0000">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+  <property name="torch" type="object" default="0"/>
+ </objecttype>
+ <objecttype name="DeathProp" color="#a0a0a4">
+  <property name="physics" type="string" propertytype="Physics" default="RigidBody"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="DeathReviveArea" color="#b6eef7">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="DeathReviveStatue" color="#a0a0a4">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+  <property name="revive_area" type="object" default="0"/>
+ </objecttype>
+ <objecttype name="DeathTorch" color="#a0a0a4">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="Debris" color="#a0a0a4">
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="Door" color="#00a489">
+  <property name="is_open" type="bool" default="false"/>
+  <property name="open_change_position" type="class" propertytype="Tween" default=""/>
+  <property name="physics" type="string" propertytype="Physics" default="StaticRigidBody"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="EnterArea" color="#00ff1e">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+  <property name="slot_id" type="string" default=""/>
+ </objecttype>
+ <objecttype name="ExitArea" color="#ffee00">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+  <property name="slot_id" type="string" default=""/>
+ </objecttype>
+ <objecttype name="GreatWaterfallTiles" color="#a0a0a4">
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="Guest" color="#a4008e">
+  <property name="heart_color" type="string" default=""/>
+  <property name="layer_name" type="string" propertytype="LayerName" default="Guest"/>
+  <property name="physics" type="string" propertytype="Physics" default="RigidBody"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="GuestDead" color="#a0a0a4">
+  <property name="flame" type="object" default="0"/>
+  <property name="heart_color" type="string" default=""/>
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+  <property name="slime" type="object" default="0"/>
+ </objecttype>
+ <objecttype name="GuestNameplate" color="#a0a0a4">
+  <property name="layer_name" type="string" propertytype="LayerName" default="FG0"/>
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="Text"/>
+ </objecttype>
+ <objecttype name="Heart" color="#a40003">
+  <property name="color" type="string" default=""/>
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="HeartSmoll" color="#a0a0a4">
+  <property name="color" type="string" default=""/>
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="HeartWallGlow" color="#a0a0a4">
+  <property name="color" type="string" default=""/>
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="Observer" color="#a0a0a4">
+  <property name="layer_name" type="string" propertytype="LayerName" default="FG3"/>
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="OpeningAreaPlate" color="#37a43e">
+  <property name="door_to_open_1" type="object" default="0"/>
+  <property name="door_to_open_2" type="object" default="0"/>
+  <property name="door_to_open_3" type="object" default="0"/>
+  <property name="door_to_open_4" type="object" default="0"/>
+  <property name="opener_variant" type="string" default="default"/>
+  <property name="physics_col_activation" type="string" propertytype="Physics" default="Area"/>
+  <property name="physics_col_platform" type="string" propertytype="Physics" default="StaticRigidBody"/>
+  <property name="physics_position" type="string" default="platform"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="Secret" color="#a0a0a4">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+  <property name="secret_name" type="string" default="string"/>
+ </objecttype>
+ <objecttype name="SlimeCharge" color="#a0a0a4">
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="SlimeLight" color="#2e8aa4">
+  <property name="layer_name" type="string" propertytype="LayerName" default="BG0"/>
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+ <objecttype name="TeleportEnd" color="#f7ef00">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+ </objecttype>
+ <objecttype name="TeleportStart" color="#36f700">
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="None"/>
+  <property name="teleport_end" type="object" default="0"/>
+ </objecttype>
+ <objecttype name="Timer" color="#a0a0a4">
+  <property name="layer_name" type="string" propertytype="LayerName" default="FG3"/>
+  <property name="physics" type="string" propertytype="Physics" default="None"/>
+  <property name="render" type="string" propertytype="Render" default="Timer"/>
+ </objecttype>
+ <objecttype name="Tween" color="#a0a0a4">
+  <property name="add_value" type="float" default="0"/>
+  <property name="property" type="string" propertytype="Property" default="PositionY"/>
+  <property name="repeat" type="bool" default="false"/>
+  <property name="time" type="float" default="0"/>
+ </objecttype>
+ <objecttype name="WallPlatform" color="#40813b">
+  <property name="off" type="bool" default="false"/>
+  <property name="opener" type="object" default="0"/>
+  <property name="opener_2" type="object" default="0"/>
+  <property name="opener_3" type="object" default="0"/>
+  <property name="physics_col_platform" type="string" propertytype="Physics" default="StaticRigidBody"/>
+  <property name="physics_col_sensor" type="string" propertytype="Physics" default="Area"/>
+  <property name="physics_position" type="string" default="platform"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+  <property name="wall_variant" type="string" default="default"/>
+ </objecttype>
+ <objecttype name="WallPlatformOpener" color="#58a488">
+  <property name="active" type="bool" default="false"/>
+  <property name="heart_color" type="string" default="default"/>
+  <property name="opener_variant" type="string" default="default"/>
+  <property name="physics" type="string" propertytype="Physics" default="Area"/>
+  <property name="render" type="string" propertytype="Render" default="StaticImage"/>
+ </objecttype>
+</objecttypes>

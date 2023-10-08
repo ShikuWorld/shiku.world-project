@@ -1,0 +1,15 @@
+CONTAINER_NAME=myPostgresDb
+
+# Check if the container exists
+if [ "$(docker ps -a -q -f name=$CONTAINER_NAME)" ]; then
+    # Check if the container is running
+    if [ ! "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
+        echo "Starting existing Docker container named $CONTAINER_NAME..."
+        docker start $CONTAINER_NAME
+    else
+        echo "Docker container named $CONTAINER_NAME is already running."
+    fi
+else
+    echo "Docker container does not exist. Creating and starting a new one..."
+    docker run --name $CONTAINER_NAME -p 5433:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=6JrEmGSaq2JVJgPodaLwtnDZq -e POSTGRES_DB=home -d postgres
+fi

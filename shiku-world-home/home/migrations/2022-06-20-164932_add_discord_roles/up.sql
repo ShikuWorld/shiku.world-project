@@ -1,0 +1,3 @@
+ALTER TABLE IF EXISTS persisted_guest_states
+    ADD COLUMN is_discord_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN is_discord_booster BOOLEAN NOT NULL DEFAULT FALSE;
