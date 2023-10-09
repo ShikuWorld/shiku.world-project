@@ -160,10 +160,6 @@ impl ModuleCommunication {
                 GuestToModuleEvent::WantToChangeModule(module_name) => {
                     callback_entity.on_want_to_change_module(&guest_id, module_name);
                 }
-                GuestToModuleEvent::ProviderLoggedIn(_) => {
-                    error!("Guest {} tried to send login token in, wtf?", guest_id);
-                }
-                GuestToModuleEvent::Ping => (),
             }
         }
 
@@ -267,13 +263,13 @@ impl DynamicGameModule {
     pub fn update(&mut self) {}
     pub fn try_enter(
         &mut self,
-        guest: &Guest,
-        module_enter_slot: &ModuleEnterSlot,
+        _guest: &Guest,
+        _module_enter_slot: &ModuleEnterSlot,
     ) -> Result<EnterSuccessState, EnterFailedState> {
         Ok(EnterSuccessState::Entered)
     }
 
-    pub fn try_leave(&mut self, guest: &Guest) -> Result<LeaveSuccessState, LeaveFailedState> {
+    pub fn try_leave(&mut self, _guest: &Guest) -> Result<LeaveSuccessState, LeaveFailedState> {
         Ok(LeaveSuccessState::Left)
     }
 }

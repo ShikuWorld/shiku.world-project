@@ -73,10 +73,22 @@ pub enum AdminToSystemEvent {
 #[ts(export)]
 pub enum GuestToModuleEvent {
     ControlInput(GuestInput),
-    ProviderLoggedIn(ProviderLoggedIn),
     ResourcesLoaded(ModuleName),
     WantToChangeModule(ModuleName),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
+pub enum GuestToSystemEvent {
+    ProviderLoggedIn(ProviderLoggedIn),
     Ping,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
+pub enum GuestTo {
+    GuestToSystemEvent(GuestToSystemEvent),
+    GuestToModuleEvent(GuestToModuleEvent),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -228,6 +240,7 @@ pub type GuestToModule = GuestEvent<GuestToModuleEvent>;
 pub type SystemToModule = GuestEvent<SystemToModuleEvent>;
 pub type ModuleToSystem = GuestEvent<ModuleToSystemEvent>;
 pub type GameSystemToGuest = GuestEvent<GameSystemToGuestEvent>;
+pub type GuestToSystem = GuestEvent<GuestToSystemEvent>;
 pub type GamePosition = GuestEvent<Vec<(EntityId, Real, Real, Real)>>;
 
 pub struct ModuleIO {

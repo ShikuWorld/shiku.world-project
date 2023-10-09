@@ -160,10 +160,6 @@ impl GameModuleCommunication {
                 GuestToModuleEvent::WantToChangeModule(module_name) => {
                     callback_entity.on_want_to_change_module(&guest_id, module_name);
                 }
-                GuestToModuleEvent::ProviderLoggedIn(_) => {
-                    error!("Guest {} tried to send login token in, wtf?", guest_id);
-                }
-                GuestToModuleEvent::Ping => (),
             }
         }
 

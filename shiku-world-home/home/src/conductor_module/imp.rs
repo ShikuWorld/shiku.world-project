@@ -2,9 +2,8 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, trace, warn};
 use snowflake::SnowflakeIdBucket;
-use tungstenite::Message;
 
 use crate::conductor_module::def::ConductorModule;
 use crate::conductor_module::errors::{
@@ -15,12 +14,13 @@ use crate::core::blueprint::BlueprintService;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     create_module_communication, AdminToSystemEvent, CommunicationEvent, EnterFailedState,
-    EnterSuccessState, GamePosition, GameSystemToGuest, GuestEvent, GuestStateChange,
-    GuestToModule, LeaveFailedState, LeaveSuccessState, ModuleIO, ModuleName, ModuleState,
-    ModuleToSystem, ModuleToSystemEvent, SignalToGuest, SystemToModuleEvent,
+    EnterSuccessState, GamePosition, GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo,
+    GuestToModule, GuestToModuleEvent, LeaveFailedState, LeaveSuccessState, ModuleIO, ModuleName,
+    ModuleState, ModuleToSystem, ModuleToSystemEvent, SignalToGuest, SystemToModuleEvent,
 };
 use crate::core::module_system::DynamicGameModule;
 use crate::core::{safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
+use crate::login::login_manager::LoginManager;
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
 use crate::resource_module::def::GuestId;
@@ -53,7 +53,7 @@ impl ConductorModule {
         self.update_modules();
 
         self.process_events_from_modules();
-        self.give_events_to_modules();
+        self.process_events_from_guest();
         self.send_load_events();
 
         self.handle_timeouts();
@@ -198,9 +198,9 @@ impl ConductorModule {
         blueprint: blueprint::Conductor,
     ) -> ConductorModule {
         let snowflake_gen = SnowflakeIdBucket::new(1, 1);
-        let mut module_communication_map = HashMap::new();
-        let mut module_map = HashMap::new();
-        let mut resource_module = ResourceModule::new();
+        let module_communication_map = HashMap::new();
+        let module_map = HashMap::new();
+        let resource_module = ResourceModule::new();
 
         ConductorModule {
             blueprint,
@@ -209,6 +209,7 @@ impl ConductorModule {
             resource_module,
             persistence_module: PersistenceModule::new(),
             web_server_module: WebServerModule::new(),
+            login_manager: LoginManager::new(),
             snowflake_gen,
             module_connection_map: HashMap::from([]),
             guests: HashMap::new(),
@@ -237,6 +238,7 @@ impl ConductorModule {
                 self.admins.insert(
                     connection_id,
                     Admin {
+                        id: self.snowflake_gen.get_id(),
                         login_data: None,
                         is_logged_in: false,
                         ws_connection_id: connection_id,
@@ -255,7 +257,7 @@ impl ConductorModule {
                 if let Some(guest) = self.guests.get_mut(guest_id_from_session_id) {
                     if guest.ws_connection_id.is_some() {
                         error!("Guest already has a connection!");
-
+                        //TODO: Disconnect old connection and connect new connection
                         self.websocket_module.send_event(
                             &connection_id,
                             serde_json::to_string(&CommunicationEvent::AlreadyConnected)
@@ -797,23 +799,34 @@ impl ConductorModule {
         }
     }
 
-    pub fn give_events_to_modules(&mut self) {
+    pub fn process_events_from_guest(&mut self) {
         for (guest_id, guest) in &self.guests {
             if let Some(ws_connection_id) = &guest.ws_connection_id {
                 for message in self.websocket_module.drain_events(ws_connection_id) {
-                    for (module_name, module_communication) in self.module_communication_map.iter()
-                    {
-                        if let Some(module_name_guest_is_currently_in) = &guest.current_module {
-                            if module_name != module_name_guest_is_currently_in {
-                                continue;
+                    if let Some(module_name_guest_is_currently_in) = &guest.current_module {
+                        if let Some(module_communication) = self
+                            .module_communication_map
+                            .get(module_name_guest_is_currently_in)
+                        {
+                            match serde_json::from_str::<GuestTo>(message.to_string().as_str()) {
+                                Ok(guest_to) => match guest_to {
+                                    GuestTo::GuestToSystemEvent(event) => {
+                                        debug!("Guest to system event :) {:?}", event);
+                                    }
+                                    GuestTo::GuestToModuleEvent(event) => {
+                                        if let Err(err) = ConductorModule::send_event_to_module(
+                                            module_communication,
+                                            *guest_id,
+                                            event,
+                                        ) {
+                                            error!("{:?}", err);
+                                        }
+                                    }
+                                },
+                                Err(err) => {
+                                    error!("{:?}", err);
+                                }
                             }
-                        }
-                        if let Err(err) = ConductorModule::send_event_to_module(
-                            module_communication,
-                            *guest_id,
-                            message.clone(),
-                        ) {
-                            error!("{:?}", err);
                         }
                     }
                 }
@@ -824,14 +837,14 @@ impl ConductorModule {
     fn send_event_to_module(
         module_communication: &ModuleIO,
         guest_id: Snowflake,
-        message: Message,
+        event: GuestToModuleEvent,
     ) -> Result<(), SendEventToModuleError> {
         module_communication
             .sender
             .guest_to_module_sender
             .send(GuestToModule {
                 guest_id,
-                event_type: serde_json::from_str(message.to_string().as_str())?,
+                event_type: event,
             })?;
 
         Ok(())

@@ -22,6 +22,7 @@ pub struct Guest {
 
 #[derive(Debug)]
 pub struct Admin {
+    pub id: Snowflake,
     pub login_data: Option<LoginData>,
     pub is_logged_in: bool,
     pub ws_connection_id: Snowflake,

@@ -8,6 +8,7 @@ use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ModuleExitSlot, Provider
 use crate::core::module::{ModuleIO, ModuleName};
 use crate::core::module_system::DynamicGameModule;
 use crate::core::{blueprint, Snowflake};
+use crate::login::login_manager::LoginManager;
 use crate::persistence_module::PersistenceModule;
 use crate::resource_module::def::GuestId;
 use crate::webserver_module::def::WebServerModule;
@@ -19,8 +20,8 @@ pub struct ConductorModule {
     pub(super) websocket_module: WebsocketModule,
     pub(super) resource_module: ResourceModule,
     pub(super) persistence_module: PersistenceModule,
-    #[allow(dead_code)]
     pub(super) web_server_module: WebServerModule,
+    pub(super) login_manager: LoginManager,
     pub(super) module_map: HashMap<ModuleName, DynamicGameModule>,
     pub(super) guests: HashMap<Snowflake, Guest>,
     pub(super) admins: HashMap<Snowflake, Admin>,
