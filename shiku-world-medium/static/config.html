@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shiku's World config</title>
+    <link rel="stylesheet" href="config.css">
+</head>
+<body>
+<div>test</div>
+<form id="shiku-conf">
+    <div class="form-line">
+        <label>
+            Websocket url
+            <input name="websocketurl" type="text">
+        </label>
+    </div>
+    <div class="form-line">
+        <label>
+            Resource Url
+            <input name="resourceUrl" type="text">
+        </label>
+    </div>
+    <div class="form-line">
+        <label>
+            Twitch Auth Redirect
+            <input name="twitchAuthRedirect" type="text">
+        </label>
+    </div>
+    <div class="form-line">
+        <input type="submit" value="Save">
+    </div>
+</form>
+<script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+<script src="jquery-3.6.0.min.js"></script>
+<script src="config.js"></script>
+</body>
+</html>

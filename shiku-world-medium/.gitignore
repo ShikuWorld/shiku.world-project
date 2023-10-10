@@ -1,0 +1,7 @@
+build
+node_modules
+*.iml
+.idea
+.idea/*
+.env
+client/environment.ts

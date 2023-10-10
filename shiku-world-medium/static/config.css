@@ -1,0 +1,9 @@
+#shiku-conf {
+    padding: 20px;
+    background-color: white;
+}
+
+#shiku-conf .form-line {
+    display: inline-block;
+    width: 100%;
+}

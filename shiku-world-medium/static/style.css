@@ -1,0 +1,303 @@
+@font-face {
+    font-family: "Material Icons Sharp";
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url("./fonts/material-icons-sharp.woff2") format("woff2"), url("./fonts/material-icons-sharp.woff") format("woff");
+}
+
+.material-icons-sharp {
+    font-family: "Material Icons Sharp", serif;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "liga";
+}
+
+html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    color: white;
+    background-color: black;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.twitch-extension-body {
+    background-color: transparent;
+}
+
+#toggle-input-feedback, #toggle-input-method, #open-menu {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+
+#toggle-input-method {
+    left: 100px;
+}
+
+#open-menu {
+    left: 150px;
+}
+
+#open-menu .material-icons-sharp, #toggle-input-method .material-icons-sharp, #toggle-input-feedback .material-icons-sharp {
+    font-size: 30px;
+}
+
+#open-menu:hover, #toggle-input-feedback:hover, #toggle-input-method:hover {
+    opacity: 1;
+}
+
+#input-feedback {
+    position: absolute;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    font-size: 30px;
+}
+
+#input-feedback.feedback-disabled {
+    display: none;
+}
+
+#input-feedback .button-inactive {
+    opacity: 0.3;
+}
+
+#input-feedback .button-active {
+    opacity: 0.6;
+}
+
+#input-feedback .material-icons-sharp {
+    font-size: 60px;
+}
+
+#input-feedback-Left {
+    position: absolute;
+    margin-right: 380px;
+    background-color: #ffffff4d;
+    padding: 50px 20px 50px 200px;
+    border-radius: 10px;
+}
+
+#input-feedback-Right {
+    position: absolute;
+    margin-left: 380px;
+    background-color: #ffffff4d;
+    padding: 50px 200px 50px 20px;
+    border-radius: 10px;
+}
+
+#input-feedback-Jump {
+    position: absolute;
+    margin-bottom: 240px;
+    background-color: #ffffff4d;
+    padding: 50px 300px 50px 300px;
+    border-radius: 10px;
+}
+
+#temp {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    font-size: 30px;
+}
+
+#temp div {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+}
+
+#loading-indicator {
+    position: absolute;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+#game-wrapper {
+    display: flex;
+    width: 100%;
+}
+
+.twitch-extension-body #game-wrapper {
+    height: calc(69%);
+}
+
+#door {
+    position: absolute;
+    top: 40px;
+    right: 30px;
+    width: 100px;
+    height: 100px;
+    cursor: pointer;
+}
+
+.canvas--active + #door, .canvas--loading + #door {
+    display: none;
+}
+
+.door--locked {
+    background: url("door_locked_greyish.png") no-repeat;
+}
+
+.door--locked:hover.door--locked:after {
+    position: absolute;
+    background-color: black;
+    padding: 5px;
+    content: 'Please login and give identity permission to enter!'
+}
+
+.door--open {
+    background: url("door_closed.png") no-repeat;
+}
+
+.door--open:hover {
+    background: url("door_open.png") no-repeat;
+}
+
+
+#canvas {
+    position: relative;
+    flex: 1 0 0;
+    min-width: 0;
+}
+
+.canvas--loading #loading-indicator{
+    display: flex;
+    background-color: black;
+}
+
+.canvas--hidden {
+    display: none;
+}
+
+#hide-game {
+    display: none;
+    position: absolute;
+    top: 50px;
+    right: 50px;
+    background-color: rgba(255, 255, 255, 25%);
+    cursor: pointer;
+    padding: 3px 7px 6px 8px;
+}
+
+#twitch-chat {
+    width: 300px;
+    position: relative;
+}
+
+.twitch-chat-hidden {
+    display: none;
+}
+
+#toggle-chat {
+    width: 25px;
+    height: 20px;
+    position: absolute;
+    background-color: #ffffff5c;
+    color: white;
+    font-size: 25px;
+    left: -26px;
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0 5px 1px;
+}
+
+
+.lds-heart {
+    display: inline-block;
+    position: relative;
+    width: 80px;
+    height: 80px;
+    transform: rotate(45deg);
+    transform-origin: 40px 40px;
+}
+.lds-heart div {
+    top: 32px;
+    left: 32px;
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    background: #d7dbdf;
+    animation: lds-heart 1.2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+.lds-heart div:after,
+.lds-heart div:before {
+    content: " ";
+    position: absolute;
+    display: block;
+    width: 32px;
+    height: 32px;
+    background: #d7dbdf;
+}
+.lds-heart div:before {
+    left: -24px;
+    border-radius: 50% 0 0 50%;
+}
+.lds-heart div:after {
+    top: -24px;
+    border-radius: 50% 50% 0 0;
+}
+@keyframes lds-heart {
+    0% {
+        transform: scale(0.95);
+    }
+    5% {
+        transform: scale(1.1);
+    }
+    39% {
+        transform: scale(0.85);
+    }
+    45% {
+        transform: scale(1);
+    }
+    60% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(0.9);
+    }
+}

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "Node",
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@/client/*": ["./client/*"],
+      "@/gui/*": ["./gui/src/*"],
+      "@/editor/*": ["./editor/src/*"],
+      "@/shared/*": ["./shared/*"]
+    },
+    "strict": true
+  },
+  "include": ["plugins/**/*.ts", "shared/**/*.ts"],
+  "exclude": ["node_modules/**/*"]
+}

@@ -1,0 +1,22 @@
+@font-face {
+    font-family: 'ChevyRay - Express';
+    src: url('ChevyRay---Express.woff2') format('woff2'),
+        url('ChevyRay---Express.woff') format('woff'),
+        url('ChevyRay---Express.svg#ChevyRay---Express') format('svg');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Convergence';
+    font-style: normal;
+    font-weight: 400;
+    src: url('convergence-v15-latin-regular.eot'); /* IE9 Compat Modes */
+    src: local(''),
+    url('convergence-v15-latin-regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+    url('convergence-v15-latin-regular.woff2') format('woff2'), /* Super Modern Browsers */
+    url('convergence-v15-latin-regular.woff') format('woff'), /* Modern Browsers */
+    url('convergence-v15-latin-regular.ttf') format('truetype'), /* Safari, Android, iOS */
+    url('convergence-v15-latin-regular.svg#Convergence') format('svg'); /* Legacy iOS */
+}

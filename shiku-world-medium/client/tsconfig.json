@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "removeComments": true,
+    "target": "ES6",
+    "allowSyntheticDefaultImports": true,
+    "preserveConstEnums": true,
+    "outFile": "build/debug/medium.js",
+    "sourceMap": true,
+    "types": ["pixi.js", "uuid", "node", "@types/twitch-ext"]
+  },
+  "include": ["../shared/**/*.ts", "**/*.ts"],
+  "exclude": ["**/*.spec.ts"]
+}

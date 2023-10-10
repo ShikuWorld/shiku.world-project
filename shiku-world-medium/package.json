@@ -1,0 +1,35 @@
+{
+  "name": "medium",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "client",
+    "gui",
+    "editor"
+  ],
+  "scripts": {
+    "env": "ts-node-script scripts/main.ts env",
+    "build-gui": "cd ./gui && yarn run build",
+    "watch-gui": "cd ./gui && yarn run dev",
+    "start-editor": "cd ./editor && yarn run dev",
+    "build-code": "ts-node-script scripts/main.ts build",
+    "copy-statics": "ts-node-script scripts/main.ts copy-statics",
+    "clear-build": "ts-node-script scripts/main.ts clear-build",
+    "build": "yarn run clear-build && yarn run env && yarn run build-gui && yarn run build-code && yarn run copy-statics",
+    "watch": "yarn run clear-build && yarn run build-gui && ts-node-script scripts/main.ts watch-everything",
+    "eslint": "eslint --ext .js,.ts",
+    "hot-reload": "ts-node-script scripts/main.ts hot-reload"
+  },
+  "devDependencies": {
+    "@types/eslint": "^8.40.0",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0",
+    "eslint": "^8.42.0",
+    "eslint-plugin-vue": "^9.14.1",
+    "install-peers": "^1.0.4",
+    "prettier": "^3.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.3",
+    "vue-eslint-parser": "^9.3.0"
+  }
+}
