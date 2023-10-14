@@ -1,8 +1,8 @@
 use flume::SendError;
 use serde_json::Error as SerdeJsonError;
+use thiserror::Error;
 
 use crate::core::module::GuestToModule;
-use crate::core::Snowflake;
 use crate::persistence_module::PersistenceError;
 
 #[derive(Debug)]
@@ -15,8 +15,15 @@ pub enum SendEventToModuleError {
 pub enum ProcessModuleEventError {
     GuestNotFound,
     PersistenceError(PersistenceError),
-    GuestAlreadyLoggedIn(Snowflake),
     CouldNotSerializeCommunicationEvent,
+}
+
+#[derive(Error, Debug)]
+pub enum HandleLoginError {
+    #[error("Already logged in.")]
+    AlreadyLoggedIn,
+    #[error("Could login due to persistence error.")]
+    PersistenceError(#[from] PersistenceError),
 }
 
 #[derive(Debug)]

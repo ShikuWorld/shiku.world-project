@@ -1,6 +1,9 @@
-use rapier2d::prelude::Real;
 use std::path::Path;
 use std::path::PathBuf;
+
+use flume::Sender;
+use log::error;
+use rapier2d::prelude::Real;
 
 pub mod animation;
 pub mod basic_game_module;
@@ -51,5 +54,11 @@ pub fn get_out_dir() -> PathBuf {
         path.join("out")
     } else {
         PathBuf::from(Path::new("./out"))
+    }
+}
+
+pub fn send_and_log_error<T>(sender: &mut Sender<T>, data: T) {
+    if let Err(err) = sender.send(data) {
+        error!("{:?}", err);
     }
 }

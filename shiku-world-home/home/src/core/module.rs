@@ -5,11 +5,9 @@ use ts_rs::TS;
 
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
-use crate::core::guest::{
-    Guest, LoginData, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId,
-};
+use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
 use crate::core::{blueprint, Snowflake};
-use crate::resource_module::def::{ResourceEvent, ResourceFile};
+use crate::resource_module::def::{GuestId, ResourceEvent, ResourceFile};
 use crate::resource_module::errors::ResourceParseError;
 use crate::resource_module::map::def::{LayerName, TerrainChunk};
 use crate::ResourceModule;
@@ -101,7 +99,6 @@ pub enum SystemToModuleEvent {
 
 #[derive(Debug)]
 pub enum GuestStateChange {
-    LoginAndTargetModule(LoginData, ModuleExitSlot),
     ExitModule(ModuleExitSlot),
     FoundSecret(String, ModuleName),
 }
@@ -111,7 +108,6 @@ pub enum ModuleToSystemEvent {
     GuestStateChange(GuestStateChange),
     GlobalMessage(String),
     ToastMessage(ToastAlertLevel, String),
-    LoginFailed,
 }
 
 #[derive(Debug)]
@@ -246,6 +242,11 @@ pub type GamePosition = GuestEvent<Vec<(EntityId, Real, Real, Real)>>;
 pub struct ModuleIO {
     pub sender: ModuleInputSender,
     pub receiver: ModuleOutputReceiver,
+}
+
+pub struct SystemCommunicationIO {
+    pub sender: Sender<(GuestId, CommunicationEvent)>,
+    pub receiver: Receiver<(GuestId, CommunicationEvent)>,
 }
 
 #[derive(Clone)]

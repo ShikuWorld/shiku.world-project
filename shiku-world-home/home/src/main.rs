@@ -1,11 +1,12 @@
 #[macro_use]
 extern crate diesel;
+extern crate thiserror;
 
 use std::io::Write;
 
 use dotenv::dotenv;
 use env_logger::Builder;
-use log::{debug, LevelFilter};
+use log::LevelFilter;
 use spin_sleep::LoopHelper;
 
 use crate::conductor_module::def::ConductorModule;

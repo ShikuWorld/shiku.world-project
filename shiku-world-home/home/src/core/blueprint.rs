@@ -233,6 +233,27 @@ impl BlueprintService {
         Ok(module)
     }
 
+    pub fn lazy_load_module(&self, module_name: String) -> Result<Module, BlueprintError> {
+        let result = self.create_module(module_name.clone());
+        if let Err(BlueprintError::FileAlreadyExists) = result {
+            self.load_module(module_name)
+        } else {
+            result
+        }
+    }
+
+    pub fn load_module(&self, module_name: String) -> Result<Module, BlueprintError> {
+        let dir_path = get_out_dir().join("modules").join(&module_name);
+        let file_path = dir_path.join(format!("{}.json", &module_name));
+        if !file_path.exists() {
+            return Err(BlueprintError::FileDoesNotExist);
+        }
+
+        let file = File::open(file_path)?;
+        let reader = BufReader::new(file);
+        Ok(serde_json::from_reader(reader)?)
+    }
+
     pub fn save_module(&self, module: &Module) -> Result<(), BlueprintError> {
         let file_path = get_out_dir()
             .join("modules")

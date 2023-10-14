@@ -7,6 +7,7 @@ use crate::resource_module::errors::{
     ReadResourceMapError, ResourceParseError, SendLoadEventError, SendUnloadEventError,
 };
 
+use log::debug;
 use snowflake::SnowflakeIdBucket;
 use std::collections::HashMap;
 
@@ -84,6 +85,10 @@ impl ResourceModule {
     }*/
 
     pub fn send_load_event(&mut self, guest_id: GuestId) -> Result<(), SendLoadEventError> {
+        debug!(
+            "{}",
+            SendLoadEventError::ReadResourceMap(ReadResourceMapError::Get)
+        );
         self.resource_load_events.push(GuestEvent {
             guest_id,
             event_type: ResourceEvent::LoadResource(self.read_active_resource_map(guest_id)?),
@@ -136,8 +141,8 @@ impl ResourceModule {
         guest_id: GuestId,
     ) -> Result<(), SendLoadEventError> {
         self.active_resources
-            .entry(guest_id.clone())
-            .or_insert_with(|| HashMap::new())
+            .entry(guest_id)
+            .or_insert_with(HashMap::new)
             .insert(module_name, true);
 
         self.send_load_event(guest_id)?;

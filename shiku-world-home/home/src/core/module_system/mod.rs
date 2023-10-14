@@ -233,6 +233,23 @@ impl DynamicGameModule {
         })
     }
 
+    pub fn lazy_load(
+        module_name: String,
+        module_input_receiver: ModuleInputReceiver,
+        module_output_sender: ModuleOutputSender,
+        blueprint_service: &BlueprintService,
+    ) -> Result<DynamicGameModule, CreateModuleError> {
+        let blueprint = blueprint_service.lazy_load_module(module_name)?;
+
+        Ok(DynamicGameModule {
+            world: World::default(),
+            blueprint,
+            guests: HashMap::new(),
+            module_input_receiver,
+            module_output_sender,
+        })
+    }
+
     pub fn name(&self) -> String {
         self.blueprint.name.clone()
     }

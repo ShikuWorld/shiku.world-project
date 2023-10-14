@@ -1,19 +1,31 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use log::debug;
 use reqwest::blocking::Client as BlockingClient;
 use reqwest::Url;
 
-use crate::core::guest::LoginProvider;
+use crate::core::guest::{LoginData, LoginProvider};
 use crate::core::module::ProviderLoggedIn;
-use crate::login::twitch_login::{TwitchApiLogin, TwitchExtensionOauthTokenResponse};
+use crate::login::twitch_login::{
+    TwitchApiError, TwitchApiLogin, TwitchExtensionOauthTokenResponse,
+};
 use crate::resource_module::def::GuestId;
 
 pub struct LoginManager {
     twitch_ext_access_token: String,
     twitch_login_process_running: HashMap<GuestId, TwitchApiLogin>,
     twitch_admin_login_process_running: HashMap<GuestId, TwitchApiLogin>,
+    finished_logins: Vec<GuestId>,
 }
+
+pub enum LoginError {
+    UserDidNotExistLongEnough(i64),
+    TwitchApiError(TwitchApiError),
+}
+
+const MIN_DAYS_SINCE_ACCOUNT_CREATION: i64 = 0;
+
 impl LoginManager {
     pub fn new() -> LoginManager {
         let twitch_ext_access_token = tokio::task::block_in_place(|| {
@@ -42,26 +54,29 @@ impl LoginManager {
         });
 
         LoginManager {
+            finished_logins: Vec::new(),
             twitch_ext_access_token,
             twitch_login_process_running: HashMap::new(),
             twitch_admin_login_process_running: HashMap::new(),
         }
     }
 
-    fn process_running_logins(&mut self) {
-        let _finished_logins: Vec<GuestId> = self
-            .twitch_login_process_running
-            .iter_mut()
-            .filter_map(|(guest_id, process)| {
-                if process.poll_result() {
-                    Some(*guest_id)
-                } else {
-                    None
-                }
-            })
-            .collect();
+    pub fn process_running_logins<F>(&mut self, mut callback: F)
+    where
+        F: FnMut(Result<(GuestId, LoginData), LoginError>),
+    {
+        self.finished_logins
+            .extend(self.twitch_login_process_running.iter_mut().filter_map(
+                |(guest_id, process)| {
+                    if process.poll_result() {
+                        Some(*guest_id)
+                    } else {
+                        None
+                    }
+                },
+            ));
 
-        /*for guest_id in finished_logins {
+        for guest_id in self.finished_logins.drain(..) {
             if let Some(login) = self.twitch_login_process_running.remove(&guest_id) {
                 if let Some(result) = login.result {
                     match result {
@@ -72,76 +87,32 @@ impl LoginManager {
                                 let days_since_account_creation =
                                     Utc::now().signed_duration_since(parsed_date).num_days();
 
-                                if days_since_account_creation < 0 {
-                                    if let Err(err) = self.output_sender.game_system_to_guest_sender.send(GameSystemToGuest {
-                                        guest_id: guest_id.clone(),
-                                        event_type: GameSystemToGuestEvent::UpdateDataStore(format!(
-                                            "{{\"login_error\": \"{}\" }}",
-                                            "Your account has not existed for more than 7 days, ask Shiku to unlock you manually!"
-                                        )),
-                                    }) {
-                                        error!("Could not send error message to guest. {:?}", err);
-                                    }
-                                    if let Err(err) = self
-                                        .output_sender
-                                        .module_to_system_sender
-                                        .send(GuestEvent {
-                                            guest_id,
-                                            event_type: ModuleToSystemEvent::LoginFailed,
-                                        })
-                                    {
-                                        error!("Could not send login failed to guest. {:?}", err);
-                                    }
-                                } else if let Err(err) =
-                                    self.output_sender.module_to_system_sender.send(GuestEvent {
+                                if days_since_account_creation < MIN_DAYS_SINCE_ACCOUNT_CREATION {
+                                    callback(Err(LoginError::UserDidNotExistLongEnough(
+                                        MIN_DAYS_SINCE_ACCOUNT_CREATION,
+                                    )));
+                                } else {
+                                    callback(Ok((
                                         guest_id,
-                                        event_type: ModuleToSystemEvent::GuestStateChange(
-                                            GuestStateChange::LoginAndTargetModule(
-                                                LoginData {
-                                                    provider_user_id: user_response_data.id,
-                                                    display_name: user_response_data.display_name,
-                                                    views: Some(user_response_data.view_count),
-                                                    provider: LoginProvider::Twitch,
-                                                },
-                                                LoginModule::EXIT_SLOTS.exit.into(),
-                                            ),
-                                        ),
-                                    })
-                                {
-                                    error!("{:?}", err);
+                                        LoginData {
+                                            provider_user_id: user_response_data.id,
+                                            display_name: user_response_data.display_name,
+                                            views: Some(user_response_data.view_count),
+                                            provider: LoginProvider::Twitch,
+                                        },
+                                    )));
                                 }
-                            } else {
-                                error!("Could not parse user_response_data.created_at");
                             }
                         }
                         Err(err) => {
-                            error!("Could not login guest with twitch api, hm. {:?}", err);
-                            if let Err(err) = self.output_sender.game_system_to_guest_sender.send(
-                                GameSystemToGuest {
-                                    guest_id: guest_id.clone(),
-                                    event_type: GameSystemToGuestEvent::UpdateDataStore(format!(
-                                    "{{\"login_error\": \"{}\" }}",
-                                    "Could not login, please try a different method or ask Shiku."
-                                )),
-                                },
-                            ) {
-                                error!("Could not send error message to guest. {:?}", err);
-                            }
-                            if let Err(err) =
-                                self.output_sender.module_to_system_sender.send(GuestEvent {
-                                    guest_id,
-                                    event_type: ModuleToSystemEvent::LoginFailed,
-                                })
-                            {
-                                error!("Could not send login failed to guest. {:?}", err);
-                            }
+                            callback(Err(LoginError::TwitchApiError(err)));
                         }
                     }
                 }
             }
-        }*/
+        }
     }
-    fn add_provider_login(&mut self, guest_id: GuestId, provider_logged_in: ProviderLoggedIn) {
+    pub fn add_provider_login(&mut self, guest_id: GuestId, provider_logged_in: ProviderLoggedIn) {
         match provider_logged_in.login_provider {
             LoginProvider::Twitch => {
                 self.twitch_login_process_running.insert(
@@ -159,3 +130,79 @@ impl LoginManager {
         }
     }
 }
+
+/*
+      match result {
+                       Ok(user_response_data) => {
+                           if let Ok(parsed_date) =
+                               DateTime::parse_from_rfc3339(user_response_data.created_at.as_str())
+                           {
+                               let days_since_account_creation =
+                                   Utc::now().signed_duration_since(parsed_date).num_days();
+
+                               if days_since_account_creation < 0 {
+                                   if let Err(err) = self.output_sender.game_system_to_guest_sender.send(GameSystemToGuest {
+                                       guest_id: guest_id.clone(),
+                                       event_type: GameSystemToGuestEvent::UpdateDataStore(format!(
+                                           "{{\"login_error\": \"{}\" }}",
+                                           "Your account has not existed for more than 7 days, ask Shiku to unlock you manually!"
+                                       )),
+                                   }) {
+                                       error!("Could not send error message to guest. {:?}", err);
+                                   }
+                                   if let Err(err) = self
+                                       .output_sender
+                                       .module_to_system_sender
+                                       .send(GuestEvent {
+                                           guest_id,
+                                           event_type: ModuleToSystemEvent::LoginFailed,
+                                       })
+                                   {
+                                       error!("Could not send login failed to guest. {:?}", err);
+                                   }
+                               } else if let Err(err) =
+                                   self.output_sender.module_to_system_sender.send(GuestEvent {
+                                       guest_id,
+                                       event_type: ModuleToSystemEvent::GuestStateChange(
+                                           GuestStateChange::LoginAndTargetModule(
+                                               LoginData {
+                                                   provider_user_id: user_response_data.id,
+                                                   display_name: user_response_data.display_name,
+                                                   views: Some(user_response_data.view_count),
+                                                   provider: LoginProvider::Twitch,
+                                               },
+                                               LoginModule::EXIT_SLOTS.exit.into(),
+                                           ),
+                                       ),
+                                   })
+                               {
+                                   error!("{:?}", err);
+                               }
+                           } else {
+                               error!("Could not parse user_response_data.created_at");
+                           }
+                       }
+                       Err(err) => {
+                           error!("Could not login guest with twitch api, hm. {:?}", err);
+                           if let Err(err) = self.output_sender.game_system_to_guest_sender.send(
+                               GameSystemToGuest {
+                                   guest_id: guest_id.clone(),
+                                   event_type: GameSystemToGuestEvent::UpdateDataStore(format!(
+                                   "{{\"login_error\": \"{}\" }}",
+                                   "Could not login, please try a different method or ask Shiku."
+                               )),
+                               },
+                           ) {
+                               error!("Could not send error message to guest. {:?}", err);
+                           }
+                           if let Err(err) =
+                               self.output_sender.module_to_system_sender.send(GuestEvent {
+                                   guest_id,
+                                   event_type: ModuleToSystemEvent::LoginFailed,
+                               })
+                           {
+                               error!("Could not send login failed to guest. {:?}", err);
+                           }
+                       }
+                   }
+*/

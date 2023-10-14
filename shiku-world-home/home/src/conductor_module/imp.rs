@@ -2,25 +2,27 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
+use flume::unbounded;
 use log::{debug, error, trace, warn};
 use snowflake::SnowflakeIdBucket;
 
 use crate::conductor_module::def::ConductorModule;
 use crate::conductor_module::errors::{
-    ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
+    HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
-use crate::core::blueprint;
 use crate::core::blueprint::BlueprintService;
-use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ProviderUserId};
+use crate::core::guest::{Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     create_module_communication, AdminToSystemEvent, CommunicationEvent, EnterFailedState,
     EnterSuccessState, GamePosition, GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo,
-    GuestToModule, GuestToModuleEvent, LeaveFailedState, LeaveSuccessState, ModuleIO, ModuleName,
-    ModuleState, ModuleToSystem, ModuleToSystemEvent, SignalToGuest, SystemToModuleEvent,
+    GuestToModule, GuestToModuleEvent, GuestToSystemEvent, LeaveFailedState, LeaveSuccessState,
+    ModuleIO, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent, SignalToGuest,
+    SystemCommunicationIO, SystemToModuleEvent,
 };
 use crate::core::module_system::DynamicGameModule;
+use crate::core::{blueprint, send_and_log_error};
 use crate::core::{safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
-use crate::login::login_manager::LoginManager;
+use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
 use crate::resource_module::def::GuestId;
@@ -54,6 +56,8 @@ impl ConductorModule {
 
         self.process_events_from_modules();
         self.process_events_from_guest();
+        self.send_system_events_to_guests();
+        self.process_logins();
         self.send_load_events();
 
         self.handle_timeouts();
@@ -111,7 +115,7 @@ impl ConductorModule {
                             }
                             AdminToSystemEvent::UpdateModule(module_name, module_update) => {}
                             AdminToSystemEvent::CreateModule(module_name) => {
-                                Self::create_and_add_module(
+                                Self::lazy_load_module(
                                     module_name,
                                     &mut self.module_map,
                                     &mut self.module_communication_map,
@@ -127,7 +131,7 @@ impl ConductorModule {
         }
     }
 
-    fn create_and_add_module(
+    fn lazy_load_module(
         module_name: ModuleName,
         module_map: &mut HashMap<ModuleName, DynamicGameModule>,
         module_communication_map: &mut HashMap<ModuleName, ModuleIO>,
@@ -139,7 +143,7 @@ impl ConductorModule {
             module_output_sender,
             module_output_receiver,
         ) = create_module_communication();
-        match DynamicGameModule::create(
+        match DynamicGameModule::lazy_load(
             module_name.clone(),
             module_input_receiver,
             module_output_sender,
@@ -198,9 +202,17 @@ impl ConductorModule {
         blueprint: blueprint::Conductor,
     ) -> ConductorModule {
         let snowflake_gen = SnowflakeIdBucket::new(1, 1);
-        let module_communication_map = HashMap::new();
-        let module_map = HashMap::new();
+        let mut module_communication_map = HashMap::new();
+        let mut module_map = HashMap::new();
         let resource_module = ResourceModule::new();
+        let (sender, receiver) = unbounded();
+
+        Self::lazy_load_module(
+            "Dummy".into(),
+            &mut module_map,
+            &mut module_communication_map,
+            &blueprint_service,
+        );
 
         ConductorModule {
             blueprint,
@@ -211,7 +223,10 @@ impl ConductorModule {
             web_server_module: WebServerModule::new(),
             login_manager: LoginManager::new(),
             snowflake_gen,
-            module_connection_map: HashMap::from([]),
+            module_connection_map: HashMap::from([(
+                "".into(),
+                ("Dummy".into(), "DummyEnter".into()),
+            )]),
             guests: HashMap::new(),
             admins: HashMap::new(),
 
@@ -227,6 +242,7 @@ impl ConductorModule {
             module_map,
 
             module_communication_map,
+            system_to_guest_communication: SystemCommunicationIO { receiver, sender },
         }
     }
 
@@ -289,7 +305,7 @@ impl ConductorModule {
                                 .resource_module
                                 .activate_resources_for_guest(current_module.clone(), guest.id)
                             {
-                                error!("Error activating resource for guest {:?}", err);
+                                error!("Error activating resource for guest {}", err);
                             };
                         }
                     }
@@ -303,7 +319,9 @@ impl ConductorModule {
                 session_id = guest.session_id.clone();
             }
 
-            self.send_to_guest(
+            Self::send_to_guest(
+                &mut self.guests,
+                &mut self.websocket_module,
                 guest_id,
                 serde_json::to_string(&CommunicationEvent::ConnectionReady(session_id.clone()))
                     .unwrap_or_else(|_| "ConnectionReady".to_string()),
@@ -324,7 +342,7 @@ impl ConductorModule {
                 id: guest_id,
                 current_module: None,
                 login_data: None,
-                pending_module_exit: Some("".into()),
+                pending_module_exit: None,
                 ws_connection_id: Some(connection_id),
                 persisted_guest: None,
                 session_id,
@@ -387,21 +405,30 @@ impl ConductorModule {
                 serde_json::to_string(&CommunicationEvent::ResourceEvent(event_type))
             {
                 debug!("Sending load event to guest");
-                self.send_to_guest(guest_id, message_as_string);
+                Self::send_to_guest(
+                    &mut self.guests,
+                    &mut self.websocket_module,
+                    guest_id,
+                    message_as_string,
+                );
             } else {
                 error!("Error serializing resource event!");
             }
         }
     }
 
-    pub fn send_to_guest(&mut self, guest_id: Snowflake, event_as_string: String) {
+    pub fn send_to_guest(
+        guests: &mut HashMap<Snowflake, Guest>,
+        websocket_module: &mut WebsocketModule,
+        guest_id: Snowflake,
+        event_as_string: String,
+    ) {
         if let Some(Guest {
             ws_connection_id, ..
-        }) = self.guests.get(&guest_id)
+        }) = guests.get(&guest_id)
         {
             if let Some(ws_connection_id) = ws_connection_id {
-                self.websocket_module
-                    .send_event(ws_connection_id, event_as_string);
+                websocket_module.send_event(ws_connection_id, event_as_string);
             } else {
                 trace!(
                     "Could not send to guest '{}' no active connection",
@@ -442,6 +469,12 @@ impl ConductorModule {
                         }
                     }
 
+                    debug!(
+                        "trying to get into {:?} {:?}",
+                        target_module_name,
+                        self.module_map.len()
+                    );
+
                     if let Some(target_module) = self.module_map.get_mut(target_module_name) {
                         ConductorModule::try_enter_module(
                             guest,
@@ -476,7 +509,7 @@ impl ConductorModule {
                 if let Err(err) =
                     resource_module.disable_resources_for_guest(module.name(), guest.id.clone())
                 {
-                    error!("Error activating resource for guest {:?}", err);
+                    error!("Error disabling resource for guest {:?}", err);
                 };
             }
             Err(LeaveFailedState::PersistedStateGoneMissingGoneWild) => {
@@ -504,7 +537,7 @@ impl ConductorModule {
                 if let Err(err) =
                     resource_module.activate_resources_for_guest(module.name(), guest.id)
                 {
-                    error!("Error activating resource for guest {:?}", err);
+                    error!("Error activating resource for guest: {}", err);
                 };
             }
             Err(EnterFailedState::PersistedStateGoneMissingGoneWild) => {
@@ -540,39 +573,46 @@ impl ConductorModule {
             ModuleToSystemEvent::GuestStateChange(state_change) => {
                 if let Some(communication_event) = ConductorModule::process_guest_state_change(
                     guest,
-                    &mut self.provider_id_to_guest_map,
                     state_change,
                     &mut self.persistence_module,
                 )? {
                     if let CommunicationEvent::ShowGlobalMessage(_message) = &communication_event {
                         let guest_ids: Vec<GuestId> = self.guests.keys().cloned().collect();
                         for guest_id in guest_ids {
-                            self.send_communication_event_to_guest(guest_id, &communication_event)?;
+                            Self::send_communication_event_to_guest(
+                                &mut self.guests,
+                                &mut self.websocket_module,
+                                guest_id,
+                                &communication_event,
+                            )?;
                         }
                     } else {
-                        self.send_communication_event_to_guest(guest_id, &communication_event)?;
+                        Self::send_communication_event_to_guest(
+                            &mut self.guests,
+                            &mut self.websocket_module,
+                            guest_id,
+                            &communication_event,
+                        )?;
                     }
                 }
             }
             ModuleToSystemEvent::GlobalMessage(message) => {
                 let guest_ids: Vec<GuestId> = self.guests.keys().cloned().collect();
                 for guest_id in guest_ids {
-                    self.send_communication_event_to_guest(
+                    Self::send_communication_event_to_guest(
+                        &mut self.guests,
+                        &mut self.websocket_module,
                         guest_id,
                         &CommunicationEvent::ShowGlobalMessage(message.clone()),
                     )?;
                 }
             }
             ModuleToSystemEvent::ToastMessage(toast_alert_level, message) => {
-                self.send_communication_event_to_guest(
+                Self::send_communication_event_to_guest(
+                    &mut self.guests,
+                    &mut self.websocket_module,
                     guest_id,
                     &CommunicationEvent::Toast(toast_alert_level, message),
-                )?;
-            }
-            ModuleToSystemEvent::LoginFailed => {
-                self.send_communication_event_to_guest(
-                    guest_id,
-                    &CommunicationEvent::Signal(SignalToGuest::LoginFailed),
                 )?;
             }
         }
@@ -581,12 +621,13 @@ impl ConductorModule {
     }
 
     pub fn send_communication_event_to_guest(
-        &mut self,
+        guests: &mut HashMap<Snowflake, Guest>,
+        websocket_module: &mut WebsocketModule,
         guest_id: Snowflake,
         event: &CommunicationEvent,
     ) -> Result<(), ProcessModuleEventError> {
         if let Ok(message_as_string) = serde_json::to_string(event) {
-            self.send_to_guest(guest_id, message_as_string);
+            Self::send_to_guest(guests, websocket_module, guest_id, message_as_string);
             Ok(())
         } else {
             Err(ProcessModuleEventError::CouldNotSerializeCommunicationEvent)
@@ -595,38 +636,10 @@ impl ConductorModule {
 
     pub fn process_guest_state_change(
         guest: &mut Guest,
-        provider_id_to_guest_map: &mut HashMap<ProviderUserId, GuestId>,
         guest_state_change: GuestStateChange,
         persistence_module: &mut PersistenceModule,
     ) -> Result<Option<CommunicationEvent>, ProcessModuleEventError> {
         match guest_state_change {
-            GuestStateChange::LoginAndTargetModule(guest_login_data, module_exit_slot) => {
-                let mut persisted_guest = persistence_module
-                    .lazy_get_persisted_guest_by_provider_id(
-                        &guest_login_data.provider_user_id,
-                        &guest_login_data.display_name,
-                    )?;
-
-                Self::handle_times_joined(persistence_module, &mut persisted_guest)?;
-
-                if provider_id_to_guest_map
-                    .get(&guest_login_data.provider_user_id)
-                    .is_some()
-                {
-                    return Err(ProcessModuleEventError::GuestAlreadyLoggedIn(guest.id));
-                }
-
-                provider_id_to_guest_map
-                    .insert(guest_login_data.provider_user_id.clone(), guest.id);
-
-                guest.login_data = Some(guest_login_data);
-                guest.pending_module_exit = Some(module_exit_slot);
-                guest.persisted_guest = Some(persisted_guest);
-
-                Ok(Some(CommunicationEvent::Signal(
-                    SignalToGuest::LoginSuccess,
-                )))
-            }
             GuestStateChange::ExitModule(module_exit_slot) => {
                 guest.pending_module_exit = Some(module_exit_slot);
 
@@ -690,7 +703,12 @@ impl ConductorModule {
         if let Ok(message_as_string) =
             serde_json::to_string(&CommunicationEvent::PositionEvent(event_type))
         {
-            self.send_to_guest(guest_id, message_as_string);
+            Self::send_to_guest(
+                &mut self.guests,
+                &mut self.websocket_module,
+                guest_id,
+                message_as_string,
+            );
         } else {
             return Err(ProcessGameEventError::CouldNotSerializePosition);
         }
@@ -709,7 +727,12 @@ impl ConductorModule {
         if let Ok(message_as_string) =
             serde_json::to_string(&CommunicationEvent::GameSystemEvent(event_type))
         {
-            self.send_to_guest(guest_id, message_as_string);
+            Self::send_to_guest(
+                &mut self.guests,
+                &mut self.websocket_module,
+                guest_id,
+                message_as_string,
+            );
         } else {
             error!("Error serializing resource event!");
         }
@@ -748,15 +771,6 @@ impl ConductorModule {
                 }
                 Err(ProcessModuleEventError::GuestNotFound) => {
                     error!("Could not find guest, this should never happen!");
-                }
-                Err(ProcessModuleEventError::GuestAlreadyLoggedIn(guest_id)) => {
-                    self.send_to_current_guest_module(
-                        guest_id,
-                        GuestEvent {
-                            guest_id,
-                            event_type: SystemToModuleEvent::AlreadyLoggedIn,
-                        },
-                    );
                 }
                 Err(ProcessModuleEventError::CouldNotSerializeCommunicationEvent) => {
                     error!("Could not serialize communication event for system event.");
@@ -803,34 +817,53 @@ impl ConductorModule {
         for (guest_id, guest) in &self.guests {
             if let Some(ws_connection_id) = &guest.ws_connection_id {
                 for message in self.websocket_module.drain_events(ws_connection_id) {
-                    if let Some(module_name_guest_is_currently_in) = &guest.current_module {
-                        if let Some(module_communication) = self
-                            .module_communication_map
-                            .get(module_name_guest_is_currently_in)
-                        {
-                            match serde_json::from_str::<GuestTo>(message.to_string().as_str()) {
-                                Ok(guest_to) => match guest_to {
-                                    GuestTo::GuestToSystemEvent(event) => {
-                                        debug!("Guest to system event :) {:?}", event);
-                                    }
-                                    GuestTo::GuestToModuleEvent(event) => {
+                    match serde_json::from_str::<GuestTo>(message.to_string().as_str()) {
+                        Ok(guest_to) => match guest_to {
+                            GuestTo::GuestToSystemEvent(event) => {
+                                ConductorModule::process_guest_to_system_event(
+                                    event,
+                                    *guest_id,
+                                    &mut self.login_manager,
+                                );
+                            }
+                            GuestTo::GuestToModuleEvent(event) => {
+                                if let Some(module_name_guest_is_currently_in) =
+                                    &guest.current_module
+                                {
+                                    if let Some(module_communication) = self
+                                        .module_communication_map
+                                        .get(module_name_guest_is_currently_in)
+                                    {
                                         if let Err(err) = ConductorModule::send_event_to_module(
                                             module_communication,
                                             *guest_id,
                                             event,
                                         ) {
-                                            error!("{:?}", err);
+                                            error!("process_events_from_guest, send_event_to_module {:?}", err);
                                         }
                                     }
-                                },
-                                Err(err) => {
-                                    error!("{:?}", err);
                                 }
                             }
+                        },
+                        Err(err) => {
+                            error!("process_events_from_guest - Error trying to parse guest_to event {:?}", err);
                         }
                     }
                 }
             }
+        }
+    }
+
+    fn process_guest_to_system_event(
+        event: GuestToSystemEvent,
+        guest_id: GuestId,
+        login_manager: &mut LoginManager,
+    ) {
+        match event {
+            GuestToSystemEvent::ProviderLoggedIn(provider_logged_in) => {
+                login_manager.add_provider_login(guest_id, provider_logged_in);
+            }
+            GuestToSystemEvent::Ping => {}
         }
     }
 
@@ -848,5 +881,85 @@ impl ConductorModule {
             })?;
 
         Ok(())
+    }
+    fn process_logins(&mut self) {
+        let guests = &mut self.guests;
+        let system_communication_sender = &mut self.system_to_guest_communication.sender;
+        let provider_id_to_guest_map = &mut self.provider_id_to_guest_map;
+        let persistence_module = &mut self.persistence_module;
+        self.login_manager.process_running_logins(|res| match res {
+            Ok((guest_id, login_data)) => {
+                if let Some(guest) = guests.get_mut(&guest_id) {
+                    match Self::handle_user_login(
+                        provider_id_to_guest_map,
+                        persistence_module,
+                        login_data,
+                        guest,
+                    ) {
+                        Ok(()) => {
+                            send_and_log_error(
+                                system_communication_sender,
+                                (
+                                    guest.id.clone(),
+                                    CommunicationEvent::Signal(SignalToGuest::LoginSuccess),
+                                ),
+                            );
+                        }
+                        Err(HandleLoginError::AlreadyLoggedIn) => {
+                            // TODO: already logged in
+                        }
+                        Err(HandleLoginError::PersistenceError(err)) => {
+                            error!("Could not login: {:?}", err);
+                        }
+                    }
+                }
+            }
+            Err(error) => match error {
+                LoginError::UserDidNotExistLongEnough(time) => {}
+                LoginError::TwitchApiError(twitchApiError) => {}
+            },
+        })
+    }
+
+    fn handle_user_login(
+        provider_id_to_guest_map: &mut HashMap<ProviderUserId, Snowflake>,
+        persistence_module: &mut PersistenceModule,
+        login_data: LoginData,
+        guest: &mut Guest,
+    ) -> Result<(), HandleLoginError> {
+        let mut persisted_guest = persistence_module.lazy_get_persisted_guest_by_provider_id(
+            &login_data.provider_user_id,
+            &login_data.display_name,
+        )?;
+
+        Self::handle_times_joined(persistence_module, &mut persisted_guest)?;
+
+        if provider_id_to_guest_map
+            .get(&login_data.provider_user_id)
+            .is_some()
+        {
+            return Err(HandleLoginError::AlreadyLoggedIn);
+        }
+
+        provider_id_to_guest_map.insert(login_data.provider_user_id.clone(), guest.id);
+
+        guest.login_data = Some(login_data);
+        // TODO: Insert correct module name for dummy module
+        guest.pending_module_exit = Some("".into());
+        guest.persisted_guest = Some(persisted_guest);
+
+        Ok(())
+    }
+    fn send_system_events_to_guests(&mut self) {
+        for (guest_id, communication_event) in self.system_to_guest_communication.receiver.drain() {
+            if let Err(err) = Self::send_communication_event_to_guest(
+                &mut self.guests,
+                &mut self.websocket_module,
+                guest_id,
+                &communication_event,
+            ) {
+                error!("{:?}", err);
+            }
+        }
     }
 }

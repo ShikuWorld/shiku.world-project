@@ -60,7 +60,7 @@ export function login(communication_state: CommunicationState): Promise<void> {
         });
       } else {
         window.open(
-          `https://api.twitch.tv/kraken/oauth2/authorize?response_type=code&client_id=uchpfk924k24ozzra8f6i7bpthn33r&redirect_uri=${Config.getTwitchAuthRedirect()}`,
+          `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=uchpfk924k24ozzra8f6i7bpthn33r&redirect_uri=${Config.getTwitchAuthRedirect()}`,
           "",
           "width=500,height=500",
         );

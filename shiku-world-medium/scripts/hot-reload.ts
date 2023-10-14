@@ -15,8 +15,8 @@ export const hot_reload = () => {
       https: true,
       port: 8080,
     },
-    (err, bs) => {
-      console.log(err, bs);
+    (err, _bs) => {
+      console.log(err);
     },
   );
 };

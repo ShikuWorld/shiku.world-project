@@ -1,10 +1,12 @@
 use std::env;
+use std::fmt::{Display, Formatter};
 
 use chrono::Utc;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::result::Error as DieselResultError;
+use thiserror::Error;
 
 use schema::found_secrets;
 use schema::persisted_guest_states;
@@ -19,15 +21,22 @@ use crate::SystemModule;
 pub mod models;
 pub mod schema;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum PersistenceError {
-    DieselResultError(DieselResultError),
+    DieselResultError(#[from] DieselResultError),
     R2D2Error(String),
 }
 
-impl From<DieselResultError> for PersistenceError {
-    fn from(error: DieselResultError) -> Self {
-        PersistenceError::DieselResultError(error)
+impl Display for PersistenceError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PersistenceError::DieselResultError(err) => {
+                write!(f, "DieselResultError {:?}", err)
+            }
+            PersistenceError::R2D2Error(err) => {
+                write!(f, "R2D2Error {:?}", err)
+            }
+        }
     }
 }
 

@@ -5,7 +5,7 @@ use snowflake::SnowflakeIdBucket;
 
 use crate::core::blueprint::BlueprintService;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ModuleExitSlot, ProviderUserId};
-use crate::core::module::{ModuleIO, ModuleName};
+use crate::core::module::{ModuleIO, ModuleName, SystemCommunicationIO};
 use crate::core::module_system::DynamicGameModule;
 use crate::core::{blueprint, Snowflake};
 use crate::login::login_manager::LoginManager;
@@ -37,4 +37,5 @@ pub struct ConductorModule {
 
     pub(super) snowflake_gen: SnowflakeIdBucket,
     pub(super) module_communication_map: HashMap<ModuleName, ModuleIO>,
+    pub(super) system_to_guest_communication: SystemCommunicationIO,
 }
