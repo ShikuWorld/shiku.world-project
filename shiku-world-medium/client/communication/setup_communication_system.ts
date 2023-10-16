@@ -65,7 +65,7 @@ export function check_for_connection_ready(
     if ("ConnectionReady" in communication) {
       communication_state.is_connection_ready = true;
       try {
-        sessionStorage.setItem("session_id", communication.ConnectionReady);
+        sessionStorage.setItem("session_id", communication.ConnectionReady[0]);
       } catch (e) {
         console.error(
           "Seems like you block local storage or something, you'll have to login on every reload.",

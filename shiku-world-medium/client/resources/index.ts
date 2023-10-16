@@ -47,7 +47,7 @@ export class ResourceManager {
     module_name: string;
   }>;
 
-  constructor(private base_url: string) {
+  constructor(private _base_url: string) {
     this.resourceModuleMap = {};
     this.resources_complete = new SimpleEventDispatcher();
     this.resources_unload = new SimpleEventDispatcher();
@@ -72,7 +72,8 @@ export class ResourceManager {
 
   unload_resources(_module_name: string) {}
 
-  start_loading(_module_name: string) {
+  start_loading(module_name: string) {
     // this.get_resource_module(module_name).loader.load();
+    this.resources_complete.dispatch({ module_name });
   }
 }

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -61,4 +62,16 @@ pub fn send_and_log_error<T>(sender: &mut Sender<T>, data: T) {
     if let Err(err) = sender.send(data) {
         error!("{:?}", err);
     }
+}
+
+pub fn fix_intellij_error_bug<T: fmt::Debug + fmt::Display>(error: &T) -> impl fmt::Display + '_ {
+    struct DisplayWrapper<'a, T: fmt::Debug + fmt::Display>(&'a T);
+
+    impl<'a, T: fmt::Debug + fmt::Display> fmt::Display for DisplayWrapper<'a, T> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            fmt::Display::fmt(self.0, f)
+        }
+    }
+
+    DisplayWrapper(error)
 }

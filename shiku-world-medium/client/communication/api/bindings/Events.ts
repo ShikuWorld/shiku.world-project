@@ -4,4 +4,4 @@ import type { ResourceEvent } from "./ResourceEvent";
 import type { SignalToGuest } from "./SignalToGuest";
 import type { ToastAlertLevel } from "./ToastAlertLevel";
 
-export type CommunicationEvent = { ResourceEvent: ResourceEvent } | { GameSystemEvent: GameSystemToGuestEvent } | { PositionEvent: Array<[string, number, number, number]> } | { ConnectionReady: string } | { Signal: SignalToGuest } | { Toast: [ToastAlertLevel, string] } | { ShowGlobalMessage: string } | "AlreadyConnected";
+export type CommunicationEvent = { ResourceEvent: ResourceEvent } | { GameSystemEvent: GameSystemToGuestEvent } | { PositionEvent: Array<[string, number, number, number]> } | { ConnectionReady: [string, boolean] } | { Signal: SignalToGuest } | { Toast: [ToastAlertLevel, string] } | { ShowGlobalMessage: string } | "AlreadyConnected";

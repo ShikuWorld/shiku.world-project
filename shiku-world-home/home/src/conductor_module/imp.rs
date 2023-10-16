@@ -13,15 +13,15 @@ use crate::conductor_module::errors::{
 use crate::core::blueprint::BlueprintService;
 use crate::core::guest::{Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
-    create_module_communication, AdminToSystemEvent, CommunicationEvent, EnterFailedState,
-    EnterSuccessState, GamePosition, GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo,
-    GuestToModule, GuestToModuleEvent, GuestToSystemEvent, LeaveFailedState, LeaveSuccessState,
-    ModuleIO, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent, SignalToGuest,
-    SystemCommunicationIO, SystemToModuleEvent,
+    AdminToSystemEvent, CommunicationEvent, EnterFailedState, EnterSuccessState, GamePosition,
+    GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo, GuestToModule, GuestToModuleEvent,
+    GuestToSystemEvent, LeaveFailedState, LeaveSuccessState, ModuleIO, ModuleName, ModuleState,
+    ModuleToSystem, ModuleToSystemEvent, SignalToGuest, SystemCommunicationIO, SystemToModuleEvent,
+    ToastAlertLevel,
 };
 use crate::core::module_system::DynamicGameModule;
 use crate::core::{blueprint, send_and_log_error};
-use crate::core::{safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
+use crate::core::{fix_intellij_error_bug, safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
@@ -119,6 +119,7 @@ impl ConductorModule {
                                     module_name,
                                     &mut self.module_map,
                                     &mut self.module_communication_map,
+                                    &mut self.resource_module,
                                     &self.blueprint_service,
                                 );
                             }
@@ -135,21 +136,12 @@ impl ConductorModule {
         module_name: ModuleName,
         module_map: &mut HashMap<ModuleName, DynamicGameModule>,
         module_communication_map: &mut HashMap<ModuleName, ModuleIO>,
+        resource_module: &mut ResourceModule,
         blueprint_service: &BlueprintService,
     ) {
-        let (
-            module_input_sender,
-            module_input_receiver,
-            module_output_sender,
-            module_output_receiver,
-        ) = create_module_communication();
-        match DynamicGameModule::lazy_load(
-            module_name.clone(),
-            module_input_receiver,
-            module_output_sender,
-            blueprint_service,
-        ) {
-            Ok(dynamic_game_module) => {
+        match DynamicGameModule::lazy_load(module_name.clone(), blueprint_service, resource_module)
+        {
+            Ok((dynamic_game_module, module_output_receiver, module_input_sender)) => {
                 module_map.insert(module_name.clone(), dynamic_game_module);
                 module_communication_map.insert(
                     module_name.clone(),
@@ -204,13 +196,14 @@ impl ConductorModule {
         let snowflake_gen = SnowflakeIdBucket::new(1, 1);
         let mut module_communication_map = HashMap::new();
         let mut module_map = HashMap::new();
-        let resource_module = ResourceModule::new();
+        let mut resource_module = ResourceModule::new();
         let (sender, receiver) = unbounded();
 
         Self::lazy_load_module(
             "Dummy".into(),
             &mut module_map,
             &mut module_communication_map,
+            &mut resource_module,
             &blueprint_service,
         );
 
@@ -271,6 +264,7 @@ impl ConductorModule {
 
             let guest_id: Snowflake =
                 if let Some(guest) = self.guests.get_mut(guest_id_from_session_id) {
+                    debug!("Guest already existed with their session!");
                     if guest.ws_connection_id.is_some() {
                         error!("Guest already has a connection!");
                         //TODO: Disconnect old connection and connect new connection
@@ -305,7 +299,10 @@ impl ConductorModule {
                                 .resource_module
                                 .activate_resources_for_guest(current_module.clone(), guest.id)
                             {
-                                error!("Error activating resource for guest {}", err);
+                                error!(
+                                    "Error activating resource for guest {}",
+                                    fix_intellij_error_bug(&err)
+                                );
                             };
                         }
                     }
@@ -314,18 +311,18 @@ impl ConductorModule {
                     self.create_new_guest(connection_id)
                 };
 
-            let mut session_id: String = "SHOULDNNOTHAPPEN".to_string();
             if let Some(guest) = self.guests.get(&guest_id) {
-                session_id = guest.session_id.clone();
+                if let Ok(event_as_string) =
+                    serde_json::to_string(&CommunicationEvent::ConnectionReady((
+                        guest.session_id.clone(),
+                        guest.login_data.is_none(),
+                    )))
+                {
+                    Self::send_to_guest(guest, &mut self.websocket_module, event_as_string);
+                } else {
+                    error!("Could not parse ConnectionReady enum, wtf?");
+                }
             }
-
-            Self::send_to_guest(
-                &mut self.guests,
-                &mut self.websocket_module,
-                guest_id,
-                serde_json::to_string(&CommunicationEvent::ConnectionReady(session_id.clone()))
-                    .unwrap_or_else(|_| "ConnectionReady".to_string()),
-            );
         }
     }
 
@@ -405,12 +402,9 @@ impl ConductorModule {
                 serde_json::to_string(&CommunicationEvent::ResourceEvent(event_type))
             {
                 debug!("Sending load event to guest");
-                Self::send_to_guest(
-                    &mut self.guests,
-                    &mut self.websocket_module,
-                    guest_id,
-                    message_as_string,
-                );
+                if let Some(guest) = self.guests.get(&guest_id) {
+                    Self::send_to_guest(guest, &mut self.websocket_module, message_as_string);
+                }
             } else {
                 error!("Error serializing resource event!");
             }
@@ -418,27 +412,16 @@ impl ConductorModule {
     }
 
     pub fn send_to_guest(
-        guests: &mut HashMap<Snowflake, Guest>,
+        guest: &Guest,
         websocket_module: &mut WebsocketModule,
-        guest_id: Snowflake,
         event_as_string: String,
     ) {
-        if let Some(Guest {
-            ws_connection_id, ..
-        }) = guests.get(&guest_id)
-        {
-            if let Some(ws_connection_id) = ws_connection_id {
-                websocket_module.send_event(ws_connection_id, event_as_string);
-            } else {
-                trace!(
-                    "Could not send to guest '{}' no active connection",
-                    guest_id
-                );
-            }
+        if let Some(ws_connection_id) = &guest.ws_connection_id {
+            websocket_module.send_event(ws_connection_id, event_as_string);
         } else {
-            error!(
-                "Could not send to guest '{}' guest doesn't exist...?",
-                guest_id
+            trace!(
+                "Could not send to guest '{}' no active connection",
+                guest.id
             );
         }
     }
@@ -537,7 +520,10 @@ impl ConductorModule {
                 if let Err(err) =
                     resource_module.activate_resources_for_guest(module.name(), guest.id)
                 {
-                    error!("Error activating resource for guest: {}", err);
+                    error!(
+                        "Error activating resource for guest: {}",
+                        fix_intellij_error_bug(&err)
+                    );
                 };
             }
             Err(EnterFailedState::PersistedStateGoneMissingGoneWild) => {
@@ -627,7 +613,9 @@ impl ConductorModule {
         event: &CommunicationEvent,
     ) -> Result<(), ProcessModuleEventError> {
         if let Ok(message_as_string) = serde_json::to_string(event) {
-            Self::send_to_guest(guests, websocket_module, guest_id, message_as_string);
+            if let Some(guest) = guests.get(&guest_id) {
+                Self::send_to_guest(guest, websocket_module, message_as_string);
+            }
             Ok(())
         } else {
             Err(ProcessModuleEventError::CouldNotSerializeCommunicationEvent)
@@ -703,12 +691,9 @@ impl ConductorModule {
         if let Ok(message_as_string) =
             serde_json::to_string(&CommunicationEvent::PositionEvent(event_type))
         {
-            Self::send_to_guest(
-                &mut self.guests,
-                &mut self.websocket_module,
-                guest_id,
-                message_as_string,
-            );
+            if let Some(guest) = self.guests.get(&guest_id) {
+                Self::send_to_guest(guest, &mut self.websocket_module, message_as_string);
+            }
         } else {
             return Err(ProcessGameEventError::CouldNotSerializePosition);
         }
@@ -727,12 +712,9 @@ impl ConductorModule {
         if let Ok(message_as_string) =
             serde_json::to_string(&CommunicationEvent::GameSystemEvent(event_type))
         {
-            Self::send_to_guest(
-                &mut self.guests,
-                &mut self.websocket_module,
-                guest_id,
-                message_as_string,
-            );
+            if let Some(guest) = self.guests.get(&guest_id) {
+                Self::send_to_guest(guest, &mut self.websocket_module, message_as_string);
+            }
         } else {
             error!("Error serializing resource event!");
         }
@@ -900,23 +882,60 @@ impl ConductorModule {
                             send_and_log_error(
                                 system_communication_sender,
                                 (
-                                    guest.id.clone(),
+                                    guest.id,
                                     CommunicationEvent::Signal(SignalToGuest::LoginSuccess),
                                 ),
                             );
                         }
                         Err(HandleLoginError::AlreadyLoggedIn) => {
-                            // TODO: already logged in
+                            debug!("User is already logged in!")
                         }
                         Err(HandleLoginError::PersistenceError(err)) => {
                             error!("Could not login: {:?}", err);
+                            send_and_log_error(
+                                system_communication_sender,
+                                (
+                                    guest.id,
+                                    CommunicationEvent::Signal(SignalToGuest::LoginFailed),
+                                ),
+                            );
                         }
                     }
                 }
             }
             Err(error) => match error {
-                LoginError::UserDidNotExistLongEnough(time) => {}
-                LoginError::TwitchApiError(twitchApiError) => {}
+                LoginError::UserDidNotExistLongEnough(guest_id, time) => {
+                    send_and_log_error(
+                        system_communication_sender,
+                        (
+                            guest_id,
+                            CommunicationEvent::Toast(
+                                ToastAlertLevel::Error,
+                                format!(
+                                    "Your account is not older than {} days. Please ask shiku!",
+                                    time
+                                ),
+                            ),
+                        ),
+                    );
+                }
+                LoginError::TwitchApiError(guest_id, twitch_api_error) => {
+                    debug!(
+                        "Could not login user due to twitch api error {:?}",
+                        twitch_api_error
+                    );
+                    send_and_log_error(
+                        system_communication_sender,
+                        (
+                            guest_id,
+                            CommunicationEvent::Toast(
+                                ToastAlertLevel::Error,
+                                "Could not login because of login error. Please ask shiku!"
+                                    .to_string(),
+                            ),
+                        ),
+                    );
+                }
             },
         })
     }
@@ -944,7 +963,6 @@ impl ConductorModule {
         provider_id_to_guest_map.insert(login_data.provider_user_id.clone(), guest.id);
 
         guest.login_data = Some(login_data);
-        // TODO: Insert correct module name for dummy module
         guest.pending_module_exit = Some("".into());
         guest.persisted_guest = Some(persisted_guest);
 

@@ -20,8 +20,8 @@ pub struct LoginManager {
 }
 
 pub enum LoginError {
-    UserDidNotExistLongEnough(i64),
-    TwitchApiError(TwitchApiError),
+    UserDidNotExistLongEnough(GuestId, i64),
+    TwitchApiError(GuestId, TwitchApiError),
 }
 
 const MIN_DAYS_SINCE_ACCOUNT_CREATION: i64 = 0;
@@ -89,6 +89,7 @@ impl LoginManager {
 
                                 if days_since_account_creation < MIN_DAYS_SINCE_ACCOUNT_CREATION {
                                     callback(Err(LoginError::UserDidNotExistLongEnough(
+                                        guest_id,
                                         MIN_DAYS_SINCE_ACCOUNT_CREATION,
                                     )));
                                 } else {
@@ -105,7 +106,7 @@ impl LoginManager {
                             }
                         }
                         Err(err) => {
-                            callback(Err(LoginError::TwitchApiError(err)));
+                            callback(Err(LoginError::TwitchApiError(guest_id, err)));
                         }
                     }
                 }

@@ -49,9 +49,7 @@ export function start_medium() {
   initialize_input_plugins(guest_input);
   setup_medium_api(communication_system);
 
-  console.log(window.medium_gui);
   menu_system.create_menu_from_config(loginMenuConfig, "login-menu");
-  menu_system.activate("login-menu");
 
   renderer.onStageResize.sub((resize) => {
     entity_manager.iterate_entities((e) => {
@@ -101,7 +99,14 @@ export function start_medium() {
     for (const communication_event of communication_system.inbox) {
       match(communication_event)
         .with("AlreadyConnected", () => {})
-        .with({ ConnectionReady: P.select() }, () => {})
+        .with(
+          { ConnectionReady: P.select() },
+          ([_session_id, should_login]) => {
+            if (should_login) {
+              menu_system.activate("login-menu");
+            }
+          },
+        )
         .with({ ResourceEvent: P.select() }, (resource_event) => {
           match(resource_event)
             .with({ LoadResource: P.select() }, (module_resources_map) => {
@@ -286,6 +291,9 @@ export function start_medium() {
           }
         })
         .with({ Signal: P.select() }, (signal_to_guest) => {
+          if (signal_to_guest === "LoginSuccess") {
+            menu_system.deactivate("login-menu");
+          }
           signal_broadcast_channel.postMessage(signal_to_guest);
         })
         .with({ Toast: P.select() }, ([alertLevel, message]) => {

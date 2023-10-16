@@ -94,7 +94,6 @@ pub enum GuestTo {
 pub enum SystemToModuleEvent {
     Disconnected,
     Reconnected,
-    AlreadyLoggedIn,
 }
 
 #[derive(Debug)]
@@ -186,13 +185,15 @@ pub enum SignalToGuest {
     LoginFailed,
 }
 
+type ShouldLogin = bool;
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "bindings/Events.ts")]
 pub enum CommunicationEvent {
     ResourceEvent(ResourceEvent),
     GameSystemEvent(GameSystemToGuestEvent),
     PositionEvent(Vec<(EntityId, Real, Real, Real)>),
-    ConnectionReady(SessionId),
+    ConnectionReady((SessionId, ShouldLogin)),
     Signal(SignalToGuest),
     Toast(ToastAlertLevel, String),
     ShowGlobalMessage(String),
