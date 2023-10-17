@@ -1,4 +1,4 @@
-use crate::core::basic_game_module::BasicGameModule;
+/*use crate::core::basic_game_module::BasicGameModule;
 use crate::core::entity_manager::EntityManager;
 
 use crate::core::entity::render::CameraSettings;
@@ -398,3 +398,4 @@ pub trait GameModuleCommunicationCallbacks<E: EntityManager, S> {
         debug!("on_want_to_change_module not implemented.");
     }
 }
+*/

@@ -1,11 +1,13 @@
 use flume::{unbounded, Receiver, Sender};
 use rapier2d::prelude::Real;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
+use crate::core::module_system::error::CreateModuleError;
 use crate::core::{blueprint, Snowflake};
 use crate::resource_module::def::{GuestId, ResourceEvent, ResourceFile};
 use crate::resource_module::errors::ResourceParseError;
@@ -119,9 +121,15 @@ pub enum EnterSuccessState {
     Entered,
 }
 
+#[derive(Error, Debug)]
 pub enum EnterFailedState {
+    #[error("Persisted state gone missing gone wild.")]
     PersistedStateGoneMissingGoneWild,
+    #[error(transparent)]
+    CreateModuleError(#[from] CreateModuleError),
+    #[error("Guest already entered")]
     AlreadyEntered,
+    #[error("Could not find game instance, wtf?")]
     GameInstanceNotFoundWTF,
 }
 
