@@ -59,6 +59,7 @@ pub struct Module {
     pub exit_points: Vec<IOPoint>,
     pub max_guests: usize,
     pub min_guests: usize,
+    pub close_after_full: bool,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -83,6 +84,7 @@ impl Module {
             exit_points: Vec::new(),
             insert_points: Vec::new(),
             resources: Vec::new(),
+            close_after_full: false,
         }
     }
 }

@@ -7,7 +7,7 @@ use ts_rs::TS;
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
-use crate::core::module_system::error::CreateModuleError;
+use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::{blueprint, Snowflake};
 use crate::resource_module::def::{GuestId, ResourceEvent, ResourceFile};
 use crate::resource_module::errors::ResourceParseError;
@@ -73,8 +73,8 @@ pub enum AdminToSystemEvent {
 #[ts(export)]
 pub enum GuestToModuleEvent {
     ControlInput(GuestInput),
-    ResourcesLoaded(ModuleName),
-    WantToChangeModule(ModuleName),
+    ResourcesLoaded,
+    WantToChangeModule(Option<ModuleExitSlot>),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -94,8 +94,8 @@ pub enum GuestTo {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub enum SystemToModuleEvent {
-    Disconnected,
-    Reconnected,
+    Disconnected(GuestId),
+    Reconnected(GuestId),
 }
 
 #[derive(Debug)]
@@ -106,14 +106,20 @@ pub enum GuestStateChange {
 
 #[derive(Debug)]
 pub enum ModuleToSystemEvent {
-    GuestStateChange(GuestStateChange),
+    GuestStateChange(GuestId, GuestStateChange),
     GlobalMessage(String),
-    ToastMessage(ToastAlertLevel, String),
+    ToastMessage(GuestId, ToastAlertLevel, String),
 }
 
 #[derive(Debug)]
 pub struct GuestEvent<T> {
-    pub guest_id: Snowflake,
+    pub guest_id: GuestId,
+    pub event_type: T,
+}
+#[derive(Debug)]
+pub struct ModuleInstanceEvent<T> {
+    pub module_name: ModuleName,
+    pub instance_id: ModuleInstanceId,
     pub event_type: T,
 }
 
@@ -125,9 +131,7 @@ pub enum EnterSuccessState {
 pub enum EnterFailedState {
     #[error("Persisted state gone missing gone wild.")]
     PersistedStateGoneMissingGoneWild,
-    #[error(transparent)]
-    CreateModuleError(#[from] CreateModuleError),
-    #[error("Guest already entered")]
+    #[error("Already entered")]
     AlreadyEntered,
     #[error("Could not find game instance, wtf?")]
     GameInstanceNotFoundWTF,
@@ -152,6 +156,7 @@ pub enum ModuleState {
 }
 
 pub type ModuleName = String;
+pub type ModuleInstanceId = Snowflake;
 
 pub trait SystemModule {
     fn module_name(&self) -> ModuleName;
@@ -199,8 +204,12 @@ type ShouldLogin = bool;
 #[ts(export, export_to = "bindings/Events.ts")]
 pub enum CommunicationEvent {
     ResourceEvent(ResourceEvent),
-    GameSystemEvent(GameSystemToGuestEvent),
-    PositionEvent(Vec<(EntityId, Real, Real, Real)>),
+    GameSystemEvent(ModuleName, GameInstanceId, GameSystemToGuestEvent),
+    PositionEvent(
+        ModuleName,
+        GameInstanceId,
+        Vec<(EntityId, Real, Real, Real)>,
+    ),
     ConnectionReady((SessionId, ShouldLogin)),
     Signal(SignalToGuest),
     Toast(ToastAlertLevel, String),
@@ -229,24 +238,28 @@ pub enum GameSystemToGuestEvent {
     OpenMenu(String),
     CloseMenu(String),
     UpdateDataStore(String),
-    ShowTerrainChunks(Real, Vec<TerrainChunk>, ModuleName),
+    ShowTerrainChunks(Real, Vec<TerrainChunk>),
     SetParallax(Vec<(LayerName, (Real, Real))>),
-    ShowEntities(Vec<ShowEntity>, ModuleName),
-    ShowEffects(Vec<ShowEffect>, ModuleName),
-    UpdateEntities(Vec<UpdateEntity>, ModuleName),
-    RemoveEntities(Vec<RemoveEntity>, ModuleName),
-    RemoveAllEntities(ModuleName),
+    ShowEntities(Vec<ShowEntity>),
+    ShowEffects(Vec<ShowEffect>),
+    UpdateEntities(Vec<UpdateEntity>),
+    RemoveEntities(Vec<RemoveEntity>),
+    RemoveAllEntities,
     SetMouseInputSchema(MouseInputSchema),
-    ChangeEntity(Vec<ShowEntity>, ModuleName),
-    SetCamera(EntityId, ModuleName, CameraSettings),
+    ChangeEntity(Vec<ShowEntity>),
+    SetCamera(EntityId, CameraSettings),
 }
 
-pub type GuestToModule = GuestEvent<GuestToModuleEvent>;
-pub type SystemToModule = GuestEvent<SystemToModuleEvent>;
-pub type ModuleToSystem = GuestEvent<ModuleToSystemEvent>;
-pub type GameSystemToGuest = GuestEvent<GameSystemToGuestEvent>;
+pub type GuestToModule = GuestEvent<ModuleInstanceEvent<GuestToModuleEvent>>;
+pub type SystemToModule = ModuleInstanceEvent<SystemToModuleEvent>;
+pub type ModuleToSystem = ModuleToSystemEvent;
+pub type GameSystemToGuest = GuestEvent<ModuleInstanceEvent<GameSystemToGuestEvent>>;
 pub type GuestToSystem = GuestEvent<GuestToSystemEvent>;
-pub type GamePosition = GuestEvent<Vec<(EntityId, Real, Real, Real)>>;
+pub type GamePosition = GuestEvent<(
+    ModuleName,
+    GameInstanceId,
+    Vec<(EntityId, Real, Real, Real)>,
+)>;
 
 pub struct ModuleIO {
     pub sender: ModuleInputSender,

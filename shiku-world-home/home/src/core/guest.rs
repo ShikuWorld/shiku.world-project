@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::core::module::ModuleName;
+use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::Snowflake;
 use crate::persistence_module::models::PersistedGuest;
 
@@ -13,7 +15,8 @@ pub type ModuleEnterSlot = String;
 pub struct Guest {
     pub id: Snowflake,
     pub session_id: SessionId,
-    pub current_module: Option<String>,
+    pub current_module: Option<ModuleName>,
+    pub current_instance_id: Option<GameInstanceId>,
     pub pending_module_exit: Option<ModuleExitSlot>,
     pub login_data: Option<LoginData>,
     pub ws_connection_id: Option<Snowflake>,

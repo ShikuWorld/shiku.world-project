@@ -12,7 +12,6 @@ pub mod blending_mode;
 pub mod entity;
 pub mod entity_manager;
 pub mod entity_manager_generation;
-pub mod game_instance;
 pub mod game_module_communication;
 pub mod managed_map;
 pub mod medium_data_storage;

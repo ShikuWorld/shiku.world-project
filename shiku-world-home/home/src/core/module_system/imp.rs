@@ -4,24 +4,20 @@ use apecs::World;
 use log::debug;
 use tokio::time::Instant;
 
-use crate::core::blueprint::{BlueprintService, Module};
+use crate::core::blueprint::Module;
 use crate::core::guest::{Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication, EnterFailedState, EnterSuccessState, GuestToModule,
-    LeaveFailedState, LeaveSuccessState, ModuleInputSender, ModuleOutputReceiver, SystemToModule,
+    LeaveFailedState, LeaveSuccessState, ModuleInputSender, ModuleOutputReceiver,
 };
 use crate::core::module::{GuestInput, GuestToModuleEvent, SystemToModuleEvent};
 use crate::core::module_system::def::{DynamicGameModule, GuestMap, ModuleCommunication};
-use crate::core::module_system::error::CreateModuleError;
-use crate::resource_module::def::{GuestId, ResourceFile, ResourceModule};
-use crate::resource_module::errors::ResourceParseError;
+use crate::resource_module::def::GuestId;
 
 impl DynamicGameModule {
     pub fn create(
         blueprint: Module,
-        resource_module: &mut ResourceModule,
-    ) -> Result<(DynamicGameModule, ModuleOutputReceiver, ModuleInputSender), CreateModuleError>
-    {
+    ) -> (DynamicGameModule, ModuleOutputReceiver, ModuleInputSender) {
         let (
             module_input_sender,
             module_input_receiver,
@@ -38,32 +34,11 @@ impl DynamicGameModule {
                 module_output_sender,
             ),
         };
-        dynamic_module.register_resources(resource_module)?;
-        Ok((dynamic_module, module_output_receiver, module_input_sender))
-    }
-
-    pub fn lazy_load(
-        module_name: String,
-        blueprint_service: &BlueprintService,
-        resource_module: &mut ResourceModule,
-    ) -> Result<(DynamicGameModule, ModuleOutputReceiver, ModuleInputSender), CreateModuleError>
-    {
-        let blueprint = blueprint_service.lazy_load_module(module_name)?;
-        Self::create(blueprint, resource_module)
+        (dynamic_module, module_output_receiver, module_input_sender)
     }
 
     pub fn name(&self) -> String {
         self.blueprint.name.clone()
-    }
-
-    fn get_base_resource_file(&self) -> ResourceFile {
-        ResourceFile {
-            resources: Vec::new(),
-            module_name: "test".into(),
-        }
-    }
-    fn get_resource_json(&self) -> String {
-        "{\"module_name\": \"Dummy\", \"resources\": []}".into()
     }
 
     fn set_guest_input(guests: &mut GuestMap, guest_id: &GuestId, input: GuestInput) {
@@ -73,19 +48,6 @@ impl DynamicGameModule {
         }
     }
 
-    pub fn register_resources(
-        &self,
-        resource_module: &mut ResourceModule,
-    ) -> Result<(), ResourceParseError> {
-        resource_module.register_resources_for_module(
-            self.blueprint.name.clone(),
-            self.blueprint.name.clone(),
-            self.get_base_resource_file(),
-            Some(self.get_resource_json()),
-        )?;
-
-        Ok(())
-    }
     pub fn update(&mut self) {
         self.handle_guest_events();
         self.handle_system_events();
@@ -98,15 +60,11 @@ impl DynamicGameModule {
             .system_to_module_receiver
             .drain()
         {
-            let SystemToModule {
-                guest_id,
-                event_type,
-            } = event;
-            match event_type {
-                SystemToModuleEvent::Disconnected => {
+            match event.event_type {
+                SystemToModuleEvent::Disconnected(_guest_id) => {
                     debug!("Disconnected not implemented!");
                 }
-                SystemToModuleEvent::Reconnected => {
+                SystemToModuleEvent::Reconnected(_guest_id) => {
                     debug!("Reconnected not implemented!");
                 }
             }
@@ -124,14 +82,14 @@ impl DynamicGameModule {
                 guest_id,
                 event_type,
             } = event;
-            match event_type {
+            match event_type.event_type {
                 GuestToModuleEvent::ControlInput(input) => {
                     Self::set_guest_input(&mut self.guests, &guest_id, input)
                 }
-                GuestToModuleEvent::ResourcesLoaded(_) => {
+                GuestToModuleEvent::ResourcesLoaded => {
                     debug!("Resources Loaded not implemented!");
                 }
-                GuestToModuleEvent::WantToChangeModule(_) => {
+                GuestToModuleEvent::WantToChangeModule(_exit_slot) => {
                     debug!("WantToChangeModule not implemented!");
                 }
             }
