@@ -5,15 +5,11 @@ use ts_rs::TS;
 
 use std::collections::HashMap;
 
-use crate::core::module::{GuestEvent, ModuleName};
+use crate::core::module::{GuestEvent, ModuleInstanceEvent, ModuleName};
 use crate::core::Snowflake;
 
 pub type GuestId = Snowflake;
 pub type ResourceMetaName = String;
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export)]
-pub struct ResourceMap(pub HashMap<ModuleName, Vec<Resource>>);
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[ts(export)]
@@ -55,15 +51,22 @@ pub struct ResourceFile {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
+pub struct ResourceBundle {
+    pub name: String,
+    pub assets: Vec<Resource>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
 pub enum ResourceEvent {
-    LoadResource(ResourceMap),
-    UnLoadResource(ModuleName),
+    LoadResource(ResourceBundle),
+    UnLoadResource,
 }
 
 pub struct ResourceModule {
     pub(super) active_resources: HashMap<GuestId, HashMap<ModuleName, bool>>,
     pub(super) resources: HashMap<ModuleName, HashMap<ResourceMetaName, Resource>>,
-    pub(super) resource_load_events: Vec<GuestEvent<ResourceEvent>>,
+    pub(super) resource_load_events: Vec<GuestEvent<ModuleInstanceEvent<ResourceEvent>>>,
     pub(super) resource_hash_gen: SnowflakeIdBucket,
 }
 

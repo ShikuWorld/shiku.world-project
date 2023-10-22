@@ -4,12 +4,12 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use ts_rs::TS;
 
+use crate::core::blueprint;
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::core::{blueprint, Snowflake};
-use crate::resource_module::def::{GuestId, ResourceEvent, ResourceFile};
+use crate::resource_module::def::{GuestId, ResourceBundle, ResourceEvent, ResourceFile};
 use crate::resource_module::errors::ResourceParseError;
 use crate::resource_module::map::def::{LayerName, TerrainChunk};
 use crate::ResourceModule;
@@ -73,7 +73,7 @@ pub enum AdminToSystemEvent {
 #[ts(export)]
 pub enum GuestToModuleEvent {
     ControlInput(GuestInput),
-    ResourcesLoaded,
+    GameSetupDone,
     WantToChangeModule(Option<ModuleExitSlot>),
 }
 
@@ -119,7 +119,7 @@ pub struct GuestEvent<T> {
 #[derive(Debug)]
 pub struct ModuleInstanceEvent<T> {
     pub module_name: ModuleName,
-    pub instance_id: ModuleInstanceId,
+    pub instance_id: GameInstanceId,
     pub event_type: T,
 }
 
@@ -156,8 +156,6 @@ pub enum ModuleState {
 }
 
 pub type ModuleName = String;
-pub type ModuleInstanceId = Snowflake;
-
 pub trait SystemModule {
     fn module_name(&self) -> ModuleName;
     fn status(&self) -> &ModuleState;
@@ -199,11 +197,13 @@ pub enum SignalToGuest {
 }
 
 type ShouldLogin = bool;
+type IsMainInstance = bool;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "bindings/Events.ts")]
 pub enum CommunicationEvent {
-    ResourceEvent(ResourceEvent),
+    ResourceEvent(ModuleName, ResourceEvent),
+    PrepareGame(ModuleName, GameInstanceId, ResourceBundle, IsMainInstance),
     GameSystemEvent(ModuleName, GameInstanceId, GameSystemToGuestEvent),
     PositionEvent(
         ModuleName,

@@ -28,7 +28,7 @@ pub enum CreateInstanceManagerError {
     ResourceParse(#[from] ResourceParseError),
 }
 
-pub type GameInstanceId = Snowflake;
+pub type GameInstanceId = String;
 
 pub struct GameInstanceManager {
     pub(crate) game_instances: HashMap<GameInstanceId, GameInstance>,
@@ -94,37 +94,48 @@ impl GameInstanceManager {
         &mut self,
         guest: &Guest,
         module_enter_slot: &ModuleEnterSlot,
-    ) -> Result<EnterSuccessState, EnterFailedState> {
+    ) -> Result<(GameInstanceId, EnterSuccessState), EnterFailedState> {
         if self.guest_to_game_instance_map.contains_key(&guest.id) {
             return Err(EnterFailedState::AlreadyEntered);
         }
 
         let game_instance_id = self.lazy_get_game_instance_for_guest_to_join();
         if let Some(game_instance) = self.game_instances.get_mut(&game_instance_id) {
-            let enter_state = game_instance
+            match game_instance
                 .dynamic_module
-                .try_enter(guest, module_enter_slot);
-            if enter_state.is_ok() {
-                let game_instance_id = game_instance.id.clone();
-                self.guest_to_game_instance_map
-                    .insert(guest.id.clone(), game_instance_id);
-                if self.module_blueprint.close_after_full
-                    && game_instance.dynamic_module.guests.len() >= self.module_blueprint.max_guests
-                {
-                    game_instance.closed = true;
+                .try_enter(guest, module_enter_slot)
+            {
+                Ok(success_state) => {
+                    let game_instance_id = game_instance.id.clone();
+                    self.guest_to_game_instance_map
+                        .insert(guest.id, game_instance_id.clone());
+                    if self.module_blueprint.close_after_full
+                        && game_instance.dynamic_module.guests.len()
+                            >= self.module_blueprint.max_guests
+                    {
+                        game_instance.closed = true;
+                    }
+                    return Ok((game_instance_id, success_state));
+                }
+                Err(fail_state) => {
+                    return Err(fail_state);
                 }
             }
-
-            return enter_state;
         }
 
         Err(EnterFailedState::GameInstanceNotFoundWTF)
     }
 
-    pub fn try_leave(&mut self, guest: &Guest) -> Result<LeaveSuccessState, LeaveFailedState> {
+    pub fn try_leave(
+        &mut self,
+        guest: &Guest,
+    ) -> Result<(GameInstanceId, LeaveSuccessState), LeaveFailedState> {
         if let Some(game_instance_id) = self.guest_to_game_instance_map.remove(&guest.id) {
             if let Some(game_instance) = self.game_instances.get_mut(&game_instance_id) {
-                return game_instance.dynamic_module.try_leave(guest);
+                return match game_instance.dynamic_module.try_leave(guest) {
+                    Ok(success_state) => Ok((game_instance_id, success_state)),
+                    Err(err) => Err(err),
+                };
             }
         }
 
@@ -157,40 +168,33 @@ impl GameInstanceManager {
 
     fn relay_messages_to_correct_instances(&mut self) {
         for message in self.input_receiver.guest_to_module_receiver.drain() {
-            if let Some(game_instance_id) = self
-                .guest_to_game_instance_map
-                .get(&message.event_type.instance_id)
+            if let Some(game_instance) =
+                self.game_instances.get_mut(&message.event_type.instance_id)
             {
-                if let Some(game_instance) = self.game_instances.get_mut(&game_instance_id) {
-                    if let Err(err) = game_instance
-                        .input_sender
-                        .guest_to_module_sender
-                        .send(message)
-                    {
-                        error!(
-                            "Game instance message could not send guest message to module?! {:?}",
-                            err
-                        );
-                    }
+                if let Err(err) = game_instance
+                    .input_sender
+                    .guest_to_module_sender
+                    .send(message)
+                {
+                    error!(
+                        "Game instance message could not send guest message to module?! {:?}",
+                        err
+                    );
                 }
             }
         }
 
         for message in self.input_receiver.system_to_module_receiver.drain() {
-            if let Some(game_instance_id) =
-                self.guest_to_game_instance_map.get(&message.instance_id)
-            {
-                if let Some(game_instance) = self.game_instances.get_mut(&game_instance_id) {
-                    if let Err(err) = game_instance
-                        .input_sender
-                        .system_to_module_sender
-                        .send(message)
-                    {
-                        error!(
-                            "Game instance message could not send system message to module?! {:?}",
-                            err
-                        );
-                    }
+            if let Some(game_instance) = self.game_instances.get_mut(&message.instance_id) {
+                if let Err(err) = game_instance
+                    .input_sender
+                    .system_to_module_sender
+                    .send(message)
+                {
+                    error!(
+                        "Game instance message could not send system message to module?! {:?}",
+                        err
+                    );
                 }
             }
         }
@@ -212,8 +216,10 @@ impl GameInstanceManager {
             return game_instance_id;
         }
 
-        let new_game_instance =
-            GameInstance::new(self.instance_id_gen.get_id(), self.module_blueprint.clone());
+        let new_game_instance = GameInstance::new(
+            self.instance_id_gen.get_id().to_string(),
+            self.module_blueprint.clone(),
+        );
         let new_game_instance_id = new_game_instance.id.clone();
         self.game_instances
             .entry(new_game_instance.id.clone())

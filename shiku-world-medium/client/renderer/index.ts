@@ -6,7 +6,7 @@ import {
 import { LayerName } from "../communication/api/bindings/LayerName";
 import { Layer } from "@pixi/layers";
 import { Stage } from "@pixi/layers";
-import { ParallaxContainer } from "./setup_rendering_system";
+import { ParallaxContainer } from "./create_game_renderer";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 
 export interface Point {

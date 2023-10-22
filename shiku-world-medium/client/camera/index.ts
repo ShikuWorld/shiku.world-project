@@ -8,7 +8,7 @@ import {
 import {
   ParallaxContainer,
   viewPortResize,
-} from "../renderer/setup_rendering_system";
+} from "../renderer/create_game_renderer";
 import { Renderer } from "../renderer";
 import { CameraSettings } from "../communication/api/bindings/CameraSettings";
 

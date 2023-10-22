@@ -20,8 +20,7 @@ export interface ParallaxContainer extends Container {
 }
 
 applyCanvasMixin(CanvasRenderer);
-
-export function setup_rendering_system(): Renderer {
+export function create_game_renderer(): Renderer {
   const canvas_wrapper = document.getElementById("canvas");
   const width = canvas_wrapper.offsetWidth;
   const height = canvas_wrapper.offsetHeight;

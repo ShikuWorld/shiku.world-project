@@ -9,58 +9,40 @@ export function create_terrain_manager(): TerrainManager {
   return new TerrainManager();
 }
 
-export class TerrainManager {
-  private _chunk_map: {
-    [module_name: string]: Map<
-      LayerName,
-      {
-        [chunk_key: string]: {
-          x: number;
-          y: number;
-          container: Container;
-        };
-      }
-    >;
+type Chunk = {
+  [chunk_key: string]: {
+    x: number;
+    y: number;
+    container: Container;
   };
+};
+
+export class TerrainManager {
+  private _chunk_map: Map<LayerName, Chunk>;
 
   constructor() {
-    this._chunk_map = {};
+    this._chunk_map = new Map<LayerName, Chunk>
   }
 
-  remove_all_chunks_for_module(
-    resource_manager: ResourceManager,
-    renderer: Renderer,
-    module_name: string
-  ) {
-    const chunk_map = this._chunk_map[module_name];
-    if (!chunk_map) {
-      return;
-    }
-
-    for (const [layer, layer_chunks] of chunk_map.entries()) {
+  remove_all_chunks_for_module(renderer: Renderer) {
+    for (const [layer, layer_chunks] of this._chunk_map.entries()) {
       for (const chunk of Object.values(layer_chunks)) {
         renderer.layerContainer[layer].removeChild(chunk.container);
       }
     }
-
-    delete this._chunk_map[module_name];
   }
 
   add_chunk(
     resource_manager: ResourceManager,
     renderer: Renderer,
-    module_name: string,
     tile_size: number,
-    chunk: TerrainChunk
+    chunk: TerrainChunk,
   ) {
-    if (!this._chunk_map[module_name]) {
-      this._chunk_map[module_name] = new Map();
-    }
-    if (!this._chunk_map[module_name].has(chunk.layer)) {
-      this._chunk_map[module_name].set(chunk.layer, {});
+    if (!this._chunk_map.has(chunk.layer)) {
+      this._chunk_map.set(chunk.layer, {});
     }
 
-    const chunk_map = this._chunk_map[module_name].get(chunk.layer);
+    const chunk_map = this._chunk_map.get(chunk.layer) as Chunk;
     chunk_map[`${chunk.x}-${chunk.y}`] = {
       y: 0,
       x: 0,
@@ -94,8 +76,8 @@ export class TerrainManager {
         }
 
         const graphics = resource_manager.get_graphics_data_by_gid(
-          module_name,
-          gid
+          gid,
+          renderer,
         );
 
         let sprite: Sprite;

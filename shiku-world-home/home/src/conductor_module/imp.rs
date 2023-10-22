@@ -19,13 +19,13 @@ use crate::core::module::{
     ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent, SignalToGuest,
     SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
 };
-use crate::core::module_system::game_instance::GameInstanceManager;
+use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
 use crate::core::{blueprint, send_and_log_error};
 use crate::core::{fix_intellij_error_bug, safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
-use crate::resource_module::def::GuestId;
+use crate::resource_module::def::{GuestId, ResourceBundle};
 use crate::webserver_module::def::WebServerModule;
 use crate::{ResourceModule, SystemModule, WebsocketModule};
 
@@ -81,7 +81,7 @@ impl ConductorModule {
                 match serde_json::from_str::<AdminToSystemEvent>(message.to_string().as_str()) {
                     Ok(event) => {
                         if !admin.is_logged_in {
-                            if let AdminToSystemEvent::ProviderLoggedIn(provider) = event {
+                            if let AdminToSystemEvent::ProviderLoggedIn(_provider) = event {
                                 if Self::check_admin_login(admin).await {
                                     debug!("Admin login successful!");
                                     admin.is_logged_in = true;
@@ -113,7 +113,7 @@ impl ConductorModule {
                                     error!("Could not save conductor blueprint! {:?}", err)
                                 }
                             }
-                            AdminToSystemEvent::UpdateModule(module_name, module_update) => {}
+                            AdminToSystemEvent::UpdateModule(_module_name, _module_update) => {}
                             AdminToSystemEvent::CreateModule(module_name) => {
                                 Self::create_game_instance_manager(
                                     module_name,
@@ -123,7 +123,7 @@ impl ConductorModule {
                                     &self.blueprint_service,
                                 );
                             }
-                            AdminToSystemEvent::DeleteModule(module_name) => {}
+                            AdminToSystemEvent::DeleteModule(_module_name) => {}
                         }
                     }
                     Err(err) => error!("Failed to parse admin event! {:?}", err),
@@ -298,7 +298,7 @@ impl ConductorModule {
 
                         if let Err(err) = self
                             .resource_module
-                            .activate_resources_for_guest(current_module.clone(), guest.id)
+                            .activate_resources_for_guest(current_module.clone(), &guest.id)
                         {
                             error!(
                                 "Error activating resource for guest {}",
@@ -400,11 +400,16 @@ impl ConductorModule {
     pub fn send_load_events(&mut self) {
         for GuestEvent {
             guest_id,
-            event_type,
+            event_type:
+                ModuleInstanceEvent {
+                    module_name,
+                    instance_id,
+                    event_type,
+                },
         } in self.resource_module.drain_load_events()
         {
             if let Ok(message_as_string) =
-                serde_json::to_string(&CommunicationEvent::ResourceEvent(event_type))
+                serde_json::to_string(&CommunicationEvent::ResourceEvent(module_name, event_type))
             {
                 debug!("Sending load event to guest");
                 if let Some(guest) = self.guests.get(&guest_id) {
@@ -469,6 +474,7 @@ impl ConductorModule {
                             module_enter_slot,
                             target_module,
                             &mut self.resource_module,
+                            &mut self.websocket_module,
                         );
                     } else {
                         error!(
@@ -492,10 +498,11 @@ impl ConductorModule {
         resource_module: &mut ResourceModule,
     ) {
         match module.try_leave(guest) {
-            Ok(LeaveSuccessState::Left) => {
+            Ok((instance_id, LeaveSuccessState::Left)) => {
                 guest.current_module = None;
                 if let Err(err) = resource_module.disable_resources_for_guest(
                     module.module_blueprint.name.clone(),
+                    instance_id,
                     guest.id.clone(),
                 ) {
                     error!("Error disabling resource for guest {:?}", err);
@@ -521,20 +528,40 @@ impl ConductorModule {
         module_enter_slot: &ModuleEnterSlot,
         module: &mut GameInstanceManager,
         resource_module: &mut ResourceModule,
+        websocket_module: &mut WebsocketModule,
     ) {
         let module_name = module.module_blueprint.name.clone();
         match module.try_enter(guest, module_enter_slot) {
-            Ok(EnterSuccessState::Entered) => {
+            Ok((instance_id, EnterSuccessState::Entered)) => {
                 guest.current_module = Some(module_name.clone());
                 guest.pending_module_exit = None;
                 if let Err(err) =
-                    resource_module.activate_resources_for_guest(module_name, guest.id)
+                    resource_module.activate_resources_for_guest(module_name.clone(), &guest.id)
                 {
                     error!(
                         "Error activating resource for guest: {}",
                         fix_intellij_error_bug(&err)
                     );
                 };
+                if let Ok(resources) =
+                    resource_module.get_active_resources_for_module(&module_name, &guest.id)
+                {
+                    if let Err(err) = Self::send_communication_event_to_guest_direct(
+                        guest,
+                        websocket_module,
+                        &CommunicationEvent::PrepareGame(
+                            module_name,
+                            instance_id,
+                            ResourceBundle {
+                                name: "Init".into(),
+                                assets: Vec::new(),
+                            },
+                            true,
+                        ),
+                    ) {
+                        error!("Cold not send communicastion event to guest {:?}", err);
+                    }
+                }
             }
             Err(EnterFailedState::PersistedStateGoneMissingGoneWild) => {
                 error!("Guest state could not be loaded...? {}", module_name);
@@ -616,10 +643,19 @@ impl ConductorModule {
         guest_id: Snowflake,
         event: &CommunicationEvent,
     ) -> Result<(), ProcessModuleEventError> {
+        if let Some(guest) = guests.get(&guest_id) {
+            return Self::send_communication_event_to_guest_direct(guest, websocket_module, event);
+        }
+        Ok(())
+    }
+
+    pub fn send_communication_event_to_guest_direct(
+        guest: &Guest,
+        websocket_module: &mut WebsocketModule,
+        event: &CommunicationEvent,
+    ) -> Result<(), ProcessModuleEventError> {
         if let Ok(message_as_string) = serde_json::to_string(event) {
-            if let Some(guest) = guests.get(&guest_id) {
-                Self::send_to_guest(guest, websocket_module, message_as_string);
-            }
+            Self::send_to_guest(guest, websocket_module, message_as_string);
             Ok(())
         } else {
             Err(ProcessModuleEventError::CouldNotSerializeCommunicationEvent)
@@ -818,19 +854,16 @@ impl ConductorModule {
                                 );
                             }
                             GuestTo::GuestToModuleEvent(event) => {
-                                if let (
-                                    Some(module_name_guest_is_currently_in),
-                                    Some(current_instance_id),
-                                ) = (&guest.current_module, &guest.current_instance_id)
+                                if let (Some(module_name), Some(current_instance_id)) =
+                                    (&guest.current_module, &guest.current_instance_id)
                                 {
-                                    if let Some(module_communication) = self
-                                        .module_communication_map
-                                        .get(module_name_guest_is_currently_in)
+                                    if let Some(module_communication) =
+                                        self.module_communication_map.get(module_name)
                                     {
                                         if let Err(err) = ConductorModule::send_event_to_module(
                                             module_communication,
                                             *guest_id,
-                                            module_name_guest_is_currently_in.clone(),
+                                            module_name.clone(),
                                             current_instance_id.clone(),
                                             event,
                                         ) {
@@ -864,9 +897,9 @@ impl ConductorModule {
 
     fn send_event_to_module(
         module_communication: &ModuleIO,
-        guest_id: Snowflake,
+        guest_id: GuestId,
         module_name: ModuleName,
-        instance_id: Snowflake,
+        instance_id: GameInstanceId,
         event: GuestToModuleEvent,
     ) -> Result<(), SendEventToModuleError> {
         module_communication

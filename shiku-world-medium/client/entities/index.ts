@@ -24,32 +24,22 @@ export function create_entity_manager(): EntityManager {
 }
 
 export class EntityManager {
-  private _entity_map: Map<string, Map<string, Entity>>;
+  private _entity_map: Map<string, Entity>;
   constructor() {
     this._entity_map = new Map();
   }
 
   iterate_entities(cb: (entity: Entity) => void) {
-    for (const modules of this._entity_map.values()) {
-      for (const entity of modules.values()) {
-        cb(entity);
-      }
+    for (const entity of this._entity_map.values()) {
+      cb(entity);
     }
   }
 
-  get_entity(module_name: string, entity_id: string): Entity | undefined {
-    const module_entity_map = this._entity_map.get(module_name);
-    if (!module_entity_map) {
-      console.warn(
-        `Could not get entity with id ${entity_id}, reason: module didn't exist`
-      );
-      return;
-    }
-
-    const entity = module_entity_map.get(entity_id);
+  get_entity(entity_id: string): Entity | undefined {
+    const entity = this._entity_map.get(entity_id);
     if (!entity) {
       console.warn(
-        `Could not get entity with id ${entity_id}, reason: didn't exist`
+        `Could not get entity with id ${entity_id}, reason: didn't exist`,
       );
       return;
     }
@@ -58,19 +48,11 @@ export class EntityManager {
   }
 
   add_simple_image_effect(
-    module_name: string,
     simple_image_effect: SimpleImageEffect,
     renderer: Renderer,
-    resource_manager: ResourceManager
+    resource_manager: ResourceManager,
   ) {
-    if (!this._entity_map.has(module_name)) {
-      this._entity_map.set(module_name, new Map());
-    }
-
-    const module_entity_map = this._entity_map.get(module_name);
-
     const [container, layer_name] = get_display_obj_from_render(
-      module_name,
       resource_manager,
       {
         StaticImage: {
@@ -84,8 +66,12 @@ export class EntityManager {
           offset_2d: [0, 0],
         },
       },
-      renderer
+      renderer,
     );
+
+    if (!layer_name) {
+      return;
+    }
 
     const isometry = {
       x: simple_image_effect.initial_isometrics_2d[0],
@@ -97,20 +83,21 @@ export class EntityManager {
     container.y = Math.round(isometry.y * Config.get_simulation_scale());
     container.rotation = isometry.rotation;
 
-    const parent = module_entity_map.get(simple_image_effect.parent_entity);
+    const parent = simple_image_effect.parent_entity
+      ? this._entity_map.get(simple_image_effect.parent_entity)
+      : undefined;
     const display_object = container.getChildAt(0);
     if (display_object instanceof AnimatedSprite) {
       const graphics = resource_manager.get_graphics_data_by_gid(
-        module_name,
         Number(simple_image_effect.graphic_id),
-        renderer
+        renderer,
       );
       display_object.loop = false;
       display_object.alpha = simple_image_effect.transparency;
 
       const animation_length = graphics.frame_objects.reduce(
         (acc, f_o) => acc + f_o.time,
-        0
+        0,
       );
 
       if (parent) {
@@ -130,27 +117,23 @@ export class EntityManager {
   }
 
   add_entity(
-    module_name: string,
     show_entity: ShowEntity,
     renderer: Renderer,
-    resource_manager: ResourceManager
+    resource_manager: ResourceManager,
   ) {
-    if (!this._entity_map.has(module_name)) {
-      this._entity_map.set(module_name, new Map());
-    }
-
-    const module_entity_map = this._entity_map.get(module_name);
-
-    if (module_entity_map.has(show_entity.id)) {
+    if (this._entity_map.has(show_entity.id)) {
       return;
     }
 
     const [container, layer_name] = get_display_obj_from_render(
-      module_name,
       resource_manager,
       show_entity.render,
-      renderer
+      renderer,
     );
+
+    if (!layer_name) {
+      return;
+    }
 
     const isometry = {
       x: show_entity.initial_isometrics_2d[0],
@@ -165,11 +148,13 @@ export class EntityManager {
     }
     container.rotation = isometry.rotation;
 
-    const parent = module_entity_map.get(show_entity.parent_entity);
+    const parent = show_entity.parent_entity
+      ? this._entity_map.get(show_entity.parent_entity)
+      : undefined;
     if (parent) {
       parent.wrapper.addChild(container);
 
-      module_entity_map.set(show_entity.id, {
+      this._entity_map.set(show_entity.id, {
         layer_name,
         id: show_entity.id,
         isometry,
@@ -181,7 +166,7 @@ export class EntityManager {
       renderer.layerContainer[layer_name].addChild(container);
       container.parentLayer = worldLayerMap[layer_name];
 
-      module_entity_map.set(show_entity.id, {
+      this._entity_map.set(show_entity.id, {
         layer_name,
         id: show_entity.id,
         isometry,
@@ -193,13 +178,12 @@ export class EntityManager {
   }
 
   update_entity_position(
-    module_name: string,
     entity_id: string,
     x: number,
     y: number,
-    rotation: number
+    rotation: number,
   ) {
-    const entity = this.get_entity(module_name, entity_id);
+    const entity = this.get_entity(entity_id);
     if (!entity) {
       return;
     }
@@ -209,10 +193,10 @@ export class EntityManager {
     entity.isometry.rotation = rotation;
 
     entity.wrapper.x = Math.round(
-      entity.isometry.x * Config.get_simulation_scale()
+      entity.isometry.x * Config.get_simulation_scale(),
     );
     entity.wrapper.y = Math.round(
-      entity.isometry.y * Config.get_simulation_scale()
+      entity.isometry.y * Config.get_simulation_scale(),
     );
 
     if (entity.layer_name === "Menu" && entity.isometry.x < 0) {
@@ -222,12 +206,11 @@ export class EntityManager {
   }
 
   update_entity(
-    module_name: string,
     update_entity: UpdateEntity,
     resource_manager: ResourceManager,
-    renderer: Renderer
+    renderer: Renderer,
   ) {
-    const entity = this.get_entity(module_name, update_entity.id);
+    const entity = this.get_entity(update_entity.id);
     if (!entity) {
       return;
     }
@@ -250,9 +233,8 @@ export class EntityManager {
       graphic_id = Number(update_entity.render.StaticImage.graphic_id);
     }
     const graphics = resource_manager.get_graphics_data_by_gid(
-      module_name,
       graphic_id,
-      renderer
+      renderer,
     );
 
     if (!graphics) {
@@ -277,7 +259,7 @@ export class EntityManager {
     const sprite = entity.wrapper.getChildAt(0) as Sprite;
     set_sprite_props_from_static_image_data(
       sprite,
-      update_entity.render.StaticImage
+      update_entity.render.StaticImage,
     );
   }
 
@@ -286,25 +268,17 @@ export class EntityManager {
     entity.wrapper.addChildAt(
       get_sprite_from_render(
         (entity.render as { StaticImage: StaticImage }).StaticImage,
-        graphics
+        graphics,
       ),
-      0
+      0,
     );
   }
 
-  remove_entity(module_name: string, remove_entity: RemoveEntity) {
-    const module_entity_map = this._entity_map.get(module_name);
-    if (!module_entity_map) {
-      console.warn(
-        `Could not update entity with id ${remove_entity.id}, reason: module didn't exist`
-      );
-      return;
-    }
-
-    const entity = module_entity_map.get(remove_entity.id);
+  remove_entity(remove_entity: RemoveEntity) {
+    const entity = this._entity_map.get(remove_entity.id);
     if (!entity) {
       throw Error(
-        `Could not remove entity with id ${remove_entity.id}, reason: didn't exist`
+        `Could not remove entity with id ${remove_entity.id}, reason: didn't exist`,
       );
     }
 
@@ -312,24 +286,17 @@ export class EntityManager {
     this._entity_map.delete(remove_entity.id);
   }
 
-  remove_all_entities_from_module(module_name: string) {
-    const module_entity_map = this._entity_map.get(module_name);
-    if (!module_entity_map) {
-      console.warn(`Could not remove entities reason: module didn't exist`);
-      return;
-    }
-
-    for (const entity of module_entity_map.values()) {
+  remove_all_entities_from_module() {
+    for (const entity of this._entity_map.values()) {
       entity.parent_container.removeChild(entity.wrapper);
-      module_entity_map.delete(entity.id);
+      this._entity_map.delete(entity.id);
     }
-    this._entity_map.delete(module_name);
   }
 }
 
 function set_sprite_props_from_static_image_data(
   sprite: Sprite,
-  staticImageData: StaticImage
+  staticImageData: StaticImage,
 ) {
   sprite.x = -Math.round(staticImageData.offset_2d[0]);
   sprite.y = -Math.round(staticImageData.offset_2d[1]);
@@ -348,7 +315,7 @@ function set_sprite_props_from_static_image_data(
 
 function get_sprite_from_render(
   staticImageData: StaticImage,
-  graphics: Graphics
+  graphics: Graphics,
 ): DisplayObject {
   let sprite: Sprite | AnimatedSprite;
 
@@ -373,21 +340,19 @@ function get_sprite_from_render(
 }
 
 function get_display_obj_from_render(
-  module_name: string,
   resource_manager: ResourceManager,
   render: EntityRenderData,
-  renderer: Renderer
-): [Container, LayerName] {
+  renderer: Renderer,
+): [Container, LayerName | undefined] {
   const container = new Container();
-  let layer_name: LayerName;
+  let layer_name: LayerName | undefined = undefined;
   container.addChild(
     match(render)
       .with({ StaticImage: P.select() }, (staticImageData) => {
         layer_name = staticImageData.layer;
         const graphics = resource_manager.get_graphics_data_by_gid(
-          module_name,
           Number(staticImageData.graphic_id),
-          renderer
+          renderer,
         );
 
         return get_sprite_from_render(staticImageData, graphics);
@@ -414,7 +379,7 @@ function get_display_obj_from_render(
       .with({ NoRender: P.select() }, (_data) => {
         return new Sprite();
       })
-      .exhaustive()
+      .exhaustive(),
   );
 
   return [container, layer_name];

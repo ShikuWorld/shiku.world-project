@@ -1,13 +1,13 @@
-use crate::core::module::{GuestEvent, ModuleName};
+use crate::core::module::{GuestEvent, ModuleInstanceEvent, ModuleName};
 use crate::core::safe_unwrap;
 use crate::resource_module::def::{
-    GuestId, Resource, ResourceEvent, ResourceFile, ResourceMap, ResourceModule,
+    GuestId, Resource, ResourceBundle, ResourceEvent, ResourceFile, ResourceModule,
 };
 use crate::resource_module::errors::{
     ReadResourceMapError, ResourceParseError, SendLoadEventError, SendUnloadEventError,
 };
 
-use log::debug;
+use crate::core::module_system::game_instance::GameInstanceId;
 use snowflake::SnowflakeIdBucket;
 use std::collections::HashMap;
 
@@ -84,46 +84,61 @@ impl ResourceModule {
         }
     }*/
 
-    pub fn send_load_event(&mut self, guest_id: GuestId) -> Result<(), SendLoadEventError> {
-        debug!(
-            "{}",
-            SendLoadEventError::ReadResourceMap(ReadResourceMapError::Get)
-        );
+    pub fn send_load_event(
+        &mut self,
+        guest_id: &GuestId,
+        module_name: &ModuleName,
+        instance_id: GameInstanceId,
+    ) -> Result<(), SendLoadEventError> {
         self.resource_load_events.push(GuestEvent {
-            guest_id,
-            event_type: ResourceEvent::LoadResource(self.read_active_resource_map(guest_id)?),
+            guest_id: *guest_id,
+            event_type: ModuleInstanceEvent {
+                module_name: module_name.clone(),
+                instance_id,
+                event_type: ResourceEvent::LoadResource(ResourceBundle {
+                    name: "TBD".into(),
+                    assets: self.get_active_resources_for_module(module_name, guest_id)?,
+                }),
+            },
         });
 
         Ok(())
     }
 
-    pub fn send_unload_event(&mut self, guest_id: GuestId, module_name: &ModuleName) {
+    pub fn send_unload_event(
+        &mut self,
+        guest_id: GuestId,
+        module_name: ModuleName,
+        instance_id: GameInstanceId,
+    ) {
         self.resource_load_events.push(GuestEvent {
             guest_id,
-            event_type: ResourceEvent::UnLoadResource(module_name.clone()),
+
+            event_type: ModuleInstanceEvent {
+                module_name,
+                instance_id,
+                event_type: ResourceEvent::UnLoadResource,
+            },
         });
     }
 
-    pub fn drain_load_events(&mut self) -> Vec<GuestEvent<ResourceEvent>> {
+    pub fn drain_load_events(&mut self) -> Vec<GuestEvent<ModuleInstanceEvent<ResourceEvent>>> {
         self.resource_load_events.drain(..).collect()
     }
 
-    pub fn read_active_resource_map(
+    pub fn get_active_resources_for_module(
         &self,
-        guest_id: GuestId,
-    ) -> Result<ResourceMap, ReadResourceMapError> {
-        let mut resource_map: HashMap<ModuleName, Vec<Resource>> = HashMap::new();
-
+        module_name: &ModuleName,
+        guest_id: &GuestId,
+    ) -> Result<Vec<Resource>, ReadResourceMapError> {
         let active_resources = safe_unwrap(
-            self.active_resources.get(&guest_id),
+            self.active_resources.get(guest_id),
             ReadResourceMapError::Get,
         )?;
 
-        for (module_name, _bool) in active_resources {
-            let resources_out = resource_map
-                .entry(module_name.clone())
-                .or_insert_with(|| Vec::new());
+        let mut resources_out = Vec::new();
 
+        if let Some(true) = active_resources.get(module_name) {
             let current_resources_of_module =
                 safe_unwrap(self.resources.get(module_name), ReadResourceMapError::Get)?;
 
@@ -132,20 +147,18 @@ impl ResourceModule {
             }
         }
 
-        Ok(ResourceMap(resource_map))
+        return Ok(resources_out);
     }
 
     pub fn activate_resources_for_guest(
         &mut self,
         module_name: ModuleName,
-        guest_id: GuestId,
+        guest_id: &GuestId,
     ) -> Result<(), SendLoadEventError> {
         self.active_resources
-            .entry(guest_id)
+            .entry(guest_id.clone())
             .or_insert_with(HashMap::new)
-            .insert(module_name, true);
-
-        self.send_load_event(guest_id)?;
+            .insert(module_name.clone(), true);
 
         Ok(())
     }
@@ -153,6 +166,7 @@ impl ResourceModule {
     pub fn disable_resources_for_guest(
         &mut self,
         module_name: ModuleName,
+        instance_id: GameInstanceId,
         guest_id: GuestId,
     ) -> Result<(), SendUnloadEventError> {
         if let None = self.active_resources.get(&guest_id) {
@@ -166,7 +180,7 @@ impl ResourceModule {
 
         active_modules_for_guest_map.remove(&module_name);
 
-        self.send_unload_event(guest_id, &module_name);
+        self.send_unload_event(guest_id, module_name, instance_id);
 
         Ok(())
     }

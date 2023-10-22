@@ -1,7 +1,11 @@
-import { Texture } from "pixi.js-legacy";
+import { Assets, Texture } from "pixi.js-legacy";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { Resource as ResourceLoadingDefinition } from "../communication/api/bindings/Resource";
 import { FrameObject } from "@pixi/sprite-animated";
+import { Renderer } from "@/client/renderer";
+import { ResourceEvent } from "@/client/communication/api/bindings/ResourceEvent";
+import { match, P } from "ts-pattern";
+import { ResourceBundle } from "@/client/communication/api/bindings/ResourceBundle";
 
 interface TileSet {
   rawData: Document;
@@ -36,44 +40,73 @@ interface TileAnimationMap {
 }
 
 export class ResourceManager {
-  resourceModuleMap: {
-    [module_name: string]: ResourceModule;
+  resourceModule: ResourceModule = {
+    resource_map: {},
+    graphic_id_map: {},
+    tile_sets: [],
   };
 
-  resources_complete: SimpleEventDispatcher<{
+  resource_bundle_complete = new SimpleEventDispatcher<{
     module_name: string;
-  }>;
-  resources_unload: SimpleEventDispatcher<{
-    module_name: string;
-  }>;
+    instance_id: string;
+    bundle_name: string;
+  }>();
+  resources_unload = new SimpleEventDispatcher<void>();
 
-  constructor(private _base_url: string) {
-    this.resourceModuleMap = {};
-    this.resources_complete = new SimpleEventDispatcher();
-    this.resources_unload = new SimpleEventDispatcher();
+  constructor(private _base_url: string) {}
+
+  handle_resource_event(resource_event: ResourceEvent) {
+    match(resource_event)
+      .with({ LoadResource: P.select() }, (module_resources_map) => {
+        console.log(module_resources_map);
+      })
+      .with("UnLoadResource", () => console.log("unload"))
+      .exhaustive();
   }
 
-  get_resource_module(module_name: string): ResourceModule {
-    if (!this.resourceModuleMap[module_name]) {
-      this.resourceModuleMap[module_name] = {
-        resource_map: {},
-        graphic_id_map: {},
-        tile_sets: [],
-      };
-    }
+  get_graphics_data_by_gid(_gid: number, _renderer: Renderer): Graphics {
+    /*if (!this.resourceModule.graphic_id_map[gid]) {
+      const tile_set: TileSet = ResourceManager._get_tileset_by_gid(
+        gid,
+          this.resourceModule.tile_sets,
+      );
 
-    return this.resourceModuleMap[module_name];
+      const id_in_tileset = gid - tile_set.start_gid;
+
+      this.resourceModule.graphic_id_map[gid] = ResourceManager._calculate_graphics(
+        id_in_tileset,
+        tile_set,
+        renderer,
+      );
+    }*/
+
+    return {
+      frame_objects: [],
+      textures: [],
+    };
   }
 
-  add_resource_to_loading_queue(
-    _module_name: string,
-    _resource_loading_definition: ResourceLoadingDefinition,
-  ) {}
-
-  unload_resources(_module_name: string) {}
-
-  start_loading(module_name: string) {
-    // this.get_resource_module(module_name).loader.load();
-    this.resources_complete.dispatch({ module_name });
+  load_resource_bundle(
+    module_name: string,
+    instance_id: string,
+    resource_bundle: ResourceBundle,
+  ) {
+    const bundle_id = `${module_name}-${resource_bundle.name}`;
+    Assets.addBundle(
+      bundle_id,
+      resource_bundle.assets.map((asset) => ({
+        name: asset.meta_name,
+        srcs: asset.path,
+      })),
+    );
+    Assets.loadBundle(bundle_id).then(() => {
+      this.resource_bundle_complete.dispatch({
+        module_name,
+        instance_id,
+        bundle_name: resource_bundle.name,
+      });
+    });
   }
+
+  unload_resources() {}
 }
