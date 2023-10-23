@@ -1,5 +1,5 @@
-import { Renderer } from "./index";
+import { RenderSystem } from "./index";
 
-export function render(renderer: Renderer) {
-  renderer.renderer.render(renderer.stage);
+export function render(render_system: RenderSystem) {
+  render_system.renderer.render(render_system.mainContainer);
 }

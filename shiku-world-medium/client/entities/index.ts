@@ -6,7 +6,7 @@ import {
   Sprite,
   WRAP_MODES,
 } from "pixi.js-legacy";
-import { worldLayerMap, Renderer } from "../renderer";
+import { worldLayerMap, RenderSystem } from "../renderer";
 import { ShowEntity } from "../communication/api/bindings/ShowEntity";
 import { Graphics, ResourceManager } from "../resources";
 import { UpdateEntity } from "../communication/api/bindings/UpdateEntity";
@@ -49,7 +49,7 @@ export class EntityManager {
 
   add_simple_image_effect(
     simple_image_effect: SimpleImageEffect,
-    renderer: Renderer,
+    renderer: RenderSystem,
     resource_manager: ResourceManager,
   ) {
     const [container, layer_name] = get_display_obj_from_render(
@@ -118,7 +118,7 @@ export class EntityManager {
 
   add_entity(
     show_entity: ShowEntity,
-    renderer: Renderer,
+    renderer: RenderSystem,
     resource_manager: ResourceManager,
   ) {
     if (this._entity_map.has(show_entity.id)) {
@@ -208,7 +208,7 @@ export class EntityManager {
   update_entity(
     update_entity: UpdateEntity,
     resource_manager: ResourceManager,
-    renderer: Renderer,
+    renderer: RenderSystem,
   ) {
     const entity = this.get_entity(update_entity.id);
     if (!entity) {
@@ -342,7 +342,7 @@ function get_sprite_from_render(
 function get_display_obj_from_render(
   resource_manager: ResourceManager,
   render: EntityRenderData,
-  renderer: Renderer,
+  renderer: RenderSystem,
 ): [Container, LayerName | undefined] {
   const container = new Container();
   let layer_name: LayerName | undefined = undefined;

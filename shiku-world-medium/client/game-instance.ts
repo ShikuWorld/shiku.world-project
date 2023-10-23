@@ -1,10 +1,6 @@
-import { Renderer } from "@/client/renderer";
+import { RenderSystem } from "@/client/renderer";
 import { create_entity_manager, EntityManager } from "@/client/entities";
-import {
-  Camera,
-  create_camera,
-  set_container_to_viewport_coordinate,
-} from "@/client/camera";
+import { Camera, create_camera } from "@/client/camera";
 import { create_terrain_manager, TerrainManager } from "@/client/terrain";
 import { create_game_renderer } from "@/client/renderer/create_game_renderer";
 import { GameSystemToGuestEvent } from "@/client/communication/api/bindings/GameSystemToGuestEvent";
@@ -13,12 +9,11 @@ import { MediumDataStorage } from "@/client/communication/api/bindings/MediumDat
 import { get_plugin } from "@/client/plugins";
 import { MousePluginType } from "../plugins/mouse-input";
 import { new_shaker } from "@/client/renderer/shaker-factory";
-import { LayerName } from "@/client/communication/api/bindings/LayerName";
 import { MenuSystem } from "@/client/menu";
 import { ResourceManager } from "@/client/resources";
 
 export class GameInstance {
-  renderer: Renderer;
+  renderer: RenderSystem;
   entity_manager: EntityManager;
   camera: Camera;
   terrain_manager: TerrainManager;
@@ -36,7 +31,7 @@ export class GameInstance {
   update() {
     this.camera.update_camera_position(this.entity_manager, this.renderer);
 
-    for (const key in this.renderer.layerContainer) {
+    /*for (const key in this.renderer.layerContainer) {
       const layerName = key as LayerName;
       if (layerName === "Menu") {
         continue;
@@ -47,7 +42,7 @@ export class GameInstance {
         this.camera.camera_isometry,
         parallax_container,
       );
-    }
+    }*/
   }
 
   handle_position_update(
@@ -64,9 +59,6 @@ export class GameInstance {
     resource_manager: ResourceManager,
   ) {
     match(game_system_event)
-      .with({ PrepareGame: P.select() }, (resource_event) => {
-        resource_manager.handle_resource_event(resource_event);
-      })
       .with({ SetCamera: P.select() }, ([entity_id, camera_settings]) => {
         this.camera.set_camera_ref(entity_id, this.module_name);
         this.camera.set_camera_settings(camera_settings, this.renderer);
@@ -146,7 +138,7 @@ export class GameInstance {
             })
             .with({ ShakeScreenEffect: P.select() }, (shake_screen_effect) => {
               new_shaker({
-                target: this.renderer.worldContainer,
+                target: this.renderer.mainContainer,
                 isBidirectional: shake_screen_effect.is_bidirectional,
                 shakeCountMax: shake_screen_effect.shake_count_max,
                 shakeDelay: shake_screen_effect.shake_delay,
@@ -156,8 +148,8 @@ export class GameInstance {
             .exhaustive();
         }
       })
-      .with({ SetParallax: P.select() }, (layer_parallax) => {
-        for (const key in this.renderer.layerContainer) {
+      .with({ SetParallax: P.select() }, (_layer_parallax) => {
+        /*for (const key in this.renderer.mainContainer) {
           const parallax_container =
             this.renderer.layerContainer[key as LayerName];
           parallax_container.y_pscaling = 1.0;
@@ -169,7 +161,7 @@ export class GameInstance {
           }
           this.renderer.layerContainer[layer_name].x_pscaling = parallax[0];
           this.renderer.layerContainer[layer_name].y_pscaling = parallax[1];
-        }
+        }*/
       })
       .with({ UpdateEntities: P.select() }, (updated_entities) => {
         for (const update_entity of updated_entities) {

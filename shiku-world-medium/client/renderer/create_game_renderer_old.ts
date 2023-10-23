@@ -1,5 +1,11 @@
-import { RenderSystem } from "./index";
-import { autoDetectRenderer, Container } from "pixi.js-legacy";
+/*import { LayerContainer, worldLayerMap, Renderer } from "./index";
+import {
+  Application,
+  autoDetectRenderer,
+  BackgroundSystem,
+  CanvasRenderer,
+  Container,
+} from "pixi.js-legacy";
 import { Config } from "../config";
 import {
   get_camera_zoom,
@@ -9,13 +15,18 @@ import {
   set_stage_height,
   set_stage_width,
 } from "../config/config";
+import { Cull } from "@pixi-essentials/cull";
+import { applyCanvasMixin, Stage } from "@pixi/layers";
+import { SimpleEventDispatcher } from "strongly-typed-events";
+import { LayerName } from "../communication/api/bindings/LayerName";
 
 export interface ParallaxContainer extends Container {
   x_pscaling: number;
   y_pscaling: number;
 }
 
-export function create_game_renderer(): RenderSystem {
+applyCanvasMixin(CanvasRenderer);
+export function create_game_renderer(): Renderer {
   const canvas_wrapper = document.getElementById("canvas");
   if (!canvas_wrapper) {
     throw new Error("Could not find canvas!");
@@ -23,16 +34,54 @@ export function create_game_renderer(): RenderSystem {
   const width = canvas_wrapper.offsetWidth;
   const height = canvas_wrapper.offsetHeight;
   const renderer = autoDetectRenderer({
-    backgroundColor: Config.get_bg_color(),
     width,
     height,
   });
-  const mainContainer = new Container();
-  canvas_wrapper.appendChild(renderer.view as HTMLCanvasElement);
 
-  //setup_resizing(renderingSystem);
+  const worldContainer = new Container();
+  const stage = new Stage();
+  const layerContainer: Partial<LayerContainer> = {};
+  stage.sortableChildren = true;
 
-  /*renderer.on("prerender", () => {
+  stage.addChild(worldContainer);
+
+  const cull = new Cull({ recursive: true });
+
+  for (const key in worldLayerMap) {
+    layerContainer[key as LayerName] = new Container() as ParallaxContainer;
+    layerContainer[key as LayerName].x_pscaling = 1;
+    layerContainer[key as LayerName].y_pscaling = 1;
+    worldContainer.addChild(layerContainer[key as LayerName]);
+  }
+
+  cull.add(layerContainer.Terrain);
+  cull.add(layerContainer.BG1);
+  cull.add(layerContainer.BG2);
+  cull.add(layerContainer.BG3);
+  cull.add(layerContainer.BG4);
+  cull.add(layerContainer.BG5);
+  cull.add(layerContainer.BG6);
+  cull.add(layerContainer.BG7);
+  cull.add(layerContainer.BG8);
+  cull.add(layerContainer.BG9);
+  cull.add(layerContainer.BG10);
+  cull.add(layerContainer.BG11);
+
+  document.getElementById("canvas").appendChild(renderer.view);
+
+  const renderingSystem: Renderer = {
+    renderer,
+    stage,
+    isDirty: true,
+    worldContainer,
+    onStageResize: new SimpleEventDispatcher(),
+    layerContainer: layerContainer as LayerContainer,
+    renderingObjects: [],
+  };
+
+  setup_resizing(renderingSystem);
+
+  renderer.on("prerender", () => {
     renderingSystem.layerContainer.GameObjects.children.sort((a, b) => {
       if (a.y > b.y) {
         return 1;
@@ -47,22 +96,18 @@ export function create_game_renderer(): RenderSystem {
       cull.cull(renderer.screen);
       renderingSystem.isDirty = false;
     }
-  });*/
+  });
 
-  return {
-    renderer,
-    isDirty: true,
-    mainContainer,
-  };
+  return renderingSystem;
 }
 
 export const viewPortResize = (
   width: number,
   height: number,
-  renderer: RenderSystem,
+  renderer: Renderer,
 ) => {
-  /*renderer.renderer.view.style.width = `${width}px`;
-  renderer.renderer.view.style.height = `${height}px`;*/
+  renderer.renderer.view.style.width = `${width}px`;
+  renderer.renderer.view.style.height = `${height}px`;
 
   if (get_enable_zoom()) {
     set_stage_width(width * get_camera_zoom());
@@ -76,14 +121,13 @@ export const viewPortResize = (
   setTimeout(() => {
     renderer.isDirty = true;
   }, 50);
-  /*renderer.onStageResize.dispatch({
+  renderer.onStageResize.dispatch({
     stage_width: Config.get_stage_width(),
     stage_height: Config.get_stage_height(),
-  });*/
+  });
 };
 
-/*
-const setup_resizing = (_renderer: Renderer) => {
+const setup_resizing = (renderer: Renderer) => {
   const canvas_wrapper = document.getElementById("canvas");
 
   const twitch_chat = document.getElementById("twitch-chat") || {

@@ -3,7 +3,7 @@ import { Sprite, AnimatedSprite, Container } from "pixi.js-legacy";
 import { LayerName } from "../communication/api/bindings/LayerName";
 import { TerrainChunk } from "../communication/api/bindings/TerrainChunk";
 import { ResourceManager } from "../resources";
-import { worldLayerMap, Renderer } from "../renderer";
+import { worldLayerMap, RenderSystem } from "../renderer";
 
 export function create_terrain_manager(): TerrainManager {
   return new TerrainManager();
@@ -21,10 +21,10 @@ export class TerrainManager {
   private _chunk_map: Map<LayerName, Chunk>;
 
   constructor() {
-    this._chunk_map = new Map<LayerName, Chunk>
+    this._chunk_map = new Map<LayerName, Chunk>();
   }
 
-  remove_all_chunks_for_module(renderer: Renderer) {
+  remove_all_chunks_for_module(renderer: RenderSystem) {
     for (const [layer, layer_chunks] of this._chunk_map.entries()) {
       for (const chunk of Object.values(layer_chunks)) {
         renderer.layerContainer[layer].removeChild(chunk.container);
@@ -34,7 +34,7 @@ export class TerrainManager {
 
   add_chunk(
     resource_manager: ResourceManager,
-    renderer: Renderer,
+    renderer: RenderSystem,
     tile_size: number,
     chunk: TerrainChunk,
   ) {

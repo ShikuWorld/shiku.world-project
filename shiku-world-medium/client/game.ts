@@ -25,7 +25,7 @@ export function start_medium() {
 
   const canvas = document.getElementById("canvas");
   const door = document.getElementById("door");
-  const renderer = create_game_renderer();
+  const render_system = create_game_renderer();
   const communication_system = setup_communication_system();
   const menu_system = new MenuSystem();
   const guest_input = create_guest_input();
@@ -50,16 +50,16 @@ export function start_medium() {
 
   menu_system.create_menu_from_config(loginMenuConfig, "login-menu");
 
-  renderer.onStageResize.sub((_resize) => {
+  /*renderer.onStageResize.sub((_resize) => {
     // TODO: Resize
-    /*entity_manager.iterate_entities((e) => {
+    entity_manager.iterate_entities((e) => {
       if (e.layer_name === "Menu" && e.isometry.x < 0) {
         e.wrapper.x =
           resize.stage_width +
           Math.round(e.isometry.x * Config.get_simulation_scale());
       }
-    });*/
-  });
+    });
+  });*/
 
   if (door && canvas) {
     door.addEventListener("click", () => {
@@ -76,7 +76,7 @@ export function start_medium() {
   function main_loop() {
     window.requestAnimationFrame(main_loop);
 
-    render(renderer);
+    render(render_system);
 
     if (door && guest_input.button_pressed_map[Button.Exit] && canvas) {
       canvas.className = "canvas--hidden";

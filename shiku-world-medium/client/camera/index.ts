@@ -9,7 +9,7 @@ import {
   ParallaxContainer,
   viewPortResize,
 } from "../renderer/create_game_renderer";
-import { Renderer } from "../renderer";
+import { RenderSystem } from "../renderer";
 import { CameraSettings } from "../communication/api/bindings/CameraSettings";
 
 export function create_camera(): Camera {
@@ -20,7 +20,13 @@ export class Camera {
   private _isometry_ref: Isometry;
   private readonly _camera_isometry: Isometry;
   private _entity_id_ref: { module_name: string; entity_id: string };
-  private _camera_settings: CameraSettings;
+  private _camera_settings: CameraSettings = {
+    bounds: [
+      [0, 0],
+      [0, 0],
+    ],
+    zoom: 1,
+  };
 
   constructor() {
     this._camera_isometry = { x: 0, y: 0, rotation: 0 };
@@ -39,10 +45,10 @@ export class Camera {
     };
   }
 
-  set_camera_settings(camera_settings: CameraSettings, renderer: Renderer) {
+  set_camera_settings(camera_settings: CameraSettings, renderer: RenderSystem) {
     this._camera_settings = camera_settings;
     if (this._camera_settings.zoom) {
-      const canvas_wrapper = document.getElementById("canvas");
+      const canvas_wrapper = document.getElementById("canvas") as HTMLElement;
       const width = canvas_wrapper.offsetWidth;
       const height = canvas_wrapper.offsetHeight;
       set_camera_zoom(this._camera_settings.zoom);
@@ -50,16 +56,13 @@ export class Camera {
     }
   }
 
-  update_camera_position(entities: EntityManager, renderer: Renderer) {
+  update_camera_position(entities: EntityManager, renderer: RenderSystem) {
     if (!this._entity_id_ref.module_name) {
       return;
     }
 
     const iso = this._get_camera_iso(
-      entities.get_entity(
-        this._entity_id_ref.module_name,
-        this._entity_id_ref.entity_id
-      )
+      entities.get_entity(this._entity_id_ref.entity_id),
     );
 
     if (this._camera_isometry.x != iso.x || this._camera_isometry.y != iso.y) {
@@ -105,13 +108,13 @@ export class Camera {
 
 export function set_container_to_viewport_coordinate(
   camera_isometry: Isometry,
-  container: ParallaxContainer
+  container: ParallaxContainer,
 ) {
   container.x = -Math.round(
-    camera_isometry.x * container.x_pscaling - get_stage_width() / 2
+    camera_isometry.x * container.x_pscaling - get_stage_width() / 2,
   );
   container.y = -Math.round(
-    camera_isometry.y * container.y_pscaling - get_stage_height() / 2
+    camera_isometry.y * container.y_pscaling - get_stage_height() / 2,
   );
   container.rotation = camera_isometry.rotation;
 }

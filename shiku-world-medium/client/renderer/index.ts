@@ -1,13 +1,7 @@
-import {
-  Container,
-  DisplayObject,
-  AbstractRenderer as PixiRenderer,
-} from "pixi.js-legacy";
+import { Container, DisplayObject, IRenderer } from "pixi.js-legacy";
 import { LayerName } from "../communication/api/bindings/LayerName";
 import { Layer } from "@pixi/layers";
-import { Stage } from "@pixi/layers";
 import { ParallaxContainer } from "./create_game_renderer";
-import { SimpleEventDispatcher } from "strongly-typed-events";
 
 export interface Point {
   x: number;
@@ -57,15 +51,8 @@ export type LayerContainer = {
   [key in LayerName]: ParallaxContainer;
 };
 
-export interface Renderer {
-  renderer: PixiRenderer;
-  stage: Stage;
-  worldContainer: Container;
-  layerContainer: LayerContainer;
+export interface RenderSystem {
+  renderer: IRenderer;
+  mainContainer: Container;
   isDirty: boolean;
-  onStageResize: SimpleEventDispatcher<{
-    stage_width: number;
-    stage_height: number;
-  }>;
-  renderingObjects: { [handle: number]: RenderingObject };
 }
