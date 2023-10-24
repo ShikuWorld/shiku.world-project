@@ -218,6 +218,7 @@ impl GameInstanceManager {
         let new_game_instance = GameInstance::new(
             self.instance_id_gen.get_id().to_string(),
             self.module_blueprint.clone(),
+            self.output_sender.clone(),
         );
         let new_game_instance_id = new_game_instance.id.clone();
         self.game_instances
@@ -232,19 +233,21 @@ pub struct GameInstance {
     pub(crate) id: GameInstanceId,
     pub(crate) inactive_time: Real,
     pub(crate) dynamic_module: DynamicGameModule,
-    pub(crate) output_receiver: ModuleOutputReceiver,
     pub(crate) input_sender: ModuleInputSender,
     pub(crate) closed: bool,
 }
 
 impl GameInstance {
-    pub fn new(id: GameInstanceId, module_blueprint: blueprint::Module) -> GameInstance {
-        let (dynamic_module, output_receiver, input_sender) =
-            DynamicGameModule::create(module_blueprint);
+    pub fn new(
+        id: GameInstanceId,
+        module_blueprint: blueprint::Module,
+        output_sender: ModuleOutputSender,
+    ) -> GameInstance {
+        let (dynamic_module, input_sender) =
+            DynamicGameModule::create(module_blueprint, id.clone(), output_sender);
         GameInstance {
             id,
             dynamic_module,
-            output_receiver,
             input_sender,
             inactive_time: 0.0,
             closed: false,

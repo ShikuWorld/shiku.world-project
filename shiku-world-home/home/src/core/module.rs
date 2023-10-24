@@ -253,6 +253,7 @@ pub enum GameSystemToGuestEvent {
 pub type GuestToModule = GuestEvent<ModuleInstanceEvent<GuestToModuleEvent>>;
 pub type SystemToModule = ModuleInstanceEvent<SystemToModuleEvent>;
 pub type ModuleToSystem = ModuleToSystemEvent;
+pub type GameSystemToInstanceManager = GuestEvent<GameSystemToGuestEvent>;
 pub type GameSystemToGuest = GuestEvent<ModuleInstanceEvent<GameSystemToGuestEvent>>;
 pub type GuestToSystem = GuestEvent<GuestToSystemEvent>;
 pub type GamePosition = GuestEvent<(

@@ -295,16 +295,13 @@ impl ConductorModule {
                         ) {
                             error!("Error sending reconnect event ${}", err);
                         }
-
-                        if let Err(err) = self
-                            .resource_module
-                            .activate_resources_for_guest(current_module.clone(), &guest.id)
-                        {
-                            error!(
-                                "Error activating resource for guest {}",
-                                fix_intellij_error_bug(&err)
-                            );
-                        };
+                        Self::send_prepare_game_event(
+                            &guest,
+                            &mut self.resource_module,
+                            &mut self.websocket_module,
+                            current_module,
+                            current_instance_id,
+                        );
                     }
                 }
                 guest.id
@@ -544,27 +541,13 @@ impl ConductorModule {
                         fix_intellij_error_bug(&err)
                     );
                 };
-                debug!("Resources activated");
-                if let Ok(resources) =
-                    resource_module.get_active_resources_for_module(&module_name, &guest.id)
-                {
-                    debug!("Resources sending?");
-                    if let Err(err) = Self::send_communication_event_to_guest_direct(
-                        guest,
-                        websocket_module,
-                        &CommunicationEvent::PrepareGame(
-                            module_name,
-                            instance_id,
-                            ResourceBundle {
-                                name: "Init".into(),
-                                assets: resources,
-                            },
-                            true,
-                        ),
-                    ) {
-                        error!("Cold not send communicastion event to guest {:?}", err);
-                    }
-                }
+                Self::send_prepare_game_event(
+                    &guest,
+                    resource_module,
+                    websocket_module,
+                    &module_name,
+                    &instance_id,
+                );
             }
             Err(EnterFailedState::PersistedStateGoneMissingGoneWild) => {
                 error!("Guest state could not be loaded...? {}", module_name);
@@ -577,6 +560,35 @@ impl ConductorModule {
                     "Guest already entered {}, this should not happen.",
                     module_name
                 );
+            }
+        }
+    }
+
+    fn send_prepare_game_event(
+        guest: &&mut Guest,
+        resource_module: &mut ResourceModule,
+        websocket_module: &mut WebsocketModule,
+        module_name: &ModuleName,
+        instance_id: &GameInstanceId,
+    ) {
+        if let Ok(resources) =
+            resource_module.get_active_resources_for_module(&module_name, &guest.id)
+        {
+            debug!("Resources sending?");
+            if let Err(err) = Self::send_communication_event_to_guest_direct(
+                guest,
+                websocket_module,
+                &CommunicationEvent::PrepareGame(
+                    module_name.clone(),
+                    instance_id.clone(),
+                    ResourceBundle {
+                        name: "Init".into(),
+                        assets: resources,
+                    },
+                    true,
+                ),
+            ) {
+                error!("Cold not send communicastion event to guest {:?}", err);
             }
         }
     }

@@ -1,29 +1,28 @@
 use std::collections::{HashMap, HashSet};
 
 use apecs::World;
-use log::debug;
+use log::{debug, error};
 use tokio::time::Instant;
 
 use crate::core::blueprint::Module;
 use crate::core::guest::{Guest, ModuleEnterSlot};
 use crate::core::module::{
-    create_module_communication, EnterFailedState, EnterSuccessState, GuestToModule,
-    LeaveFailedState, LeaveSuccessState, ModuleInputSender, ModuleOutputReceiver,
+    create_module_communication_input, EnterFailedState, EnterSuccessState, GameSystemToGuestEvent,
+    GuestEvent, GuestToModule, LeaveFailedState, LeaveSuccessState, ModuleInputSender,
+    ModuleInstanceEvent, ModuleOutputSender,
 };
 use crate::core::module::{GuestInput, GuestToModuleEvent, SystemToModuleEvent};
 use crate::core::module_system::def::{DynamicGameModule, GuestMap, ModuleCommunication};
+use crate::core::module_system::game_instance::GameInstanceId;
 use crate::resource_module::def::GuestId;
 
 impl DynamicGameModule {
     pub fn create(
         blueprint: Module,
-    ) -> (DynamicGameModule, ModuleOutputReceiver, ModuleInputSender) {
-        let (
-            module_input_sender,
-            module_input_receiver,
-            module_output_sender,
-            module_output_receiver,
-        ) = create_module_communication();
+        instance_id: GameInstanceId,
+        module_output_sender: ModuleOutputSender,
+    ) -> (DynamicGameModule, ModuleInputSender) {
+        let (module_input_sender, module_input_receiver) = create_module_communication_input();
         let dynamic_module = DynamicGameModule {
             world: World::default(),
             blueprint,
@@ -33,8 +32,9 @@ impl DynamicGameModule {
                 module_input_receiver,
                 module_output_sender,
             ),
+            instance_id,
         };
-        (dynamic_module, module_output_receiver, module_input_sender)
+        (dynamic_module, module_input_sender)
     }
 
     pub fn name(&self) -> String {
@@ -61,11 +61,15 @@ impl DynamicGameModule {
             .drain()
         {
             match event.event_type {
-                SystemToModuleEvent::Disconnected(_guest_id) => {
-                    debug!("Disconnected not implemented!");
+                SystemToModuleEvent::Disconnected(guest_id) => {
+                    if let Some(guest) = self.guests.get_mut(&guest_id) {
+                        guest.guest_com.connected = false;
+                    }
                 }
-                SystemToModuleEvent::Reconnected(_guest_id) => {
-                    debug!("Reconnected not implemented!");
+                SystemToModuleEvent::Reconnected(guest_id) => {
+                    if let Some(guest) = self.guests.get_mut(&guest_id) {
+                        guest.guest_com.connected = true;
+                    }
                 }
             }
         }
@@ -87,7 +91,25 @@ impl DynamicGameModule {
                     Self::set_guest_input(&mut self.guests, &guest_id, input)
                 }
                 GuestToModuleEvent::GameSetupDone => {
-                    debug!("Game setup done...?");
+                    if let Err(err) = self
+                        .module_communication
+                        .output_sender
+                        .game_system_to_guest_sender
+                        .send(GuestEvent {
+                            guest_id,
+                            event_type: {
+                                ModuleInstanceEvent {
+                                    module_name: self.blueprint.name.clone(),
+                                    instance_id: self.instance_id.clone(),
+                                    event_type: GameSystemToGuestEvent::OpenMenu(
+                                        "login-menu".into(),
+                                    ),
+                                }
+                            },
+                        })
+                    {
+                        error!("{:?}", err);
+                    }
                 }
                 GuestToModuleEvent::WantToChangeModule(_exit_slot) => {
                     debug!("WantToChangeModule not implemented!");

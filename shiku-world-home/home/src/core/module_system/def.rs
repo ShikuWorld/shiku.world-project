@@ -5,6 +5,7 @@ use tokio::time::Instant;
 
 use crate::core::blueprint;
 use crate::core::module::{GuestInput, ModuleInputReceiver, ModuleOutputSender};
+use crate::core::module_system::game_instance::GameInstanceId;
 use crate::resource_module::def::GuestId;
 
 pub struct GuestCommunication {
@@ -38,6 +39,7 @@ pub struct DynamicGameModule {
     pub guests: GuestMap,
     pub admins: AdminSet,
     pub module_communication: ModuleCommunication,
+    pub instance_id: GameInstanceId,
 }
 
 pub struct ModuleGuest {
