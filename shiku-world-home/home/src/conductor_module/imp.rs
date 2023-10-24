@@ -182,8 +182,8 @@ impl ConductorModule {
     }
 
     pub fn update_modules(&mut self) {
-        for module in self.module_map.values_mut() {
-            module.update();
+        for instance_manager in self.module_map.values_mut() {
+            instance_manager.update();
         }
     }
 
@@ -363,8 +363,7 @@ impl ConductorModule {
                     debug!("guest connection lost {:?}", &guest_id);
                     guest.ws_connection_id = None;
 
-                    self.guest_timeout_map
-                        .insert(guest_id.clone(), Instant::now());
+                    self.guest_timeout_map.insert(guest_id, Instant::now());
 
                     if let (Some(current_module), Some(current_instance_id)) =
                         (&guest.current_module, &guest.current_instance_id)
@@ -378,7 +377,7 @@ impl ConductorModule {
                                 .send(ModuleInstanceEvent {
                                     module_name: current_module.clone(),
                                     instance_id: current_instance_id.clone(),
-                                    event_type: SystemToModuleEvent::Disconnected(guest_id.clone()),
+                                    event_type: SystemToModuleEvent::Disconnected(guest_id),
                                 })
                             {
                                 error!("Could not send Disconnected event {}", err);
@@ -533,7 +532,9 @@ impl ConductorModule {
         let module_name = module.module_blueprint.name.clone();
         match module.try_enter(guest, module_enter_slot) {
             Ok((instance_id, EnterSuccessState::Entered)) => {
+                debug!("Entered I think {:?}", instance_id);
                 guest.current_module = Some(module_name.clone());
+                guest.current_instance_id = Some(instance_id.clone());
                 guest.pending_module_exit = None;
                 if let Err(err) =
                     resource_module.activate_resources_for_guest(module_name.clone(), &guest.id)
@@ -543,9 +544,11 @@ impl ConductorModule {
                         fix_intellij_error_bug(&err)
                     );
                 };
+                debug!("Resources activated");
                 if let Ok(resources) =
                     resource_module.get_active_resources_for_module(&module_name, &guest.id)
                 {
+                    debug!("Resources sending?");
                     if let Err(err) = Self::send_communication_event_to_guest_direct(
                         guest,
                         websocket_module,
@@ -554,7 +557,7 @@ impl ConductorModule {
                             instance_id,
                             ResourceBundle {
                                 name: "Init".into(),
-                                assets: Vec::new(),
+                                assets: resources,
                             },
                             true,
                         ),
@@ -870,6 +873,8 @@ impl ConductorModule {
                                             error!("process_events_from_guest, send_event_to_module {:?}", err);
                                         }
                                     }
+                                } else {
+                                    error!("Could not send event to module! module {:?}, instance: {:?}", guest.current_module, guest.current_instance_id);
                                 }
                             }
                         },

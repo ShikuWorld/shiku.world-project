@@ -96,12 +96,13 @@ export class ResourceManager {
       bundle_id,
       resource_bundle.assets.map((asset) => ({
         name: asset.meta_name,
-        srcs: asset.path,
+        srcs: `${this._base_url}/${module_name}/${asset.path}`,
       })),
     );
     Assets.loadBundle(bundle_id).then(() => {
-      const bundle = Assets.get(bundle_id);
-      console.log(bundle);
+      for (const res of resource_bundle.assets) {
+        console.log("Do something with res", res);
+      }
       this.resource_bundle_complete.dispatch({
         module_name,
         instance_id,

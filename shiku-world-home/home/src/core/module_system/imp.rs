@@ -87,7 +87,7 @@ impl DynamicGameModule {
                     Self::set_guest_input(&mut self.guests, &guest_id, input)
                 }
                 GuestToModuleEvent::GameSetupDone => {
-                    debug!("Resources Loaded not implemented!");
+                    debug!("Game setup done...?");
                 }
                 GuestToModuleEvent::WantToChangeModule(_exit_slot) => {
                     debug!("WantToChangeModule not implemented!");

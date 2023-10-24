@@ -32,13 +32,13 @@ export function start_medium() {
   const button_feedback_update = setup_button_feedback();
   const instances: { [instance_id: string]: GameInstance } = {};
   const resource_manager_map: { [module_name: string]: ResourceManager } = {};
-  const current_active_module: string | null = null;
+  let current_active_instance: string | null = null;
 
   function lazy_get_resource_manager(module_name: string) {
     if (!resource_manager_map[module_name]) {
       resource_manager_map[module_name] = create_resource_manager();
       resource_manager_map[module_name].resource_bundle_complete.sub(() => {
-        // TODO: send resource bundle loaded event
+        send_module_event("GameSetupDone", communication_system);
       });
     }
 
@@ -70,7 +70,7 @@ export function start_medium() {
   const open_menu = document.querySelector("#open-menu span");
 
   open_menu?.addEventListener("click", () => {
-    menu_system.toggle(`${current_active_module}Menu`);
+    menu_system.toggle(`${current_active_instance}Menu`);
   });
 
   function main_loop() {
@@ -113,6 +113,7 @@ export function start_medium() {
               resource_bundle,
             );
             instances[instance_id] = new GameInstance(instance_id, module_name);
+            current_active_instance = instance_id;
           },
         )
         .with(
@@ -159,7 +160,7 @@ export function start_medium() {
       instance.update();
     }
 
-    if (guest_input.is_dirty) {
+    if (guest_input.is_dirty && current_active_instance !== null) {
       send_module_event(
         {
           ControlInput: create_guest_input_event(guest_input),

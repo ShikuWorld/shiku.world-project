@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use log::error;
 use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
+use thiserror::Error;
 
+use crate::core::blueprint::BlueprintError;
 use crate::core::blueprint::BlueprintService;
 use crate::core::guest::{Guest, ModuleEnterSlot};
 use crate::core::module::{
@@ -15,10 +17,6 @@ use crate::core::module_system::def::DynamicGameModule;
 use crate::core::{blueprint, Snowflake, TARGET_FRAME_DURATION};
 use crate::resource_module::def::{GuestId, ResourceFile, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
-
-use thiserror::Error;
-
-use crate::core::blueprint::BlueprintError;
 
 #[derive(Error, Debug)]
 pub enum CreateInstanceManagerError {
@@ -68,7 +66,7 @@ impl GameInstanceManager {
 
         manager.register_resources(resource_module)?;
 
-        return Ok((manager, input_sender, output_receiver));
+        Ok((manager, input_sender, output_receiver))
     }
 
     pub fn update(&mut self) {
@@ -76,7 +74,7 @@ impl GameInstanceManager {
 
         for game_instance in self.game_instances.values_mut() {
             game_instance.update();
-            if game_instance.dynamic_module.guests.len() > 0 {
+            if !game_instance.dynamic_module.guests.is_empty() {
                 game_instance.inactive_time = 0.0;
             }
             game_instance.inactive_time += TARGET_FRAME_DURATION;
@@ -101,7 +99,7 @@ impl GameInstanceManager {
 
         let game_instance_id = self.lazy_get_game_instance_for_guest_to_join();
         if let Some(game_instance) = self.game_instances.get_mut(&game_instance_id) {
-            match game_instance
+            return match game_instance
                 .dynamic_module
                 .try_enter(guest, module_enter_slot)
             {
@@ -115,12 +113,10 @@ impl GameInstanceManager {
                     {
                         game_instance.closed = true;
                     }
-                    return Ok((game_instance_id, success_state));
+                    Ok((game_instance_id, success_state))
                 }
-                Err(fail_state) => {
-                    return Err(fail_state);
-                }
-            }
+                Err(fail_state) => Err(fail_state),
+            };
         }
 
         Err(EnterFailedState::GameInstanceNotFoundWTF)
@@ -139,17 +135,20 @@ impl GameInstanceManager {
             }
         }
 
-        return Err(LeaveFailedState::NotInModule);
+        Err(LeaveFailedState::NotInModule)
     }
 
     fn get_base_resource_file(&self) -> ResourceFile {
         ResourceFile {
             resources: Vec::new(),
-            module_name: "test".into(),
+            module_name: self.module_blueprint.name.clone(),
         }
     }
     fn get_resource_json(&self) -> String {
-        "{\"module_name\": \"Dummy\", \"resources\": []}".into()
+        format!(
+            "{{\"module_name\": \"{}\", \"resources\": [{{\"kind\": \"Image\", \"meta_name\": \"test\", \"path\": \"test.png\"}}]}}",
+            self.module_blueprint.name
+        )
     }
 
     pub fn register_resources(
@@ -225,7 +224,7 @@ impl GameInstanceManager {
             .entry(new_game_instance.id.clone())
             .or_insert(new_game_instance);
 
-        return new_game_instance_id;
+        new_game_instance_id
     }
 }
 

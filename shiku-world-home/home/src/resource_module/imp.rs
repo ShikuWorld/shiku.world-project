@@ -37,7 +37,7 @@ impl ResourceModule {
         let module_resources_map = self
             .resources
             .entry(module_name)
-            .or_insert_with(|| HashMap::new());
+            .or_insert_with(HashMap::new);
 
         for resource in resource_file.resources {
             module_resources_map.insert(
@@ -142,12 +142,12 @@ impl ResourceModule {
             let current_resources_of_module =
                 safe_unwrap(self.resources.get(module_name), ReadResourceMapError::Get)?;
 
-            for (_resource_meta_name, resource) in current_resources_of_module {
+            for resource in current_resources_of_module.values() {
                 resources_out.push(resource.clone());
             }
         }
 
-        return Ok(resources_out);
+        Ok(resources_out)
     }
 
     pub fn activate_resources_for_guest(
