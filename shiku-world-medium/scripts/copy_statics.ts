@@ -3,12 +3,12 @@ import * as fs from "fs-extra";
 // Get index html and replace stuff
 export const copy_statics = async () => {
   const gui_includes = fs
-    .readFileSync("./gui/dist/index.html")
+    .readFileSync("./ui/dist/index.html")
     .toString()
     .split("\n")
     .filter((l) => /<script type="module" | <link rel="stylesheet"/g.test(l));
 
-  fs.copySync("./gui/dist", "./build/", {
+  fs.copySync("./ui/dist", "./build/", {
     overwrite: true,
     filter: (f) => !f.includes("index.html"),
   });

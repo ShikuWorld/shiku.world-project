@@ -6,7 +6,6 @@
     "baseUrl": ".",
     "paths": {
       "@/client/*": ["./client/*"],
-      "@/gui/*": ["./gui/src/*"],
       "@/editor/*": ["./editor/src/*"],
       "@/shared/*": ["./shared/*"]
     },
