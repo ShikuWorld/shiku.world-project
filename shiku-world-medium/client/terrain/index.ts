@@ -1,9 +1,9 @@
-import { Sprite, AnimatedSprite, Container } from "pixi.js-legacy";
+import { AnimatedSprite, Container, Sprite } from "pixi.js-legacy";
 
 import { LayerName } from "../communication/api/bindings/LayerName";
 import { TerrainChunk } from "../communication/api/bindings/TerrainChunk";
 import { ResourceManager } from "../resources";
-import { worldLayerMap, RenderSystem } from "../renderer";
+import { InstanceRendering } from "../renderer";
 
 export function create_terrain_manager(): TerrainManager {
   return new TerrainManager();
@@ -24,17 +24,17 @@ export class TerrainManager {
     this._chunk_map = new Map<LayerName, Chunk>();
   }
 
-  remove_all_chunks_for_module(renderer: RenderSystem) {
+  remove_all_chunks_for_module(renderer: InstanceRendering) {
     for (const [layer, layer_chunks] of this._chunk_map.entries()) {
       for (const chunk of Object.values(layer_chunks)) {
-        renderer.layerContainer[layer].removeChild(chunk.container);
+        renderer.layerMap[layer].removeChild(chunk.container);
       }
     }
   }
 
   add_chunk(
     resource_manager: ResourceManager,
-    renderer: RenderSystem,
+    renderer: InstanceRendering,
     tile_size: number,
     chunk: TerrainChunk,
   ) {
@@ -65,9 +65,7 @@ export class TerrainManager {
 
     renderer.debugContainer.addChild(graphics);*/
 
-    chunk_map_entry.container.parentLayer = worldLayerMap[chunk.layer];
-
-    renderer.layerContainer[chunk.layer].addChild(chunk_map_entry.container);
+    renderer.layerMap[chunk.layer].addChild(chunk_map_entry.container);
 
     for (const [y, row] of chunk.tile_ids.entries()) {
       for (const [x, gid] of row.entries()) {

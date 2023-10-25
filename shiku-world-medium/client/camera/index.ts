@@ -3,13 +3,8 @@ import {
   get_simulation_scale,
   get_stage_height,
   get_stage_width,
-  set_camera_zoom,
 } from "../config/config";
-import {
-  ParallaxContainer,
-  viewPortResize,
-} from "../renderer/create_game_renderer";
-import { RenderSystem } from "../renderer";
+import { ParallaxContainer } from "../renderer/create_game_renderer";
 import { CameraSettings } from "../communication/api/bindings/CameraSettings";
 
 export function create_camera(): Camera {
@@ -45,18 +40,19 @@ export class Camera {
     };
   }
 
-  set_camera_settings(camera_settings: CameraSettings, renderer: RenderSystem) {
+  set_camera_settings(camera_settings: CameraSettings) {
     this._camera_settings = camera_settings;
     if (this._camera_settings.zoom) {
-      const canvas_wrapper = document.getElementById("canvas") as HTMLElement;
+      //TODO: change zoom
+      /*const canvas_wrapper = document.getElementById("canvas") as HTMLElement;
       const width = canvas_wrapper.offsetWidth;
       const height = canvas_wrapper.offsetHeight;
       set_camera_zoom(this._camera_settings.zoom);
-      viewPortResize(width, height, renderer);
+      viewPortResize(width, height, renderer);*/
     }
   }
 
-  update_camera_position(entities: EntityManager, renderer: RenderSystem) {
+  update_camera_position(entities: EntityManager) {
     if (!this._entity_id_ref.module_name) {
       return;
     }
@@ -68,7 +64,6 @@ export class Camera {
     if (this._camera_isometry.x != iso.x || this._camera_isometry.y != iso.y) {
       this._camera_isometry.x = iso.x;
       this._camera_isometry.y = iso.y;
-      renderer.isDirty = true;
     }
   }
 

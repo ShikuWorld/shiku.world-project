@@ -6,7 +6,7 @@ import {
   Sprite,
   WRAP_MODES,
 } from "pixi.js-legacy";
-import { worldLayerMap, RenderSystem } from "../renderer";
+import { InstanceRendering } from "../renderer";
 import { ShowEntity } from "../communication/api/bindings/ShowEntity";
 import { Graphics, ResourceManager } from "../resources";
 import { UpdateEntity } from "../communication/api/bindings/UpdateEntity";
@@ -49,7 +49,7 @@ export class EntityManager {
 
   add_simple_image_effect(
     simple_image_effect: SimpleImageEffect,
-    renderer: RenderSystem,
+    renderer: InstanceRendering,
     resource_manager: ResourceManager,
   ) {
     const [container, layer_name] = get_display_obj_from_render(
@@ -103,14 +103,14 @@ export class EntityManager {
       if (parent) {
         parent.wrapper.addChild(container);
       } else {
-        renderer.layerContainer[layer_name].addChild(container);
+        renderer.layerMap[layer_name].addChild(container);
       }
 
       setTimeout(() => {
         if (parent) {
           parent.wrapper.removeChild(container);
         } else {
-          renderer.layerContainer[layer_name].removeChild(container);
+          renderer.layerMap[layer_name].removeChild(container);
         }
       }, animation_length);
     }
@@ -118,7 +118,7 @@ export class EntityManager {
 
   add_entity(
     show_entity: ShowEntity,
-    renderer: RenderSystem,
+    renderer: InstanceRendering,
     resource_manager: ResourceManager,
   ) {
     if (this._entity_map.has(show_entity.id)) {
@@ -163,15 +163,14 @@ export class EntityManager {
         wrapper: container,
       });
     } else {
-      renderer.layerContainer[layer_name].addChild(container);
-      container.parentLayer = worldLayerMap[layer_name];
+      renderer.layerMap[layer_name].addChild(container);
 
       this._entity_map.set(show_entity.id, {
         layer_name,
         id: show_entity.id,
         isometry,
         render: show_entity.render,
-        parent_container: renderer.layerContainer[layer_name],
+        parent_container: renderer.layerMap[layer_name],
         wrapper: container,
       });
     }
@@ -208,7 +207,7 @@ export class EntityManager {
   update_entity(
     update_entity: UpdateEntity,
     resource_manager: ResourceManager,
-    renderer: RenderSystem,
+    renderer: InstanceRendering,
   ) {
     const entity = this.get_entity(update_entity.id);
     if (!entity) {
@@ -327,7 +326,6 @@ function get_sprite_from_render(
     sprite = new Sprite(graphics.textures[0]);
   }
 
-  sprite.parentLayer = worldLayerMap[staticImageData.layer];
   set_sprite_props_from_static_image_data(sprite, staticImageData);
 
   sprite.anchor.set(0.5);
@@ -342,7 +340,7 @@ function get_sprite_from_render(
 function get_display_obj_from_render(
   resource_manager: ResourceManager,
   render: EntityRenderData,
-  renderer: RenderSystem,
+  renderer: InstanceRendering,
 ): [Container, LayerName | undefined] {
   const container = new Container();
   let layer_name: LayerName | undefined = undefined;
@@ -359,11 +357,8 @@ function get_display_obj_from_render(
       })
       .with({ RenderTypeTimer: P.select() }, (data) => {
         layer_name = data.layer;
-        const text = create_countdown(data);
 
-        text.parentLayer = worldLayerMap[data.layer];
-
-        return text;
+        return create_countdown(data);
       })
       .with({ RenderTypeText: P.select() }, (data) => {
         layer_name = data.layer;
@@ -372,8 +367,6 @@ function get_display_obj_from_render(
         if (data.center_x) {
           text.position.x = Math.round(-text.textWidth / 2);
         }
-        text.parentLayer = worldLayerMap[data.layer];
-
         return text;
       })
       .with({ NoRender: P.select() }, (_data) => {

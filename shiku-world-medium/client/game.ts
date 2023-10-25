@@ -16,7 +16,7 @@ import { initialize_input_plugins, update_input_plugins } from "./plugins";
 import { setup_button_feedback } from "./button-feedback";
 import { setup_medium_api } from "./api";
 import { loginMenuConfig } from "@/client/login-menu";
-import { GameInstance } from "@/client/game-instance";
+import { GameInstance, create_new_game_instance } from "@/client/game-instance";
 import { ResourceManager } from "@/client/resources";
 import { create_resource_manager } from "@/client/resources/create_resource_manager";
 
@@ -33,7 +33,6 @@ export function start_medium() {
   const instances: { [instance_id: string]: GameInstance } = {};
   const resource_manager_map: { [module_name: string]: ResourceManager } = {};
   let current_active_instance: string | null = null;
-
   function lazy_get_resource_manager(module_name: string) {
     if (!resource_manager_map[module_name]) {
       resource_manager_map[module_name] = create_resource_manager();
@@ -106,14 +105,20 @@ export function start_medium() {
         )
         .with(
           { PrepareGame: P.select() },
-          ([module_name, instance_id, resource_bundle, _is_main_instance]) => {
+          ([module_name, instance_id, resource_bundle, is_main_instance]) => {
             lazy_get_resource_manager(module_name).load_resource_bundle(
               module_name,
               instance_id,
               resource_bundle,
             );
-            instances[instance_id] = new GameInstance(instance_id, module_name);
-            current_active_instance = instance_id;
+            instances[instance_id] = create_new_game_instance(
+              instance_id,
+              module_name,
+              render_system,
+            );
+            if (is_main_instance) {
+              current_active_instance = instance_id;
+            }
           },
         )
         .with(

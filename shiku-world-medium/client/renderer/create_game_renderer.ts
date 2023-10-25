@@ -1,4 +1,9 @@
-import { RenderSystem } from "./index";
+import {
+  addLayerMapToContainer,
+  createLayerMap,
+  InstanceRendering,
+  RenderSystem,
+} from "./index";
 import { autoDetectRenderer, Container } from "pixi.js-legacy";
 import { Config } from "../config";
 import {
@@ -9,6 +14,7 @@ import {
   set_stage_height,
   set_stage_width,
 } from "../config/config";
+import { create_camera } from "@/client/camera";
 
 export interface ParallaxContainer extends Container {
   x_pscaling: number;
@@ -52,9 +58,24 @@ export function create_game_renderer(): RenderSystem {
   return {
     renderer,
     isDirty: true,
-    mainContainer,
+    renderMap: {},
+    stage: mainContainer,
   };
 }
+
+export const create_instance_rendering = (): InstanceRendering => {
+  const mainContainer = new Container();
+  const mainContainerWrapper = new Container();
+  const layerMap = createLayerMap();
+  addLayerMapToContainer(mainContainer, layerMap);
+  mainContainerWrapper.addChild(mainContainer);
+  return {
+    camera: create_camera(),
+    layerMap,
+    mainContainer,
+    mainContainerWrapper,
+  };
+};
 
 export const viewPortResize = (
   width: number,

@@ -2,7 +2,7 @@ import { Assets, Texture } from "pixi.js-legacy";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { Resource as ResourceLoadingDefinition } from "../communication/api/bindings/Resource";
 import { FrameObject } from "@pixi/sprite-animated";
-import { RenderSystem } from "@/client/renderer";
+import { InstanceRendering } from "@/client/renderer";
 import { ResourceEvent } from "@/client/communication/api/bindings/ResourceEvent";
 import { match, P } from "ts-pattern";
 import { ResourceBundle } from "@/client/communication/api/bindings/ResourceBundle";
@@ -64,7 +64,10 @@ export class ResourceManager {
       .exhaustive();
   }
 
-  get_graphics_data_by_gid(_gid: number, _renderer: RenderSystem): Graphics {
+  get_graphics_data_by_gid(
+    _gid: number,
+    _renderer: InstanceRendering,
+  ): Graphics {
     /*if (!this.resourceModule.graphic_id_map[gid]) {
       const tile_set: TileSet = ResourceManager._get_tileset_by_gid(
         gid,

@@ -1,8 +1,7 @@
-import { RenderSystem } from "@/client/renderer";
+import { InstanceRendering, RenderSystem } from "@/client/renderer";
 import { create_entity_manager, EntityManager } from "@/client/entities";
-import { Camera, create_camera } from "@/client/camera";
 import { create_terrain_manager, TerrainManager } from "@/client/terrain";
-import { create_game_renderer } from "@/client/renderer/create_game_renderer";
+import { create_instance_rendering } from "@/client/renderer/create_game_renderer";
 import { GameSystemToGuestEvent } from "@/client/communication/api/bindings/GameSystemToGuestEvent";
 import { match, P } from "ts-pattern";
 import { MediumDataStorage } from "@/client/communication/api/bindings/MediumDataStorage";
@@ -11,25 +10,24 @@ import { MousePluginType } from "../plugins/mouse-input";
 import { new_shaker } from "@/client/renderer/shaker-factory";
 import { MenuSystem } from "@/client/menu";
 import { ResourceManager } from "@/client/resources";
+import { Graphics } from "pixi.js-legacy";
 
 export class GameInstance {
-  renderer: RenderSystem;
+  renderer: InstanceRendering;
   entity_manager: EntityManager;
-  camera: Camera;
   terrain_manager: TerrainManager;
 
   constructor(
     public id: string,
     public module_name: string,
   ) {
-    this.renderer = create_game_renderer();
+    this.renderer = create_instance_rendering();
     this.entity_manager = create_entity_manager();
-    this.camera = create_camera();
     this.terrain_manager = create_terrain_manager();
   }
 
   update() {
-    this.camera.update_camera_position(this.entity_manager, this.renderer);
+    this.renderer.camera.update_camera_position(this.entity_manager);
 
     /*for (const key in this.renderer.layerContainer) {
       const layerName = key as LayerName;
@@ -60,8 +58,8 @@ export class GameInstance {
   ) {
     match(game_system_event)
       .with({ SetCamera: P.select() }, ([entity_id, camera_settings]) => {
-        this.camera.set_camera_ref(entity_id, this.module_name);
-        this.camera.set_camera_settings(camera_settings, this.renderer);
+        this.renderer.camera.set_camera_ref(entity_id, this.module_name);
+        this.renderer.camera.set_camera_settings(camera_settings);
       })
       .with({ OpenMenu: P.select() }, (menuName) => {
         menu_system.activate(menuName);
@@ -174,4 +172,36 @@ export class GameInstance {
       })
       .exhaustive();
   }
+}
+
+export function create_new_game_instance(
+  id: string,
+  module_name: string,
+  render_system: RenderSystem,
+) {
+  const game_instance = new GameInstance(id, module_name);
+  render_system.stage.addChild(game_instance.renderer.mainContainerWrapper);
+  render_system.renderMap[id] = game_instance.renderer;
+
+  const graphics = new Graphics();
+
+  // Set the fill color to red
+  graphics.beginFill(0xff0000);
+
+  // Draw the triangle
+  graphics.drawPolygon([
+    100,
+    100, // First vertex
+    200,
+    100, // Second vertex
+    150,
+    200, // Third vertex
+  ]);
+
+  // End the fill
+  graphics.endFill();
+
+  game_instance.renderer.mainContainer.addChild(graphics);
+
+  return game_instance;
 }
