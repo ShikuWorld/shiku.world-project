@@ -8,8 +8,8 @@
   ],
   "scripts": {
     "env": "ts-node-script scripts/main.ts env",
-    "build-gui": "cd ./gui && yarn run build",
-    "watch-gui": "cd ./gui && yarn run dev",
+    "build-gui": "cd ./ui && yarn run build",
+    "watch-gui": "cd ./ui && yarn run dev",
     "start-ui": "cd ./ui && yarn run dev",
     "build-code": "ts-node-script scripts/main.ts build",
     "copy-statics": "ts-node-script scripts/main.ts copy-statics",
