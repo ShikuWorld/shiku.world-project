@@ -1,22 +1,24 @@
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use flume::unbounded;
-use log::{debug, error, trace, warn};
+use flume::{unbounded, Sender};
+use log::{debug, error, warn};
 use snowflake::SnowflakeIdBucket;
+use tungstenite::protocol::frame::coding::CloseCode;
 
 use crate::conductor_module::def::{ConductorModule, ModuleCommunicationMap, ModuleMap};
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
 use crate::core::blueprint::BlueprintService;
-use crate::core::guest::{Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
+use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EnterFailedState, EnterSuccessState, GamePosition,
     GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo, GuestToModule, GuestToModuleEvent,
     GuestToSystemEvent, LeaveFailedState, LeaveSuccessState, ModuleIO, ModuleInstanceEvent,
-    ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent, SignalToGuest,
+    ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent, SignalToMedium,
     SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
 };
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
@@ -57,6 +59,7 @@ impl ConductorModule {
         self.process_events_from_modules();
         self.process_events_from_guest();
         self.send_system_events_to_guests();
+        self.send_system_events_to_admins();
         self.process_logins();
         self.send_load_events();
 
@@ -65,68 +68,62 @@ impl ConductorModule {
         self.handle_admin_events().await;
     }
 
-    #[cfg(feature = "local")]
-    async fn check_admin_login(_admin: &Admin) -> bool {
-        true
-    }
-
-    #[cfg(not(feature = "local"))]
-    async fn check_admin_login(_admin: &Admin) -> bool {
-        false
+    fn check_admin_login(login_data: &LoginData) -> bool {
+        login_data.provider_user_id == "52657886"
     }
 
     async fn handle_admin_events(&mut self) {
-        for (ws_connection_id, admin) in &mut self.admins {
-            for message in self.websocket_module.drain_events(ws_connection_id) {
-                match serde_json::from_str::<AdminToSystemEvent>(message.to_string().as_str()) {
-                    Ok(event) => {
-                        if !admin.is_logged_in {
-                            if let AdminToSystemEvent::ProviderLoggedIn(_provider) = event {
-                                if Self::check_admin_login(admin).await {
-                                    debug!("Admin login successful!");
-                                    admin.is_logged_in = true;
+        for admin in &mut self.admins.values() {
+            if let Some(ws_connection_id) = admin.ws_connection_id {
+                for message in self.websocket_module.drain_events(&ws_connection_id) {
+                    match serde_json::from_str::<AdminToSystemEvent>(message.to_string().as_str()) {
+                        Ok(event) => {
+                            debug!("?!?!?!");
+                            if !admin.is_logged_in {
+                                if let AdminToSystemEvent::ProviderLoggedIn(provider) = event {
+                                    debug!("PROVIDER LOGGED IN FOR ADMIN!");
+                                    self.login_manager.add_provider_login(admin.id, provider);
                                 } else {
-                                    error!("Admin login failed!");
+                                    error!("Admin tried to do something other than logging in while not being logged in!");
                                 }
-                            } else {
-                                error!("Admin tried to do something other than logging in while not being logged in!");
+                                continue;
                             }
-                            continue;
-                        }
 
-                        match event {
-                            AdminToSystemEvent::SetMainDoorStatus(status) => {
-                                debug!("Setting main door status");
-                                self.web_server_module.set_main_door_status(status).await;
-                            }
-                            AdminToSystemEvent::SetBackDoorStatus(status) => {
-                                debug!("Setting back door status");
-                                self.web_server_module.set_back_door_status(status).await;
-                            }
-                            AdminToSystemEvent::ProviderLoggedIn(_) => {
-                                error!("Admin should already be logged in!")
-                            }
-                            AdminToSystemEvent::UpdateConductor(conductor) => {
-                                if let Err(err) =
-                                    self.blueprint_service.save_conductor_blueprint(&conductor)
-                                {
-                                    error!("Could not save conductor blueprint! {:?}", err)
+                            match event {
+                                AdminToSystemEvent::SetMainDoorStatus(status) => {
+                                    debug!("Setting main door status");
+                                    self.web_server_module.set_main_door_status(status).await;
                                 }
+                                AdminToSystemEvent::SetBackDoorStatus(status) => {
+                                    debug!("Setting back door status");
+                                    self.web_server_module.set_back_door_status(status).await;
+                                }
+                                AdminToSystemEvent::ProviderLoggedIn(_) => {
+                                    error!("Admin should already be logged in!")
+                                }
+                                AdminToSystemEvent::Ping => {}
+                                AdminToSystemEvent::UpdateConductor(conductor) => {
+                                    if let Err(err) =
+                                        self.blueprint_service.save_conductor_blueprint(&conductor)
+                                    {
+                                        error!("Could not save conductor blueprint! {:?}", err)
+                                    }
+                                }
+                                AdminToSystemEvent::UpdateModule(_module_name, _module_update) => {}
+                                AdminToSystemEvent::CreateModule(module_name) => {
+                                    Self::create_game_instance_manager(
+                                        module_name,
+                                        &mut self.module_map,
+                                        &mut self.resource_module,
+                                        &mut self.module_communication_map,
+                                        &self.blueprint_service,
+                                    );
+                                }
+                                AdminToSystemEvent::DeleteModule(_module_name) => {}
                             }
-                            AdminToSystemEvent::UpdateModule(_module_name, _module_update) => {}
-                            AdminToSystemEvent::CreateModule(module_name) => {
-                                Self::create_game_instance_manager(
-                                    module_name,
-                                    &mut self.module_map,
-                                    &mut self.resource_module,
-                                    &mut self.module_communication_map,
-                                    &self.blueprint_service,
-                                );
-                            }
-                            AdminToSystemEvent::DeleteModule(_module_name) => {}
                         }
+                        Err(err) => error!("Failed to parse admin event! {:?}", err),
                     }
-                    Err(err) => error!("Failed to parse admin event! {:?}", err),
                 }
             }
         }
@@ -161,10 +158,10 @@ impl ConductorModule {
             }
         }
         for guest_id in self.timeouts.drain(..) {
-            if let Some(guest) = self.guests.get(&guest_id) {
+            if let Some(guest) = self.guests.remove(&guest_id) {
                 if let Some(module_name) = &guest.current_module {
                     if let Some(module) = self.module_map.get_mut(module_name) {
-                        if let Err(err) = module.try_leave(guest) {
+                        if let Err(err) = module.try_leave(&guest) {
                             error!("Guest could not leave module on timeout, reason: {:?}", err);
                         }
                     }
@@ -176,7 +173,6 @@ impl ConductorModule {
                 self.guest_timeout_map.remove(&guest_id);
                 self.session_id_to_guest_map.remove(&guest.session_id);
             }
-            self.guests.remove(&guest_id);
             debug!("Guest removed {}.", guest_id);
         }
     }
@@ -197,7 +193,9 @@ impl ConductorModule {
         let mut module_map = HashMap::new();
         let mut resource_module = ResourceModule::new();
         let (sender, receiver) = unbounded();
-
+        let system_to_guest_communication = SystemCommunicationIO { receiver, sender };
+        let (sender, receiver) = unbounded();
+        let system_to_admin_communication = SystemCommunicationIO { receiver, sender };
         Self::create_game_instance_manager(
             "Dummy".into(),
             &mut module_map,
@@ -223,6 +221,7 @@ impl ConductorModule {
             admins: HashMap::new(),
 
             ws_to_guest_map: HashMap::new(),
+            ws_to_admin_map: HashMap::new(),
             provider_id_to_guest_map: HashMap::new(),
             provider_id_to_admin_map: HashMap::new(),
 
@@ -234,7 +233,8 @@ impl ConductorModule {
             module_map,
 
             module_communication_map,
-            system_to_guest_communication: SystemCommunicationIO { receiver, sender },
+            system_to_guest_communication,
+            system_to_admin_communication,
         }
     }
 
@@ -243,16 +243,60 @@ impl ConductorModule {
             debug!("{:?}", ticket);
             if let Some(true) = ticket.admin_login {
                 debug!("Admin ready to start their session!");
-                self.admins.insert(
-                    connection_id,
-                    Admin {
-                        id: self.snowflake_gen.get_id(),
-                        login_data: None,
-                        is_logged_in: false,
-                        ws_connection_id: connection_id,
-                    },
-                );
 
+                let admin_id_from_session_id = self
+                    .session_id_to_admin_map
+                    .get(&ticket.session_id.unwrap_or_default())
+                    .unwrap_or(&0);
+
+                debug!("{}, {:?}", admin_id_from_session_id, self.admins);
+
+                let admin_id: Snowflake =
+                    if let Some(admin) = self.admins.get_mut(admin_id_from_session_id) {
+                        debug!("Admin already existed with their session!");
+                        if let Some(existing_connection_id) = admin.ws_connection_id {
+                            debug!("Admin already connected o_o1");
+                            self.websocket_module.close_connection(
+                                &existing_connection_id,
+                                CloseCode::Normal,
+                                "Connected elsewhere".into(),
+                            );
+                        }
+
+                        self.ws_to_admin_map.insert(connection_id, admin.id);
+                        admin.ws_connection_id = Some(connection_id);
+                        admin.id
+                    } else {
+                        debug!("Created new admin!");
+                        let admin_id = self.snowflake_gen.get_id();
+                        let session_id = self.snowflake_gen.get_id().to_string();
+                        self.admins.insert(
+                            admin_id,
+                            Admin {
+                                session_id: session_id.clone(),
+                                id: admin_id,
+                                login_data: None,
+                                is_logged_in: false,
+                                ws_connection_id: Some(connection_id),
+                            },
+                        );
+                        self.ws_to_admin_map.insert(connection_id, admin_id);
+                        self.session_id_to_admin_map.insert(session_id, admin_id);
+                        admin_id
+                    };
+
+                if let Some(admin) = self.admins.get(&admin_id) {
+                    if let Ok(event_as_string) =
+                        serde_json::to_string(&CommunicationEvent::ConnectionReady((
+                            admin.session_id.clone(),
+                            admin.login_data.is_none(),
+                        )))
+                    {
+                        Self::send_to_admin(admin, &mut self.websocket_module, event_as_string);
+                    } else {
+                        error!("Could not parse ConnectionReady enum, wtf?");
+                    }
+                }
                 continue;
             }
 
@@ -351,7 +395,13 @@ impl ConductorModule {
         self.websocket_module.drop_lost_ws_connections();
 
         for connection_id in self.websocket_module.drain_lost_connections() {
-            if let Some(admin) = self.admins.remove(&connection_id) {
+            if let Some(admin_id) = self.ws_to_admin_map.remove(&connection_id) {
+                debug!("admin connection lost {:?}", &admin_id);
+                if let Some(admin) = self.admins.get_mut(&admin_id) {
+                    admin.ws_connection_id = None;
+                } else {
+                    debug!("Admin {:?} logged in somewhere else it seems.", admin_id);
+                }
                 continue;
             }
 
@@ -425,10 +475,19 @@ impl ConductorModule {
         if let Some(ws_connection_id) = &guest.ws_connection_id {
             websocket_module.send_event(ws_connection_id, event_as_string);
         } else {
-            trace!(
-                "Could not send to guest '{}' no active connection",
-                guest.id
-            );
+            debug!("Could not send to guest '{:?}' no active connection", guest);
+        }
+    }
+
+    pub fn send_to_admin(
+        admin: &Admin,
+        websocket_module: &mut WebsocketModule,
+        event_as_string: String,
+    ) {
+        if let Some(ws_connection_id) = &admin.ws_connection_id {
+            websocket_module.send_event(ws_connection_id, event_as_string);
+        } else {
+            debug!("Could not send to guest '{:?}' no active connection", admin);
         }
     }
 
@@ -659,9 +718,11 @@ impl ConductorModule {
         event: &CommunicationEvent,
     ) -> Result<(), ProcessModuleEventError> {
         if let Some(guest) = guests.get(&guest_id) {
+            debug!("Sending to guest {:?}", guest);
             return Self::send_communication_event_to_guest_direct(guest, websocket_module, event);
         }
-        Ok(())
+
+        Err(ProcessModuleEventError::GuestNotFound)
     }
 
     pub fn send_communication_event_to_guest_direct(
@@ -933,51 +994,58 @@ impl ConductorModule {
 
         Ok(())
     }
+
     fn process_logins(&mut self) {
         let guests = &mut self.guests;
-        let system_communication_sender = &mut self.system_to_guest_communication.sender;
+        let admins = &mut self.admins;
+        let mut system_to_guest_communication_sender =
+            &mut self.system_to_guest_communication.sender;
+        let mut system_to_admin_communication_sender =
+            &mut self.system_to_admin_communication.sender;
         let provider_id_to_guest_map = &mut self.provider_id_to_guest_map;
+        let provider_id_to_admin_map = &mut self.provider_id_to_admin_map;
         let persistence_module = &mut self.persistence_module;
+        let websocket_module = &mut self.websocket_module;
+        let ws_to_guest_map = &mut self.ws_to_guest_map;
+        let ws_to_admin_map = &mut self.ws_to_admin_map;
+        let session_id_to_guest_map = &mut self.session_id_to_guest_map;
+        let session_id_to_admin_map = &mut self.session_id_to_admin_map;
         self.login_manager.process_running_logins(|res| match res {
-            Ok((guest_id, login_data)) => {
-                if let Some(guest) = guests.get_mut(&guest_id) {
-                    match Self::handle_user_login(
+            Ok((actor_id, login_data)) => {
+                debug!("login {} {:?}", actor_id, login_data);
+                if guests.contains_key(&actor_id) {
+                    Self::handle_actor_login_result(system_to_guest_communication_sender, Self::handle_actor_login(
                         provider_id_to_guest_map,
-                        persistence_module,
-                        login_data,
-                        guest,
-                    ) {
-                        Ok(()) => {
-                            send_and_log_error(
-                                system_communication_sender,
-                                (
-                                    guest.id,
-                                    CommunicationEvent::Signal(SignalToGuest::LoginSuccess),
-                                ),
-                            );
-                        }
-                        Err(HandleLoginError::AlreadyLoggedIn) => {
-                            debug!("User is already logged in!")
-                        }
-                        Err(HandleLoginError::PersistenceError(err)) => {
-                            error!("Could not login: {:?}", err);
-                            send_and_log_error(
-                                system_communication_sender,
-                                (
-                                    guest.id,
-                                    CommunicationEvent::Signal(SignalToGuest::LoginFailed),
-                                ),
-                            );
-                        }
-                    }
-                }
+                        websocket_module,
+                        &login_data,
+                        &actor_id,
+                        guests,
+                    ws_to_guest_map,
+                        session_id_to_guest_map,
+                        |login_data, guest| {
+                            if let Err(err) = Self::handle_guest_persistence(persistence_module, login_data, guest) {
+                                error!("Oh oh! There was an error while trying to get guest persistence!!! {:?}", err)
+                            }
+                        }));
+                } else {
+                    Self::handle_actor_login_result(system_to_admin_communication_sender, Self::handle_actor_login(
+                        provider_id_to_admin_map,
+                        websocket_module,
+                        &login_data,
+                        &actor_id,
+                        admins,
+                        ws_to_admin_map,
+                        session_id_to_admin_map,
+                        |_, _| {}));
+                };
             }
             Err(error) => match error {
-                LoginError::UserDidNotExistLongEnough(guest_id, time) => {
+                LoginError::UserDidNotExistLongEnough(actor_id, time) => {
+                    let sender = if guests.contains_key(&actor_id) {&mut system_to_guest_communication_sender} else {&mut system_to_admin_communication_sender};
                     send_and_log_error(
-                        system_communication_sender,
+                        *sender,
                         (
-                            guest_id,
+                            actor_id,
                             CommunicationEvent::Toast(
                                 ToastAlertLevel::Error,
                                 format!(
@@ -988,15 +1056,16 @@ impl ConductorModule {
                         ),
                     );
                 }
-                LoginError::TwitchApiError(guest_id, twitch_api_error) => {
+                LoginError::TwitchApiError(actor_id, twitch_api_error) => {
                     debug!(
                         "Could not login user due to twitch api error {:?}",
                         twitch_api_error
                     );
+                    let sender = if guests.contains_key(&actor_id) {&mut system_to_guest_communication_sender} else {&mut system_to_admin_communication_sender};
                     send_and_log_error(
-                        system_communication_sender,
+                        sender,
                         (
-                            guest_id,
+                            actor_id,
                             CommunicationEvent::Toast(
                                 ToastAlertLevel::Error,
                                 "Could not login because of login error. Please ask shiku!"
@@ -1009,36 +1078,133 @@ impl ConductorModule {
         })
     }
 
-    fn handle_user_login(
-        provider_id_to_guest_map: &mut HashMap<ProviderUserId, Snowflake>,
+    fn handle_actor_login_result(
+        sender: &mut Sender<(GuestId, CommunicationEvent)>,
+        result: Result<GuestId, HandleLoginError>,
+    ) {
+        match result {
+            Ok(actor_id) => {
+                debug!("handle login was successful for {}", actor_id);
+                send_and_log_error(
+                    sender,
+                    (
+                        actor_id,
+                        CommunicationEvent::Signal(SignalToMedium::LoginSuccess),
+                    ),
+                );
+
+                debug!("Sending was successful? for {}", actor_id);
+            }
+            Err(
+                HandleLoginError::CouldNotFind(actor_id)
+                | HandleLoginError::NotAuthorized(actor_id),
+            ) => {
+                error!("Actor could not login");
+                send_and_log_error(
+                    sender,
+                    (
+                        actor_id,
+                        CommunicationEvent::Signal(SignalToMedium::LoginFailed),
+                    ),
+                );
+            }
+        }
+    }
+
+    fn handle_actor_login<T: Actors + Debug, F: FnMut(&LoginData, &mut T)>(
+        provider_id_to_actor_map: &mut HashMap<ProviderUserId, Snowflake>,
+        websocket_module: &mut WebsocketModule,
+        login_data: &LoginData,
+        actor_id: &Snowflake,
+        actors: &mut HashMap<Snowflake, T>,
+        ws_to_actor_map: &mut HashMap<Snowflake, Snowflake>,
+        session_to_actor_map: &mut HashMap<String, Snowflake>,
+        mut login_success_cb: F,
+    ) -> Result<GuestId, HandleLoginError> {
+        if !Self::check_admin_login(login_data) {
+            return Err(HandleLoginError::NotAuthorized(*actor_id));
+        }
+
+        if let Some(already_logged_in_actor_id) =
+            provider_id_to_actor_map.get(&login_data.provider_user_id)
+        {
+            if let Some(actor) = actors.remove(actor_id) {
+                if let Some(already_logged_in_actor) = actors.get_mut(already_logged_in_actor_id) {
+                    debug!(
+                        "was already logged in {:?} \n removed was {:?}",
+                        already_logged_in_actor, actor
+                    );
+                    debug!("before ws to actor map {:?}", ws_to_actor_map);
+                    if let Some(ws_connection_id) = already_logged_in_actor.get_ws_connection_id() {
+                        ws_to_actor_map.remove(&ws_connection_id);
+                        session_to_actor_map.remove(already_logged_in_actor.get_session_id());
+                        debug!("going to close {}", ws_connection_id);
+                        websocket_module.close_connection(
+                            &ws_connection_id,
+                            CloseCode::Normal,
+                            "Logged in elsewhere".into(),
+                        );
+                    } else {
+                        debug!("Actor had no ws-connection, proceeding to take him over! Arrrrr");
+                    }
+
+                    if let Some(ws_connection_id) = actor.get_ws_connection_id() {
+                        debug!("going to swap ws-connections");
+                        already_logged_in_actor.set_ws_connection_id(ws_connection_id);
+                        already_logged_in_actor.set_login_data(login_data.clone());
+                        already_logged_in_actor.set_is_logged_in(true);
+                        already_logged_in_actor.set_session_id(actor.get_session_id().clone());
+                        session_to_actor_map.insert(
+                            already_logged_in_actor.get_session_id().clone(),
+                            *already_logged_in_actor_id,
+                        );
+                        ws_to_actor_map.insert(ws_connection_id, *already_logged_in_actor_id);
+                        debug!(
+                            "after swap already logged in {:?} \n current {:?}",
+                            already_logged_in_actor, actor
+                        );
+                        debug!("after ws to actor map {:?}", ws_to_actor_map);
+                        login_success_cb(login_data, already_logged_in_actor);
+                        return Ok(*already_logged_in_actor_id);
+                    }
+                }
+            }
+
+            return Err(HandleLoginError::CouldNotFind(actor_id.clone()));
+        }
+
+        if let Some(actor) = actors.get_mut(actor_id) {
+            provider_id_to_actor_map.insert(login_data.provider_user_id.clone(), actor.get_id());
+
+            actor.set_login_data(login_data.clone());
+            actor.set_is_logged_in(true);
+            return Ok(*actor_id);
+        }
+
+        Err(HandleLoginError::CouldNotFind(actor_id.clone()))
+    }
+
+    fn handle_guest_persistence(
         persistence_module: &mut PersistenceModule,
-        login_data: LoginData,
+        login_data: &LoginData,
         guest: &mut Guest,
-    ) -> Result<(), HandleLoginError> {
+    ) -> Result<(), PersistenceError> {
         let mut persisted_guest = persistence_module.lazy_get_persisted_guest_by_provider_id(
             &login_data.provider_user_id,
             &login_data.display_name,
         )?;
 
         Self::handle_times_joined(persistence_module, &mut persisted_guest)?;
-
-        if provider_id_to_guest_map
-            .get(&login_data.provider_user_id)
-            .is_some()
-        {
-            return Err(HandleLoginError::AlreadyLoggedIn);
-        }
-
-        provider_id_to_guest_map.insert(login_data.provider_user_id.clone(), guest.id);
-
-        guest.login_data = Some(login_data);
-        guest.pending_module_exit = Some("".into());
         guest.persisted_guest = Some(persisted_guest);
 
         Ok(())
     }
     fn send_system_events_to_guests(&mut self) {
+        if !self.system_to_guest_communication.receiver.is_empty() {
+            debug!("There are messages!");
+        }
         for (guest_id, communication_event) in self.system_to_guest_communication.receiver.drain() {
+            debug!("Sending system event to guest? {:?}", communication_event);
             if let Err(err) = Self::send_communication_event_to_guest(
                 &mut self.guests,
                 &mut self.websocket_module,
@@ -1046,6 +1212,21 @@ impl ConductorModule {
                 &communication_event,
             ) {
                 error!("{:?}", err);
+            }
+        }
+    }
+
+    fn send_system_events_to_admins(&mut self) {
+        for (admin_id, communication_event) in self.system_to_admin_communication.receiver.drain() {
+            if let Some(admin) = self.admins.get(&admin_id) {
+                if let Ok(message_as_string) = serde_json::to_string(&communication_event) {
+                    Self::send_to_admin(admin, &mut self.websocket_module, message_as_string);
+                } else {
+                    error!(
+                        "{:?}",
+                        ProcessModuleEventError::CouldNotSerializeCommunicationEvent
+                    );
+                }
             }
         }
     }

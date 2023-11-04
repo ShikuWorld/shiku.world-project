@@ -17,7 +17,7 @@ impl ResourceModule {
             active_resources: HashMap::new(),
             resources: HashMap::new(),
             resource_load_events: Vec::new(),
-            resource_hash_gen: SnowflakeIdBucket::new(1, 2),
+            resource_hash_gen: SnowflakeIdBucket::new(1, 7),
         }
     }
 

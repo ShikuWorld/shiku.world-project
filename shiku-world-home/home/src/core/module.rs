@@ -67,6 +67,7 @@ pub enum AdminToSystemEvent {
     DeleteModule(String),
     SetMainDoorStatus(bool),
     SetBackDoorStatus(bool),
+    Ping,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -191,7 +192,7 @@ pub trait GameModule: SystemModule {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
-pub enum SignalToGuest {
+pub enum SignalToMedium {
     LoginSuccess,
     LoginFailed,
 }
@@ -211,7 +212,7 @@ pub enum CommunicationEvent {
         Vec<(EntityId, Real, Real, Real)>,
     ),
     ConnectionReady((SessionId, ShouldLogin)),
-    Signal(SignalToGuest),
+    Signal(SignalToMedium),
     Toast(ToastAlertLevel, String),
     ShowGlobalMessage(String),
     AlreadyConnected,

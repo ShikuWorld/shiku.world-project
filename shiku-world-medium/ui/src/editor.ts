@@ -40,11 +40,17 @@ export class ModuleEditor {
 
   async addModuleNode(module_blueprint: Module) {
     const node = new Node(module_blueprint.name);
-    for (const entry_point in module_blueprint.insert_points) {
-      node.addInput(entry_point, new ClassicPreset.Input(this.socket));
+    for (const entry_point of module_blueprint.insert_points) {
+      node.addInput(
+        entry_point.name,
+        new ClassicPreset.Input(this.socket, entry_point.name),
+      );
     }
-    for (const exit_point in module_blueprint.exit_points) {
-      node.addOutput(exit_point, new ClassicPreset.Input(this.socket));
+    for (const exit_point of module_blueprint.exit_points) {
+      node.addOutput(
+        exit_point.name,
+        new ClassicPreset.Input(this.socket, exit_point.name),
+      );
     }
     await this.editor.addNode(node);
   }

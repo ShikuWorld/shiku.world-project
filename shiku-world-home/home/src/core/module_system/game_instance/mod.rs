@@ -57,7 +57,7 @@ impl GameInstanceManager {
             inactive_game_instances: Vec::new(),
             guest_to_game_instance_map: HashMap::new(),
             active_admin_instances: HashMap::new(),
-            instance_id_gen: SnowflakeIdBucket::new(2, 20),
+            instance_id_gen: SnowflakeIdBucket::new(1, 6),
             game_instance_timeout: 30000.0,
             input_receiver,
             output_sender,

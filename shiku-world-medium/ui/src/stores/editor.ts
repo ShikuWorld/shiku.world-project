@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-import type { Entity } from "@/blueprints/Entity";
-import type { Module } from "@/blueprints/Module";
+import type { Entity } from "@/editor/blueprints/Entity";
+import type { Module } from "@/editor/blueprints/Module";
 
 export const useEditorStore = defineStore("editor", () => {
   const currentModule: Module = {

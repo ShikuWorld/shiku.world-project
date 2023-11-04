@@ -5,6 +5,8 @@ import { GuestToModuleEvent } from "./api/bindings/GuestToModuleEvent";
 import { Config } from "../config";
 import { GuestTo } from "@/client/communication/api/bindings/GuestTo";
 import { GuestToSystemEvent } from "@/client/communication/api/bindings/GuestToSystemEvent";
+import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
+import { is_admin } from "@/client/is_admin";
 
 export function setup_communication_system(): CommunicationState {
   const ws_connection = new WebSocket(Config.getWsSocketUrl());
@@ -18,10 +20,15 @@ export function setup_communication_system(): CommunicationState {
   ws_connection.onopen = () => {
     communication_state.is_connection_open = true;
   };
-  ws_connection.onclose = () => {
-    communication_state.is_connection_open = false;
+  ws_connection.onclose = (close_event) => {
     const message = document.createElement("div");
-    message.innerHTML = "Connection to server closed, please try and reload.";
+    if (close_event.reason === "Logged in elsewhere") {
+      message.innerHTML =
+        "You seem to have logged in somewhere else, please login again if you want to use this device.";
+    } else {
+      message.innerHTML = "Connection to server closed, please try and reload.";
+    }
+    communication_state.is_connection_open = false;
     document.body.prepend(message);
     document.querySelector("canvas")?.remove();
   };
@@ -74,7 +81,9 @@ export function check_for_connection_ready(
 
       setInterval(() => {
         if (Date.now() - last_message_send > 10000) {
-          send_system_event("Ping", communication_state);
+          is_admin
+            ? send_admin_event("Ping", communication_state)
+            : send_system_event("Ping", communication_state);
         }
       }, 10000);
     }
@@ -85,18 +94,25 @@ export function send_system_event(
   input: GuestToSystemEvent,
   communication_state: CommunicationState,
 ) {
-  send_event({ GuestToSystemEvent: input }, communication_state);
+  send_event<GuestTo>({ GuestToSystemEvent: input }, communication_state);
+}
+
+export function send_admin_event(
+  input: AdminToSystemEvent,
+  communication_state: CommunicationState,
+) {
+  send_event<AdminToSystemEvent>(input, communication_state);
 }
 
 export function send_module_event(
   input: GuestToModuleEvent,
   communication_state: CommunicationState,
 ) {
-  send_event({ GuestToModuleEvent: input }, communication_state);
+  send_event<GuestTo>({ GuestToModuleEvent: input }, communication_state);
 }
 
-export function send_event(
-  input: GuestTo,
+export function send_event<T>(
+  input: T,
   communication_state: CommunicationState,
 ) {
   if (communication_state.is_connection_open) {

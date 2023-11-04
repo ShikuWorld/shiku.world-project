@@ -5,7 +5,7 @@ export type InputPlugin<T = object> = {
   id: string;
   initialize: (
     guest_input: GuestInputState,
-    on_input: SimpleEventDispatcher<string>
+    on_input: SimpleEventDispatcher<string>,
   ) => void;
   plugin_options: T;
   update?: (is_active: boolean) => void;
@@ -43,7 +43,7 @@ function set_active_plugin(name: string, input_toggle_icon: Element) {
     localStorage.setItem("preferred_input", name);
   } catch (e) {
     console.error(
-      "Seems like you block local storage or something, you'll have to choose your input method on every reload."
+      "Seems like you block local storage or something, you'll have to choose your input method on every reload.",
     );
   }
 
@@ -58,8 +58,12 @@ export function setup_plugin_system() {
   document.addEventListener("DOMContentLoaded", () => {
     const input_toggle = document.getElementById("toggle-input-method");
     const input_toggle_icon = document.querySelector(
-      "#toggle-input-method span"
+      "#toggle-input-method span",
     );
+    if (!input_toggle || !input_toggle_icon) {
+      console.error("No input toggle?!");
+      return;
+    }
 
     input_toggle.addEventListener("click", () => {
       if (active_plugin === "MOUSE") {
@@ -91,6 +95,10 @@ export const initialize_input_plugins = (guest_input: GuestInputState) => {
   }
 
   const input_toggle_icon = document.querySelector("#toggle-input-method span");
+  if (!input_toggle_icon) {
+    console.error("No input toggle?!");
+    return;
+  }
   try {
     const preferred_input = localStorage.getItem("preferred_input");
     if (preferred_input) {
@@ -101,13 +109,13 @@ export const initialize_input_plugins = (guest_input: GuestInputState) => {
   } catch (e) {
     set_active_plugin("MOUSE", input_toggle_icon);
     console.error(
-      "Seems like you block local storage or something, you'll have to choose your input method on every reload."
+      "Seems like you block local storage or something, you'll have to choose your input method on every reload.",
     );
   }
 };
 
 export const update_input_plugins = () => {
   for (const plugin of input_plugins) {
-    plugin.update(plugin.id === active_plugin);
+    plugin.update && plugin.update(plugin.id === active_plugin);
   }
 };

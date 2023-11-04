@@ -5,6 +5,7 @@ use futures::{future, SinkExt, StreamExt, TryStreamExt};
 use log::debug;
 use log::error;
 use log::trace;
+use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
 use snowflake::SnowflakeIdBucket;
@@ -16,6 +17,8 @@ use crate::core::guest::SessionId;
 use crate::core::Snowflake;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::WebSocketStream;
+use tungstenite::protocol::frame::coding::CloseCode;
+use tungstenite::protocol::CloseFrame;
 use tungstenite::{Error as WsError, Message};
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -52,6 +55,22 @@ impl WebsocketModule {
         }
     }
 
+    pub fn close_connection(
+        &mut self,
+        connection_id: &Snowflake,
+        code: CloseCode,
+        reason: Cow<'static, str>,
+    ) {
+        if let Some(connection) = self.connections.get_mut(connection_id) {
+            if let Err(err) = connection
+                .sender
+                .send(Message::Close(Some(CloseFrame { code, reason })))
+            {
+                error!("Could not send close message! {:?}", err);
+            }
+        }
+    }
+
     pub fn handle_new_ws_connections(&mut self) -> Vec<(Snowflake, Ticket)> {
         if let Some(receiver) = &self.new_connection_receiver {
             for guest_connection in receiver.drain() {
@@ -77,14 +96,6 @@ impl WebsocketModule {
                     for message in connection.receiver.drain() {
                         match serde_json::from_str::<Ticket>(message.to_string().as_str()) {
                             Ok(ticket) => {
-                                debug!(
-                                    "Got ticket from {}!",
-                                    if let Some(true) = ticket.admin_login {
-                                        "admin"
-                                    } else {
-                                        "guest"
-                                    }
-                                );
                                 connection.ticket = Some(ticket);
                                 return true;
                             }
@@ -145,9 +156,9 @@ impl WebsocketModule {
         }
     }
 
-    pub fn drain_events(&mut self, guest_id: &Snowflake) -> Vec<Message> {
+    pub fn drain_events(&mut self, ws_connection_id: &Snowflake) -> Vec<Message> {
         let mut messages: Vec<Message> = Vec::new();
-        if let Some(connection) = self.connections.get_mut(guest_id) {
+        if let Some(connection) = self.connections.get_mut(ws_connection_id) {
             for message in connection.receiver.drain() {
                 messages.push(message);
             }
@@ -189,7 +200,7 @@ fn spawn_websocket_server(connection_sender: Sender<WSConnection>) {
 
         match server_result {
             Ok(server) => {
-                let mut connection_id_generator = SnowflakeIdBucket::new(1, 1);
+                let mut connection_id_generator = SnowflakeIdBucket::new(1, 8);
 
                 while let Ok((stream, _)) = server.accept().await {
                     debug!("New connection!");
@@ -275,18 +286,15 @@ fn setup_sending_messages_to_websocket(
     tokio::spawn(async move {
         'thread_loop: loop {
             match ws_out_receiver.recv_async().await {
-                Ok(message) => {
-                    match outgoing.send(message).await {
-                        Ok(_) => {
-                            trace!("Sent message?");
-                        }
-                        // TODO: Properly handle errors
-                        Err(err) => {
-                            error!("Something went wrong while sending messages {:?}", err);
-                            break 'thread_loop;
-                        }
+                Ok(message) => match outgoing.send(message).await {
+                    Ok(_) => {
+                        trace!("Sent message?");
                     }
-                }
+                    Err(err) => {
+                        error!("Something went wrong while sending messages {:?}", err);
+                        break 'thread_loop;
+                    }
+                },
                 Err(RecvError::Disconnected) => {
                     debug!("WS Sending thread unwound properly.");
                     break 'thread_loop;

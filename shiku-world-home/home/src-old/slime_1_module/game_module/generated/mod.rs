@@ -195,1276 +195,1595 @@ pub struct WallPlatformOpener {
 }
 
 pub struct CaveHeartWallVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl CaveHeartWallVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct CaveHeartWallVariants {
-pub default: CaveHeartWallVariant,
+    pub default: CaveHeartWallVariant,
 }
 
 impl CaveHeartWall {
-pub const VARIANTS: CaveHeartWallVariants = CaveHeartWallVariants {
-default: CaveHeartWallVariant {
-gid_default: "547",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 162.0, height: 72.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-};
+    pub const VARIANTS: CaveHeartWallVariants = CaveHeartWallVariants {
+        default: CaveHeartWallVariant {
+            gid_default: "547",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 162.0,
+                height: 72.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+    };
 }
 
 impl CaveHeartWallVariants {
-pub fn get_variant(&self, variant: &String) -> &CaveHeartWallVariant {
-match variant.as_str() {
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &CaveHeartWallVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct DeathReviveStatueVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl DeathReviveStatueVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct DeathReviveStatueVariants {
-pub default: DeathReviveStatueVariant,
+    pub default: DeathReviveStatueVariant,
 }
 
 impl DeathReviveStatue {
-pub const VARIANTS: DeathReviveStatueVariants = DeathReviveStatueVariants {
-default: DeathReviveStatueVariant {
-gid_default: "915",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.5, offset_from_center_y: 15.0, width: 25.0, height: 34.0 }),
-offset_from_center_x: 0.50, offset_from_center_y: 15.00,
-},
-};
+    pub const VARIANTS: DeathReviveStatueVariants = DeathReviveStatueVariants {
+        default: DeathReviveStatueVariant {
+            gid_default: "915",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.5,
+                offset_from_center_y: 15.0,
+                width: 25.0,
+                height: 34.0,
+            }),
+            offset_from_center_x: 0.50,
+            offset_from_center_y: 15.00,
+        },
+    };
 }
 
 impl DeathReviveStatueVariants {
-pub fn get_variant(&self, variant: &String) -> &DeathReviveStatueVariant {
-match variant.as_str() {
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &DeathReviveStatueVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct DeathTorchVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl DeathTorchVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct DeathTorchVariants {
-pub default: DeathTorchVariant,
+    pub default: DeathTorchVariant,
 }
 
 impl DeathTorch {
-pub const VARIANTS: DeathTorchVariants = DeathTorchVariants {
-default: DeathTorchVariant {
-gid_default: "905",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 8.0, width: 20.0, height: 16.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 8.00,
-},
-};
+    pub const VARIANTS: DeathTorchVariants = DeathTorchVariants {
+        default: DeathTorchVariant {
+            gid_default: "905",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 8.0,
+                width: 20.0,
+                height: 16.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 8.00,
+        },
+    };
 }
 
 impl DeathTorchVariants {
-pub fn get_variant(&self, variant: &String) -> &DeathTorchVariant {
-match variant.as_str() {
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &DeathTorchVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct DebrisVariant {
-pub gid_formation_3: &'static str,
-pub gid_stone_l_4: &'static str,
-pub gid_stone_l_2: &'static str,
-pub gid_formation_5: &'static str,
-pub gid_stone_l_3: &'static str,
-pub gid_stone_m_3: &'static str,
-pub gid_stone_s_4: &'static str,
-pub gid_stone_s_3: &'static str,
-pub gid_stone_s_1: &'static str,
-pub gid_stone_l_1: &'static str,
-pub gid_formation_2: &'static str,
-pub gid_formation_1: &'static str,
-pub gid_stone_m_6: &'static str,
-pub gid_stone_m_5: &'static str,
-pub gid_stone_m_2: &'static str,
-pub gid_stone_s_2: &'static str,
-pub gid_stone_s_5: &'static str,
-pub gid_formation_4: &'static str,
-pub gid_stone_m_1: &'static str,
-pub gid_default: &'static str,
-pub gid_stone_m_4: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_formation_3: &'static str,
+    pub gid_stone_l_4: &'static str,
+    pub gid_stone_l_2: &'static str,
+    pub gid_formation_5: &'static str,
+    pub gid_stone_l_3: &'static str,
+    pub gid_stone_m_3: &'static str,
+    pub gid_stone_s_4: &'static str,
+    pub gid_stone_s_3: &'static str,
+    pub gid_stone_s_1: &'static str,
+    pub gid_stone_l_1: &'static str,
+    pub gid_formation_2: &'static str,
+    pub gid_formation_1: &'static str,
+    pub gid_stone_m_6: &'static str,
+    pub gid_stone_m_5: &'static str,
+    pub gid_stone_m_2: &'static str,
+    pub gid_stone_s_2: &'static str,
+    pub gid_stone_s_5: &'static str,
+    pub gid_formation_4: &'static str,
+    pub gid_stone_m_1: &'static str,
+    pub gid_default: &'static str,
+    pub gid_stone_m_4: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl DebrisVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct DebrisVariants {
-pub default: DebrisVariant,
+    pub default: DebrisVariant,
 }
 
 impl Debris {
-pub const VARIANTS: DebrisVariants = DebrisVariants {
-default: DebrisVariant {
-gid_formation_3: "592",
-gid_stone_l_4: "609",
-gid_stone_l_2: "607",
-gid_formation_5: "594",
-gid_stone_l_3: "608",
-gid_stone_m_3: "595",
-gid_stone_s_4: "598",
-gid_stone_s_3: "599",
-gid_stone_s_1: "601",
-gid_stone_l_1: "606",
-gid_formation_2: "591",
-gid_formation_1: "590",
-gid_stone_m_6: "605",
-gid_stone_m_5: "604",
-gid_stone_m_2: "596",
-gid_stone_s_2: "600",
-gid_stone_s_5: "602",
-gid_formation_4: "593",
-gid_stone_m_1: "597",
-gid_default: "589",
-gid_stone_m_4: "603",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-};
+    pub const VARIANTS: DebrisVariants = DebrisVariants {
+        default: DebrisVariant {
+            gid_formation_3: "592",
+            gid_stone_l_4: "609",
+            gid_stone_l_2: "607",
+            gid_formation_5: "594",
+            gid_stone_l_3: "608",
+            gid_stone_m_3: "595",
+            gid_stone_s_4: "598",
+            gid_stone_s_3: "599",
+            gid_stone_s_1: "601",
+            gid_stone_l_1: "606",
+            gid_formation_2: "591",
+            gid_formation_1: "590",
+            gid_stone_m_6: "605",
+            gid_stone_m_5: "604",
+            gid_stone_m_2: "596",
+            gid_stone_s_2: "600",
+            gid_stone_s_5: "602",
+            gid_formation_4: "593",
+            gid_stone_m_1: "597",
+            gid_default: "589",
+            gid_stone_m_4: "603",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+    };
 }
 
 impl DebrisVariants {
-pub fn get_variant(&self, variant: &String) -> &DebrisVariant {
-match variant.as_str() {
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &DebrisVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct DoorVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl DoorVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct DoorVariants {
-pub plattform_l: DoorVariant,
-pub golden: DoorVariant,
-pub plattform_xl: DoorVariant,
-pub tree_left: DoorVariant,
-pub forest_s: DoorVariant,
-pub forest_l: DoorVariant,
-pub plattform_s: DoorVariant,
-pub default: DoorVariant,
-pub forest_m: DoorVariant,
-pub plattform_m: DoorVariant,
-pub tree_right: DoorVariant,
+    pub plattform_l: DoorVariant,
+    pub golden: DoorVariant,
+    pub plattform_xl: DoorVariant,
+    pub tree_left: DoorVariant,
+    pub forest_s: DoorVariant,
+    pub forest_l: DoorVariant,
+    pub plattform_s: DoorVariant,
+    pub default: DoorVariant,
+    pub forest_m: DoorVariant,
+    pub plattform_m: DoorVariant,
+    pub tree_right: DoorVariant,
 }
 
 impl Door {
-pub const VARIANTS: DoorVariants = DoorVariants {
-plattform_l: DoorVariant {
-gid_default: "104",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: -0.5, offset_from_center_y: 0.5, width: 79.0, height: 17.0 }),
-offset_from_center_x: -0.50, offset_from_center_y: 0.50,
-},
-golden: DoorVariant {
-gid_default: "102",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 24.0, height: 64.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-plattform_xl: DoorVariant {
-gid_default: "103",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: -0.5, offset_from_center_y: 0.5, width: 113.0, height: 17.0 }),
-offset_from_center_x: -0.50, offset_from_center_y: 0.50,
-},
-tree_left: DoorVariant {
-gid_default: "110",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: -16.0, offset_from_center_y: -5.0, width: 32.0, height: 6.0 }),
-offset_from_center_x: -16.00, offset_from_center_y: -5.00,
-},
-forest_s: DoorVariant {
-gid_default: "107",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -1.0, width: 16.0, height: 6.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -1.00,
-},
-forest_l: DoorVariant {
-gid_default: "109",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -1.5, width: 48.0, height: 6.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -1.50,
-},
-plattform_s: DoorVariant {
-gid_default: "106",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: -0.5, offset_from_center_y: 0.5, width: 31.0, height: 17.0 }),
-offset_from_center_x: -0.50, offset_from_center_y: 0.50,
-},
-default: DoorVariant {
-gid_default: "101",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 24.0, height: 64.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-forest_m: DoorVariant {
-gid_default: "108",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -1.0, width: 32.0, height: 6.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -1.00,
-},
-plattform_m: DoorVariant {
-gid_default: "105",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.5, width: 46.0, height: 17.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.50,
-},
-tree_right: DoorVariant {
-gid_default: "111",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 16.0, offset_from_center_y: -5.0, width: 32.0, height: 6.0 }),
-offset_from_center_x: 16.00, offset_from_center_y: -5.00,
-},
-};
+    pub const VARIANTS: DoorVariants = DoorVariants {
+        plattform_l: DoorVariant {
+            gid_default: "104",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: -0.5,
+                offset_from_center_y: 0.5,
+                width: 79.0,
+                height: 17.0,
+            }),
+            offset_from_center_x: -0.50,
+            offset_from_center_y: 0.50,
+        },
+        golden: DoorVariant {
+            gid_default: "102",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 24.0,
+                height: 64.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        plattform_xl: DoorVariant {
+            gid_default: "103",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: -0.5,
+                offset_from_center_y: 0.5,
+                width: 113.0,
+                height: 17.0,
+            }),
+            offset_from_center_x: -0.50,
+            offset_from_center_y: 0.50,
+        },
+        tree_left: DoorVariant {
+            gid_default: "110",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: -16.0,
+                offset_from_center_y: -5.0,
+                width: 32.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: -16.00,
+            offset_from_center_y: -5.00,
+        },
+        forest_s: DoorVariant {
+            gid_default: "107",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -1.0,
+                width: 16.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -1.00,
+        },
+        forest_l: DoorVariant {
+            gid_default: "109",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -1.5,
+                width: 48.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -1.50,
+        },
+        plattform_s: DoorVariant {
+            gid_default: "106",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: -0.5,
+                offset_from_center_y: 0.5,
+                width: 31.0,
+                height: 17.0,
+            }),
+            offset_from_center_x: -0.50,
+            offset_from_center_y: 0.50,
+        },
+        default: DoorVariant {
+            gid_default: "101",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 24.0,
+                height: 64.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        forest_m: DoorVariant {
+            gid_default: "108",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -1.0,
+                width: 32.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -1.00,
+        },
+        plattform_m: DoorVariant {
+            gid_default: "105",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.5,
+                width: 46.0,
+                height: 17.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.50,
+        },
+        tree_right: DoorVariant {
+            gid_default: "111",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 16.0,
+                offset_from_center_y: -5.0,
+                width: 32.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 16.00,
+            offset_from_center_y: -5.00,
+        },
+    };
 }
 
 impl DoorVariants {
-pub fn get_variant(&self, variant: &String) -> &DoorVariant {
-match variant.as_str() {
-"plattform_l" => &self.plattform_l,
-"golden" => &self.golden,
-"plattform_xl" => &self.plattform_xl,
-"tree_left" => &self.tree_left,
-"forest_s" => &self.forest_s,
-"forest_l" => &self.forest_l,
-"plattform_s" => &self.plattform_s,
-"default" => &self.default,
-"forest_m" => &self.forest_m,
-"plattform_m" => &self.plattform_m,
-"tree_right" => &self.tree_right,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &DoorVariant {
+        match variant.as_str() {
+            "plattform_l" => &self.plattform_l,
+            "golden" => &self.golden,
+            "plattform_xl" => &self.plattform_xl,
+            "tree_left" => &self.tree_left,
+            "forest_s" => &self.forest_s,
+            "forest_l" => &self.forest_l,
+            "plattform_s" => &self.plattform_s,
+            "default" => &self.default,
+            "forest_m" => &self.forest_m,
+            "plattform_m" => &self.plattform_m,
+            "tree_right" => &self.tree_right,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct GuestVariant {
-pub gid_idle_2: &'static str,
-pub gid_jump_hold_left_3: &'static str,
-pub gid_jump_hold_up_2: &'static str,
-pub gid_face_right: &'static str,
-pub gid_jump_hold_right_1: &'static str,
-pub gid_jumping_up: &'static str,
-pub gid_extend_right_2: &'static str,
-pub gid_jump_hold_right_2: &'static str,
-pub gid_jump_hold_right_3: &'static str,
-pub gid_jump_hold_up_3: &'static str,
-pub gid_extend_left_1: &'static str,
-pub gid_idle_3: &'static str,
-pub gid_moved_left: &'static str,
-pub gid_jump_hold_up_1: &'static str,
-pub gid_jumping_right: &'static str,
-pub gid_extend_left_2: &'static str,
-pub gid_moved_right: &'static str,
-pub gid_jump_hold_left_1: &'static str,
-pub gid_face_left: &'static str,
-pub gid_idle_1: &'static str,
-pub gid_idle_4: &'static str,
-pub gid_extend_right_1: &'static str,
-pub gid_jump_hold_left_2: &'static str,
-pub gid_jumping_left: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_idle_2: &'static str,
+    pub gid_jump_hold_left_3: &'static str,
+    pub gid_jump_hold_up_2: &'static str,
+    pub gid_face_right: &'static str,
+    pub gid_jump_hold_right_1: &'static str,
+    pub gid_jumping_up: &'static str,
+    pub gid_extend_right_2: &'static str,
+    pub gid_jump_hold_right_2: &'static str,
+    pub gid_jump_hold_right_3: &'static str,
+    pub gid_jump_hold_up_3: &'static str,
+    pub gid_extend_left_1: &'static str,
+    pub gid_idle_3: &'static str,
+    pub gid_moved_left: &'static str,
+    pub gid_jump_hold_up_1: &'static str,
+    pub gid_jumping_right: &'static str,
+    pub gid_extend_left_2: &'static str,
+    pub gid_moved_right: &'static str,
+    pub gid_jump_hold_left_1: &'static str,
+    pub gid_face_left: &'static str,
+    pub gid_idle_1: &'static str,
+    pub gid_idle_4: &'static str,
+    pub gid_extend_right_1: &'static str,
+    pub gid_jump_hold_left_2: &'static str,
+    pub gid_jumping_left: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl GuestVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct GuestVariants {
-pub blue: GuestVariant,
-pub albino: GuestVariant,
-pub red: GuestVariant,
-pub orange: GuestVariant,
-pub purple: GuestVariant,
-pub default: GuestVariant,
-pub black: GuestVariant,
-pub pink: GuestVariant,
+    pub blue: GuestVariant,
+    pub albino: GuestVariant,
+    pub red: GuestVariant,
+    pub orange: GuestVariant,
+    pub purple: GuestVariant,
+    pub default: GuestVariant,
+    pub black: GuestVariant,
+    pub pink: GuestVariant,
 }
 
 impl Guest {
-pub const VARIANTS: GuestVariants = GuestVariants {
-blue: GuestVariant {
-gid_moved_right: "143",
-gid_face_left: "148",
-gid_extend_right_2: "142",
-gid_jump_hold_up_1: "144",
-gid_jumping_right: "155",
-gid_idle_4: "139",
-gid_extend_right_1: "141",
-gid_extend_left_1: "149",
-gid_jump_hold_left_3: "158",
-gid_jump_hold_right_2: "153",
-gid_extend_left_2: "150",
-gid_jump_hold_left_1: "156",
-gid_jumping_up: "147",
-gid_jump_hold_up_3: "146",
-gid_jump_hold_left_2: "157",
-gid_idle_2: "137",
-gid_idle_3: "138",
-gid_moved_left: "151",
-gid_idle_1: "136",
-gid_jumping_left: "159",
-gid_jump_hold_right_3: "154",
-gid_jump_hold_right_1: "152",
-gid_jump_hold_up_2: "145",
-gid_face_right: "140",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -0.5, width: 12.0, height: 9.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -0.50,
-},
-albino: GuestVariant {
-gid_extend_left_1: "245",
-gid_jump_hold_up_2: "241",
-gid_jump_hold_right_1: "248",
-gid_jump_hold_right_3: "250",
-gid_extend_left_2: "246",
-gid_jump_hold_up_1: "240",
-gid_moved_right: "239",
-gid_face_left: "244",
-gid_moved_left: "247",
-gid_extend_right_2: "238",
-gid_jump_hold_up_3: "242",
-gid_jump_hold_left_3: "254",
-gid_idle_2: "233",
-gid_jumping_right: "251",
-gid_idle_4: "235",
-gid_jumping_up: "243",
-gid_jump_hold_right_2: "249",
-gid_idle_3: "234",
-gid_extend_right_1: "237",
-gid_jumping_left: "255",
-gid_jump_hold_left_2: "253",
-gid_jump_hold_left_1: "252",
-gid_face_right: "236",
-gid_idle_1: "232",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-red: GuestVariant {
-gid_idle_2: "161",
-gid_idle_3: "162",
-gid_extend_left_2: "174",
-gid_extend_right_1: "165",
-gid_idle_4: "163",
-gid_face_right: "164",
-gid_extend_right_2: "166",
-gid_jump_hold_right_1: "176",
-gid_moved_left: "175",
-gid_jump_hold_up_3: "170",
-gid_jumping_right: "179",
-gid_jump_hold_right_3: "178",
-gid_jump_hold_up_1: "168",
-gid_jump_hold_right_2: "177",
-gid_extend_left_1: "173",
-gid_idle_1: "160",
-gid_face_left: "172",
-gid_moved_right: "167",
-gid_jumping_up: "171",
-gid_jump_hold_up_2: "169",
-gid_jump_hold_left_2: "181",
-gid_jump_hold_left_1: "180",
-gid_jumping_left: "183",
-gid_jump_hold_left_3: "182",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-orange: GuestVariant {
-gid_face_right: "212",
-gid_idle_3: "210",
-gid_jump_hold_up_1: "216",
-gid_extend_right_1: "213",
-gid_extend_left_1: "221",
-gid_moved_left: "223",
-gid_jumping_up: "219",
-gid_moved_right: "215",
-gid_jump_hold_right_2: "225",
-gid_extend_right_2: "214",
-gid_jumping_right: "227",
-gid_jump_hold_left_1: "228",
-gid_jump_hold_up_3: "218",
-gid_extend_left_2: "222",
-gid_jump_hold_right_3: "226",
-gid_jump_hold_left_3: "230",
-gid_idle_1: "208",
-gid_jump_hold_left_2: "229",
-gid_jumping_left: "231",
-gid_jump_hold_up_2: "217",
-gid_idle_4: "211",
-gid_idle_2: "209",
-gid_jump_hold_right_1: "224",
-gid_face_left: "220",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-purple: GuestVariant {
-gid_jump_hold_up_2: "193",
-gid_jump_hold_right_2: "201",
-gid_jump_hold_up_3: "194",
-gid_jump_hold_left_3: "206",
-gid_idle_2: "185",
-gid_jumping_up: "195",
-gid_face_right: "188",
-gid_extend_left_2: "198",
-gid_extend_left_1: "197",
-gid_face_left: "196",
-gid_extend_right_1: "189",
-gid_jump_hold_right_1: "200",
-gid_moved_left: "199",
-gid_extend_right_2: "190",
-gid_idle_1: "184",
-gid_jump_hold_right_3: "202",
-gid_jumping_right: "203",
-gid_idle_4: "187",
-gid_jump_hold_left_2: "205",
-gid_idle_3: "186",
-gid_jump_hold_left_1: "204",
-gid_jumping_left: "207",
-gid_moved_right: "191",
-gid_jump_hold_up_1: "192",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-default: GuestVariant {
-gid_idle_2: "113",
-gid_jump_hold_left_3: "134",
-gid_jump_hold_up_2: "121",
-gid_face_right: "116",
-gid_jump_hold_right_1: "128",
-gid_jumping_up: "123",
-gid_extend_right_2: "118",
-gid_jump_hold_right_2: "129",
-gid_jump_hold_right_3: "130",
-gid_jump_hold_up_3: "122",
-gid_extend_left_1: "125",
-gid_idle_3: "114",
-gid_moved_left: "127",
-gid_jump_hold_up_1: "120",
-gid_jumping_right: "131",
-gid_extend_left_2: "126",
-gid_moved_right: "119",
-gid_jump_hold_left_1: "132",
-gid_face_left: "124",
-gid_idle_1: "112",
-gid_idle_4: "115",
-gid_extend_right_1: "117",
-gid_jump_hold_left_2: "133",
-gid_jumping_left: "135",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -0.5, width: 12.0, height: 9.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -0.50,
-},
-black: GuestVariant {
-gid_jumping_up: "267",
-gid_idle_1: "256",
-gid_jump_hold_right_2: "273",
-gid_jump_hold_up_2: "265",
-gid_moved_right: "263",
-gid_idle_4: "259",
-gid_idle_3: "258",
-gid_jumping_right: "275",
-gid_jump_hold_up_1: "264",
-gid_jump_hold_left_1: "276",
-gid_moved_left: "271",
-gid_jumping_left: "279",
-gid_jump_hold_right_1: "272",
-gid_extend_right_2: "262",
-gid_face_left: "268",
-gid_jump_hold_right_3: "274",
-gid_extend_right_1: "261",
-gid_idle_2: "257",
-gid_extend_left_2: "270",
-gid_jump_hold_up_3: "266",
-gid_jump_hold_left_3: "278",
-gid_jump_hold_left_2: "277",
-gid_face_right: "260",
-gid_extend_left_1: "269",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-pink: GuestVariant {
-gid_idle_3: "282",
-gid_jump_hold_right_1: "296",
-gid_jump_hold_right_2: "297",
-gid_extend_left_2: "294",
-gid_jump_hold_right_3: "298",
-gid_extend_left_1: "293",
-gid_jump_hold_left_2: "301",
-gid_jumping_left: "303",
-gid_jump_hold_up_3: "290",
-gid_jump_hold_left_1: "300",
-gid_idle_1: "280",
-gid_extend_right_1: "285",
-gid_moved_right: "287",
-gid_jump_hold_left_3: "302",
-gid_face_right: "284",
-gid_face_left: "292",
-gid_jump_hold_up_2: "289",
-gid_jump_hold_up_1: "288",
-gid_jumping_right: "299",
-gid_idle_4: "283",
-gid_moved_left: "295",
-gid_extend_right_2: "286",
-gid_idle_2: "281",
-gid_jumping_up: "291",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-};
+    pub const VARIANTS: GuestVariants = GuestVariants {
+        blue: GuestVariant {
+            gid_moved_right: "143",
+            gid_face_left: "148",
+            gid_extend_right_2: "142",
+            gid_jump_hold_up_1: "144",
+            gid_jumping_right: "155",
+            gid_idle_4: "139",
+            gid_extend_right_1: "141",
+            gid_extend_left_1: "149",
+            gid_jump_hold_left_3: "158",
+            gid_jump_hold_right_2: "153",
+            gid_extend_left_2: "150",
+            gid_jump_hold_left_1: "156",
+            gid_jumping_up: "147",
+            gid_jump_hold_up_3: "146",
+            gid_jump_hold_left_2: "157",
+            gid_idle_2: "137",
+            gid_idle_3: "138",
+            gid_moved_left: "151",
+            gid_idle_1: "136",
+            gid_jumping_left: "159",
+            gid_jump_hold_right_3: "154",
+            gid_jump_hold_right_1: "152",
+            gid_jump_hold_up_2: "145",
+            gid_face_right: "140",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -0.5,
+                width: 12.0,
+                height: 9.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -0.50,
+        },
+        albino: GuestVariant {
+            gid_extend_left_1: "245",
+            gid_jump_hold_up_2: "241",
+            gid_jump_hold_right_1: "248",
+            gid_jump_hold_right_3: "250",
+            gid_extend_left_2: "246",
+            gid_jump_hold_up_1: "240",
+            gid_moved_right: "239",
+            gid_face_left: "244",
+            gid_moved_left: "247",
+            gid_extend_right_2: "238",
+            gid_jump_hold_up_3: "242",
+            gid_jump_hold_left_3: "254",
+            gid_idle_2: "233",
+            gid_jumping_right: "251",
+            gid_idle_4: "235",
+            gid_jumping_up: "243",
+            gid_jump_hold_right_2: "249",
+            gid_idle_3: "234",
+            gid_extend_right_1: "237",
+            gid_jumping_left: "255",
+            gid_jump_hold_left_2: "253",
+            gid_jump_hold_left_1: "252",
+            gid_face_right: "236",
+            gid_idle_1: "232",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        red: GuestVariant {
+            gid_idle_2: "161",
+            gid_idle_3: "162",
+            gid_extend_left_2: "174",
+            gid_extend_right_1: "165",
+            gid_idle_4: "163",
+            gid_face_right: "164",
+            gid_extend_right_2: "166",
+            gid_jump_hold_right_1: "176",
+            gid_moved_left: "175",
+            gid_jump_hold_up_3: "170",
+            gid_jumping_right: "179",
+            gid_jump_hold_right_3: "178",
+            gid_jump_hold_up_1: "168",
+            gid_jump_hold_right_2: "177",
+            gid_extend_left_1: "173",
+            gid_idle_1: "160",
+            gid_face_left: "172",
+            gid_moved_right: "167",
+            gid_jumping_up: "171",
+            gid_jump_hold_up_2: "169",
+            gid_jump_hold_left_2: "181",
+            gid_jump_hold_left_1: "180",
+            gid_jumping_left: "183",
+            gid_jump_hold_left_3: "182",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        orange: GuestVariant {
+            gid_face_right: "212",
+            gid_idle_3: "210",
+            gid_jump_hold_up_1: "216",
+            gid_extend_right_1: "213",
+            gid_extend_left_1: "221",
+            gid_moved_left: "223",
+            gid_jumping_up: "219",
+            gid_moved_right: "215",
+            gid_jump_hold_right_2: "225",
+            gid_extend_right_2: "214",
+            gid_jumping_right: "227",
+            gid_jump_hold_left_1: "228",
+            gid_jump_hold_up_3: "218",
+            gid_extend_left_2: "222",
+            gid_jump_hold_right_3: "226",
+            gid_jump_hold_left_3: "230",
+            gid_idle_1: "208",
+            gid_jump_hold_left_2: "229",
+            gid_jumping_left: "231",
+            gid_jump_hold_up_2: "217",
+            gid_idle_4: "211",
+            gid_idle_2: "209",
+            gid_jump_hold_right_1: "224",
+            gid_face_left: "220",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        purple: GuestVariant {
+            gid_jump_hold_up_2: "193",
+            gid_jump_hold_right_2: "201",
+            gid_jump_hold_up_3: "194",
+            gid_jump_hold_left_3: "206",
+            gid_idle_2: "185",
+            gid_jumping_up: "195",
+            gid_face_right: "188",
+            gid_extend_left_2: "198",
+            gid_extend_left_1: "197",
+            gid_face_left: "196",
+            gid_extend_right_1: "189",
+            gid_jump_hold_right_1: "200",
+            gid_moved_left: "199",
+            gid_extend_right_2: "190",
+            gid_idle_1: "184",
+            gid_jump_hold_right_3: "202",
+            gid_jumping_right: "203",
+            gid_idle_4: "187",
+            gid_jump_hold_left_2: "205",
+            gid_idle_3: "186",
+            gid_jump_hold_left_1: "204",
+            gid_jumping_left: "207",
+            gid_moved_right: "191",
+            gid_jump_hold_up_1: "192",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        default: GuestVariant {
+            gid_idle_2: "113",
+            gid_jump_hold_left_3: "134",
+            gid_jump_hold_up_2: "121",
+            gid_face_right: "116",
+            gid_jump_hold_right_1: "128",
+            gid_jumping_up: "123",
+            gid_extend_right_2: "118",
+            gid_jump_hold_right_2: "129",
+            gid_jump_hold_right_3: "130",
+            gid_jump_hold_up_3: "122",
+            gid_extend_left_1: "125",
+            gid_idle_3: "114",
+            gid_moved_left: "127",
+            gid_jump_hold_up_1: "120",
+            gid_jumping_right: "131",
+            gid_extend_left_2: "126",
+            gid_moved_right: "119",
+            gid_jump_hold_left_1: "132",
+            gid_face_left: "124",
+            gid_idle_1: "112",
+            gid_idle_4: "115",
+            gid_extend_right_1: "117",
+            gid_jump_hold_left_2: "133",
+            gid_jumping_left: "135",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -0.5,
+                width: 12.0,
+                height: 9.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -0.50,
+        },
+        black: GuestVariant {
+            gid_jumping_up: "267",
+            gid_idle_1: "256",
+            gid_jump_hold_right_2: "273",
+            gid_jump_hold_up_2: "265",
+            gid_moved_right: "263",
+            gid_idle_4: "259",
+            gid_idle_3: "258",
+            gid_jumping_right: "275",
+            gid_jump_hold_up_1: "264",
+            gid_jump_hold_left_1: "276",
+            gid_moved_left: "271",
+            gid_jumping_left: "279",
+            gid_jump_hold_right_1: "272",
+            gid_extend_right_2: "262",
+            gid_face_left: "268",
+            gid_jump_hold_right_3: "274",
+            gid_extend_right_1: "261",
+            gid_idle_2: "257",
+            gid_extend_left_2: "270",
+            gid_jump_hold_up_3: "266",
+            gid_jump_hold_left_3: "278",
+            gid_jump_hold_left_2: "277",
+            gid_face_right: "260",
+            gid_extend_left_1: "269",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        pink: GuestVariant {
+            gid_idle_3: "282",
+            gid_jump_hold_right_1: "296",
+            gid_jump_hold_right_2: "297",
+            gid_extend_left_2: "294",
+            gid_jump_hold_right_3: "298",
+            gid_extend_left_1: "293",
+            gid_jump_hold_left_2: "301",
+            gid_jumping_left: "303",
+            gid_jump_hold_up_3: "290",
+            gid_jump_hold_left_1: "300",
+            gid_idle_1: "280",
+            gid_extend_right_1: "285",
+            gid_moved_right: "287",
+            gid_jump_hold_left_3: "302",
+            gid_face_right: "284",
+            gid_face_left: "292",
+            gid_jump_hold_up_2: "289",
+            gid_jump_hold_up_1: "288",
+            gid_jumping_right: "299",
+            gid_idle_4: "283",
+            gid_moved_left: "295",
+            gid_extend_right_2: "286",
+            gid_idle_2: "281",
+            gid_jumping_up: "291",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+    };
 }
 
 impl GuestVariants {
-pub fn get_variant(&self, variant: &String) -> &GuestVariant {
-match variant.as_str() {
-"blue" => &self.blue,
-"albino" => &self.albino,
-"red" => &self.red,
-"orange" => &self.orange,
-"purple" => &self.purple,
-"default" => &self.default,
-"black" => &self.black,
-"pink" => &self.pink,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &GuestVariant {
+        match variant.as_str() {
+            "blue" => &self.blue,
+            "albino" => &self.albino,
+            "red" => &self.red,
+            "orange" => &self.orange,
+            "purple" => &self.purple,
+            "default" => &self.default,
+            "black" => &self.black,
+            "pink" => &self.pink,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct GuestDeadVariant {
-pub gid_right: &'static str,
-pub gid_left: &'static str,
-pub gid_idle: &'static str,
-pub gid_up: &'static str,
-pub gid_down: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_right: &'static str,
+    pub gid_left: &'static str,
+    pub gid_idle: &'static str,
+    pub gid_up: &'static str,
+    pub gid_down: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl GuestDeadVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct GuestDeadVariants {
-pub black: GuestDeadVariant,
-pub albino: GuestDeadVariant,
-pub blue: GuestDeadVariant,
-pub purple: GuestDeadVariant,
-pub red: GuestDeadVariant,
-pub orange: GuestDeadVariant,
-pub pink: GuestDeadVariant,
-pub default: GuestDeadVariant,
+    pub black: GuestDeadVariant,
+    pub albino: GuestDeadVariant,
+    pub blue: GuestDeadVariant,
+    pub purple: GuestDeadVariant,
+    pub red: GuestDeadVariant,
+    pub orange: GuestDeadVariant,
+    pub pink: GuestDeadVariant,
+    pub default: GuestDeadVariant,
 }
 
 impl GuestDead {
-pub const VARIANTS: GuestDeadVariants = GuestDeadVariants {
-black: GuestDeadVariant {
-gid_right: "950",
-gid_idle: "948",
-gid_down: "947",
-gid_up: "946",
-gid_left: "949",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -2.0, width: 10.0, height: 8.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -2.00,
-},
-albino: GuestDeadVariant {
-gid_idle: "938",
-gid_right: "940",
-gid_left: "939",
-gid_up: "936",
-gid_down: "937",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -2.0, width: 10.0, height: 8.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -2.00,
-},
-blue: GuestDeadVariant {
-gid_right: "925",
-gid_down: "922",
-gid_idle: "923",
-gid_up: "921",
-gid_left: "924",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -2.0, width: 10.0, height: 8.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -2.00,
-},
-purple: GuestDeadVariant {
-gid_left: "929",
-gid_down: "927",
-gid_right: "930",
-gid_idle: "928",
-gid_up: "926",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -2.0, width: 10.0, height: 8.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -2.00,
-},
-red: GuestDeadVariant {
-gid_left: "944",
-gid_down: "942",
-gid_idle: "943",
-gid_up: "941",
-gid_right: "945",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -2.0, width: 10.0, height: 8.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -2.00,
-},
-orange: GuestDeadVariant {
-gid_left: "954",
-gid_down: "952",
-gid_up: "951",
-gid_idle: "953",
-gid_right: "955",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -2.0, width: 10.0, height: 8.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -2.00,
-},
-pink: GuestDeadVariant {
-gid_up: "931",
-gid_down: "932",
-gid_idle: "933",
-gid_left: "934",
-gid_right: "935",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -2.0, width: 10.0, height: 8.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -2.00,
-},
-default: GuestDeadVariant {
-gid_right: "920",
-gid_left: "919",
-gid_idle: "918",
-gid_up: "916",
-gid_down: "917",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: -2.0, width: 10.0, height: 8.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: -2.00,
-},
-};
+    pub const VARIANTS: GuestDeadVariants = GuestDeadVariants {
+        black: GuestDeadVariant {
+            gid_right: "950",
+            gid_idle: "948",
+            gid_down: "947",
+            gid_up: "946",
+            gid_left: "949",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -2.0,
+                width: 10.0,
+                height: 8.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -2.00,
+        },
+        albino: GuestDeadVariant {
+            gid_idle: "938",
+            gid_right: "940",
+            gid_left: "939",
+            gid_up: "936",
+            gid_down: "937",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -2.0,
+                width: 10.0,
+                height: 8.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -2.00,
+        },
+        blue: GuestDeadVariant {
+            gid_right: "925",
+            gid_down: "922",
+            gid_idle: "923",
+            gid_up: "921",
+            gid_left: "924",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -2.0,
+                width: 10.0,
+                height: 8.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -2.00,
+        },
+        purple: GuestDeadVariant {
+            gid_left: "929",
+            gid_down: "927",
+            gid_right: "930",
+            gid_idle: "928",
+            gid_up: "926",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -2.0,
+                width: 10.0,
+                height: 8.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -2.00,
+        },
+        red: GuestDeadVariant {
+            gid_left: "944",
+            gid_down: "942",
+            gid_idle: "943",
+            gid_up: "941",
+            gid_right: "945",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -2.0,
+                width: 10.0,
+                height: 8.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -2.00,
+        },
+        orange: GuestDeadVariant {
+            gid_left: "954",
+            gid_down: "952",
+            gid_up: "951",
+            gid_idle: "953",
+            gid_right: "955",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -2.0,
+                width: 10.0,
+                height: 8.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -2.00,
+        },
+        pink: GuestDeadVariant {
+            gid_up: "931",
+            gid_down: "932",
+            gid_idle: "933",
+            gid_left: "934",
+            gid_right: "935",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -2.0,
+                width: 10.0,
+                height: 8.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -2.00,
+        },
+        default: GuestDeadVariant {
+            gid_right: "920",
+            gid_left: "919",
+            gid_idle: "918",
+            gid_up: "916",
+            gid_down: "917",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: -2.0,
+                width: 10.0,
+                height: 8.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: -2.00,
+        },
+    };
 }
 
 impl GuestDeadVariants {
-pub fn get_variant(&self, variant: &String) -> &GuestDeadVariant {
-match variant.as_str() {
-"black" => &self.black,
-"albino" => &self.albino,
-"blue" => &self.blue,
-"purple" => &self.purple,
-"red" => &self.red,
-"orange" => &self.orange,
-"pink" => &self.pink,
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &GuestDeadVariant {
+        match variant.as_str() {
+            "black" => &self.black,
+            "albino" => &self.albino,
+            "blue" => &self.blue,
+            "purple" => &self.purple,
+            "red" => &self.red,
+            "orange" => &self.orange,
+            "pink" => &self.pink,
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct HeartVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl HeartVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct HeartVariants {
-pub default: HeartVariant,
-pub yellow: HeartVariant,
-pub blue: HeartVariant,
+    pub default: HeartVariant,
+    pub yellow: HeartVariant,
+    pub blue: HeartVariant,
 }
 
 impl Heart {
-pub const VARIANTS: HeartVariants = HeartVariants {
-default: HeartVariant {
-gid_default: "419",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: -1.0, offset_from_center_y: 0.5, width: 12.0, height: 14.0 }),
-offset_from_center_x: -1.00, offset_from_center_y: 0.50,
-},
-yellow: HeartVariant {
-gid_default: "427",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: -1.0, offset_from_center_y: -0.5, width: 12.0, height: 14.0 }),
-offset_from_center_x: -1.00, offset_from_center_y: -0.50,
-},
-blue: HeartVariant {
-gid_default: "435",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: -1.0, offset_from_center_y: -1.5, width: 12.0, height: 14.0 }),
-offset_from_center_x: -1.00, offset_from_center_y: -1.50,
-},
-};
+    pub const VARIANTS: HeartVariants = HeartVariants {
+        default: HeartVariant {
+            gid_default: "419",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: -1.0,
+                offset_from_center_y: 0.5,
+                width: 12.0,
+                height: 14.0,
+            }),
+            offset_from_center_x: -1.00,
+            offset_from_center_y: 0.50,
+        },
+        yellow: HeartVariant {
+            gid_default: "427",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: -1.0,
+                offset_from_center_y: -0.5,
+                width: 12.0,
+                height: 14.0,
+            }),
+            offset_from_center_x: -1.00,
+            offset_from_center_y: -0.50,
+        },
+        blue: HeartVariant {
+            gid_default: "435",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: -1.0,
+                offset_from_center_y: -1.5,
+                width: 12.0,
+                height: 14.0,
+            }),
+            offset_from_center_x: -1.00,
+            offset_from_center_y: -1.50,
+        },
+    };
 }
 
 impl HeartVariants {
-pub fn get_variant(&self, variant: &String) -> &HeartVariant {
-match variant.as_str() {
-"default" => &self.default,
-"yellow" => &self.yellow,
-"blue" => &self.blue,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &HeartVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            "yellow" => &self.yellow,
+            "blue" => &self.blue,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct HeartSmollVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl HeartSmollVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct HeartSmollVariants {
-pub yellow: HeartSmollVariant,
-pub default: HeartSmollVariant,
-pub blue: HeartSmollVariant,
+    pub yellow: HeartSmollVariant,
+    pub default: HeartSmollVariant,
+    pub blue: HeartSmollVariant,
 }
 
 impl HeartSmoll {
-pub const VARIANTS: HeartSmollVariants = HeartSmollVariants {
-yellow: HeartSmollVariant {
-gid_default: "483",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-default: HeartSmollVariant {
-gid_default: "443",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-blue: HeartSmollVariant {
-gid_default: "463",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-};
+    pub const VARIANTS: HeartSmollVariants = HeartSmollVariants {
+        yellow: HeartSmollVariant {
+            gid_default: "483",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        default: HeartSmollVariant {
+            gid_default: "443",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        blue: HeartSmollVariant {
+            gid_default: "463",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+    };
 }
 
 impl HeartSmollVariants {
-pub fn get_variant(&self, variant: &String) -> &HeartSmollVariant {
-match variant.as_str() {
-"yellow" => &self.yellow,
-"default" => &self.default,
-"blue" => &self.blue,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &HeartSmollVariant {
+        match variant.as_str() {
+            "yellow" => &self.yellow,
+            "default" => &self.default,
+            "blue" => &self.blue,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct HeartWallGlowVariant {
-pub gid_glow: &'static str,
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_glow: &'static str,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl HeartWallGlowVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct HeartWallGlowVariants {
-pub yellow: HeartWallGlowVariant,
-pub default: HeartWallGlowVariant,
-pub red: HeartWallGlowVariant,
+    pub yellow: HeartWallGlowVariant,
+    pub default: HeartWallGlowVariant,
+    pub red: HeartWallGlowVariant,
 }
 
 impl HeartWallGlow {
-pub const VARIANTS: HeartWallGlowVariants = HeartWallGlowVariants {
-yellow: HeartWallGlowVariant {
-gid_default: "580",
-gid_glow: "570",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-default: HeartWallGlowVariant {
-gid_glow: "548",
-gid_default: "558",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-red: HeartWallGlowVariant {
-gid_glow: "559",
-gid_default: "569",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-};
+    pub const VARIANTS: HeartWallGlowVariants = HeartWallGlowVariants {
+        yellow: HeartWallGlowVariant {
+            gid_default: "580",
+            gid_glow: "570",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        default: HeartWallGlowVariant {
+            gid_glow: "548",
+            gid_default: "558",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        red: HeartWallGlowVariant {
+            gid_glow: "559",
+            gid_default: "569",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+    };
 }
 
 impl HeartWallGlowVariants {
-pub fn get_variant(&self, variant: &String) -> &HeartWallGlowVariant {
-match variant.as_str() {
-"yellow" => &self.yellow,
-"default" => &self.default,
-"red" => &self.red,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &HeartWallGlowVariant {
+        match variant.as_str() {
+            "yellow" => &self.yellow,
+            "default" => &self.default,
+            "red" => &self.red,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct ObserverVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl ObserverVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct ObserverVariants {
-pub default: ObserverVariant,
+    pub default: ObserverVariant,
 }
 
 impl Observer {
-pub const VARIANTS: ObserverVariants = ObserverVariants {
-default: ObserverVariant {
-gid_default: "353",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 16.0, height: 16.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-};
+    pub const VARIANTS: ObserverVariants = ObserverVariants {
+        default: ObserverVariant {
+            gid_default: "353",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 16.0,
+                height: 16.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+    };
 }
 
 impl ObserverVariants {
-pub fn get_variant(&self, variant: &String) -> &ObserverVariant {
-match variant.as_str() {
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &ObserverVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct OpeningAreaPlateVariant {
-pub gid_activated: &'static str,
-pub gid_done: &'static str,
-pub gid_default: &'static str,
-pub shape_platform: PhysicalShape,
-pub shape_activation: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_activated: &'static str,
+    pub gid_done: &'static str,
+    pub gid_default: &'static str,
+    pub shape_platform: PhysicalShape,
+    pub shape_activation: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl OpeningAreaPlateVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct OpeningAreaPlateVariants {
-pub portal_green_no_glow: OpeningAreaPlateVariant,
-pub portal: OpeningAreaPlateVariant,
-pub green_opener: OpeningAreaPlateVariant,
-pub default: OpeningAreaPlateVariant,
-pub portal_no_glow: OpeningAreaPlateVariant,
-pub portal_green: OpeningAreaPlateVariant,
+    pub portal_green_no_glow: OpeningAreaPlateVariant,
+    pub portal: OpeningAreaPlateVariant,
+    pub green_opener: OpeningAreaPlateVariant,
+    pub default: OpeningAreaPlateVariant,
+    pub portal_no_glow: OpeningAreaPlateVariant,
+    pub portal_green: OpeningAreaPlateVariant,
 }
 
 impl OpeningAreaPlate {
-pub const VARIANTS: OpeningAreaPlateVariants = OpeningAreaPlateVariants {
-portal_green_no_glow: OpeningAreaPlateVariant {
-gid_activated: "340",
-gid_done: "345",
-gid_default: "339",
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 11.0, width: 24.0, height: 6.0 }),
-offset_from_center_x: 4.00, offset_from_center_y: 11.00,
-shape_activation: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 2.0, width: 14.0, height: 12.0 }),
-},
-portal: OpeningAreaPlateVariant {
-gid_activated: "319",
-gid_default: "318",
-gid_done: "324",
-shape_activation: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 2.0, width: 14.0, height: 12.0 }),
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 11.0, width: 24.0, height: 6.0 }),
-offset_from_center_x: 4.00, offset_from_center_y: 11.00,
-},
-green_opener: OpeningAreaPlateVariant {
-gid_done: "352",
-gid_default: "346",
-gid_activated: "347",
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 11.0, width: 24.0, height: 6.0 }),
-offset_from_center_x: 4.00, offset_from_center_y: 11.00,
-shape_activation: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 2.0, width: 14.0, height: 12.0 }),
-},
-default: OpeningAreaPlateVariant {
-gid_activated: "312",
-gid_done: "317",
-gid_default: "311",
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 11.0, width: 24.0, height: 6.0 }),
-offset_from_center_x: 4.00, offset_from_center_y: 11.00,
-shape_activation: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 2.0, width: 14.0, height: 12.0 }),
-},
-portal_no_glow: OpeningAreaPlateVariant {
-gid_default: "325",
-gid_done: "331",
-gid_activated: "326",
-shape_activation: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 2.0, width: 14.0, height: 12.0 }),
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 3.75, offset_from_center_y: 11.125, width: 24.0, height: 6.0 }),
-offset_from_center_x: 3.75, offset_from_center_y: 11.12,
-},
-portal_green: OpeningAreaPlateVariant {
-gid_done: "338",
-gid_default: "332",
-gid_activated: "333",
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 11.0, width: 24.0, height: 6.0 }),
-offset_from_center_x: 4.00, offset_from_center_y: 11.00,
-shape_activation: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 4.0, offset_from_center_y: 2.0, width: 14.0, height: 12.0 }),
-},
-};
+    pub const VARIANTS: OpeningAreaPlateVariants = OpeningAreaPlateVariants {
+        portal_green_no_glow: OpeningAreaPlateVariant {
+            gid_activated: "340",
+            gid_done: "345",
+            gid_default: "339",
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 11.0,
+                width: 24.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 4.00,
+            offset_from_center_y: 11.00,
+            shape_activation: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 2.0,
+                width: 14.0,
+                height: 12.0,
+            }),
+        },
+        portal: OpeningAreaPlateVariant {
+            gid_activated: "319",
+            gid_default: "318",
+            gid_done: "324",
+            shape_activation: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 2.0,
+                width: 14.0,
+                height: 12.0,
+            }),
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 11.0,
+                width: 24.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 4.00,
+            offset_from_center_y: 11.00,
+        },
+        green_opener: OpeningAreaPlateVariant {
+            gid_done: "352",
+            gid_default: "346",
+            gid_activated: "347",
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 11.0,
+                width: 24.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 4.00,
+            offset_from_center_y: 11.00,
+            shape_activation: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 2.0,
+                width: 14.0,
+                height: 12.0,
+            }),
+        },
+        default: OpeningAreaPlateVariant {
+            gid_activated: "312",
+            gid_done: "317",
+            gid_default: "311",
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 11.0,
+                width: 24.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 4.00,
+            offset_from_center_y: 11.00,
+            shape_activation: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 2.0,
+                width: 14.0,
+                height: 12.0,
+            }),
+        },
+        portal_no_glow: OpeningAreaPlateVariant {
+            gid_default: "325",
+            gid_done: "331",
+            gid_activated: "326",
+            shape_activation: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 2.0,
+                width: 14.0,
+                height: 12.0,
+            }),
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 3.75,
+                offset_from_center_y: 11.125,
+                width: 24.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 3.75,
+            offset_from_center_y: 11.12,
+        },
+        portal_green: OpeningAreaPlateVariant {
+            gid_done: "338",
+            gid_default: "332",
+            gid_activated: "333",
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 11.0,
+                width: 24.0,
+                height: 6.0,
+            }),
+            offset_from_center_x: 4.00,
+            offset_from_center_y: 11.00,
+            shape_activation: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 4.0,
+                offset_from_center_y: 2.0,
+                width: 14.0,
+                height: 12.0,
+            }),
+        },
+    };
 }
 
 impl OpeningAreaPlateVariants {
-pub fn get_variant(&self, variant: &String) -> &OpeningAreaPlateVariant {
-match variant.as_str() {
-"portal_green_no_glow" => &self.portal_green_no_glow,
-"portal" => &self.portal,
-"green_opener" => &self.green_opener,
-"default" => &self.default,
-"portal_no_glow" => &self.portal_no_glow,
-"portal_green" => &self.portal_green,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &OpeningAreaPlateVariant {
+        match variant.as_str() {
+            "portal_green_no_glow" => &self.portal_green_no_glow,
+            "portal" => &self.portal,
+            "green_opener" => &self.green_opener,
+            "default" => &self.default,
+            "portal_no_glow" => &self.portal_no_glow,
+            "portal_green" => &self.portal_green,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct PhysicsOpeningAreaPlate {
-pub platform: PhysicsStaticRigidBody,
-pub activation: PhysicsArea,
+    pub platform: PhysicsStaticRigidBody,
+    pub activation: PhysicsArea,
 }
 
 impl Physical for PhysicsOpeningAreaPlate {
-                type Instruction = OpeningAreaPlateVariant;
+    type Instruction = OpeningAreaPlateVariant;
 
-                fn position(&self, physics: &RapierSimulation) -> Isometry<Real> {
-                    self.platform.position(physics)
-                }
-            
-                fn velocity(&self, physics: &RapierSimulation) -> Vector<Real> {
-                    self.platform.velocity(physics)
-                }
-            
-                fn get_all_collider_handles(&self) -> Vec<ColliderHandle> {
-                    vec![
-                        self.platform.collider_handle,
-self.activation.collider_handle,
-                    ]
-                }
-                
-                fn create(
-                    position: Vector<Real>,
-                    build_instructions: &Self::Instruction,
-                    physics: &mut RapierSimulation,
-                ) -> Self {
-                    PhysicsOpeningAreaPlate {
-                        platform: PhysicsStaticRigidBody::create(
+    fn position(&self, physics: &RapierSimulation) -> Isometry<Real> {
+        self.platform.position(physics)
+    }
+
+    fn velocity(&self, physics: &RapierSimulation) -> Vector<Real> {
+        self.platform.velocity(physics)
+    }
+
+    fn get_all_collider_handles(&self) -> Vec<ColliderHandle> {
+        vec![
+            self.platform.collider_handle,
+            self.activation.collider_handle,
+        ]
+    }
+
+    fn create(
+        position: Vector<Real>,
+        build_instructions: &Self::Instruction,
+        physics: &mut RapierSimulation,
+    ) -> Self {
+        PhysicsOpeningAreaPlate {
+            platform: PhysicsStaticRigidBody::create(
                 position,
                 &build_instructions.shape_platform,
                 physics,
             ),
-activation: PhysicsArea::create(
+            activation: PhysicsArea::create(
                 position,
                 &build_instructions.shape_activation,
                 physics,
             ),
-                    }
-                }
-            
-                fn remove(&self, physics: &mut RapierSimulation) {
-                    self.platform.remove(physics);
-self.activation.remove(physics);
-                }
-            }
-                
+        }
+    }
+
+    fn remove(&self, physics: &mut RapierSimulation) {
+        self.platform.remove(physics);
+        self.activation.remove(physics);
+    }
+}
 
 pub struct SlimeChargeVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl SlimeChargeVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct SlimeChargeVariants {
-pub default: SlimeChargeVariant,
+    pub default: SlimeChargeVariant,
 }
 
 impl SlimeCharge {
-pub const VARIANTS: SlimeChargeVariants = SlimeChargeVariants {
-default: SlimeChargeVariant {
-gid_default: "535",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-};
+    pub const VARIANTS: SlimeChargeVariants = SlimeChargeVariants {
+        default: SlimeChargeVariant {
+            gid_default: "535",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+    };
 }
 
 impl SlimeChargeVariants {
-pub fn get_variant(&self, variant: &String) -> &SlimeChargeVariant {
-match variant.as_str() {
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &SlimeChargeVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct SlimeLightVariant {
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl SlimeLightVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct SlimeLightVariants {
-pub default: SlimeLightVariant,
+    pub default: SlimeLightVariant,
 }
 
 impl SlimeLight {
-pub const VARIANTS: SlimeLightVariants = SlimeLightVariants {
-default: SlimeLightVariant {
-gid_default: "383",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-};
+    pub const VARIANTS: SlimeLightVariants = SlimeLightVariants {
+        default: SlimeLightVariant {
+            gid_default: "383",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+    };
 }
 
 impl SlimeLightVariants {
-pub fn get_variant(&self, variant: &String) -> &SlimeLightVariant {
-match variant.as_str() {
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &SlimeLightVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct WallPlatformVariant {
-pub gid_off: &'static str,
-pub gid_on: &'static str,
-pub shape_platform: PhysicalShape,
-pub shape_sensor: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_off: &'static str,
+    pub gid_on: &'static str,
+    pub shape_platform: PhysicalShape,
+    pub shape_sensor: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl WallPlatformVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct WallPlatformVariants {
-pub default: WallPlatformVariant,
-pub blue: WallPlatformVariant,
-pub red: WallPlatformVariant,
-pub yellow: WallPlatformVariant,
+    pub default: WallPlatformVariant,
+    pub blue: WallPlatformVariant,
+    pub red: WallPlatformVariant,
+    pub yellow: WallPlatformVariant,
 }
 
 impl WallPlatform {
-pub const VARIANTS: WallPlatformVariants = WallPlatformVariants {
-default: WallPlatformVariant {
-gid_off: "957",
-gid_on: "956",
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 16.0, height: 16.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-shape_sensor: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 14.0, height: 14.0 }),
-},
-blue: WallPlatformVariant {
-gid_on: "960",
-gid_off: "961",
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 16.0, height: 16.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-shape_sensor: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 14.0, height: 14.0 }),
-},
-red: WallPlatformVariant {
-gid_on: "958",
-gid_off: "959",
-shape_sensor: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 14.0, height: 14.0 }),
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 16.0, height: 16.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-yellow: WallPlatformVariant {
-gid_on: "962",
-gid_off: "963",
-shape_platform: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 16.0, height: 16.0 }),
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-shape_sensor: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 0.0, offset_from_center_y: 0.0, width: 14.0, height: 14.0 }),
-},
-};
+    pub const VARIANTS: WallPlatformVariants = WallPlatformVariants {
+        default: WallPlatformVariant {
+            gid_off: "957",
+            gid_on: "956",
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 16.0,
+                height: 16.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+            shape_sensor: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 14.0,
+                height: 14.0,
+            }),
+        },
+        blue: WallPlatformVariant {
+            gid_on: "960",
+            gid_off: "961",
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 16.0,
+                height: 16.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+            shape_sensor: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 14.0,
+                height: 14.0,
+            }),
+        },
+        red: WallPlatformVariant {
+            gid_on: "958",
+            gid_off: "959",
+            shape_sensor: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 14.0,
+                height: 14.0,
+            }),
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 16.0,
+                height: 16.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        yellow: WallPlatformVariant {
+            gid_on: "962",
+            gid_off: "963",
+            shape_platform: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 16.0,
+                height: 16.0,
+            }),
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+            shape_sensor: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 0.0,
+                offset_from_center_y: 0.0,
+                width: 14.0,
+                height: 14.0,
+            }),
+        },
+    };
 }
 
 impl WallPlatformVariants {
-pub fn get_variant(&self, variant: &String) -> &WallPlatformVariant {
-match variant.as_str() {
-"default" => &self.default,
-"blue" => &self.blue,
-"red" => &self.red,
-"yellow" => &self.yellow,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &WallPlatformVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            "blue" => &self.blue,
+            "red" => &self.red,
+            "yellow" => &self.yellow,
+            _ => &self.default,
+        }
+    }
 }
 
 pub struct PhysicsWallPlatform {
-pub sensor: PhysicsArea,
-pub platform: PhysicsStaticRigidBody,
+    pub sensor: PhysicsArea,
+    pub platform: PhysicsStaticRigidBody,
 }
 
 impl Physical for PhysicsWallPlatform {
-                type Instruction = WallPlatformVariant;
+    type Instruction = WallPlatformVariant;
 
-                fn position(&self, physics: &RapierSimulation) -> Isometry<Real> {
-                    self.platform.position(physics)
-                }
-            
-                fn velocity(&self, physics: &RapierSimulation) -> Vector<Real> {
-                    self.platform.velocity(physics)
-                }
-            
-                fn get_all_collider_handles(&self) -> Vec<ColliderHandle> {
-                    vec![
-                        self.sensor.collider_handle,
-self.platform.collider_handle,
-                    ]
-                }
-                
-                fn create(
-                    position: Vector<Real>,
-                    build_instructions: &Self::Instruction,
-                    physics: &mut RapierSimulation,
-                ) -> Self {
-                    PhysicsWallPlatform {
-                        sensor: PhysicsArea::create(
-                position,
-                &build_instructions.shape_sensor,
-                physics,
-            ),
-platform: PhysicsStaticRigidBody::create(
+    fn position(&self, physics: &RapierSimulation) -> Isometry<Real> {
+        self.platform.position(physics)
+    }
+
+    fn velocity(&self, physics: &RapierSimulation) -> Vector<Real> {
+        self.platform.velocity(physics)
+    }
+
+    fn get_all_collider_handles(&self) -> Vec<ColliderHandle> {
+        vec![self.sensor.collider_handle, self.platform.collider_handle]
+    }
+
+    fn create(
+        position: Vector<Real>,
+        build_instructions: &Self::Instruction,
+        physics: &mut RapierSimulation,
+    ) -> Self {
+        PhysicsWallPlatform {
+            sensor: PhysicsArea::create(position, &build_instructions.shape_sensor, physics),
+            platform: PhysicsStaticRigidBody::create(
                 position,
                 &build_instructions.shape_platform,
                 physics,
             ),
-                    }
-                }
-            
-                fn remove(&self, physics: &mut RapierSimulation) {
-                    self.sensor.remove(physics);
-self.platform.remove(physics);
-                }
-            }
-                
+        }
+    }
+
+    fn remove(&self, physics: &mut RapierSimulation) {
+        self.sensor.remove(physics);
+        self.platform.remove(physics);
+    }
+}
 
 pub struct WallPlatformOpenerVariant {
-pub gid_default: &'static str,
-pub gid_off: &'static str,
-pub gid_on: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_default: &'static str,
+    pub gid_off: &'static str,
+    pub gid_on: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl WallPlatformOpenerVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct WallPlatformOpenerVariants {
-pub no_heart: WallPlatformOpenerVariant,
-pub yellow: WallPlatformOpenerVariant,
-pub default: WallPlatformOpenerVariant,
-pub blue: WallPlatformOpenerVariant,
+    pub no_heart: WallPlatformOpenerVariant,
+    pub yellow: WallPlatformOpenerVariant,
+    pub default: WallPlatformOpenerVariant,
+    pub blue: WallPlatformOpenerVariant,
 }
 
 impl WallPlatformOpener {
-pub const VARIANTS: WallPlatformOpenerVariants = WallPlatformOpenerVariants {
-no_heart: WallPlatformOpenerVariant {
-gid_off: "1000",
-gid_on: "1001",
-gid_default: "999",
-shape_default: PhysicalShape::None,
-offset_from_center_x: 0.00, offset_from_center_y: 0.00,
-},
-yellow: WallPlatformOpenerVariant {
-gid_on: "973",
-gid_default: "971",
-gid_off: "972",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 6.5455, offset_from_center_y: 2.5454998, width: 24.0, height: 14.0 }),
-offset_from_center_x: 6.55, offset_from_center_y: 2.55,
-},
-default: WallPlatformOpenerVariant {
-gid_default: "964",
-gid_off: "965",
-gid_on: "966",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 5.0, offset_from_center_y: 1.0, width: 24.0, height: 14.0 }),
-offset_from_center_x: 5.00, offset_from_center_y: 1.00,
-},
-blue: WallPlatformOpenerVariant {
-gid_on: "980",
-gid_default: "978",
-gid_off: "979",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 6.5455, offset_from_center_y: 2.5454998, width: 24.0, height: 14.0 }),
-offset_from_center_x: 6.55, offset_from_center_y: 2.55,
-},
-};
+    pub const VARIANTS: WallPlatformOpenerVariants = WallPlatformOpenerVariants {
+        no_heart: WallPlatformOpenerVariant {
+            gid_off: "1000",
+            gid_on: "1001",
+            gid_default: "999",
+            shape_default: PhysicalShape::None,
+            offset_from_center_x: 0.00,
+            offset_from_center_y: 0.00,
+        },
+        yellow: WallPlatformOpenerVariant {
+            gid_on: "973",
+            gid_default: "971",
+            gid_off: "972",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 6.5455,
+                offset_from_center_y: 2.5454998,
+                width: 24.0,
+                height: 14.0,
+            }),
+            offset_from_center_x: 6.55,
+            offset_from_center_y: 2.55,
+        },
+        default: WallPlatformOpenerVariant {
+            gid_default: "964",
+            gid_off: "965",
+            gid_on: "966",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 5.0,
+                offset_from_center_y: 1.0,
+                width: 24.0,
+                height: 14.0,
+            }),
+            offset_from_center_x: 5.00,
+            offset_from_center_y: 1.00,
+        },
+        blue: WallPlatformOpenerVariant {
+            gid_on: "980",
+            gid_default: "978",
+            gid_off: "979",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 6.5455,
+                offset_from_center_y: 2.5454998,
+                width: 24.0,
+                height: 14.0,
+            }),
+            offset_from_center_x: 6.55,
+            offset_from_center_y: 2.55,
+        },
+    };
 }
 
 impl WallPlatformOpenerVariants {
-pub fn get_variant(&self, variant: &String) -> &WallPlatformOpenerVariant {
-match variant.as_str() {
-"no_heart" => &self.no_heart,
-"yellow" => &self.yellow,
-"default" => &self.default,
-"blue" => &self.blue,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &WallPlatformOpenerVariant {
+        match variant.as_str() {
+            "no_heart" => &self.no_heart,
+            "yellow" => &self.yellow,
+            "default" => &self.default,
+            "blue" => &self.blue,
+            _ => &self.default,
+        }
+    }
 }
 
 pub type BGDecorationEntity = Entity<BGDecoration, PhysicsNone, StaticImage>;
@@ -1497,11 +1816,8 @@ pub type WallPlatformEntity = Entity<WallPlatform, PhysicsWallPlatform, StaticIm
 pub type WallPlatformOpenerEntity = Entity<WallPlatformOpener, PhysicsArea, StaticImage>;
 
 impl BGDecorationEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> BGDecoration {
-        BGDecoration {
-
-        }
+        BGDecoration {}
     }
 
     pub fn new(
@@ -1514,17 +1830,22 @@ impl BGDecorationEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> BGDecorationEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -1552,18 +1873,16 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl CaveHeartWallEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> CaveHeartWall {
         CaveHeartWall {
-   blue_heart: obj.get_custom_prop_entity_id("blue_heart"),
-   cave_open: obj.get_custom_prop_bool("cave_open"),
-   door_to_remove: obj.get_custom_prop_entity_id("door_to_remove"),
-   red_heart: obj.get_custom_prop_entity_id("red_heart"),
-   yellow_heart: obj.get_custom_prop_entity_id("yellow_heart"),
+            blue_heart: obj.get_custom_prop_entity_id("blue_heart"),
+            cave_open: obj.get_custom_prop_bool("cave_open"),
+            door_to_remove: obj.get_custom_prop_entity_id("door_to_remove"),
+            red_heart: obj.get_custom_prop_entity_id("red_heart"),
+            yellow_heart: obj.get_custom_prop_entity_id("yellow_heart"),
         }
     }
 
@@ -1577,17 +1896,22 @@ impl CaveHeartWallEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> CaveHeartWallEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -1602,7 +1926,8 @@ let physics_body = PhysicsArea::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> CaveHeartWallEntity {
-        let physics_instructions = CaveHeartWall::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            CaveHeartWall::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -1615,14 +1940,12 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl DeathAreaEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> DeathArea {
         DeathArea {
-   torch: obj.get_custom_prop_entity_id("torch"),
+            torch: obj.get_custom_prop_entity_id("torch"),
         }
     }
 
@@ -1636,11 +1959,7 @@ impl DeathAreaEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> DeathAreaEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -1674,15 +1993,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl DeathPropEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> DeathProp {
-        DeathProp {
-
-        }
+        DeathProp {}
     }
 
     pub fn new(
@@ -1695,17 +2010,22 @@ impl DeathPropEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> DeathPropEntity {
-let physics_body = PhysicsRigidBody::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsRigidBody::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -1733,15 +2053,11 @@ let physics_body = PhysicsRigidBody::create(
             physics,
         )
     }
-
 }
 
 impl DeathReviveAreaEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> DeathReviveArea {
-        DeathReviveArea {
-
-        }
+        DeathReviveArea {}
     }
 
     pub fn new(
@@ -1754,17 +2070,22 @@ impl DeathReviveAreaEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> DeathReviveAreaEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -1792,14 +2113,12 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl DeathReviveStatueEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> DeathReviveStatue {
         DeathReviveStatue {
-   revive_area: obj.get_custom_prop_entity_id("revive_area"),
+            revive_area: obj.get_custom_prop_entity_id("revive_area"),
         }
     }
 
@@ -1813,17 +2132,22 @@ impl DeathReviveStatueEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> DeathReviveStatueEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -1838,7 +2162,8 @@ let physics_body = PhysicsArea::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> DeathReviveStatueEntity {
-        let physics_instructions = DeathReviveStatue::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions = DeathReviveStatue::VARIANTS
+            .get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -1851,15 +2176,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl DeathTorchEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> DeathTorch {
-        DeathTorch {
-
-        }
+        DeathTorch {}
     }
 
     pub fn new(
@@ -1872,17 +2193,22 @@ impl DeathTorchEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> DeathTorchEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -1897,7 +2223,8 @@ let physics_body = PhysicsArea::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> DeathTorchEntity {
-        let physics_instructions = DeathTorch::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            DeathTorch::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -1910,15 +2237,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl DebrisEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Debris {
-        Debris {
-
-        }
+        Debris {}
     }
 
     pub fn new(
@@ -1931,17 +2254,22 @@ impl DebrisEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> DebrisEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -1956,7 +2284,8 @@ let physics_body = PhysicsNone::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> DebrisEntity {
-        let physics_instructions = Debris::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            Debris::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -1969,15 +2298,13 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl DoorEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Door {
         Door {
-   is_open: obj.get_custom_prop_bool("is_open"),
-   open_change_position: obj.get_custom_prop_tween("open_change_position"),
+            is_open: obj.get_custom_prop_bool("is_open"),
+            open_change_position: obj.get_custom_prop_tween("open_change_position"),
         }
     }
 
@@ -1991,17 +2318,23 @@ impl DoorEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> DoorEntity {
-let physics_body = PhysicsStaticRigidBody::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body =
+            PhysicsStaticRigidBody::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2016,7 +2349,8 @@ let physics_body = PhysicsStaticRigidBody::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> DoorEntity {
-        let physics_instructions = Door::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            Door::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2029,14 +2363,12 @@ let physics_body = PhysicsStaticRigidBody::create(
             physics,
         )
     }
-
 }
 
 impl EnterAreaEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> EnterArea {
         EnterArea {
-   slot_id: obj.get_custom_prop_string("slot_id"),
+            slot_id: obj.get_custom_prop_string("slot_id"),
         }
     }
 
@@ -2050,11 +2382,7 @@ impl EnterAreaEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> EnterAreaEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -2088,14 +2416,12 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl ExitAreaEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> ExitArea {
         ExitArea {
-   slot_id: obj.get_custom_prop_string("slot_id"),
+            slot_id: obj.get_custom_prop_string("slot_id"),
         }
     }
 
@@ -2109,11 +2435,7 @@ impl ExitAreaEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> ExitAreaEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -2147,15 +2469,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl GreatWaterfallTilesEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> GreatWaterfallTiles {
-        GreatWaterfallTiles {
-
-        }
+        GreatWaterfallTiles {}
     }
 
     pub fn new(
@@ -2168,17 +2486,22 @@ impl GreatWaterfallTilesEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> GreatWaterfallTilesEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2206,14 +2529,12 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl GuestEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Guest {
         Guest {
-   heart_color: obj.get_custom_prop_string("heart_color"),
+            heart_color: obj.get_custom_prop_string("heart_color"),
         }
     }
 
@@ -2227,17 +2548,23 @@ impl GuestEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> GuestEntity {
-let physics_body = PhysicsRigidBody::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body =
+            PhysicsRigidBody::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2252,7 +2579,8 @@ let physics_body = PhysicsRigidBody::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> GuestEntity {
-        let physics_instructions = Guest::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            Guest::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2265,16 +2593,14 @@ let physics_body = PhysicsRigidBody::create(
             physics,
         )
     }
-
 }
 
 impl GuestDeadEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> GuestDead {
         GuestDead {
-   flame: obj.get_custom_prop_entity_id("flame"),
-   heart_color: obj.get_custom_prop_string("heart_color"),
-   slime: obj.get_custom_prop_entity_id("slime"),
+            flame: obj.get_custom_prop_entity_id("flame"),
+            heart_color: obj.get_custom_prop_string("heart_color"),
+            slime: obj.get_custom_prop_entity_id("slime"),
         }
     }
 
@@ -2288,17 +2614,22 @@ impl GuestDeadEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> GuestDeadEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2313,7 +2644,8 @@ let physics_body = PhysicsArea::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> GuestDeadEntity {
-        let physics_instructions = GuestDead::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            GuestDead::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2326,15 +2658,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl GuestNameplateEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> GuestNameplate {
-        GuestNameplate {
-
-        }
+        GuestNameplate {}
     }
 
     pub fn new(
@@ -2347,11 +2675,7 @@ impl GuestNameplateEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> GuestNameplateEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -2385,14 +2709,12 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl HeartEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Heart {
         Heart {
-   color: obj.get_custom_prop_string("color"),
+            color: obj.get_custom_prop_string("color"),
         }
     }
 
@@ -2406,17 +2728,22 @@ impl HeartEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> HeartEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2431,7 +2758,8 @@ let physics_body = PhysicsArea::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> HeartEntity {
-        let physics_instructions = Heart::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            Heart::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2444,14 +2772,12 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl HeartSmollEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> HeartSmoll {
         HeartSmoll {
-   color: obj.get_custom_prop_string("color"),
+            color: obj.get_custom_prop_string("color"),
         }
     }
 
@@ -2465,17 +2791,22 @@ impl HeartSmollEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> HeartSmollEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2490,7 +2821,8 @@ let physics_body = PhysicsNone::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> HeartSmollEntity {
-        let physics_instructions = HeartSmoll::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            HeartSmoll::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2503,14 +2835,12 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl HeartWallGlowEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> HeartWallGlow {
         HeartWallGlow {
-   color: obj.get_custom_prop_string("color"),
+            color: obj.get_custom_prop_string("color"),
         }
     }
 
@@ -2524,17 +2854,22 @@ impl HeartWallGlowEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> HeartWallGlowEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2549,7 +2884,8 @@ let physics_body = PhysicsNone::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> HeartWallGlowEntity {
-        let physics_instructions = HeartWallGlow::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            HeartWallGlow::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2562,15 +2898,11 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl ObserverEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Observer {
-        Observer {
-
-        }
+        Observer {}
     }
 
     pub fn new(
@@ -2583,17 +2915,22 @@ impl ObserverEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> ObserverEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2608,7 +2945,8 @@ let physics_body = PhysicsArea::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> ObserverEntity {
-        let physics_instructions = Observer::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            Observer::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2621,18 +2959,16 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl OpeningAreaPlateEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> OpeningAreaPlate {
         OpeningAreaPlate {
-   door_to_open_1: obj.get_custom_prop_entity_id("door_to_open_1"),
-   door_to_open_2: obj.get_custom_prop_entity_id("door_to_open_2"),
-   door_to_open_3: obj.get_custom_prop_entity_id("door_to_open_3"),
-   door_to_open_4: obj.get_custom_prop_entity_id("door_to_open_4"),
-   opener_variant: obj.get_custom_prop_string("opener_variant"),
+            door_to_open_1: obj.get_custom_prop_entity_id("door_to_open_1"),
+            door_to_open_2: obj.get_custom_prop_entity_id("door_to_open_2"),
+            door_to_open_3: obj.get_custom_prop_entity_id("door_to_open_3"),
+            door_to_open_4: obj.get_custom_prop_entity_id("door_to_open_4"),
+            opener_variant: obj.get_custom_prop_string("opener_variant"),
         }
     }
 
@@ -2646,17 +2982,22 @@ impl OpeningAreaPlateEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> OpeningAreaPlateEntity {
-let physics_body = PhysicsOpeningAreaPlate::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsOpeningAreaPlate::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2671,7 +3012,8 @@ let physics_body = PhysicsOpeningAreaPlate::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> OpeningAreaPlateEntity {
-        let physics_instructions = OpeningAreaPlate::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions = OpeningAreaPlate::VARIANTS
+            .get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2684,14 +3026,12 @@ let physics_body = PhysicsOpeningAreaPlate::create(
             physics,
         )
     }
-
 }
 
 impl SecretEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Secret {
         Secret {
-   secret_name: obj.get_custom_prop_string("secret_name"),
+            secret_name: obj.get_custom_prop_string("secret_name"),
         }
     }
 
@@ -2705,11 +3045,7 @@ impl SecretEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> SecretEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -2743,15 +3079,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl SlimeChargeEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> SlimeCharge {
-        SlimeCharge {
-
-        }
+        SlimeCharge {}
     }
 
     pub fn new(
@@ -2764,17 +3096,22 @@ impl SlimeChargeEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> SlimeChargeEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2789,7 +3126,8 @@ let physics_body = PhysicsNone::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> SlimeChargeEntity {
-        let physics_instructions = SlimeCharge::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            SlimeCharge::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2802,15 +3140,11 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl SlimeLightEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> SlimeLight {
-        SlimeLight {
-
-        }
+        SlimeLight {}
     }
 
     pub fn new(
@@ -2823,17 +3157,22 @@ impl SlimeLightEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> SlimeLightEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -2848,7 +3187,8 @@ let physics_body = PhysicsNone::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> SlimeLightEntity {
-        let physics_instructions = SlimeLight::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            SlimeLight::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -2861,15 +3201,11 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl TeleportEndEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> TeleportEnd {
-        TeleportEnd {
-
-        }
+        TeleportEnd {}
     }
 
     pub fn new(
@@ -2882,11 +3218,7 @@ impl TeleportEndEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> TeleportEndEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -2920,14 +3252,12 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl TeleportStartEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> TeleportStart {
         TeleportStart {
-   teleport_end: obj.get_custom_prop_entity_id("teleport_end"),
+            teleport_end: obj.get_custom_prop_entity_id("teleport_end"),
         }
     }
 
@@ -2941,11 +3271,7 @@ impl TeleportStartEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> TeleportStartEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -2979,15 +3305,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl TimerEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Timer {
-        Timer {
-
-        }
+        Timer {}
     }
 
     pub fn new(
@@ -3000,11 +3322,7 @@ impl TimerEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> TimerEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -3038,18 +3356,16 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl WallPlatformEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> WallPlatform {
         WallPlatform {
-   off: obj.get_custom_prop_bool("off"),
-   opener: obj.get_custom_prop_entity_id("opener"),
-   opener_2: obj.get_custom_prop_entity_id("opener_2"),
-   opener_3: obj.get_custom_prop_entity_id("opener_3"),
-   wall_variant: obj.get_custom_prop_string("wall_variant"),
+            off: obj.get_custom_prop_bool("off"),
+            opener: obj.get_custom_prop_entity_id("opener"),
+            opener_2: obj.get_custom_prop_entity_id("opener_2"),
+            opener_3: obj.get_custom_prop_entity_id("opener_3"),
+            wall_variant: obj.get_custom_prop_string("wall_variant"),
         }
     }
 
@@ -3063,17 +3379,22 @@ impl WallPlatformEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> WallPlatformEntity {
-let physics_body = PhysicsWallPlatform::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsWallPlatform::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -3088,7 +3409,8 @@ let physics_body = PhysicsWallPlatform::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> WallPlatformEntity {
-        let physics_instructions = WallPlatform::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            WallPlatform::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -3101,16 +3423,14 @@ let physics_body = PhysicsWallPlatform::create(
             physics,
         )
     }
-
 }
 
 impl WallPlatformOpenerEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> WallPlatformOpener {
         WallPlatformOpener {
-   active: obj.get_custom_prop_bool("active"),
-   heart_color: obj.get_custom_prop_string("heart_color"),
-   opener_variant: obj.get_custom_prop_string("opener_variant"),
+            active: obj.get_custom_prop_bool("active"),
+            heart_color: obj.get_custom_prop_string("heart_color"),
+            opener_variant: obj.get_custom_prop_string("opener_variant"),
         }
     }
 
@@ -3124,17 +3444,22 @@ impl WallPlatformOpenerEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> WallPlatformOpenerEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -3149,7 +3474,8 @@ let physics_body = PhysicsArea::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> WallPlatformOpenerEntity {
-        let physics_instructions = WallPlatformOpener::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions = WallPlatformOpener::VARIANTS
+            .get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -3162,7 +3488,6 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 pub struct Slime1GameEntityManager {
@@ -3207,9 +3532,9 @@ pub struct Slime1GameEntityManager {
 impl Slime1GameEntityManager {
     pub fn new() -> Slime1GameEntityManager {
         Slime1GameEntityManager {
-            entity_id_generator: SnowflakeIdBucket::new(1, 2),
+            entity_id_generator: SnowflakeIdBucket::new(1, 5),
             collider_entity_map: ColliderEntityMap::new(),
-     
+
             terrain_map: HashMap::new(),
             bg_decoration_map: HashMap::new(),
             cave_heart_wall_map: HashMap::new(),
@@ -3246,14 +3571,14 @@ impl Slime1GameEntityManager {
             new_show_effects: Vec::new(),
         }
     }
-       pub fn create_bg_decoration<F: FnMut(&mut BGDecorationEntity)>(
+    pub fn create_bg_decoration<F: FnMut(&mut BGDecorationEntity)>(
         &mut self,
         game_state: BGDecoration,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = BGDecorationEntity::new(
@@ -3266,7 +3591,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3275,15 +3600,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.bg_decoration_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_bg_decoration(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<BGDecorationEntity> {
+
+    pub fn remove_bg_decoration(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<BGDecorationEntity> {
         if let Some(entity) = self.bg_decoration_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3298,14 +3627,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_cave_heart_wall<F: FnMut(&mut CaveHeartWallEntity)>(
+    pub fn create_cave_heart_wall<F: FnMut(&mut CaveHeartWallEntity)>(
         &mut self,
         game_state: CaveHeartWall,
         pos: Vector<Real>,
         physics_instructions: &CaveHeartWallVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = CaveHeartWallEntity::new(
@@ -3318,7 +3647,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3327,15 +3656,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.cave_heart_wall_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_cave_heart_wall(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<CaveHeartWallEntity> {
+
+    pub fn remove_cave_heart_wall(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<CaveHeartWallEntity> {
         if let Some(entity) = self.cave_heart_wall_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3350,14 +3683,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_death_prop<F: FnMut(&mut DeathPropEntity)>(
+    pub fn create_death_prop<F: FnMut(&mut DeathPropEntity)>(
         &mut self,
         game_state: DeathProp,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = DeathPropEntity::new(
@@ -3370,7 +3703,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3379,15 +3712,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.death_prop_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_death_prop(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<DeathPropEntity> {
+
+    pub fn remove_death_prop(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<DeathPropEntity> {
         if let Some(entity) = self.death_prop_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3402,14 +3739,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_death_revive_area<F: FnMut(&mut DeathReviveAreaEntity)>(
+    pub fn create_death_revive_area<F: FnMut(&mut DeathReviveAreaEntity)>(
         &mut self,
         game_state: DeathReviveArea,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = DeathReviveAreaEntity::new(
@@ -3422,7 +3759,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3431,15 +3768,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.death_revive_area_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_death_revive_area(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<DeathReviveAreaEntity> {
+
+    pub fn remove_death_revive_area(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<DeathReviveAreaEntity> {
         if let Some(entity) = self.death_revive_area_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3454,14 +3795,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_death_revive_statue<F: FnMut(&mut DeathReviveStatueEntity)>(
+    pub fn create_death_revive_statue<F: FnMut(&mut DeathReviveStatueEntity)>(
         &mut self,
         game_state: DeathReviveStatue,
         pos: Vector<Real>,
         physics_instructions: &DeathReviveStatueVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = DeathReviveStatueEntity::new(
@@ -3474,7 +3815,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3483,15 +3824,20 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
-        self.death_revive_statue_map.insert(entity_id.clone(), entity);
-    
+
+        self.death_revive_statue_map
+            .insert(entity_id.clone(), entity);
+
         entity_id
     }
-    
-    pub fn remove_death_revive_statue(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<DeathReviveStatueEntity> {
+
+    pub fn remove_death_revive_statue(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<DeathReviveStatueEntity> {
         if let Some(entity) = self.death_revive_statue_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3506,14 +3852,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_death_torch<F: FnMut(&mut DeathTorchEntity)>(
+    pub fn create_death_torch<F: FnMut(&mut DeathTorchEntity)>(
         &mut self,
         game_state: DeathTorch,
         pos: Vector<Real>,
         physics_instructions: &DeathTorchVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = DeathTorchEntity::new(
@@ -3526,7 +3872,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3535,15 +3881,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.death_torch_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_death_torch(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<DeathTorchEntity> {
+
+    pub fn remove_death_torch(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<DeathTorchEntity> {
         if let Some(entity) = self.death_torch_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3558,14 +3908,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_debris<F: FnMut(&mut DebrisEntity)>(
+    pub fn create_debris<F: FnMut(&mut DebrisEntity)>(
         &mut self,
         game_state: Debris,
         pos: Vector<Real>,
         physics_instructions: &DebrisVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = DebrisEntity::new(
@@ -3578,7 +3928,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3587,15 +3937,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.debris_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_debris(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<DebrisEntity> {
+
+    pub fn remove_debris(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<DebrisEntity> {
         if let Some(entity) = self.debris_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3610,14 +3964,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_door<F: FnMut(&mut DoorEntity)>(
+    pub fn create_door<F: FnMut(&mut DoorEntity)>(
         &mut self,
         game_state: Door,
         pos: Vector<Real>,
         physics_instructions: &DoorVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = DoorEntity::new(
@@ -3630,24 +3984,26 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
-            self.collider_entity_map.insert(
-                collider_handle,
-                (entity_id.clone(), Slime1GameObject::Door),
-            );
+            self.collider_entity_map
+                .insert(collider_handle, (entity_id.clone(), Slime1GameObject::Door));
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.door_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_door(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<DoorEntity> {
+
+    pub fn remove_door(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<DoorEntity> {
         if let Some(entity) = self.door_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3662,14 +4018,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_great_waterfall_tiles<F: FnMut(&mut GreatWaterfallTilesEntity)>(
+    pub fn create_great_waterfall_tiles<F: FnMut(&mut GreatWaterfallTilesEntity)>(
         &mut self,
         game_state: GreatWaterfallTiles,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = GreatWaterfallTilesEntity::new(
@@ -3682,7 +4038,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3691,15 +4047,20 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
-        self.great_waterfall_tiles_map.insert(entity_id.clone(), entity);
-    
+
+        self.great_waterfall_tiles_map
+            .insert(entity_id.clone(), entity);
+
         entity_id
     }
-    
-    pub fn remove_great_waterfall_tiles(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<GreatWaterfallTilesEntity> {
+
+    pub fn remove_great_waterfall_tiles(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<GreatWaterfallTilesEntity> {
         if let Some(entity) = self.great_waterfall_tiles_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3714,14 +4075,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_guest<F: FnMut(&mut GuestEntity)>(
+    pub fn create_guest<F: FnMut(&mut GuestEntity)>(
         &mut self,
         game_state: Guest,
         pos: Vector<Real>,
         physics_instructions: &GuestVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = GuestEntity::new(
@@ -3734,7 +4095,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3743,15 +4104,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.guest_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_guest(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<GuestEntity> {
+
+    pub fn remove_guest(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<GuestEntity> {
         if let Some(entity) = self.guest_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3766,14 +4131,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_guest_dead<F: FnMut(&mut GuestDeadEntity)>(
+    pub fn create_guest_dead<F: FnMut(&mut GuestDeadEntity)>(
         &mut self,
         game_state: GuestDead,
         pos: Vector<Real>,
         physics_instructions: &GuestDeadVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = GuestDeadEntity::new(
@@ -3786,7 +4151,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3795,15 +4160,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.guest_dead_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_guest_dead(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<GuestDeadEntity> {
+
+    pub fn remove_guest_dead(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<GuestDeadEntity> {
         if let Some(entity) = self.guest_dead_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3818,14 +4187,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_guest_nameplate<F: FnMut(&mut GuestNameplateEntity)>(
+    pub fn create_guest_nameplate<F: FnMut(&mut GuestNameplateEntity)>(
         &mut self,
         game_state: GuestNameplate,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = GuestNameplateEntity::new(
@@ -3838,7 +4207,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3847,15 +4216,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.guest_nameplate_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_guest_nameplate(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<GuestNameplateEntity> {
+
+    pub fn remove_guest_nameplate(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<GuestNameplateEntity> {
         if let Some(entity) = self.guest_nameplate_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3870,14 +4243,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_heart<F: FnMut(&mut HeartEntity)>(
+    pub fn create_heart<F: FnMut(&mut HeartEntity)>(
         &mut self,
         game_state: Heart,
         pos: Vector<Real>,
         physics_instructions: &HeartVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = HeartEntity::new(
@@ -3890,7 +4263,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3899,15 +4272,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.heart_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_heart(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<HeartEntity> {
+
+    pub fn remove_heart(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<HeartEntity> {
         if let Some(entity) = self.heart_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3922,14 +4299,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_heart_smoll<F: FnMut(&mut HeartSmollEntity)>(
+    pub fn create_heart_smoll<F: FnMut(&mut HeartSmollEntity)>(
         &mut self,
         game_state: HeartSmoll,
         pos: Vector<Real>,
         physics_instructions: &HeartSmollVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = HeartSmollEntity::new(
@@ -3942,7 +4319,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -3951,15 +4328,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.heart_smoll_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_heart_smoll(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<HeartSmollEntity> {
+
+    pub fn remove_heart_smoll(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<HeartSmollEntity> {
         if let Some(entity) = self.heart_smoll_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -3974,14 +4355,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_heart_wall_glow<F: FnMut(&mut HeartWallGlowEntity)>(
+    pub fn create_heart_wall_glow<F: FnMut(&mut HeartWallGlowEntity)>(
         &mut self,
         game_state: HeartWallGlow,
         pos: Vector<Real>,
         physics_instructions: &HeartWallGlowVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = HeartWallGlowEntity::new(
@@ -3994,7 +4375,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -4003,15 +4384,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.heart_wall_glow_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_heart_wall_glow(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<HeartWallGlowEntity> {
+
+    pub fn remove_heart_wall_glow(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<HeartWallGlowEntity> {
         if let Some(entity) = self.heart_wall_glow_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -4026,14 +4411,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_observer<F: FnMut(&mut ObserverEntity)>(
+    pub fn create_observer<F: FnMut(&mut ObserverEntity)>(
         &mut self,
         game_state: Observer,
         pos: Vector<Real>,
         physics_instructions: &ObserverVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = ObserverEntity::new(
@@ -4046,7 +4431,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -4055,15 +4440,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.observer_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_observer(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<ObserverEntity> {
+
+    pub fn remove_observer(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<ObserverEntity> {
         if let Some(entity) = self.observer_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -4078,14 +4467,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_opening_area_plate<F: FnMut(&mut OpeningAreaPlateEntity)>(
+    pub fn create_opening_area_plate<F: FnMut(&mut OpeningAreaPlateEntity)>(
         &mut self,
         game_state: OpeningAreaPlate,
         pos: Vector<Real>,
         physics_instructions: &OpeningAreaPlateVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = OpeningAreaPlateEntity::new(
@@ -4098,7 +4487,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -4107,15 +4496,20 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
-        self.opening_area_plate_map.insert(entity_id.clone(), entity);
-    
+
+        self.opening_area_plate_map
+            .insert(entity_id.clone(), entity);
+
         entity_id
     }
-    
-    pub fn remove_opening_area_plate(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<OpeningAreaPlateEntity> {
+
+    pub fn remove_opening_area_plate(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<OpeningAreaPlateEntity> {
         if let Some(entity) = self.opening_area_plate_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -4130,14 +4524,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_slime_charge<F: FnMut(&mut SlimeChargeEntity)>(
+    pub fn create_slime_charge<F: FnMut(&mut SlimeChargeEntity)>(
         &mut self,
         game_state: SlimeCharge,
         pos: Vector<Real>,
         physics_instructions: &SlimeChargeVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = SlimeChargeEntity::new(
@@ -4150,7 +4544,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -4159,15 +4553,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.slime_charge_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_slime_charge(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<SlimeChargeEntity> {
+
+    pub fn remove_slime_charge(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<SlimeChargeEntity> {
         if let Some(entity) = self.slime_charge_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -4182,14 +4580,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_slime_light<F: FnMut(&mut SlimeLightEntity)>(
+    pub fn create_slime_light<F: FnMut(&mut SlimeLightEntity)>(
         &mut self,
         game_state: SlimeLight,
         pos: Vector<Real>,
         physics_instructions: &SlimeLightVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = SlimeLightEntity::new(
@@ -4202,7 +4600,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -4211,15 +4609,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.slime_light_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_slime_light(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<SlimeLightEntity> {
+
+    pub fn remove_slime_light(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<SlimeLightEntity> {
         if let Some(entity) = self.slime_light_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -4234,14 +4636,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_timer<F: FnMut(&mut TimerEntity)>(
+    pub fn create_timer<F: FnMut(&mut TimerEntity)>(
         &mut self,
         game_state: Timer,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = TimerEntity::new(
@@ -4254,7 +4656,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -4263,15 +4665,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.timer_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_timer(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<TimerEntity> {
+
+    pub fn remove_timer(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<TimerEntity> {
         if let Some(entity) = self.timer_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -4286,14 +4692,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_wall_platform<F: FnMut(&mut WallPlatformEntity)>(
+    pub fn create_wall_platform<F: FnMut(&mut WallPlatformEntity)>(
         &mut self,
         game_state: WallPlatform,
         pos: Vector<Real>,
         physics_instructions: &WallPlatformVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = WallPlatformEntity::new(
@@ -4306,7 +4712,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -4315,15 +4721,19 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.wall_platform_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_wall_platform(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<WallPlatformEntity> {
+
+    pub fn remove_wall_platform(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<WallPlatformEntity> {
         if let Some(entity) = self.wall_platform_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -4338,14 +4748,14 @@ impl Slime1GameEntityManager {
         None
     }
 
-   pub fn create_wall_platform_opener<F: FnMut(&mut WallPlatformOpenerEntity)>(
+    pub fn create_wall_platform_opener<F: FnMut(&mut WallPlatformOpenerEntity)>(
         &mut self,
         game_state: WallPlatformOpener,
         pos: Vector<Real>,
         physics_instructions: &WallPlatformOpenerVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = WallPlatformOpenerEntity::new(
@@ -4358,7 +4768,7 @@ impl Slime1GameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -4367,15 +4777,20 @@ impl Slime1GameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
-        self.wall_platform_opener_map.insert(entity_id.clone(), entity);
-    
+
+        self.wall_platform_opener_map
+            .insert(entity_id.clone(), entity);
+
         entity_id
     }
-    
-    pub fn remove_wall_platform_opener(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<WallPlatformOpenerEntity> {
+
+    pub fn remove_wall_platform_opener(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<WallPlatformOpenerEntity> {
         if let Some(entity) = self.wall_platform_opener_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -4427,482 +4842,482 @@ impl EntityManager for Slime1GameEntityManager {
                     reference_map.insert(object.id.clone(), entity_id.clone());
 
                     match kind {
-                     Slime1GameObject::BGDecoration => {
-                        let entity = BGDecorationEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::BGDecoration),
+                        Slime1GameObject::BGDecoration => {
+                            let entity = BGDecorationEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.bg_decoration_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::CaveHeartWall => {
-                        let entity = CaveHeartWallEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::CaveHeartWall),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::BGDecoration),
+                                );
+                            }
+
+                            self.bg_decoration_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::CaveHeartWall => {
+                            let entity = CaveHeartWallEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.cave_heart_wall_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::DeathArea => {
-                        let entity = DeathAreaEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::DeathArea),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::CaveHeartWall),
+                                );
+                            }
+
+                            self.cave_heart_wall_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::DeathArea => {
+                            let entity = DeathAreaEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.death_area_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::DeathProp => {
-                        let entity = DeathPropEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::DeathProp),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::DeathArea),
+                                );
+                            }
+
+                            self.death_area_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::DeathProp => {
+                            let entity = DeathPropEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.death_prop_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::DeathReviveArea => {
-                        let entity = DeathReviveAreaEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::DeathReviveArea),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::DeathProp),
+                                );
+                            }
+
+                            self.death_prop_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::DeathReviveArea => {
+                            let entity = DeathReviveAreaEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.death_revive_area_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::DeathReviveStatue => {
-                        let entity = DeathReviveStatueEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::DeathReviveStatue),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::DeathReviveArea),
+                                );
+                            }
+
+                            self.death_revive_area_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::DeathReviveStatue => {
+                            let entity = DeathReviveStatueEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.death_revive_statue_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::DeathTorch => {
-                        let entity = DeathTorchEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::DeathTorch),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::DeathReviveStatue),
+                                );
+                            }
+
+                            self.death_revive_statue_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::DeathTorch => {
+                            let entity = DeathTorchEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.death_torch_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::Debris => {
-                        let entity = DebrisEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::Debris),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::DeathTorch),
+                                );
+                            }
+
+                            self.death_torch_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::Debris => {
+                            let entity = DebrisEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.debris_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::Door => {
-                        let entity = DoorEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::Door),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::Debris),
+                                );
+                            }
+
+                            self.debris_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::Door => {
+                            let entity = DoorEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.door_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::EnterArea => {
-                        let entity = EnterAreaEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::EnterArea),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::Door),
+                                );
+                            }
+
+                            self.door_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::EnterArea => {
+                            let entity = EnterAreaEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.enter_area_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::ExitArea => {
-                        let entity = ExitAreaEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::ExitArea),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::EnterArea),
+                                );
+                            }
+
+                            self.enter_area_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::ExitArea => {
+                            let entity = ExitAreaEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.exit_area_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::GreatWaterfallTiles => {
-                        let entity = GreatWaterfallTilesEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::GreatWaterfallTiles),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::ExitArea),
+                                );
+                            }
+
+                            self.exit_area_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::GreatWaterfallTiles => {
+                            let entity = GreatWaterfallTilesEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.great_waterfall_tiles_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::Guest => {
-                        let entity = GuestEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::Guest),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::GreatWaterfallTiles),
+                                );
+                            }
+
+                            self.great_waterfall_tiles_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::Guest => {
+                            let entity = GuestEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.guest_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::GuestDead => {
-                        let entity = GuestDeadEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::GuestDead),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::Guest),
+                                );
+                            }
+
+                            self.guest_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::GuestDead => {
+                            let entity = GuestDeadEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.guest_dead_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::GuestNameplate => {
-                        let entity = GuestNameplateEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::GuestNameplate),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::GuestDead),
+                                );
+                            }
+
+                            self.guest_dead_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::GuestNameplate => {
+                            let entity = GuestNameplateEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.guest_nameplate_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::Heart => {
-                        let entity = HeartEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::Heart),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::GuestNameplate),
+                                );
+                            }
+
+                            self.guest_nameplate_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::Heart => {
+                            let entity = HeartEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.heart_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::HeartSmoll => {
-                        let entity = HeartSmollEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::HeartSmoll),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::Heart),
+                                );
+                            }
+
+                            self.heart_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::HeartSmoll => {
+                            let entity = HeartSmollEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.heart_smoll_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::HeartWallGlow => {
-                        let entity = HeartWallGlowEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::HeartWallGlow),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::HeartSmoll),
+                                );
+                            }
+
+                            self.heart_smoll_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::HeartWallGlow => {
+                            let entity = HeartWallGlowEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.heart_wall_glow_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::Observer => {
-                        let entity = ObserverEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::Observer),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::HeartWallGlow),
+                                );
+                            }
+
+                            self.heart_wall_glow_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::Observer => {
+                            let entity = ObserverEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.observer_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::OpeningAreaPlate => {
-                        let entity = OpeningAreaPlateEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::OpeningAreaPlate),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::Observer),
+                                );
+                            }
+
+                            self.observer_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::OpeningAreaPlate => {
+                            let entity = OpeningAreaPlateEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.opening_area_plate_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::Secret => {
-                        let entity = SecretEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::Secret),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::OpeningAreaPlate),
+                                );
+                            }
+
+                            self.opening_area_plate_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::Secret => {
+                            let entity = SecretEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.secret_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::SlimeCharge => {
-                        let entity = SlimeChargeEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::SlimeCharge),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::Secret),
+                                );
+                            }
+
+                            self.secret_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::SlimeCharge => {
+                            let entity = SlimeChargeEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.slime_charge_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::SlimeLight => {
-                        let entity = SlimeLightEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::SlimeLight),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::SlimeCharge),
+                                );
+                            }
+
+                            self.slime_charge_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::SlimeLight => {
+                            let entity = SlimeLightEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.slime_light_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::TeleportEnd => {
-                        let entity = TeleportEndEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::TeleportEnd),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::SlimeLight),
+                                );
+                            }
+
+                            self.slime_light_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::TeleportEnd => {
+                            let entity = TeleportEndEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.teleport_end_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::TeleportStart => {
-                        let entity = TeleportStartEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::TeleportStart),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::TeleportEnd),
+                                );
+                            }
+
+                            self.teleport_end_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::TeleportStart => {
+                            let entity = TeleportStartEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.teleport_start_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::Timer => {
-                        let entity = TimerEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::Timer),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::TeleportStart),
+                                );
+                            }
+
+                            self.teleport_start_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::Timer => {
+                            let entity = TimerEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.timer_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::WallPlatform => {
-                        let entity = WallPlatformEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::WallPlatform),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::Timer),
+                                );
+                            }
+
+                            self.timer_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::WallPlatform => {
+                            let entity = WallPlatformEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.wall_platform_map.insert(entity_id, entity);
-                    }
-                     Slime1GameObject::WallPlatformOpener => {
-                        let entity = WallPlatformOpenerEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), Slime1GameObject::WallPlatformOpener),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::WallPlatform),
+                                );
+                            }
+
+                            self.wall_platform_map.insert(entity_id, entity);
+                        }
+                        Slime1GameObject::WallPlatformOpener => {
+                            let entity = WallPlatformOpenerEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.wall_platform_opener_map.insert(entity_id, entity);
-                    }
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), Slime1GameObject::WallPlatformOpener),
+                                );
+                            }
+
+                            self.wall_platform_opener_map.insert(entity_id, entity);
+                        }
                         kind => {
                             debug!("Not generated right now {:?}", kind);
                         }
@@ -4911,82 +5326,82 @@ impl EntityManager for Slime1GameEntityManager {
             }
         }
 
-       for entity in self.cave_heart_wall_map.values_mut() {
+        for entity in self.cave_heart_wall_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.blue_heart) {
                 entity.game_state.blue_heart = entity_id.clone();
             }
         }
-       for entity in self.cave_heart_wall_map.values_mut() {
+        for entity in self.cave_heart_wall_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.door_to_remove) {
                 entity.game_state.door_to_remove = entity_id.clone();
             }
         }
-       for entity in self.cave_heart_wall_map.values_mut() {
+        for entity in self.cave_heart_wall_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.red_heart) {
                 entity.game_state.red_heart = entity_id.clone();
             }
         }
-       for entity in self.cave_heart_wall_map.values_mut() {
+        for entity in self.cave_heart_wall_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.yellow_heart) {
                 entity.game_state.yellow_heart = entity_id.clone();
             }
         }
-       for entity in self.death_area_map.values_mut() {
+        for entity in self.death_area_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.torch) {
                 entity.game_state.torch = entity_id.clone();
             }
         }
-       for entity in self.death_revive_statue_map.values_mut() {
+        for entity in self.death_revive_statue_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.revive_area) {
                 entity.game_state.revive_area = entity_id.clone();
             }
         }
-       for entity in self.guest_dead_map.values_mut() {
+        for entity in self.guest_dead_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.flame) {
                 entity.game_state.flame = entity_id.clone();
             }
         }
-       for entity in self.guest_dead_map.values_mut() {
+        for entity in self.guest_dead_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.slime) {
                 entity.game_state.slime = entity_id.clone();
             }
         }
-       for entity in self.opening_area_plate_map.values_mut() {
+        for entity in self.opening_area_plate_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.door_to_open_1) {
                 entity.game_state.door_to_open_1 = entity_id.clone();
             }
         }
-       for entity in self.opening_area_plate_map.values_mut() {
+        for entity in self.opening_area_plate_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.door_to_open_2) {
                 entity.game_state.door_to_open_2 = entity_id.clone();
             }
         }
-       for entity in self.opening_area_plate_map.values_mut() {
+        for entity in self.opening_area_plate_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.door_to_open_3) {
                 entity.game_state.door_to_open_3 = entity_id.clone();
             }
         }
-       for entity in self.opening_area_plate_map.values_mut() {
+        for entity in self.opening_area_plate_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.door_to_open_4) {
                 entity.game_state.door_to_open_4 = entity_id.clone();
             }
         }
-       for entity in self.teleport_start_map.values_mut() {
+        for entity in self.teleport_start_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.teleport_end) {
                 entity.game_state.teleport_end = entity_id.clone();
             }
         }
-       for entity in self.wall_platform_map.values_mut() {
+        for entity in self.wall_platform_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.opener) {
                 entity.game_state.opener = entity_id.clone();
             }
         }
-       for entity in self.wall_platform_map.values_mut() {
+        for entity in self.wall_platform_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.opener_2) {
                 entity.game_state.opener_2 = entity_id.clone();
             }
         }
-       for entity in self.wall_platform_map.values_mut() {
+        for entity in self.wall_platform_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.opener_3) {
                 entity.game_state.opener_3 = entity_id.clone();
             }
@@ -4994,88 +5409,88 @@ impl EntityManager for Slime1GameEntityManager {
     }
 
     fn update_entity_positions(&mut self, physics: &mut RapierSimulation) {
-for entity in self.bg_decoration_map.values_mut() {
+        for entity in self.bg_decoration_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.cave_heart_wall_map.values_mut() {
+        for entity in self.cave_heart_wall_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.death_area_map.values_mut() {
+        for entity in self.death_area_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.death_prop_map.values_mut() {
+        for entity in self.death_prop_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.death_revive_area_map.values_mut() {
+        for entity in self.death_revive_area_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.death_revive_statue_map.values_mut() {
+        for entity in self.death_revive_statue_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.death_torch_map.values_mut() {
+        for entity in self.death_torch_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.debris_map.values_mut() {
+        for entity in self.debris_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.door_map.values_mut() {
+        for entity in self.door_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.enter_area_map.values_mut() {
+        for entity in self.enter_area_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.exit_area_map.values_mut() {
+        for entity in self.exit_area_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.great_waterfall_tiles_map.values_mut() {
+        for entity in self.great_waterfall_tiles_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.guest_map.values_mut() {
+        for entity in self.guest_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.guest_dead_map.values_mut() {
+        for entity in self.guest_dead_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.guest_nameplate_map.values_mut() {
+        for entity in self.guest_nameplate_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.heart_map.values_mut() {
+        for entity in self.heart_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.heart_smoll_map.values_mut() {
+        for entity in self.heart_smoll_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.heart_wall_glow_map.values_mut() {
+        for entity in self.heart_wall_glow_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.observer_map.values_mut() {
+        for entity in self.observer_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.opening_area_plate_map.values_mut() {
+        for entity in self.opening_area_plate_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.secret_map.values_mut() {
+        for entity in self.secret_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.slime_charge_map.values_mut() {
+        for entity in self.slime_charge_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.slime_light_map.values_mut() {
+        for entity in self.slime_light_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.teleport_end_map.values_mut() {
+        for entity in self.teleport_end_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.teleport_start_map.values_mut() {
+        for entity in self.teleport_start_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.timer_map.values_mut() {
+        for entity in self.timer_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.wall_platform_map.values_mut() {
+        for entity in self.wall_platform_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.wall_platform_opener_map.values_mut() {
+        for entity in self.wall_platform_opener_map.values_mut() {
             entity.update_isometry(physics);
         }
     }

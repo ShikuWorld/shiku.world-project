@@ -13,34 +13,37 @@ class TwitchService {
   }
 
   get wsSocketUrl(): string | undefined {
-    if (!window.Twitch) {
+    if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
       return void 0;
     }
     try {
-      return JSON.parse(Twitch.ext.configuration.broadcaster.content)?.websocketurl;
-    } catch(e) {
+      return JSON.parse(Twitch.ext.configuration.broadcaster.content)
+        ?.websocketurl;
+    } catch (e) {
       return void 0;
     }
   }
 
   get resourceUrl() {
-    if (!window.Twitch) {
+    if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
       return void 0;
     }
     try {
-      return JSON.parse(Twitch.ext.configuration.broadcaster.content)?.resourceUrl;
-    } catch(e) {
+      return JSON.parse(Twitch.ext.configuration.broadcaster.content)
+        ?.resourceUrl;
+    } catch (e) {
       return void 0;
     }
   }
 
-  get twitchAuthRedirect () {
-    if (!window.Twitch) {
+  get twitchAuthRedirect() {
+    if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
       return void 0;
     }
     try {
-      return JSON.parse(Twitch.ext.configuration.broadcaster.content)?.twitchAuthRedirect;
-    } catch(e) {
+      return JSON.parse(Twitch.ext.configuration.broadcaster.content)
+        ?.twitchAuthRedirect;
+    } catch (e) {
       return void 0;
     }
   }
@@ -62,7 +65,7 @@ function setupTwitchService(): TwitchService {
   twitch.rig.log("Twitch setup");
 
   twitch.onContext(function (context) {
-    twitch.rig.log(context.mode);
+    twitch.rig.log(context && context.mode ? context.mode : "");
   });
 
   twitch.onAuthorized(function (auth) {

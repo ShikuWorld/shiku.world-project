@@ -3,7 +3,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use flume::Sender;
-use log::error;
+use log::{debug, error};
 use rapier2d::prelude::Real;
 
 pub mod animation;
@@ -60,6 +60,8 @@ pub fn get_out_dir() -> PathBuf {
 pub fn send_and_log_error<T>(sender: &mut Sender<T>, data: T) {
     if let Err(err) = sender.send(data) {
         error!("{:?}", err);
+    } else {
+        debug!("I send correctly :D");
     }
 }
 

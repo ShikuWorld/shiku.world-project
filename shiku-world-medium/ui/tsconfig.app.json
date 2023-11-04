@@ -6,6 +6,7 @@
     "composite": true,
     "verbatimModuleSyntax": false,
     "baseUrl": ".",
+    "types": ["@types/twitch-ext"],
     "paths": {
       "@/editor/*": ["./src/*"],
       "@/client/*": ["../client/*"]

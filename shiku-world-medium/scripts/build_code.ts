@@ -2,6 +2,7 @@ import * as esbuild from "esbuild";
 import { getLogger } from "./log";
 const log = getLogger("");
 import { ESLint } from "eslint";
+import * as fs from "fs-extra";
 
 /**
  * Function to update lines when something happens
@@ -63,6 +64,7 @@ export const build_code = async () => {
     // Get time after build ends
     const timerEnd = Date.now();
     updateLine(`Code built in ${timerEnd - timerStart}ms.`, true);
+    fs.copyFileSync("./build/medium.js", "./ui/public/medium.js");
   } catch (e) {
     log.error(e);
     // OOPS! ERROR!

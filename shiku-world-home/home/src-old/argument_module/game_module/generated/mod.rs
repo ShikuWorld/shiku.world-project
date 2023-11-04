@@ -1216,7 +1216,7 @@ pub struct ArgumentGameEntityManager {
 impl ArgumentGameEntityManager {
     pub fn new() -> ArgumentGameEntityManager {
         ArgumentGameEntityManager {
-            entity_id_generator: SnowflakeIdBucket::new(1, 2),
+            entity_id_generator: SnowflakeIdBucket::new(1, 3),
             collider_entity_map: ColliderEntityMap::new(),
 
             terrain_map: HashMap::new(),

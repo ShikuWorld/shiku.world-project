@@ -52,7 +52,7 @@ export const use_layout_functions = () => ({
   },
   compute_input_value,
   compute_input_values: (
-    input_map: { [key: string]: ExtractionObject },
+    input_map: { [key: string]: ExtractionObject } | undefined,
     context: DataContext,
   ): { [key: string]: any } | null => {
     if (!input_map) {

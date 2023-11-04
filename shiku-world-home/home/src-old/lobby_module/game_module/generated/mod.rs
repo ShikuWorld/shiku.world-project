@@ -75,42 +75,49 @@ pub struct Timer;
 pub struct Text;
 
 pub struct GuestVariant {
-pub gid_moved: &'static str,
-pub gid_move: &'static str,
-pub gid_default: &'static str,
-pub shape_default: PhysicalShape,
-pub offset_from_center_x: Real, pub offset_from_center_y: Real,
+    pub gid_moved: &'static str,
+    pub gid_move: &'static str,
+    pub gid_default: &'static str,
+    pub shape_default: PhysicalShape,
+    pub offset_from_center_x: Real,
+    pub offset_from_center_y: Real,
 }
 
 impl GuestVariant {
-                    pub fn get_offset_2d(&self) -> (Real, Real) {
-                        (self.offset_from_center_x, self.offset_from_center_y)
-                    }
-                }
+    pub fn get_offset_2d(&self) -> (Real, Real) {
+        (self.offset_from_center_x, self.offset_from_center_y)
+    }
+}
 
 pub struct GuestVariants {
-pub default: GuestVariant,
+    pub default: GuestVariant,
 }
 
 impl Guest {
-pub const VARIANTS: GuestVariants = GuestVariants {
-default: GuestVariant {
-gid_moved: "483",
-gid_move: "482",
-gid_default: "481",
-shape_default: PhysicalShape::ShapeRect(ShapeRect { offset_from_center_x: 2.0, offset_from_center_y: 9.5, width: 12.0, height: 9.0 }),
-offset_from_center_x: 2.00, offset_from_center_y: 9.50,
-},
-};
+    pub const VARIANTS: GuestVariants = GuestVariants {
+        default: GuestVariant {
+            gid_moved: "483",
+            gid_move: "482",
+            gid_default: "481",
+            shape_default: PhysicalShape::ShapeRect(ShapeRect {
+                offset_from_center_x: 2.0,
+                offset_from_center_y: 9.5,
+                width: 12.0,
+                height: 9.0,
+            }),
+            offset_from_center_x: 2.00,
+            offset_from_center_y: 9.50,
+        },
+    };
 }
 
 impl GuestVariants {
-pub fn get_variant(&self, variant: &String) -> &GuestVariant {
-match variant.as_str() {
-"default" => &self.default,
-_ => &self.default,
-}
-}
+    pub fn get_variant(&self, variant: &String) -> &GuestVariant {
+        match variant.as_str() {
+            "default" => &self.default,
+            _ => &self.default,
+        }
+    }
 }
 
 pub type GuestEntity = Entity<Guest, PhysicsRigidBody, StaticImage>;
@@ -123,11 +130,8 @@ pub type TimerEntity = Entity<Timer, PhysicsNone, RenderTypeTimer>;
 pub type TextEntity = Entity<Text, PhysicsNone, RenderTypeText>;
 
 impl GuestEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Guest {
-        Guest {
-
-        }
+        Guest {}
     }
 
     pub fn new(
@@ -140,17 +144,23 @@ impl GuestEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> GuestEntity {
-let physics_body = PhysicsRigidBody::create(
-                pos,
-                &physics_instructions.shape_default,
-                physics,
-            );
+        let physics_body =
+            PhysicsRigidBody::create(pos, &physics_instructions.shape_default, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -165,7 +175,8 @@ let physics_body = PhysicsRigidBody::create(
         layer_name: LayerName,
         physics: &mut RapierSimulation,
     ) -> GuestEntity {
-        let physics_instructions = Guest::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
+        let physics_instructions =
+            Guest::VARIANTS.get_variant(&general_object.get_custom_prop_string("variant"));
 
         Self::new(
             entity_id,
@@ -178,14 +189,12 @@ let physics_body = PhysicsRigidBody::create(
             physics,
         )
     }
-
 }
 
 impl EnterAreaEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> EnterArea {
         EnterArea {
-   slot_id: obj.get_custom_prop_string("slot_id"),
+            slot_id: obj.get_custom_prop_string("slot_id"),
         }
     }
 
@@ -199,11 +208,7 @@ impl EnterAreaEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> EnterAreaEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -237,14 +242,12 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl RollingEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Rolling {
         Rolling {
-   direction: obj.get_custom_prop_string("direction"),
+            direction: obj.get_custom_prop_string("direction"),
         }
     }
 
@@ -258,11 +261,7 @@ impl RollingEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> RollingEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -296,17 +295,15 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl ExitAreaEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> ExitArea {
         ExitArea {
-   info: obj.get_custom_prop_entity_id("info"),
-   guests: obj.get_custom_prop_u_32("guests"),
-   open: obj.get_custom_prop_bool("open"),
-   slot_id: obj.get_custom_prop_string("slot_id"),
+            info: obj.get_custom_prop_entity_id("info"),
+            guests: obj.get_custom_prop_u_32("guests"),
+            open: obj.get_custom_prop_bool("open"),
+            slot_id: obj.get_custom_prop_string("slot_id"),
         }
     }
 
@@ -320,11 +317,7 @@ impl ExitAreaEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> ExitAreaEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -358,15 +351,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl GuestNameplateEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> GuestNameplate {
-        GuestNameplate {
-
-        }
+        GuestNameplate {}
     }
 
     pub fn new(
@@ -379,11 +368,7 @@ impl GuestNameplateEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> GuestNameplateEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -417,15 +402,11 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl ObserverEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Observer {
-        Observer {
-
-        }
+        Observer {}
     }
 
     pub fn new(
@@ -438,17 +419,22 @@ impl ObserverEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> ObserverEntity {
-let physics_body = PhysicsArea::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsArea::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
             isometry: physics_body.position(physics),
             physics: physics_body,
-            render: StaticImage { width: None, height: None, tiled: false, layer, graphic_id, blending_mode: None, scale: (1.0, 1.0), offset_2d: physics_instructions.get_offset_2d() },
+            render: StaticImage {
+                width: None,
+                height: None,
+                tiled: false,
+                layer,
+                graphic_id,
+                blending_mode: None,
+                scale: (1.0, 1.0),
+                offset_2d: physics_instructions.get_offset_2d(),
+            },
             game_state,
             is_render_dirty: false,
             is_position_dirty: false,
@@ -476,15 +462,11 @@ let physics_body = PhysicsArea::create(
             physics,
         )
     }
-
 }
 
 impl TimerEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Timer {
-        Timer {
-
-        }
+        Timer {}
     }
 
     pub fn new(
@@ -497,11 +479,7 @@ impl TimerEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> TimerEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -535,15 +513,11 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 impl TextEntity {
-
     pub fn game_state_from_general_object(obj: &GeneralObject) -> Text {
-        Text {
-
-        }
+        Text {}
     }
 
     pub fn new(
@@ -556,11 +530,7 @@ impl TextEntity {
         general_object: Option<GeneralObject>,
         physics: &mut RapierSimulation,
     ) -> TextEntity {
-let physics_body = PhysicsNone::create(
-                pos,
-                &physics_instructions,
-                physics,
-            );
+        let physics_body = PhysicsNone::create(pos, &physics_instructions, physics);
 
         Entity {
             id: entity_id,
@@ -594,7 +564,6 @@ let physics_body = PhysicsNone::create(
             physics,
         )
     }
-
 }
 
 pub struct LobbyGameEntityManager {
@@ -619,9 +588,9 @@ pub struct LobbyGameEntityManager {
 impl LobbyGameEntityManager {
     pub fn new() -> LobbyGameEntityManager {
         LobbyGameEntityManager {
-            entity_id_generator: SnowflakeIdBucket::new(1, 2),
+            entity_id_generator: SnowflakeIdBucket::new(1, 4),
             collider_entity_map: ColliderEntityMap::new(),
-     
+
             terrain_map: HashMap::new(),
             guest_map: HashMap::new(),
             enter_area_map: HashMap::new(),
@@ -638,14 +607,14 @@ impl LobbyGameEntityManager {
             new_show_effects: Vec::new(),
         }
     }
-       pub fn create_guest<F: FnMut(&mut GuestEntity)>(
+    pub fn create_guest<F: FnMut(&mut GuestEntity)>(
         &mut self,
         game_state: Guest,
         pos: Vector<Real>,
         physics_instructions: &GuestVariant,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = GuestEntity::new(
@@ -658,24 +627,26 @@ impl LobbyGameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
-            self.collider_entity_map.insert(
-                collider_handle,
-                (entity_id.clone(), LobbyGameObject::Guest),
-            );
+            self.collider_entity_map
+                .insert(collider_handle, (entity_id.clone(), LobbyGameObject::Guest));
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.guest_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_guest(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<GuestEntity> {
+
+    pub fn remove_guest(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<GuestEntity> {
         if let Some(entity) = self.guest_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -690,14 +661,14 @@ impl LobbyGameEntityManager {
         None
     }
 
-   pub fn create_guest_nameplate<F: FnMut(&mut GuestNameplateEntity)>(
+    pub fn create_guest_nameplate<F: FnMut(&mut GuestNameplateEntity)>(
         &mut self,
         game_state: GuestNameplate,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = GuestNameplateEntity::new(
@@ -710,7 +681,7 @@ impl LobbyGameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -719,15 +690,19 @@ impl LobbyGameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.guest_nameplate_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_guest_nameplate(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<GuestNameplateEntity> {
+
+    pub fn remove_guest_nameplate(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<GuestNameplateEntity> {
         if let Some(entity) = self.guest_nameplate_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -742,14 +717,14 @@ impl LobbyGameEntityManager {
         None
     }
 
-   pub fn create_observer<F: FnMut(&mut ObserverEntity)>(
+    pub fn create_observer<F: FnMut(&mut ObserverEntity)>(
         &mut self,
         game_state: Observer,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = ObserverEntity::new(
@@ -762,7 +737,7 @@ impl LobbyGameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
             self.collider_entity_map.insert(
                 collider_handle,
@@ -771,15 +746,19 @@ impl LobbyGameEntityManager {
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.observer_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_observer(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<ObserverEntity> {
+
+    pub fn remove_observer(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<ObserverEntity> {
         if let Some(entity) = self.observer_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -794,14 +773,14 @@ impl LobbyGameEntityManager {
         None
     }
 
-   pub fn create_timer<F: FnMut(&mut TimerEntity)>(
+    pub fn create_timer<F: FnMut(&mut TimerEntity)>(
         &mut self,
         game_state: Timer,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = TimerEntity::new(
@@ -814,24 +793,26 @@ impl LobbyGameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
-            self.collider_entity_map.insert(
-                collider_handle,
-                (entity_id.clone(), LobbyGameObject::Timer),
-            );
+            self.collider_entity_map
+                .insert(collider_handle, (entity_id.clone(), LobbyGameObject::Timer));
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.timer_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_timer(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<TimerEntity> {
+
+    pub fn remove_timer(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<TimerEntity> {
         if let Some(entity) = self.timer_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -846,14 +827,14 @@ impl LobbyGameEntityManager {
         None
     }
 
-   pub fn create_text<F: FnMut(&mut TextEntity)>(
+    pub fn create_text<F: FnMut(&mut TextEntity)>(
         &mut self,
         game_state: Text,
         pos: Vector<Real>,
         physics_instructions: &PhysicalShape,
         graphic_id: String,
         physics: &mut RapierSimulation,
-        mut adjust_callback: F
+        mut adjust_callback: F,
     ) -> EntityId {
         let entity_id = self.entity_id_generator.get_id().to_string();
         let mut entity = TextEntity::new(
@@ -866,24 +847,26 @@ impl LobbyGameEntityManager {
             None,
             physics,
         );
-    
+
         for collider_handle in entity.physics.get_all_collider_handles() {
-            self.collider_entity_map.insert(
-                collider_handle,
-                (entity_id.clone(), LobbyGameObject::Text),
-            );
+            self.collider_entity_map
+                .insert(collider_handle, (entity_id.clone(), LobbyGameObject::Text));
         }
 
         adjust_callback(&mut entity);
-    
+
         self.new_show_entities.push(entity.show_entity());
-    
+
         self.text_map.insert(entity_id.clone(), entity);
-    
+
         entity_id
     }
-    
-    pub fn remove_text(&mut self, entity_id: &EntityId, physics: &mut RapierSimulation) -> Option<TextEntity> {
+
+    pub fn remove_text(
+        &mut self,
+        entity_id: &EntityId,
+        physics: &mut RapierSimulation,
+    ) -> Option<TextEntity> {
         if let Some(entity) = self.text_map.remove(entity_id) {
             self.new_remove_entities.push(entity.remove_entity());
             entity.physics.remove(physics);
@@ -935,142 +918,142 @@ impl EntityManager for LobbyGameEntityManager {
                     reference_map.insert(object.id.clone(), entity_id.clone());
 
                     match kind {
-                     LobbyGameObject::Guest => {
-                        let entity = GuestEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), LobbyGameObject::Guest),
+                        LobbyGameObject::Guest => {
+                            let entity = GuestEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.guest_map.insert(entity_id, entity);
-                    }
-                     LobbyGameObject::EnterArea => {
-                        let entity = EnterAreaEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), LobbyGameObject::EnterArea),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), LobbyGameObject::Guest),
+                                );
+                            }
+
+                            self.guest_map.insert(entity_id, entity);
+                        }
+                        LobbyGameObject::EnterArea => {
+                            let entity = EnterAreaEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.enter_area_map.insert(entity_id, entity);
-                    }
-                     LobbyGameObject::Rolling => {
-                        let entity = RollingEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), LobbyGameObject::Rolling),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), LobbyGameObject::EnterArea),
+                                );
+                            }
+
+                            self.enter_area_map.insert(entity_id, entity);
+                        }
+                        LobbyGameObject::Rolling => {
+                            let entity = RollingEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.rolling_map.insert(entity_id, entity);
-                    }
-                     LobbyGameObject::ExitArea => {
-                        let entity = ExitAreaEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), LobbyGameObject::ExitArea),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), LobbyGameObject::Rolling),
+                                );
+                            }
+
+                            self.rolling_map.insert(entity_id, entity);
+                        }
+                        LobbyGameObject::ExitArea => {
+                            let entity = ExitAreaEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.exit_area_map.insert(entity_id, entity);
-                    }
-                     LobbyGameObject::GuestNameplate => {
-                        let entity = GuestNameplateEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), LobbyGameObject::GuestNameplate),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), LobbyGameObject::ExitArea),
+                                );
+                            }
+
+                            self.exit_area_map.insert(entity_id, entity);
+                        }
+                        LobbyGameObject::GuestNameplate => {
+                            let entity = GuestNameplateEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.guest_nameplate_map.insert(entity_id, entity);
-                    }
-                     LobbyGameObject::Observer => {
-                        let entity = ObserverEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), LobbyGameObject::Observer),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), LobbyGameObject::GuestNameplate),
+                                );
+                            }
+
+                            self.guest_nameplate_map.insert(entity_id, entity);
+                        }
+                        LobbyGameObject::Observer => {
+                            let entity = ObserverEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.observer_map.insert(entity_id, entity);
-                    }
-                     LobbyGameObject::Timer => {
-                        let entity = TimerEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), LobbyGameObject::Timer),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), LobbyGameObject::Observer),
+                                );
+                            }
+
+                            self.observer_map.insert(entity_id, entity);
+                        }
+                        LobbyGameObject::Timer => {
+                            let entity = TimerEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.timer_map.insert(entity_id, entity);
-                    }
-                     LobbyGameObject::Text => {
-                        let entity = TextEntity::new_from_general_object(
-                            entity_id.clone(),
-                            object,
-                            group.layer_name.clone(),
-                            physics,
-                        );
-                    
-                        for collider_handle in entity.physics.get_all_collider_handles() {
-                            self.collider_entity_map.insert(
-                                collider_handle,
-                                (entity_id.clone(), LobbyGameObject::Text),
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), LobbyGameObject::Timer),
+                                );
+                            }
+
+                            self.timer_map.insert(entity_id, entity);
+                        }
+                        LobbyGameObject::Text => {
+                            let entity = TextEntity::new_from_general_object(
+                                entity_id.clone(),
+                                object,
+                                group.layer_name.clone(),
+                                physics,
                             );
-                        }
 
-                        self.text_map.insert(entity_id, entity);
-                    }
+                            for collider_handle in entity.physics.get_all_collider_handles() {
+                                self.collider_entity_map.insert(
+                                    collider_handle,
+                                    (entity_id.clone(), LobbyGameObject::Text),
+                                );
+                            }
+
+                            self.text_map.insert(entity_id, entity);
+                        }
                         kind => {
                             debug!("Not generated right now {:?}", kind);
                         }
@@ -1079,7 +1062,7 @@ impl EntityManager for LobbyGameEntityManager {
             }
         }
 
-       for entity in self.exit_area_map.values_mut() {
+        for entity in self.exit_area_map.values_mut() {
             if let Some(entity_id) = reference_map.get_mut(&entity.game_state.info) {
                 entity.game_state.info = entity_id.clone();
             }
@@ -1087,28 +1070,28 @@ impl EntityManager for LobbyGameEntityManager {
     }
 
     fn update_entity_positions(&mut self, physics: &mut RapierSimulation) {
-for entity in self.guest_map.values_mut() {
+        for entity in self.guest_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.enter_area_map.values_mut() {
+        for entity in self.enter_area_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.rolling_map.values_mut() {
+        for entity in self.rolling_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.exit_area_map.values_mut() {
+        for entity in self.exit_area_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.guest_nameplate_map.values_mut() {
+        for entity in self.guest_nameplate_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.observer_map.values_mut() {
+        for entity in self.observer_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.timer_map.values_mut() {
+        for entity in self.timer_map.values_mut() {
             entity.update_isometry(physics);
         }
-for entity in self.text_map.values_mut() {
+        for entity in self.text_map.values_mut() {
             entity.update_isometry(physics);
         }
     }

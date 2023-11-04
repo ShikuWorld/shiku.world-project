@@ -3,4 +3,12 @@ import type { Conductor } from "../blueprints/Conductor";
 import type { ModuleUpdate } from "../blueprints/ModuleUpdate";
 import type { ProviderLoggedIn } from "./ProviderLoggedIn";
 
-export type AdminToSystemEvent = { ProviderLoggedIn: ProviderLoggedIn } | { UpdateConductor: Conductor } | { UpdateModule: [string, ModuleUpdate] } | { CreateModule: string } | { DeleteModule: string } | { SetMainDoorStatus: boolean } | { SetBackDoorStatus: boolean };
+export type AdminToSystemEvent =
+  | { ProviderLoggedIn: ProviderLoggedIn }
+  | { UpdateConductor: Conductor }
+  | { UpdateModule: [string, ModuleUpdate] }
+  | { CreateModule: string }
+  | { DeleteModule: string }
+  | { SetMainDoorStatus: boolean }
+  | { SetBackDoorStatus: boolean }
+  | "Ping";

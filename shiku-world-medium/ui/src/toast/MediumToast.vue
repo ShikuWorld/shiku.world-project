@@ -73,12 +73,12 @@ import { ref } from "vue";
 const toast_store = use_toast_store();
 const display = ref(useDisplay());
 
-const map_alert_level = (level: ToastAlertLevel): string =>
+const map_alert_level = (level: ToastAlertLevel) =>
   match(level)
     .with("Success", () => "success")
     .with("Error", () => "error")
     .with("Info", () => "info")
-    .exhaustive();
+    .exhaustive() as "error" | "success" | "warning" | "info" | undefined;
 
 setInterval(() => toast_store.update_toast_progress(), 1000);
 </script>

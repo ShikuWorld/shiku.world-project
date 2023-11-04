@@ -19,6 +19,7 @@ import { loginMenuConfig } from "@/client/login-menu";
 import { GameInstance, create_new_game_instance } from "@/client/game-instance";
 import { ResourceManager } from "@/client/resources";
 import { create_resource_manager } from "@/client/resources/create_resource_manager";
+import { is_admin } from "@/client/is_admin";
 
 export function start_medium() {
   const signal_broadcast_channel = new BroadcastChannel(signal_channel_name);
@@ -191,7 +192,7 @@ export function start_medium() {
       send_ticket(
         {
           session_id,
-          admin_login: null,
+          admin_login: is_admin,
         },
         communication_system,
       );

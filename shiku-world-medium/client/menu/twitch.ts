@@ -5,25 +5,31 @@ import {
 } from "../communication";
 import { SignalToGuest } from "../communication/api/bindings/SignalToGuest";
 import { twitch_service } from "../communication/api/twitch/twitch";
-import { send_system_event } from "../communication/setup_communication_system";
+import {
+  send_admin_event,
+  send_system_event,
+} from "../communication/setup_communication_system";
 import { Config } from "../config";
+import { is_admin } from "@/client/is_admin";
+import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
+import { GuestToSystemEvent } from "@/client/communication/api/bindings/GuestToSystemEvent";
 
 function send_twitch_login(
   communication_state: CommunicationState,
   message: { data: { auth_code?: string; access_token?: string } },
 ) {
-  send_system_event(
-    {
-      ProviderLoggedIn: {
-        login_provider: "Twitch",
-        auth_code: message.data.auth_code ? message.data.auth_code : null,
-        access_token: message.data.access_token
-          ? message.data.access_token
-          : null,
-      },
+  const event = {
+    ProviderLoggedIn: {
+      login_provider: "Twitch",
+      auth_code: message.data.auth_code ? message.data.auth_code : null,
+      access_token: message.data.access_token
+        ? message.data.access_token
+        : null,
     },
-    communication_state,
-  );
+  };
+  is_admin
+    ? send_admin_event(event as AdminToSystemEvent, communication_state)
+    : send_system_event(event as GuestToSystemEvent, communication_state);
 }
 
 export function login(communication_state: CommunicationState): Promise<void> {

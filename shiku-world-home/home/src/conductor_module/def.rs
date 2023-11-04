@@ -33,6 +33,7 @@ pub struct ConductorModule {
     pub(super) admins: HashMap<Snowflake, Admin>,
 
     pub(super) ws_to_guest_map: HashMap<Snowflake, Snowflake>,
+    pub(super) ws_to_admin_map: HashMap<Snowflake, Snowflake>,
     pub(super) provider_id_to_guest_map: HashMap<ProviderUserId, Snowflake>,
     pub(super) provider_id_to_admin_map: HashMap<ProviderUserId, Snowflake>,
     pub(super) session_id_to_guest_map: HashMap<String, Snowflake>,
@@ -42,4 +43,5 @@ pub struct ConductorModule {
 
     pub(super) snowflake_gen: SnowflakeIdBucket,
     pub(super) system_to_guest_communication: SystemCommunicationIO,
+    pub(super) system_to_admin_communication: SystemCommunicationIO,
 }

@@ -4,6 +4,7 @@ use thiserror::Error;
 
 use crate::core::module::GuestToModule;
 use crate::persistence_module::PersistenceError;
+use crate::resource_module::def::GuestId;
 
 #[derive(Debug)]
 pub enum SendEventToModuleError {
@@ -20,10 +21,10 @@ pub enum ProcessModuleEventError {
 
 #[derive(Error, Debug)]
 pub enum HandleLoginError {
-    #[error("Already logged in.")]
-    AlreadyLoggedIn,
-    #[error("Could login due to persistence error.")]
-    PersistenceError(#[from] PersistenceError),
+    #[error("Someone tried to login that was not authorized.")]
+    NotAuthorized(GuestId),
+    #[error("Could not find guest/admin")]
+    CouldNotFind(GuestId),
 }
 
 #[derive(Debug)]

@@ -57,6 +57,15 @@ const context: DataContext = {
 onMounted(async () => {
   await module_editor.initRender(rete.value as unknown as HTMLElement);
   await module_editor.addModuleNode({
+    exit_points: [{ name: "LoginOut", condition_script: "" }],
+    insert_points: [],
+    name: "Login",
+    maps: [],
+    max_guests: 0,
+    min_guests: 0,
+    resources: [],
+  });
+  await module_editor.addModuleNode({
     exit_points: [{ name: "ToGame1", condition_script: "" }],
     insert_points: [{ name: "FromLogin", condition_script: "" }],
     name: "Lobby",

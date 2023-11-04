@@ -1,4 +1,4 @@
-import { ComponentConfig } from "@/ui/index";
+import { ComponentConfig } from "@/editor/ui/index";
 
 export const test_menu: ComponentConfig = {
   name: "HLayout",
