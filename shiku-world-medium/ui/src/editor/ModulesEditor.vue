@@ -16,7 +16,9 @@ import {
   ArrangeAppliers,
 } from "rete-auto-arrange-plugin";
 import { Module } from "@/editor/blueprints/Module";
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
+import { use_editor_store } from "@/editor/stores/editor";
+import { storeToRefs } from "pinia";
 
 class Node extends ClassicPreset.Node {
   width = 180;
@@ -69,6 +71,12 @@ onMounted(async () => {
 
   AreaExtensions.simpleNodesOrder(area);
   AreaExtensions.zoomAt(area, editor.getNodes());
+  area.signal.addPipe((data) => {
+    if (data.type === "nodepicked") {
+      console.log(data);
+    }
+    return data;
+  });
 });
 
 onUnmounted(() => {
@@ -77,29 +85,59 @@ onUnmounted(() => {
   }
 });
 
+const { load_modules } = use_editor_store();
+const { modules } = storeToRefs(use_editor_store());
+
+load_modules();
+
+async function addModuleNode(module_blueprint: Module) {
+  const node = new Node(module_blueprint.name);
+  for (const entry_point of module_blueprint.insert_points) {
+    node.addInput(
+      entry_point.name,
+      new ClassicPreset.Input(socket, entry_point.name),
+    );
+  }
+  for (const exit_point of module_blueprint.exit_points) {
+    node.addOutput(
+      exit_point.name,
+      new ClassicPreset.Input(socket, exit_point.name),
+    );
+  }
+  await editor.addNode(node);
+}
+async function layout() {
+  if (!area || !applier) {
+    return;
+  }
+  await arrange.layout({ applier: applier });
+  AreaExtensions.zoomAt(area, editor.getNodes());
+}
+
+addModuleNode({
+  exit_points: [{ name: "LoginOut", condition_script: "" }],
+  insert_points: [],
+  name: "Login",
+  maps: [],
+  max_guests: 0,
+  min_guests: 0,
+  resources: [],
+});
+
+watch(modules, async () => {
+  console.log("modules changes", modules.value);
+  for (const module of modules.value) {
+    await addModuleNode(module);
+  }
+  await layout();
+});
+
+watch(modules, () => {
+  console.log(modules);
+});
+
 defineExpose({
-  async addModuleNode(module_blueprint: Module) {
-    const node = new Node(module_blueprint.name);
-    for (const entry_point of module_blueprint.insert_points) {
-      node.addInput(
-        entry_point.name,
-        new ClassicPreset.Input(socket, entry_point.name),
-      );
-    }
-    for (const exit_point of module_blueprint.exit_points) {
-      node.addOutput(
-        exit_point.name,
-        new ClassicPreset.Input(socket, exit_point.name),
-      );
-    }
-    await editor.addNode(node);
-  },
-  async layout() {
-    if (!area || !applier) {
-      return;
-    }
-    await arrange.layout({ applier: applier });
-    AreaExtensions.zoomAt(area, editor.getNodes());
-  },
+  addModuleNode,
+  layout,
 });
 </script>
