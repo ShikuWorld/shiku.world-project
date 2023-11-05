@@ -244,6 +244,25 @@ impl BlueprintService {
         }
     }
 
+    pub fn get_all_modules(&self) -> Result<Vec<Module>, BlueprintError> {
+        let dir_path = get_out_dir().join("modules");
+        let paths = fs::read_dir(dir_path)?;
+        let mut modules = Vec::new();
+        for path in paths {
+            modules.push(
+                self.load_module(
+                    path?
+                        .file_name()
+                        .to_os_string()
+                        .into_string()
+                        .unwrap_or("MODULE_NAME_BROKEN".into()),
+                )?,
+            )
+        }
+
+        Ok(modules)
+    }
+
     pub fn load_module(&self, module_name: String) -> Result<Module, BlueprintError> {
         let dir_path = get_out_dir().join("modules").join(&module_name);
         let file_path = dir_path.join(format!("{}.json", &module_name));

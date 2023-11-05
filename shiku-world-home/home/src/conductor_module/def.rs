@@ -10,7 +10,7 @@ use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceMana
 use crate::core::{blueprint, Snowflake};
 use crate::login::login_manager::LoginManager;
 use crate::persistence_module::PersistenceModule;
-use crate::resource_module::def::GuestId;
+use crate::resource_module::def::ActorId;
 use crate::webserver_module::def::WebServerModule;
 use crate::{ResourceModule, WebsocketModule};
 
@@ -38,8 +38,8 @@ pub struct ConductorModule {
     pub(super) provider_id_to_admin_map: HashMap<ProviderUserId, Snowflake>,
     pub(super) session_id_to_guest_map: HashMap<String, Snowflake>,
     pub(super) session_id_to_admin_map: HashMap<String, Snowflake>,
-    pub(super) guest_timeout_map: HashMap<GuestId, Instant>,
-    pub(super) timeouts: Vec<GuestId>,
+    pub(super) guest_timeout_map: HashMap<ActorId, Instant>,
+    pub(super) timeouts: Vec<ActorId>,
 
     pub(super) snowflake_gen: SnowflakeIdBucket,
     pub(super) system_to_guest_communication: SystemCommunicationIO,

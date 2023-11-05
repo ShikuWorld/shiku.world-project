@@ -9,7 +9,7 @@ use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity}
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::resource_module::def::{GuestId, ResourceBundle, ResourceEvent, ResourceFile};
+use crate::resource_module::def::{ActorId, ResourceBundle, ResourceEvent, ResourceFile};
 use crate::resource_module::errors::ResourceParseError;
 use crate::resource_module::map::def::{LayerName, TerrainChunk};
 use crate::ResourceModule;
@@ -59,6 +59,13 @@ pub struct ProviderLoggedIn {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
+pub enum EditorEvent {
+    Modules(Vec<blueprint::Module>),
+    MainDoorStatus(bool),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
 pub enum AdminToSystemEvent {
     ProviderLoggedIn(ProviderLoggedIn),
     UpdateConductor(blueprint::Conductor),
@@ -67,6 +74,7 @@ pub enum AdminToSystemEvent {
     DeleteModule(String),
     SetMainDoorStatus(bool),
     SetBackDoorStatus(bool),
+    LoadEditorData,
     Ping,
 }
 
@@ -95,8 +103,8 @@ pub enum GuestTo {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub enum SystemToModuleEvent {
-    Disconnected(GuestId),
-    Reconnected(GuestId),
+    Disconnected(ActorId),
+    Reconnected(ActorId),
 }
 
 #[derive(Debug)]
@@ -107,14 +115,14 @@ pub enum GuestStateChange {
 
 #[derive(Debug)]
 pub enum ModuleToSystemEvent {
-    GuestStateChange(GuestId, GuestStateChange),
+    GuestStateChange(ActorId, GuestStateChange),
     GlobalMessage(String),
-    ToastMessage(GuestId, ToastAlertLevel, String),
+    ToastMessage(ActorId, ToastAlertLevel, String),
 }
 
 #[derive(Debug)]
 pub struct GuestEvent<T> {
-    pub guest_id: GuestId,
+    pub guest_id: ActorId,
     pub event_type: T,
 }
 #[derive(Debug)]
@@ -216,6 +224,7 @@ pub enum CommunicationEvent {
     Toast(ToastAlertLevel, String),
     ShowGlobalMessage(String),
     AlreadyConnected,
+    EditorEvent(EditorEvent),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -254,9 +263,7 @@ pub enum GameSystemToGuestEvent {
 pub type GuestToModule = GuestEvent<ModuleInstanceEvent<GuestToModuleEvent>>;
 pub type SystemToModule = ModuleInstanceEvent<SystemToModuleEvent>;
 pub type ModuleToSystem = ModuleToSystemEvent;
-pub type GameSystemToInstanceManager = GuestEvent<GameSystemToGuestEvent>;
 pub type GameSystemToGuest = GuestEvent<ModuleInstanceEvent<GameSystemToGuestEvent>>;
-pub type GuestToSystem = GuestEvent<GuestToSystemEvent>;
 pub type GamePosition = GuestEvent<(
     ModuleName,
     GameInstanceId,
@@ -269,8 +276,8 @@ pub struct ModuleIO {
 }
 
 pub struct SystemCommunicationIO {
-    pub sender: Sender<(GuestId, CommunicationEvent)>,
-    pub receiver: Receiver<(GuestId, CommunicationEvent)>,
+    pub sender: Sender<(ActorId, CommunicationEvent)>,
+    pub receiver: Receiver<(ActorId, CommunicationEvent)>,
 }
 
 #[derive(Clone)]

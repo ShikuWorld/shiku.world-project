@@ -5,6 +5,7 @@ use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
+use crate::core::{blueprint, Snowflake, TARGET_FRAME_DURATION};
 use crate::core::blueprint::BlueprintError;
 use crate::core::blueprint::BlueprintService;
 use crate::core::guest::{Guest, ModuleEnterSlot};
@@ -14,8 +15,7 @@ use crate::core::module::{
     ModuleOutputSender,
 };
 use crate::core::module_system::def::DynamicGameModule;
-use crate::core::{blueprint, Snowflake, TARGET_FRAME_DURATION};
-use crate::resource_module::def::{GuestId, ResourceFile, ResourceModule};
+use crate::resource_module::def::{ActorId, ResourceFile, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 
 #[derive(Error, Debug)]
@@ -31,7 +31,7 @@ pub type GameInstanceId = String;
 pub struct GameInstanceManager {
     pub(crate) game_instances: HashMap<GameInstanceId, GameInstance>,
     pub(crate) inactive_game_instances: Vec<GameInstanceId>,
-    pub(crate) guest_to_game_instance_map: HashMap<GuestId, GameInstanceId>,
+    pub(crate) guest_to_game_instance_map: HashMap<ActorId, GameInstanceId>,
     pub(crate) active_admin_instances: HashMap<Snowflake, Vec<GameInstanceId>>,
     pub(crate) input_receiver: ModuleInputReceiver,
     pub(crate) output_sender: ModuleOutputSender,

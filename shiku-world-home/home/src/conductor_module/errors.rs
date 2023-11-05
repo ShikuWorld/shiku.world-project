@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::core::module::GuestToModule;
 use crate::persistence_module::PersistenceError;
-use crate::resource_module::def::GuestId;
+use crate::resource_module::def::ActorId;
 
 #[derive(Debug)]
 pub enum SendEventToModuleError {
@@ -22,9 +22,9 @@ pub enum ProcessModuleEventError {
 #[derive(Error, Debug)]
 pub enum HandleLoginError {
     #[error("Someone tried to login that was not authorized.")]
-    NotAuthorized(GuestId),
+    NotAuthorized(ActorId),
     #[error("Could not find guest/admin")]
-    CouldNotFind(GuestId),
+    CouldNotFind(ActorId),
 }
 
 #[derive(Debug)]

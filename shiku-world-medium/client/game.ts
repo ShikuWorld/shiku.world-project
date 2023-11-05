@@ -88,11 +88,23 @@ export function start_medium() {
     for (const communication_event of communication_system.inbox) {
       match(communication_event)
         .with("AlreadyConnected", () => {})
+        .with({ EditorEvent: P.select() }, (e) => {
+          match(e)
+            .with({ MainDoorStatus: P.select() }, (status) => {
+              window.medium_gui.editor.set_main_door_status(status);
+            })
+            .with({ Modules: P.select() }, (modules) => {
+              window.medium_gui.editor.set_modules(modules);
+            })
+            .exhaustive();
+        })
         .with(
           { ConnectionReady: P.select() },
           ([_session_id, should_login]) => {
             if (should_login) {
               menu_system.activate("login-menu");
+            } else if (is_admin) {
+              window.medium_gui.editor.show_editor();
             }
           },
         )
@@ -143,6 +155,9 @@ export function start_medium() {
         .with({ Signal: P.select() }, (signal_to_guest) => {
           if (signal_to_guest === "LoginSuccess") {
             menu_system.deactivate("login-menu");
+            if (is_admin) {
+              window.medium_gui.editor.show_editor();
+            }
           }
           signal_broadcast_channel.postMessage(signal_to_guest);
         })

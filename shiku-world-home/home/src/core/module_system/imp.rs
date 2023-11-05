@@ -14,7 +14,7 @@ use crate::core::module::{
 use crate::core::module::{GuestInput, GuestToModuleEvent, SystemToModuleEvent};
 use crate::core::module_system::def::{DynamicGameModule, GuestMap, ModuleCommunication};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::resource_module::def::GuestId;
+use crate::resource_module::def::ActorId;
 
 impl DynamicGameModule {
     pub fn create(
@@ -41,7 +41,7 @@ impl DynamicGameModule {
         self.blueprint.name.clone()
     }
 
-    fn set_guest_input(guests: &mut GuestMap, guest_id: &GuestId, input: GuestInput) {
+    fn set_guest_input(guests: &mut GuestMap, guest_id: &ActorId, input: GuestInput) {
         if let Some(guest) = guests.get_mut(guest_id) {
             guest.guest_input = input;
             guest.last_input_time = Instant::now();

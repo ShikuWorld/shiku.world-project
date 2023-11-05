@@ -1,7 +1,7 @@
 use crate::core::module::{GuestEvent, ModuleInstanceEvent, ModuleName};
 use crate::core::safe_unwrap;
 use crate::resource_module::def::{
-    GuestId, Resource, ResourceBundle, ResourceEvent, ResourceFile, ResourceModule,
+    ActorId, Resource, ResourceBundle, ResourceEvent, ResourceFile, ResourceModule,
 };
 use crate::resource_module::errors::{
     ReadResourceMapError, ResourceParseError, SendLoadEventError, SendUnloadEventError,
@@ -86,7 +86,7 @@ impl ResourceModule {
 
     pub fn send_load_event(
         &mut self,
-        guest_id: &GuestId,
+        guest_id: &ActorId,
         module_name: &ModuleName,
         instance_id: GameInstanceId,
     ) -> Result<(), SendLoadEventError> {
@@ -107,7 +107,7 @@ impl ResourceModule {
 
     pub fn send_unload_event(
         &mut self,
-        guest_id: GuestId,
+        guest_id: ActorId,
         module_name: ModuleName,
         instance_id: GameInstanceId,
     ) {
@@ -129,7 +129,7 @@ impl ResourceModule {
     pub fn get_active_resources_for_module(
         &self,
         module_name: &ModuleName,
-        guest_id: &GuestId,
+        guest_id: &ActorId,
     ) -> Result<Vec<Resource>, ReadResourceMapError> {
         let active_resources = safe_unwrap(
             self.active_resources.get(guest_id),
@@ -153,7 +153,7 @@ impl ResourceModule {
     pub fn activate_resources_for_guest(
         &mut self,
         module_name: ModuleName,
-        guest_id: &GuestId,
+        guest_id: &ActorId,
     ) -> Result<(), SendLoadEventError> {
         self.active_resources
             .entry(guest_id.clone())
@@ -167,7 +167,7 @@ impl ResourceModule {
         &mut self,
         module_name: ModuleName,
         instance_id: GameInstanceId,
-        guest_id: GuestId,
+        guest_id: ActorId,
     ) -> Result<(), SendUnloadEventError> {
         if let None = self.active_resources.get(&guest_id) {
             return Ok(());

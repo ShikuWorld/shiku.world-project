@@ -1,12 +1,13 @@
 <template>
   <v-app class="medium-gui">
-    <v-main class="medium-main" v-if="ui.menu_open && ui.current_menu">
+    <v-main class="medium-main">
+      <Editor v-if="editor.editor_open"></Editor>
       <MediumComponent
+        v-if="ui.menu_open && ui.current_menu"
         :component_config="ui.current_menu"
         :context="context"
       ></MediumComponent>
     </v-main>
-    <div class="rete" ref="rete"></div>
     <medium-toast class="medium-toast"></medium-toast>
   </v-app>
 </template>
@@ -26,10 +27,10 @@
   top: 0;
 }
 
-.rete {
-  width: 100vw;
-  height: 100vh;
-  pointer-events: all;
+.medium-editor {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 </style>
 
@@ -39,59 +40,19 @@ import { use_ui_store } from "@/editor/stores/ui";
 import { DataContext } from "@/editor/ui";
 import { use_current_module_store } from "@/editor/stores/current-module";
 import MediumToast from "@/editor/toast/MediumToast.vue";
-import { onMounted, onUnmounted, ref } from "vue";
-import { ModuleEditor } from "@/editor/editor";
+import Editor from "@/editor/editor/Editor.vue";
+import { use_editor_store } from "@/editor/stores/editor";
 /*import { use_toast_store } from "@/editor/stores/toast";
 import { test_menu } from "@/editor/ui/test_menu";*/
 
-const rete = ref(null);
 const ui = use_ui_store();
+const editor = use_editor_store();
 const current_module = use_current_module_store();
-const module_editor = new ModuleEditor();
 
 const context: DataContext = {
   current_module,
   ui,
 };
-
-onMounted(async () => {
-  await module_editor.initRender(rete.value as unknown as HTMLElement);
-  await module_editor.addModuleNode({
-    exit_points: [{ name: "LoginOut", condition_script: "" }],
-    insert_points: [],
-    name: "Login",
-    maps: [],
-    max_guests: 0,
-    min_guests: 0,
-    resources: [],
-  });
-  await module_editor.addModuleNode({
-    exit_points: [{ name: "ToGame1", condition_script: "" }],
-    insert_points: [{ name: "FromLogin", condition_script: "" }],
-    name: "Lobby",
-    maps: [],
-    max_guests: 0,
-    min_guests: 0,
-    resources: [],
-  });
-  await module_editor.addModuleNode({
-    exit_points: [{ name: "Exit1", condition_script: "" }],
-    insert_points: [
-      { name: "Entry1", condition_script: "" },
-      { name: "Entry2", condition_script: "" },
-    ],
-    name: "Dummy",
-    maps: [],
-    max_guests: 0,
-    min_guests: 0,
-    resources: [],
-  });
-  await module_editor.layout();
-});
-
-onUnmounted(() => {
-  module_editor.destroy();
-});
 
 /*
 const toast_store = use_toast_store();

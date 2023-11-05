@@ -8,12 +8,12 @@ use serde::Deserialize;
 use url::ParseError as UrlParseError;
 
 use crate::core::module::{ModuleInputReceiver, ModuleOutputSender};
-use crate::resource_module::def::GuestId;
+use crate::resource_module::def::ActorId;
 
 pub struct LoginModule {
-    current_guests: HashSet<GuestId>,
+    current_guests: HashSet<ActorId>,
     twitch_ext_access_token: String,
-    twitch_login_process_running: HashMap<GuestId, TwitchApiLogin>,
+    twitch_login_process_running: HashMap<ActorId, TwitchApiLogin>,
     input_receiver: ModuleInputReceiver,
     output_sender: ModuleOutputSender,
 }

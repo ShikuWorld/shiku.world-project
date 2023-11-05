@@ -3,33 +3,33 @@ use std::fmt::Debug;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use flume::{unbounded, Sender};
+use flume::{Sender, unbounded};
 use log::{debug, error, warn};
 use snowflake::SnowflakeIdBucket;
 use tungstenite::protocol::frame::coding::CloseCode;
 
+use crate::{ResourceModule, SystemModule, WebsocketModule};
 use crate::conductor_module::def::{ConductorModule, ModuleCommunicationMap, ModuleMap};
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
+use crate::core::{blueprint, send_and_log_error};
+use crate::core::{fix_intellij_error_bug, LOGGED_IN_TODAY_DELAY_IN_HOURS, safe_unwrap, Snowflake};
 use crate::core::blueprint::BlueprintService;
 use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
-    AdminToSystemEvent, CommunicationEvent, EnterFailedState, EnterSuccessState, GamePosition,
-    GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo, GuestToModule, GuestToModuleEvent,
-    GuestToSystemEvent, LeaveFailedState, LeaveSuccessState, ModuleIO, ModuleInstanceEvent,
-    ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent, SignalToMedium,
-    SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
+    AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
+    GamePosition, GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo, GuestToModule,
+    GuestToModuleEvent, GuestToSystemEvent, LeaveFailedState, LeaveSuccessState, ModuleInstanceEvent,
+    ModuleIO, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent,
+    SignalToMedium, SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
 };
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
-use crate::core::{blueprint, send_and_log_error};
-use crate::core::{fix_intellij_error_bug, safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
-use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
-use crate::resource_module::def::{GuestId, ResourceBundle};
+use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
+use crate::resource_module::def::{ActorId, ResourceBundle};
 use crate::webserver_module::def::WebServerModule;
-use crate::{ResourceModule, SystemModule, WebsocketModule};
 
 impl SystemModule for ConductorModule {
     fn module_name(&self) -> ModuleName {
@@ -107,6 +107,24 @@ impl ConductorModule {
                                         self.blueprint_service.save_conductor_blueprint(&conductor)
                                     {
                                         error!("Could not save conductor blueprint! {:?}", err)
+                                    }
+                                }
+                                AdminToSystemEvent::LoadEditorData => {
+                                    match self.blueprint_service.get_all_modules() {
+                                        Ok(modules) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::Modules(modules),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        Err(err) => {
+                                            error!("Could not retrieve modules! {:?}", err);
+                                        }
                                     }
                                 }
                                 AdminToSystemEvent::UpdateModule(_module_name, _module_update) => {}
@@ -668,7 +686,7 @@ impl ConductorModule {
                     &mut self.persistence_module,
                 )? {
                     if let CommunicationEvent::ShowGlobalMessage(_message) = &communication_event {
-                        let guest_ids: Vec<GuestId> = self.guests.keys().cloned().collect();
+                        let guest_ids: Vec<ActorId> = self.guests.keys().cloned().collect();
                         for guest_id in guest_ids {
                             Self::send_communication_event_to_guest(
                                 &mut self.guests,
@@ -688,7 +706,7 @@ impl ConductorModule {
                 }
             }
             ModuleToSystemEvent::GlobalMessage(message) => {
-                let guest_ids: Vec<GuestId> = self.guests.keys().cloned().collect();
+                let guest_ids: Vec<ActorId> = self.guests.keys().cloned().collect();
                 for guest_id in guest_ids {
                     Self::send_communication_event_to_guest(
                         &mut self.guests,
@@ -962,7 +980,7 @@ impl ConductorModule {
 
     fn process_guest_to_system_event(
         event: GuestToSystemEvent,
-        guest_id: GuestId,
+        guest_id: ActorId,
         login_manager: &mut LoginManager,
     ) {
         match event {
@@ -975,7 +993,7 @@ impl ConductorModule {
 
     fn send_event_to_module(
         module_communication: &ModuleIO,
-        guest_id: GuestId,
+        guest_id: ActorId,
         module_name: ModuleName,
         instance_id: GameInstanceId,
         event: GuestToModuleEvent,
@@ -1079,8 +1097,8 @@ impl ConductorModule {
     }
 
     fn handle_actor_login_result(
-        sender: &mut Sender<(GuestId, CommunicationEvent)>,
-        result: Result<GuestId, HandleLoginError>,
+        sender: &mut Sender<(ActorId, CommunicationEvent)>,
+        result: Result<ActorId, HandleLoginError>,
     ) {
         match result {
             Ok(actor_id) => {
@@ -1120,7 +1138,7 @@ impl ConductorModule {
         ws_to_actor_map: &mut HashMap<Snowflake, Snowflake>,
         session_to_actor_map: &mut HashMap<String, Snowflake>,
         mut login_success_cb: F,
-    ) -> Result<GuestId, HandleLoginError> {
+    ) -> Result<ActorId, HandleLoginError> {
         if !Self::check_admin_login(login_data) {
             return Err(HandleLoginError::NotAuthorized(*actor_id));
         }

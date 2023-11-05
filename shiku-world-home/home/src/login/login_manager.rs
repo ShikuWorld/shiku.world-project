@@ -10,18 +10,18 @@ use crate::core::module::ProviderLoggedIn;
 use crate::login::twitch_login::{
     TwitchApiError, TwitchApiLogin, TwitchExtensionOauthTokenResponse,
 };
-use crate::resource_module::def::GuestId;
+use crate::resource_module::def::ActorId;
 
 pub struct LoginManager {
     twitch_ext_access_token: String,
-    twitch_login_process_running: HashMap<GuestId, TwitchApiLogin>,
-    twitch_admin_login_process_running: HashMap<GuestId, TwitchApiLogin>,
-    finished_logins: Vec<GuestId>,
+    twitch_login_process_running: HashMap<ActorId, TwitchApiLogin>,
+    twitch_admin_login_process_running: HashMap<ActorId, TwitchApiLogin>,
+    finished_logins: Vec<ActorId>,
 }
 
 pub enum LoginError {
-    UserDidNotExistLongEnough(GuestId, i64),
-    TwitchApiError(GuestId, TwitchApiError),
+    UserDidNotExistLongEnough(ActorId, i64),
+    TwitchApiError(ActorId, TwitchApiError),
 }
 
 const MIN_DAYS_SINCE_ACCOUNT_CREATION: i64 = 0;
@@ -63,7 +63,7 @@ impl LoginManager {
 
     pub fn process_running_logins<F>(&mut self, mut callback: F)
     where
-        F: FnMut(Result<(GuestId, LoginData), LoginError>),
+        F: FnMut(Result<(ActorId, LoginData), LoginError>),
     {
         self.finished_logins
             .extend(self.twitch_login_process_running.iter_mut().filter_map(
@@ -113,7 +113,7 @@ impl LoginManager {
             }
         }
     }
-    pub fn add_provider_login(&mut self, guest_id: GuestId, provider_logged_in: ProviderLoggedIn) {
+    pub fn add_provider_login(&mut self, guest_id: ActorId, provider_logged_in: ProviderLoggedIn) {
         match provider_logged_in.login_provider {
             LoginProvider::Twitch => {
                 self.twitch_login_process_running.insert(

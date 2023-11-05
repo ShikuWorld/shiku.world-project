@@ -6,7 +6,7 @@ use tokio::time::Instant;
 use crate::core::blueprint;
 use crate::core::module::{GuestInput, ModuleInputReceiver, ModuleOutputSender};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::resource_module::def::GuestId;
+use crate::resource_module::def::ActorId;
 
 pub struct GuestCommunication {
     pub resources_loaded: bool,
@@ -30,8 +30,8 @@ impl ModuleCommunication {
     }
 }
 
-pub type GuestMap = HashMap<GuestId, ModuleGuest>;
-pub type AdminSet = HashSet<GuestId>;
+pub type GuestMap = HashMap<ActorId, ModuleGuest>;
+pub type AdminSet = HashSet<ActorId>;
 
 pub struct DynamicGameModule {
     pub world: World,
@@ -43,7 +43,7 @@ pub struct DynamicGameModule {
 }
 
 pub struct ModuleGuest {
-    pub(crate) id: GuestId,
+    pub(crate) id: ActorId,
     pub(crate) guest_input: GuestInput,
     pub(crate) guest_com: GuestCommunication,
     pub(crate) last_input_time: Instant,

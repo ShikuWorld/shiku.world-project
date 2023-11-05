@@ -1,33 +1,35 @@
+use std::collections::{HashMap, HashSet};
+
+use rapier2d::prelude::{ColliderHandle, Real};
+
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::ShowEffect;
 use crate::core::rapier_simulation::def::RapierSimulation;
-use crate::resource_module::def::GuestId;
+use crate::resource_module::def::ActorId;
 use crate::resource_module::map::def::{TerrainChunk, TiledMap};
-use rapier2d::prelude::{ColliderHandle, Real};
-use std::collections::{HashMap, HashSet};
 
-pub type HideEntityMap = HashMap<GuestId, HashSet<EntityId>>;
+pub type HideEntityMap = HashMap<ActorId, HashSet<EntityId>>;
 
 pub trait EntityVisibility {
-    fn hide_entity(&mut self, guest_id: &GuestId, entity_id: &EntityId);
-    fn show_entity(&mut self, guest_id: &GuestId, entity_id: &EntityId);
-    fn entity_hidden(&mut self, guest_id: &GuestId, entity_id: &EntityId) -> bool;
+    fn hide_entity(&mut self, guest_id: &ActorId, entity_id: &EntityId);
+    fn show_entity(&mut self, guest_id: &ActorId, entity_id: &EntityId);
+    fn entity_hidden(&mut self, guest_id: &ActorId, entity_id: &EntityId) -> bool;
 }
 
 impl EntityVisibility for HideEntityMap {
-    fn hide_entity(&mut self, guest_id: &GuestId, entity_id: &EntityId) {
+    fn hide_entity(&mut self, guest_id: &ActorId, entity_id: &EntityId) {
         self.entry(*guest_id)
             .or_insert_with(HashSet::new)
             .insert(entity_id.clone());
     }
 
-    fn show_entity(&mut self, guest_id: &GuestId, entity_id: &EntityId) {
+    fn show_entity(&mut self, guest_id: &ActorId, entity_id: &EntityId) {
         self.entry(*guest_id)
             .or_insert_with(HashSet::new)
             .remove(entity_id);
     }
 
-    fn entity_hidden(&mut self, guest_id: &GuestId, entity_id: &EntityId) -> bool {
+    fn entity_hidden(&mut self, guest_id: &ActorId, entity_id: &EntityId) -> bool {
         self.entry(*guest_id)
             .or_insert_with(HashSet::new)
             .contains(entity_id)
@@ -38,8 +40,8 @@ pub trait EntityManager {
     fn create_initial(&mut self, map: &TiledMap, physics: &mut RapierSimulation);
     fn update_entity_positions(&mut self, physics: &mut RapierSimulation);
 
-    fn set_camera_entity_for_guest(&mut self, guest_id: GuestId, entity_id: EntityId);
-    fn get_current_camera_entity_for_guest(&self, guest_id: &GuestId) -> EntityId;
+    fn set_camera_entity_for_guest(&mut self, guest_id: ActorId, entity_id: EntityId);
+    fn get_current_camera_entity_for_guest(&self, guest_id: &ActorId) -> EntityId;
     fn get_all_terrain_chunks(&mut self) -> Vec<TerrainChunk>;
     fn get_all_show_entities(&mut self) -> Vec<ShowEntity>;
     fn get_all_entity_updates(&mut self) -> Vec<UpdateEntity>;

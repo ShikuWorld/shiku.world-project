@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use crate::core::module::{GuestEvent, ModuleInstanceEvent, ModuleName};
 use crate::core::Snowflake;
 
-pub type GuestId = Snowflake;
+pub type ActorId = Snowflake;
 pub type ResourceMetaName = String;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -64,7 +64,7 @@ pub enum ResourceEvent {
 }
 
 pub struct ResourceModule {
-    pub(super) active_resources: HashMap<GuestId, HashMap<ModuleName, bool>>,
+    pub(super) active_resources: HashMap<ActorId, HashMap<ModuleName, bool>>,
     pub(super) resources: HashMap<ModuleName, HashMap<ResourceMetaName, Resource>>,
     pub(super) resource_load_events: Vec<GuestEvent<ModuleInstanceEvent<ResourceEvent>>>,
     pub(super) resource_hash_gen: SnowflakeIdBucket,
