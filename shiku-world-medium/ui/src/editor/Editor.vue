@@ -15,18 +15,21 @@
         </v-window-item>
       </v-window>
     </div>
-    <div class="editor-nav-right"></div>
+    <div class="editor-nav-right">
+      {{ selected_module ? selected_module.id : "None" }}
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
 import { onMounted, ref } from "vue";
+import { storeToRefs } from "pinia";
+import { use_modules_editor_store } from "@/editor/stores/modules_editor";
 const tab = ref<number>(0);
+const { selected_module } = storeToRefs(use_modules_editor_store());
 
 onMounted(() => {});
-
-console.log("works");
 </script>
 
 <style lang="scss">

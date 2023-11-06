@@ -7,6 +7,7 @@ use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use ts_rs::TS;
+use uuid::Uuid;
 
 use crate::core::get_out_dir;
 use crate::core::guest::{ModuleEnterSlot, ModuleExitSlot};
@@ -52,6 +53,7 @@ pub struct IOPoint {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Module {
+    pub id: String,
     pub name: String,
     pub resources: Vec<Resource>,
     pub maps: Vec<Map>,
@@ -75,8 +77,9 @@ pub struct ModuleUpdate {
 }
 
 impl Module {
-    pub fn new(name: String) -> Module {
+    pub fn new(name: String, id: String) -> Module {
         Module {
+            id,
             name,
             maps: Vec::new(),
             max_guests: 0,
@@ -229,7 +232,7 @@ impl BlueprintService {
             return Err(BlueprintError::FileAlreadyExists);
         }
 
-        let module = Module::new(module_name);
+        let module = Module::new(module_name, Uuid::new_v4().to_string());
         self.save_module(&module)?;
 
         Ok(module)

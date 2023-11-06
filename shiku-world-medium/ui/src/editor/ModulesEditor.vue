@@ -19,6 +19,7 @@ import { Module } from "@/editor/blueprints/Module";
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
+import { use_modules_editor_store } from "@/editor/stores/modules_editor";
 
 class Node extends ClassicPreset.Node {
   width = 180;
@@ -34,10 +35,14 @@ const editor = new NodeEditor<Schemes>();
 const connection = new ConnectionPlugin<Schemes, AreaExtra>();
 const render = new VuePlugin<Schemes, AreaExtra>();
 const arrange = new AutoArrangePlugin<Schemes>();
+const node_to_module_map: { [node_id: string]: Module } = {};
+const module_to_node_map: { [module_id: string]: Node } = {};
 let area: AreaPlugin<Schemes, AreaExtra> | undefined = undefined;
 let applier: ArrangeAppliers.TransitionApplier<Schemes, never> | undefined =
   undefined;
 const rete = ref<HTMLElement>();
+
+const { select_module } = use_modules_editor_store();
 
 onMounted(async () => {
   if (!rete.value) {
@@ -71,11 +76,16 @@ onMounted(async () => {
 
   AreaExtensions.simpleNodesOrder(area);
   AreaExtensions.zoomAt(area, editor.getNodes());
-  area.signal.addPipe((data) => {
-    if (data.type === "nodepicked") {
-      console.log(data);
+  area.signal.addPipe((event) => {
+    if (event.type.includes("nodepicked")) {
+      if (!node_to_module_map[event.data.id]) {
+        console.log(event, node_to_module_map);
+        console.error(`No module for this id?!`);
+        return;
+      }
+      select_module(node_to_module_map[event.data.id]);
     }
-    return data;
+    return event;
   });
 });
 
@@ -92,6 +102,8 @@ load_modules();
 
 async function addModuleNode(module_blueprint: Module) {
   const node = new Node(module_blueprint.name);
+  node_to_module_map[node.id] = module_blueprint;
+  module_to_node_map[module_blueprint.id] = node;
   for (const entry_point of module_blueprint.insert_points) {
     node.addInput(
       entry_point.name,
@@ -115,17 +127,18 @@ async function layout() {
 }
 
 addModuleNode({
+  id: "Login",
   exit_points: [{ name: "LoginOut", condition_script: "" }],
   insert_points: [],
   name: "Login",
   maps: [],
   max_guests: 0,
   min_guests: 0,
+  close_after_full: false,
   resources: [],
 });
 
 watch(modules, async () => {
-  console.log("modules changes", modules.value);
   for (const module of modules.value) {
     await addModuleNode(module);
   }
