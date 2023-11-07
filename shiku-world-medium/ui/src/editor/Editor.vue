@@ -11,24 +11,30 @@
       <v-window v-model="tab">
         <v-window-item value="Current"></v-window-item>
         <v-window-item value="modules">
-          <ModulesEditor class="modules-editor"></ModulesEditor>
+          <ModulesGraph class="modules-editor"></ModulesGraph>
         </v-window-item>
       </v-window>
     </div>
     <div class="editor-nav-right">
-      {{ selected_module ? selected_module.id : "None" }}
+      <ModulesEditor
+        v-if="selected_module"
+        :module="selected_module"
+      ></ModulesEditor>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
-import { onMounted, ref } from "vue";
+import ModulesGraph from "@/editor/editor/ModulesGraph.vue";
+import { computed, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
-import { use_modules_editor_store } from "@/editor/stores/modules_editor";
+import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
+import { use_editor_store } from "@/editor/stores/editor";
 const tab = ref<number>(0);
-const { selected_module } = storeToRefs(use_modules_editor_store());
+const { selected_module_id } = storeToRefs(use_editor_store());
+const { get_module } = use_editor_store();
 
+const selected_module = computed(() => get_module(selected_module_id?.value));
 onMounted(() => {});
 </script>
 
