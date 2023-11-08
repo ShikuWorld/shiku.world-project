@@ -27,6 +27,19 @@ export const use_editor_store = defineStore("editor", {
         };
       }
     },
+    delete_module(module: Module) {
+      const modules = {
+        ...this.modules,
+      };
+      delete modules[module.id];
+      this.modules = modules;
+    },
+    create_module(module: Module) {
+      this.modules = {
+        ...this.modules,
+        [module.id]: module,
+      };
+    },
     get_module(id: string) {
       return this.modules[id];
     },
@@ -46,6 +59,15 @@ export const use_editor_store = defineStore("editor", {
         );
       }
     },
+    save_module_server(module: Module) {
+      sendAdminEvent({ UpdateModule: [module.id, module] });
+    },
+    create_module_server(name: string) {
+      sendAdminEvent({ CreateModule: name });
+    },
+    delete_module_server(id: string) {
+      sendAdminEvent({ DeleteModule: id });
+    },
     show_editor() {
       this.editor_open = true;
     },
@@ -54,3 +76,9 @@ export const use_editor_store = defineStore("editor", {
     },
   },
 });
+
+function sendAdminEvent(event: AdminToSystemEvent) {
+  if (window.medium.communication_state.is_connection_open) {
+    window.medium.communication_state.ws_connection.send(JSON.stringify(event));
+  }
+}

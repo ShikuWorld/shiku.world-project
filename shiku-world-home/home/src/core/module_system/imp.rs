@@ -99,7 +99,7 @@ impl DynamicGameModule {
                             guest_id,
                             event_type: {
                                 ModuleInstanceEvent {
-                                    module_name: self.blueprint.name.clone(),
+                                    module_id: self.blueprint.id.clone(),
                                     instance_id: self.instance_id.clone(),
                                     event_type: GameSystemToGuestEvent::OpenMenu(
                                         "login-menu".into(),

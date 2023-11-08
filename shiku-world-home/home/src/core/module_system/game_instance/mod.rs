@@ -5,7 +5,6 @@ use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
-use crate::core::{blueprint, Snowflake, TARGET_FRAME_DURATION};
 use crate::core::blueprint::BlueprintError;
 use crate::core::blueprint::BlueprintService;
 use crate::core::guest::{Guest, ModuleEnterSlot};
@@ -15,6 +14,7 @@ use crate::core::module::{
     ModuleOutputSender,
 };
 use crate::core::module_system::def::DynamicGameModule;
+use crate::core::{blueprint, Snowflake, TARGET_FRAME_DURATION};
 use crate::resource_module::def::{ActorId, ResourceFile, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 

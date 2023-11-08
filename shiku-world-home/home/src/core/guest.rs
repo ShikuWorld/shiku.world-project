@@ -16,7 +16,7 @@ pub type ModuleEnterSlot = String;
 pub struct Guest {
     pub id: ActorId,
     pub session_id: SessionId,
-    pub current_module: Option<ModuleName>,
+    pub current_module_id: Option<ModuleName>,
     pub current_instance_id: Option<GameInstanceId>,
     pub pending_module_exit: Option<ModuleExitSlot>,
     pub login_data: Option<LoginData>,

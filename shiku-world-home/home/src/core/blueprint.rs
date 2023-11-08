@@ -50,11 +50,13 @@ pub struct IOPoint {
     pub condition_script: String,
 }
 
+pub type ModuleId = String;
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Module {
-    pub id: String,
-    pub name: String,
+    pub id: ModuleId,
+    pub name: ModuleName,
     pub resources: Vec<Resource>,
     pub maps: Vec<Map>,
     pub insert_points: Vec<IOPoint>,
@@ -220,6 +222,12 @@ impl BlueprintService {
         fs::create_dir_all(out_dir.join("modules"))?;
 
         Ok(())
+    }
+
+    pub fn module_exists(&self, module_name: &String) -> bool {
+        let dir_path = get_out_dir().join("modules").join(module_name);
+        let file_path = dir_path.join(format!("{}.json", module_name));
+        file_path.exists()
     }
 
     pub fn create_module(&self, module_name: String) -> Result<Module, BlueprintError> {

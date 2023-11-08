@@ -1,6 +1,48 @@
 <template>
-  <div class="editor" ref="rete"></div>
+  <div class="editor-wrap">
+    <div class="editor" ref="rete"></div>
+    <div class="editor-actions">
+      <v-dialog width="500">
+        <template v-slot:activator="{ props }">
+          <v-btn :icon="mdiPlus" size="small" v-bind="props"></v-btn>
+        </template>
+
+        <template v-slot:default="{ isActive }">
+          <v-card title="Lets create a new game!">
+            <v-text-field label="Name" v-model="new_module_name"></v-text-field>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+
+              <v-btn
+                text="Create Module"
+                @click="
+                  create_new_module(new_module_name);
+                  isActive.value = false;
+                "
+              ></v-btn>
+              <v-btn
+                text="Close Dialog"
+                @click="isActive.value = false"
+              ></v-btn>
+            </v-card-actions>
+          </v-card>
+        </template>
+      </v-dialog>
+    </div>
+  </div>
 </template>
+
+<style lang="scss">
+.editor {
+  display: flex;
+  height: 100%;
+}
+.editor-actions {
+  position: absolute;
+  right: 30px;
+  top: 30px;
+}
+</style>
 
 <script lang="ts" setup>
 import { NodeEditor, GetSchemes, ClassicPreset } from "rete";
@@ -20,6 +62,7 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import { use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
 import CustomNode from "@/editor/editor/CustomNode.vue";
+import { mdiPlus } from "@mdi/js";
 
 class Node extends ClassicPreset.Node {
   width = 180;
@@ -47,7 +90,14 @@ let applier: ArrangeAppliers.TransitionApplier<Schemes, never> | undefined =
   undefined;
 const rete = ref<HTMLElement>();
 
-const { set_selected_module_id } = use_editor_store();
+const { set_selected_module_id, create_module_server } = use_editor_store();
+
+const new_module_name = ref<string>("");
+
+function create_new_module(module_name: string) {
+  create_module_server(module_name);
+  new_module_name.value = "";
+}
 
 onMounted(async () => {
   if (!rete.value) {
@@ -159,15 +209,10 @@ addOrUpdateNode({
 });
 
 watch(modules, async () => {
-  console.log("?", modules);
   for (const module of Object.values(modules.value)) {
     await addOrUpdateNode(module);
   }
   await layout();
-});
-
-watch(modules, () => {
-  console.log(modules);
 });
 
 defineExpose({

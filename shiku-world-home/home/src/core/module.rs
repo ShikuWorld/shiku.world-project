@@ -5,6 +5,7 @@ use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
+use crate::core::blueprint::ModuleId;
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
@@ -61,6 +62,9 @@ pub struct ProviderLoggedIn {
 #[ts(export)]
 pub enum EditorEvent {
     Modules(Vec<blueprint::Module>),
+    CreatedModule(ModuleId, blueprint::Module),
+    DeletedModule(ModuleId),
+    UpdatedModule(ModuleId, blueprint::Module),
     MainDoorStatus(bool),
 }
 
@@ -69,9 +73,9 @@ pub enum EditorEvent {
 pub enum AdminToSystemEvent {
     ProviderLoggedIn(ProviderLoggedIn),
     UpdateConductor(blueprint::Conductor),
-    UpdateModule(String, blueprint::ModuleUpdate),
-    CreateModule(String),
-    DeleteModule(String),
+    UpdateModule(ModuleId, blueprint::ModuleUpdate),
+    CreateModule(ModuleName),
+    DeleteModule(ModuleId),
     SetMainDoorStatus(bool),
     SetBackDoorStatus(bool),
     LoadEditorData,
@@ -127,7 +131,7 @@ pub struct GuestEvent<T> {
 }
 #[derive(Debug)]
 pub struct ModuleInstanceEvent<T> {
-    pub module_name: ModuleName,
+    pub module_id: ModuleId,
     pub instance_id: GameInstanceId,
     pub event_type: T,
 }
@@ -211,14 +215,10 @@ type IsMainInstance = bool;
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "bindings/Events.ts")]
 pub enum CommunicationEvent {
-    ResourceEvent(ModuleName, ResourceEvent),
-    PrepareGame(ModuleName, GameInstanceId, ResourceBundle, IsMainInstance),
-    GameSystemEvent(ModuleName, GameInstanceId, GameSystemToGuestEvent),
-    PositionEvent(
-        ModuleName,
-        GameInstanceId,
-        Vec<(EntityId, Real, Real, Real)>,
-    ),
+    ResourceEvent(ModuleId, ResourceEvent),
+    PrepareGame(ModuleId, GameInstanceId, ResourceBundle, IsMainInstance),
+    GameSystemEvent(ModuleId, GameInstanceId, GameSystemToGuestEvent),
+    PositionEvent(ModuleId, GameInstanceId, Vec<(EntityId, Real, Real, Real)>),
     ConnectionReady((SessionId, ShouldLogin)),
     Signal(SignalToMedium),
     Toast(ToastAlertLevel, String),

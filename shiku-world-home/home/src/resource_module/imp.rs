@@ -7,6 +7,7 @@ use crate::resource_module::errors::{
     ReadResourceMapError, ResourceParseError, SendLoadEventError, SendUnloadEventError,
 };
 
+use crate::core::blueprint::ModuleId;
 use crate::core::module_system::game_instance::GameInstanceId;
 use snowflake::SnowflakeIdBucket;
 use std::collections::HashMap;
@@ -23,7 +24,7 @@ impl ResourceModule {
 
     pub fn register_resources_for_module(
         &mut self,
-        module_name: ModuleName,
+        module_id: ModuleId,
         _resource_base_path: String,
         mut resource_file: ResourceFile,
         manual_config_option: Option<String>,
@@ -34,10 +35,7 @@ impl ResourceModule {
             resource_file.resources.append(&mut manual_config.resources);
         }
 
-        let module_resources_map = self
-            .resources
-            .entry(module_name)
-            .or_insert_with(HashMap::new);
+        let module_resources_map = self.resources.entry(module_id).or_insert_with(HashMap::new);
 
         for resource in resource_file.resources {
             module_resources_map.insert(
@@ -87,17 +85,17 @@ impl ResourceModule {
     pub fn send_load_event(
         &mut self,
         guest_id: &ActorId,
-        module_name: &ModuleName,
+        module_id: &ModuleId,
         instance_id: GameInstanceId,
     ) -> Result<(), SendLoadEventError> {
         self.resource_load_events.push(GuestEvent {
             guest_id: *guest_id,
             event_type: ModuleInstanceEvent {
-                module_name: module_name.clone(),
+                module_id: module_id.clone(),
                 instance_id,
                 event_type: ResourceEvent::LoadResource(ResourceBundle {
                     name: "TBD".into(),
-                    assets: self.get_active_resources_for_module(module_name, guest_id)?,
+                    assets: self.get_active_resources_for_module(module_id, guest_id)?,
                 }),
             },
         });
@@ -108,14 +106,14 @@ impl ResourceModule {
     pub fn send_unload_event(
         &mut self,
         guest_id: ActorId,
-        module_name: ModuleName,
+        module_id: ModuleId,
         instance_id: GameInstanceId,
     ) {
         self.resource_load_events.push(GuestEvent {
             guest_id,
 
             event_type: ModuleInstanceEvent {
-                module_name,
+                module_id,
                 instance_id,
                 event_type: ResourceEvent::UnLoadResource,
             },

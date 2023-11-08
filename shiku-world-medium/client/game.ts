@@ -96,6 +96,15 @@ export function start_medium() {
             .with({ Modules: P.select() }, (modules) => {
               window.medium_gui.editor.set_modules(modules);
             })
+            .with({ CreatedModule: P.select() }, (d) => {
+              window.medium_gui.editor.create_module(d[1]);
+            })
+            .with({ UpdatedModule: P.select() }, (d) => {
+              window.medium_gui.editor.update_module(d[1]);
+            })
+            .with({ DeletedModule: P.select() }, (d) => {
+              window.medium_gui.editor.delete_module(d);
+            })
             .exhaustive();
         })
         .with(

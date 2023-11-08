@@ -15,7 +15,7 @@ use crate::conductor_module::errors::{
 };
 use crate::core::{blueprint, send_and_log_error};
 use crate::core::{fix_intellij_error_bug, LOGGED_IN_TODAY_DELAY_IN_HOURS, safe_unwrap, Snowflake};
-use crate::core::blueprint::BlueprintService;
+use crate::core::blueprint::{BlueprintService, ModuleId};
 use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
@@ -127,17 +127,36 @@ impl ConductorModule {
                                         }
                                     }
                                 }
-                                AdminToSystemEvent::UpdateModule(_module_name, _module_update) => {}
+                                AdminToSystemEvent::UpdateModule(_module_id, _module_update) => {}
                                 AdminToSystemEvent::CreateModule(module_name) => {
-                                    Self::create_game_instance_manager(
+                                    if self.blueprint_service.module_exists(&module_name) {
+                                        error!("Module already existed!");
+                                        return;
+                                    }
+                                    if let Some(module_id) = Self::create_game_instance_manager(
                                         module_name,
                                         &mut self.module_map,
                                         &mut self.resource_module,
                                         &mut self.module_communication_map,
                                         &self.blueprint_service,
-                                    );
+                                    ) {
+                                        if let Some(module) = self.module_map.get(&module_id) {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::CreatedModule(
+                                                            module_id,
+                                                            module.module_blueprint.clone(),
+                                                        ),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                    }
                                 }
-                                AdminToSystemEvent::DeleteModule(_module_name) => {}
+                                AdminToSystemEvent::DeleteModule(_module_id) => {}
                             }
                         }
                         Err(err) => error!("Failed to parse admin event! {:?}", err),
@@ -153,19 +172,24 @@ impl ConductorModule {
         resource_module: &mut ResourceModule,
         module_communication_map: &mut ModuleCommunicationMap,
         blueprint_service: &BlueprintService,
-    ) {
+    ) -> Option<ModuleId> {
         match GameInstanceManager::new(module_name.clone(), blueprint_service, resource_module) {
             Ok((game_instance_manager, module_input_sender, module_output_receiver)) => {
-                module_map.insert(module_name.clone(), game_instance_manager);
+                let module_id = game_instance_manager.module_blueprint.id.clone();
+                module_map.insert(module_id.clone(), game_instance_manager);
                 module_communication_map.insert(
-                    module_name.clone(),
+                    module_id.clone(),
                     ModuleIO {
                         receiver: module_output_receiver,
                         sender: module_input_sender,
                     },
                 );
+                Some(module_id)
             }
-            Err(err) => error!("Could not create dynamic module: {:?}", err),
+            Err(err) => {
+                error!("Could not create dynamic module: {:?}", err);
+                None
+            }
         }
     }
 
@@ -177,8 +201,8 @@ impl ConductorModule {
         }
         for guest_id in self.timeouts.drain(..) {
             if let Some(guest) = self.guests.remove(&guest_id) {
-                if let Some(module_name) = &guest.current_module {
-                    if let Some(module) = self.module_map.get_mut(module_name) {
+                if let Some(module_id) = &guest.current_module_id {
+                    if let Some(module) = self.module_map.get_mut(module_id) {
                         if let Err(err) = module.try_leave(&guest) {
                             error!("Guest could not leave module on timeout, reason: {:?}", err);
                         }
@@ -214,13 +238,6 @@ impl ConductorModule {
         let system_to_guest_communication = SystemCommunicationIO { receiver, sender };
         let (sender, receiver) = unbounded();
         let system_to_admin_communication = SystemCommunicationIO { receiver, sender };
-        Self::create_game_instance_manager(
-            "Dummy".into(),
-            &mut module_map,
-            &mut resource_module,
-            &mut module_communication_map,
-            &blueprint_service,
-        );
 
         ConductorModule {
             blueprint,
@@ -231,10 +248,7 @@ impl ConductorModule {
             web_server_module: WebServerModule::new(),
             login_manager: LoginManager::new(),
             snowflake_gen,
-            module_connection_map: HashMap::from([(
-                "".into(),
-                ("Dummy".into(), "DummyEnter".into()),
-            )]),
+            module_connection_map: HashMap::new(),
             guests: HashMap::new(),
             admins: HashMap::new(),
 
@@ -342,15 +356,15 @@ impl ConductorModule {
 
                 guest.ws_connection_id = Some(connection_id);
 
-                if let (Some(current_module), Some(current_instance_id)) =
-                    (&guest.current_module, &guest.current_instance_id)
+                if let (Some(current_module_id), Some(current_instance_id)) =
+                    (&guest.current_module_id, &guest.current_instance_id)
                 {
                     if let Some(module_communication) =
-                        self.module_communication_map.get_mut(current_module)
+                        self.module_communication_map.get_mut(current_module_id)
                     {
                         if let Err(err) = module_communication.sender.system_to_module_sender.send(
                             ModuleInstanceEvent {
-                                module_name: current_module.clone(),
+                                module_id: current_module_id.clone(),
                                 instance_id: current_instance_id.clone(),
                                 event_type: SystemToModuleEvent::Reconnected(guest.id),
                             },
@@ -361,7 +375,7 @@ impl ConductorModule {
                             &guest,
                             &mut self.resource_module,
                             &mut self.websocket_module,
-                            current_module,
+                            current_module_id,
                             current_instance_id,
                         );
                     }
@@ -397,7 +411,7 @@ impl ConductorModule {
             guest_id,
             Guest {
                 id: guest_id,
-                current_module: None,
+                current_module_id: None,
                 current_instance_id: None,
                 login_data: None,
                 pending_module_exit: None,
@@ -430,17 +444,17 @@ impl ConductorModule {
 
                     self.guest_timeout_map.insert(guest_id, Instant::now());
 
-                    if let (Some(current_module), Some(current_instance_id)) =
-                        (&guest.current_module, &guest.current_instance_id)
+                    if let (Some(current_module_id), Some(current_instance_id)) =
+                        (&guest.current_module_id, &guest.current_instance_id)
                     {
                         if let Some(module_communication) =
-                            self.module_communication_map.get_mut(current_module)
+                            self.module_communication_map.get_mut(current_module_id)
                         {
                             if let Err(err) = module_communication
                                 .sender
                                 .system_to_module_sender
                                 .send(ModuleInstanceEvent {
-                                    module_name: current_module.clone(),
+                                    module_id: current_module_id.clone(),
                                     instance_id: current_instance_id.clone(),
                                     event_type: SystemToModuleEvent::Disconnected(guest_id),
                                 })
@@ -466,14 +480,14 @@ impl ConductorModule {
             guest_id,
             event_type:
                 ModuleInstanceEvent {
-                    module_name,
+                    module_id,
                     instance_id,
                     event_type,
                 },
         } in self.resource_module.drain_load_events()
         {
             if let Ok(message_as_string) =
-                serde_json::to_string(&CommunicationEvent::ResourceEvent(module_name, event_type))
+                serde_json::to_string(&CommunicationEvent::ResourceEvent(module_id, event_type))
             {
                 debug!("Sending load event to guest");
                 if let Some(guest) = self.guests.get(&guest_id) {
@@ -515,12 +529,12 @@ impl ConductorModule {
                 if let Some((target_module_name, module_enter_slot)) =
                     self.module_connection_map.get(module_exit_slot)
                 {
-                    if let Some(current_module_name) = &guest.current_module {
-                        if current_module_name == target_module_name {
-                            error!("current module {} and target module {} are the same, this should never happen!", current_module_name, target_module_name);
+                    if let Some(current_module_id) = &guest.current_module_id {
+                        if current_module_id == target_module_name {
+                            error!("current module {} and target module {} are the same, this should never happen!", current_module_id, target_module_name);
                             continue;
                         }
-                        let current_module_option = self.module_map.get_mut(current_module_name);
+                        let current_module_option = self.module_map.get_mut(current_module_id);
                         if let Some(current_module) = current_module_option {
                             ConductorModule::try_leave_module(
                                 guest,
@@ -530,7 +544,7 @@ impl ConductorModule {
                         } else {
                             error!(
                                 "Module {} did not exist, so user cannot leave it, guest is stuck!",
-                                current_module_name
+                                current_module_id
                             );
                         }
                     }
@@ -572,7 +586,7 @@ impl ConductorModule {
     ) {
         match module.try_leave(guest) {
             Ok((instance_id, LeaveSuccessState::Left)) => {
-                guest.current_module = None;
+                guest.current_module_id = None;
                 if let Err(err) = resource_module.disable_resources_for_guest(
                     module.module_blueprint.name.clone(),
                     instance_id,
@@ -607,7 +621,7 @@ impl ConductorModule {
         match module.try_enter(guest, module_enter_slot) {
             Ok((instance_id, EnterSuccessState::Entered)) => {
                 debug!("Entered I think {:?}", instance_id);
-                guest.current_module = Some(module_name.clone());
+                guest.current_module_id = Some(module_name.clone());
                 guest.current_instance_id = Some(instance_id.clone());
                 guest.pending_module_exit = None;
                 if let Err(err) =
@@ -645,18 +659,18 @@ impl ConductorModule {
         guest: &&mut Guest,
         resource_module: &mut ResourceModule,
         websocket_module: &mut WebsocketModule,
-        module_name: &ModuleName,
+        module_id: &ModuleId,
         instance_id: &GameInstanceId,
     ) {
         if let Ok(resources) =
-            resource_module.get_active_resources_for_module(&module_name, &guest.id)
+            resource_module.get_active_resources_for_module(&module_id, &guest.id)
         {
             debug!("Resources sending?");
             if let Err(err) = Self::send_communication_event_to_guest_direct(
                 guest,
                 websocket_module,
                 &CommunicationEvent::PrepareGame(
-                    module_name.clone(),
+                    module_id.clone(),
                     instance_id.clone(),
                     ResourceBundle {
                         name: "Init".into(),
@@ -847,11 +861,11 @@ impl ConductorModule {
         } = game_event;
         let ModuleInstanceEvent {
             instance_id,
-            module_name,
+            module_id,
             event_type,
         } = event_type;
         if let Ok(message_as_string) = serde_json::to_string(&CommunicationEvent::GameSystemEvent(
-            module_name,
+            module_id,
             instance_id,
             event_type,
         )) {
@@ -924,8 +938,10 @@ impl ConductorModule {
 
     pub fn send_to_current_guest_module(&mut self, guest_id: Snowflake, event: SystemToModule) {
         if let Some(guest) = self.guests.get(&guest_id) {
-            if let Some(current_module) = &guest.current_module {
-                if let Some(communication) = self.module_communication_map.get_mut(current_module) {
+            if let Some(current_module_id) = &guest.current_module_id {
+                if let Some(communication) =
+                    self.module_communication_map.get_mut(current_module_id)
+                {
                     if let Err(err) = communication.sender.system_to_module_sender.send(event) {
                         error!("Could not send event to module! {}", err);
                     }
@@ -948,16 +964,16 @@ impl ConductorModule {
                                 );
                             }
                             GuestTo::GuestToModuleEvent(event) => {
-                                if let (Some(module_name), Some(current_instance_id)) =
-                                    (&guest.current_module, &guest.current_instance_id)
+                                if let (Some(current_module_id), Some(current_instance_id)) =
+                                    (&guest.current_module_id, &guest.current_instance_id)
                                 {
                                     if let Some(module_communication) =
-                                        self.module_communication_map.get(module_name)
+                                        self.module_communication_map.get(current_module_id)
                                     {
                                         if let Err(err) = ConductorModule::send_event_to_module(
                                             module_communication,
                                             *guest_id,
-                                            module_name.clone(),
+                                            current_module_id.clone(),
                                             current_instance_id.clone(),
                                             event,
                                         ) {
@@ -965,7 +981,7 @@ impl ConductorModule {
                                         }
                                     }
                                 } else {
-                                    error!("Could not send event to module! module {:?}, instance: {:?}", guest.current_module, guest.current_instance_id);
+                                    error!("Could not send event to module! module {:?}, instance: {:?}", guest.current_module_id, guest.current_instance_id);
                                 }
                             }
                         },
@@ -994,7 +1010,7 @@ impl ConductorModule {
     fn send_event_to_module(
         module_communication: &ModuleIO,
         guest_id: ActorId,
-        module_name: ModuleName,
+        module_id: ModuleId,
         instance_id: GameInstanceId,
         event: GuestToModuleEvent,
     ) -> Result<(), SendEventToModuleError> {
@@ -1004,7 +1020,7 @@ impl ConductorModule {
             .send(GuestToModule {
                 guest_id,
                 event_type: ModuleInstanceEvent {
-                    module_name,
+                    module_id,
                     instance_id,
                     event_type: event,
                 },

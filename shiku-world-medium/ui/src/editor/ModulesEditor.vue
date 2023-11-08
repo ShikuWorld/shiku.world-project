@@ -5,7 +5,6 @@
       :model-value="module.name"
       v-on:change="change_module_name"
     ></v-text-field>
-    {{ module.name }}
   </div>
 </template>
 
@@ -15,6 +14,7 @@ import { use_editor_store } from "@/editor/stores/editor";
 
 const { module } = defineProps<{ module: Module }>();
 const { update_module } = use_editor_store();
+
 function change_module_name(val: Event) {
   update_module({
     id: module.id,

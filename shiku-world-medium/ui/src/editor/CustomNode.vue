@@ -9,7 +9,7 @@
     <!-- Outputs-->
     <div
       class="output"
-      v-for="[key, output] in outputs()"
+      v-for="[key, output] in outputs"
       :key="key + seed"
       :data-testid="'output-' + key"
     >
@@ -32,7 +32,7 @@
     <!-- Controls-->
     <Ref
       class="control"
-      v-for="[key, control] in controls()"
+      v-for="[key, control] in controls"
       :key="key + seed"
       :emit="emit"
       :data="{ type: 'control', payload: control }"
@@ -41,7 +41,7 @@
     <!-- Inputs-->
     <div
       class="input"
-      v-for="[key, input] in inputs()"
+      v-for="[key, input] in inputs"
       :key="key + seed"
       :data-testid="'input-' + key"
     >
@@ -75,45 +75,50 @@
   </div>
 </template>
 
-<script lang="js">
-import { defineComponent } from "vue";
+<script lang="ts" setup>
+import { computed, toRefs } from "vue";
 import { Ref } from "rete-vue-plugin";
+import { Module } from "@/editor/blueprints/Module";
+import { ClassicPreset } from "rete";
 
-function sortByIndex(entries) {
-  entries.sort((a, b) => {
-    const ai = (a[1] && a[1].index) || 0;
-    const bi = (b[1] && b[1].index) || 0;
+type Entry<T> = { [key: string]: T };
 
-    return ai - bi;
-  });
-  return entries;
+interface DataProp {
+  width?: number;
+  height?: number;
+  selected: boolean;
+  inputs: Entry<ClassicPreset.Input<ClassicPreset.Socket>>;
+  data: Module;
+  id: string;
+  controls: Entry<ClassicPreset.Control>;
+  outputs: Entry<ClassicPreset.Output<ClassicPreset.Socket>>;
 }
 
-export default defineComponent({
-  props: ["data", "emit", "seed"],
-  methods: {
-    nodeStyles() {
-      return {
-        width: Number.isFinite(this.data.width) ? `${this.data.width}px` : "",
-        height: Number.isFinite(this.data.height)
-          ? `${this.data.height}px`
-          : "",
-      };
-    },
-    inputs() {
-      return sortByIndex(Object.entries(this.data.inputs));
-    },
-    controls() {
-      return sortByIndex(Object.entries(this.data.controls));
-    },
-    outputs() {
-      return sortByIndex(Object.entries(this.data.outputs));
-    },
-  },
-  components: {
-    Ref,
-  },
+const props = defineProps<{
+  data: DataProp;
+  emit: (event: string, ...args: never[]) => void;
+  seed: number;
+}>();
+
+function sortByIndex<T>(entries: [string, T & { index?: number }][]) {
+  return entries.sort((a, b) => {
+    const ai = a[1] && a[1].index ? a[1].index : 0;
+    const bi = b[1]?.index ? b[1].index : 0;
+    return ai - bi;
+  });
+}
+
+const { data, emit } = toRefs(props);
+const nodeStyles = () => ({
+  width: Number.isFinite(data.value.width) ? `${data.value.width}px` : "",
+  height: Number.isFinite(data.value.height) ? `${data.value.height}px` : "",
 });
+
+const inputs = computed(() => sortByIndex(Object.entries(data.value.inputs)));
+const controls = computed(() =>
+  sortByIndex(Object.entries(data.value.controls)),
+);
+const outputs = computed(() => sortByIndex(Object.entries(data.value.outputs)));
 </script>
 
 <style lang="scss" scoped>
