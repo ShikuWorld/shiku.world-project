@@ -1,6 +1,7 @@
+use log::debug;
 use std::collections::HashMap;
 use std::fs;
-use std::fs::File;
+use std::fs::{remove_dir_all, File};
 use std::io::{BufReader, BufWriter};
 
 use rapier2d::math::Real;
@@ -228,6 +229,13 @@ impl BlueprintService {
         let dir_path = get_out_dir().join("modules").join(module_name);
         let file_path = dir_path.join(format!("{}.json", module_name));
         file_path.exists()
+    }
+
+    pub fn delete_module(&self, module_name: &String) -> Result<(), BlueprintError> {
+        let module_path = get_out_dir().join("modules").join(module_name);
+        debug!("Removing {:?}", module_path.to_str());
+        remove_dir_all(module_path)?;
+        Ok(())
     }
 
     pub fn create_module(&self, module_name: String) -> Result<Module, BlueprintError> {

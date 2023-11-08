@@ -22,6 +22,10 @@ impl ResourceModule {
         }
     }
 
+    pub fn unregister_resources_for_module(&mut self, module_id: &ModuleId) {
+        self.resources.remove(module_id);
+    }
+
     pub fn register_resources_for_module(
         &mut self,
         module_id: ModuleId,

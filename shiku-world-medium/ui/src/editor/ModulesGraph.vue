@@ -188,6 +188,11 @@ async function addOrUpdateNode(module_blueprint: Module) {
 
   await editor.addNode(node);
 }
+async function removeNode(node: Node) {
+  await editor.removeNode(node.id);
+  delete node_to_module_map[node.id];
+  delete module_to_node_map[node.data.id];
+}
 async function layout() {
   if (!area || !applier) {
     return;
@@ -211,6 +216,14 @@ addOrUpdateNode({
 watch(modules, async () => {
   for (const module of Object.values(modules.value)) {
     await addOrUpdateNode(module);
+  }
+  for (const node of Object.values(module_to_node_map)) {
+    if (node.data.id === "Login") {
+      continue;
+    }
+    if (!modules.value[node.data.id]) {
+      await removeNode(node);
+    }
   }
   await layout();
 });

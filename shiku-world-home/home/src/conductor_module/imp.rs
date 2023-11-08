@@ -3,33 +3,33 @@ use std::fmt::Debug;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use flume::{Sender, unbounded};
+use flume::{unbounded, Sender};
 use log::{debug, error, warn};
 use snowflake::SnowflakeIdBucket;
 use tungstenite::protocol::frame::coding::CloseCode;
 
-use crate::{ResourceModule, SystemModule, WebsocketModule};
 use crate::conductor_module::def::{ConductorModule, ModuleCommunicationMap, ModuleMap};
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
-use crate::core::{blueprint, send_and_log_error};
-use crate::core::{fix_intellij_error_bug, LOGGED_IN_TODAY_DELAY_IN_HOURS, safe_unwrap, Snowflake};
-use crate::core::blueprint::{BlueprintService, ModuleId};
+use crate::core::blueprint::{BlueprintError, BlueprintService, ModuleId};
 use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
     GamePosition, GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo, GuestToModule,
-    GuestToModuleEvent, GuestToSystemEvent, LeaveFailedState, LeaveSuccessState, ModuleInstanceEvent,
-    ModuleIO, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent,
+    GuestToModuleEvent, GuestToSystemEvent, LeaveFailedState, LeaveSuccessState, ModuleIO,
+    ModuleInstanceEvent, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent,
     SignalToMedium, SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
 };
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
+use crate::core::{blueprint, send_and_log_error};
+use crate::core::{fix_intellij_error_bug, safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
-use crate::persistence_module::{PersistenceError, PersistenceModule};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
+use crate::persistence_module::{PersistenceError, PersistenceModule};
 use crate::resource_module::def::{ActorId, ResourceBundle};
 use crate::webserver_module::def::WebServerModule;
+use crate::{ResourceModule, SystemModule, WebsocketModule};
 
 impl SystemModule for ConductorModule {
     fn module_name(&self) -> ModuleName {
@@ -78,7 +78,9 @@ impl ConductorModule {
                 for message in self.websocket_module.drain_events(&ws_connection_id) {
                     match serde_json::from_str::<AdminToSystemEvent>(message.to_string().as_str()) {
                         Ok(event) => {
-                            debug!("?!?!?!");
+                            if let AdminToSystemEvent::Ping = event {
+                                return;
+                            }
                             if !admin.is_logged_in {
                                 if let AdminToSystemEvent::ProviderLoggedIn(provider) = event {
                                     debug!("PROVIDER LOGGED IN FOR ADMIN!");
@@ -156,7 +158,33 @@ impl ConductorModule {
                                         }
                                     }
                                 }
-                                AdminToSystemEvent::DeleteModule(_module_id) => {}
+                                AdminToSystemEvent::DeleteModule(module_id) => {
+                                    debug!("Deleting module!");
+                                    match Self::remove_game_instance_manager(
+                                        &module_id,
+                                        &mut self.module_map,
+                                        &mut self.resource_module,
+                                        &mut self.module_communication_map,
+                                        &self.blueprint_service,
+                                    ) {
+                                        Ok(()) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::DeletedModule(module_id),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        Err(err) => {
+                                            error!(
+                                            "Something went wrong while deleting module {}: {:?}",
+                                            module_id, err);
+                                        }
+                                    }
+                                }
                             }
                         }
                         Err(err) => error!("Failed to parse admin event! {:?}", err),
@@ -191,6 +219,25 @@ impl ConductorModule {
                 None
             }
         }
+    }
+
+    fn remove_game_instance_manager(
+        module_id: &ModuleId,
+        module_map: &mut ModuleMap,
+        resource_module: &mut ResourceModule,
+        module_communication_map: &mut ModuleCommunicationMap,
+        blueprint_service: &BlueprintService,
+    ) -> Result<(), BlueprintError> {
+        debug!("{:?}", module_map.keys());
+        if let Some(instance_manager) = module_map.remove(module_id) {
+            module_communication_map.remove(module_id);
+            resource_module.unregister_resources_for_module(module_id);
+            blueprint_service.delete_module(&instance_manager.module_blueprint.name)?;
+        } else {
+            return Err(BlueprintError::FileDoesNotExist);
+        }
+
+        Ok(())
     }
 
     fn handle_timeouts(&mut self) {
@@ -238,6 +285,18 @@ impl ConductorModule {
         let system_to_guest_communication = SystemCommunicationIO { receiver, sender };
         let (sender, receiver) = unbounded();
         let system_to_admin_communication = SystemCommunicationIO { receiver, sender };
+
+        let modules = blueprint_service.get_all_modules().unwrap();
+        for module in modules {
+            Self::create_game_instance_manager(
+                module.name.clone(),
+                &mut module_map,
+                &mut resource_module,
+                &mut module_communication_map,
+                &blueprint_service,
+            )
+            .unwrap();
+        }
 
         ConductorModule {
             blueprint,

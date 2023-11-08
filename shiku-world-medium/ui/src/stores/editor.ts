@@ -27,11 +27,12 @@ export const use_editor_store = defineStore("editor", {
         };
       }
     },
-    delete_module(module: Module) {
+    delete_module(module_id: string) {
+      console.log("delete module", module_id);
       const modules = {
         ...this.modules,
       };
-      delete modules[module.id];
+      delete modules[module_id];
       this.modules = modules;
     },
     create_module(module: Module) {
@@ -53,11 +54,7 @@ export const use_editor_store = defineStore("editor", {
       this.main_door_status = status;
     },
     load_modules() {
-      if (window.medium.communication_state.is_connection_open) {
-        window.medium.communication_state.ws_connection.send(
-          JSON.stringify("LoadEditorData" as AdminToSystemEvent),
-        );
-      }
+      sendAdminEvent("LoadEditorData");
     },
     save_module_server(module: Module) {
       sendAdminEvent({ UpdateModule: [module.id, module] });
