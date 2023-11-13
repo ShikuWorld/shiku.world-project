@@ -22,7 +22,7 @@ use crate::core::module::{
     SignalToMedium, SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
 };
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
-use crate::core::{blueprint, send_and_log_error};
+use crate::core::{blueprint, log_result_error, send_and_log_error};
 use crate::core::{fix_intellij_error_bug, safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
@@ -129,7 +129,40 @@ impl ConductorModule {
                                         }
                                     }
                                 }
-                                AdminToSystemEvent::UpdateModule(_module_id, _module_update) => {}
+                                AdminToSystemEvent::UpdateModule(module_id, module_update) => {
+                                    if let Some(module) = self.module_map.get_mut(&module_id) {
+                                        if let Some(new_name) = module_update.name {
+                                            log_result_error(
+                                                self.blueprint_service.change_module_name(
+                                                    &mut module.module_blueprint,
+                                                    new_name,
+                                                ),
+                                            );
+                                        }
+                                        if let Some(insert_points) = module_update.insert_points {
+                                            module.module_blueprint.insert_points = insert_points;
+                                        }
+                                        if let Some(exit_points) = module_update.exit_points {
+                                            module.module_blueprint.exit_points = exit_points;
+                                        }
+                                        log_result_error(
+                                            self.blueprint_service
+                                                .save_module(&module.module_blueprint),
+                                        );
+                                        send_and_log_error(
+                                            &mut self.system_to_admin_communication.sender,
+                                            (
+                                                admin.id,
+                                                CommunicationEvent::EditorEvent(
+                                                    EditorEvent::UpdatedModule(
+                                                        module_id,
+                                                        module.module_blueprint.clone(),
+                                                    ),
+                                                ),
+                                            ),
+                                        );
+                                    }
+                                }
                                 AdminToSystemEvent::CreateModule(module_name) => {
                                     if self.blueprint_service.module_exists(&module_name) {
                                         error!("Module already existed!");

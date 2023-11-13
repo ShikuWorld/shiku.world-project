@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import type { Module } from "@/editor/blueprints/Module";
 import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
+import { ModuleUpdate } from "@/editor/blueprints/ModuleUpdate";
 
 export interface EditorStore {
   editor_open: boolean;
@@ -56,8 +57,25 @@ export const use_editor_store = defineStore("editor", {
     load_modules() {
       sendAdminEvent("LoadEditorData");
     },
-    save_module_server(module: Module) {
-      sendAdminEvent({ UpdateModule: [module.id, module] });
+    save_module_server(
+      module_id: string,
+      module_update: Partial<ModuleUpdate>,
+    ) {
+      sendAdminEvent({
+        UpdateModule: [
+          module_id,
+          {
+            name: null,
+            maps: null,
+            exit_points: null,
+            max_guests: null,
+            min_guests: null,
+            resources: null,
+            insert_points: null,
+            ...module_update,
+          },
+        ],
+      });
     },
     create_module_server(name: string) {
       sendAdminEvent({ CreateModule: name });

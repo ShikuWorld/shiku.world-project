@@ -1,7 +1,7 @@
 use log::debug;
 use std::collections::HashMap;
 use std::fs;
-use std::fs::{remove_dir_all, File};
+use std::fs::{remove_dir_all, rename, File};
 use std::io::{BufReader, BufWriter};
 
 use rapier2d::math::Real;
@@ -231,6 +231,30 @@ impl BlueprintService {
         file_path.exists()
     }
 
+    pub fn change_module_name(
+        &self,
+        module: &mut Module,
+        new_name: String,
+    ) -> Result<(), BlueprintError> {
+        if self.module_exists(&new_name) {
+            return Err(BlueprintError::FileAlreadyExists);
+        }
+        let old_module_path = get_out_dir().join("modules").join(&module.name);
+        let new_module_path = get_out_dir().join("modules").join(&new_name);
+        rename(old_module_path, new_module_path)?;
+        let old_file_name = get_out_dir()
+            .join("modules")
+            .join(&new_name)
+            .join(format!("{}.json", &module.name));
+        let new_file_name = get_out_dir()
+            .join("modules")
+            .join(&new_name)
+            .join(format!("{}.json", &new_name));
+        rename(old_file_name, new_file_name)?;
+        module.name = new_name;
+        Ok(())
+    }
+
     pub fn delete_module(&self, module_name: &String) -> Result<(), BlueprintError> {
         let module_path = get_out_dir().join("modules").join(module_name);
         debug!("Removing {:?}", module_path.to_str());
@@ -265,18 +289,18 @@ impl BlueprintService {
 
     pub fn get_all_modules(&self) -> Result<Vec<Module>, BlueprintError> {
         let dir_path = get_out_dir().join("modules");
+        debug!("1");
         let paths = fs::read_dir(dir_path)?;
+        debug!("2");
         let mut modules = Vec::new();
         for path in paths {
-            modules.push(
-                self.load_module(
-                    path?
-                        .file_name()
-                        .to_os_string()
-                        .into_string()
-                        .unwrap_or("MODULE_NAME_BROKEN".into()),
-                )?,
-            )
+            let module_name = path?
+                .file_name()
+                .to_os_string()
+                .into_string()
+                .unwrap_or("MODULE_NAME_BROKEN".into());
+            modules.push(self.load_module(module_name)?);
+            debug!("4");
         }
 
         Ok(modules)

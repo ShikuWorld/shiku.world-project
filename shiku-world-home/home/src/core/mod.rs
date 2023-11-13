@@ -1,4 +1,5 @@
 use std::fmt;
+use std::fmt::Debug;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -62,6 +63,12 @@ pub fn send_and_log_error<T>(sender: &mut Sender<T>, data: T) {
         error!("{:?}", err);
     } else {
         debug!("I send correctly :D");
+    }
+}
+
+pub fn log_result_error<O, F: Debug>(result: Result<O, F>) {
+    if let Err(err) = result {
+        debug!("{:?}", err);
     }
 }
 

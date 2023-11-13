@@ -67,17 +67,21 @@ const input_socket_name = ref("");
 const output_socket_name = ref("");
 
 function change_module_name(val: Event) {
-  save_module_server({
-    ...module,
+  save_module_server(module.id, {
     name: (val.target as HTMLInputElement).value,
   });
 }
 
 function add_input_socket(event: KeyboardEvent) {
   if (event.key === "Enter") {
-    module.insert_points.push({
-      name: input_socket_name.value,
-      condition_script: "",
+    save_module_server(module.id, {
+      insert_points: [
+        ...module.insert_points,
+        {
+          name: input_socket_name.value,
+          condition_script: "",
+        },
+      ],
     });
     input_socket_name.value = "";
   }
@@ -85,9 +89,14 @@ function add_input_socket(event: KeyboardEvent) {
 
 function add_output_socket(event: KeyboardEvent) {
   if (event.key === "Enter") {
-    module.exit_points.push({
-      name: output_socket_name.value,
-      condition_script: "",
+    save_module_server(module.id, {
+      exit_points: [
+        ...module.exit_points,
+        {
+          name: output_socket_name.value,
+          condition_script: "",
+        },
+      ],
     });
     output_socket_name.value = "";
   }
