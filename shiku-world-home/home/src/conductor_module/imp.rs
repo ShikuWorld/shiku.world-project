@@ -105,13 +105,43 @@ impl ConductorModule {
                                 }
                                 AdminToSystemEvent::Ping => {}
                                 AdminToSystemEvent::UpdateConductor(conductor) => {
-                                    if let Err(err) =
-                                        self.blueprint_service.save_conductor_blueprint(&conductor)
+                                    match self
+                                        .blueprint_service
+                                        .save_conductor_blueprint(&conductor)
                                     {
-                                        error!("Could not save conductor blueprint! {:?}", err)
+                                        Ok(()) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::UpdatedConductor(conductor),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        Err(err) => {
+                                            error!("Could not save conductor blueprint! {:?}", err)
+                                        }
                                     }
                                 }
                                 AdminToSystemEvent::LoadEditorData => {
+                                    match self.blueprint_service.load_conductor_blueprint() {
+                                        Ok(conductor) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::UpdatedConductor(conductor),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        Err(err) => {
+                                            error!("Could not load conductor! {:?}", err);
+                                        }
+                                    }
                                     match self.blueprint_service.get_all_modules() {
                                         Ok(modules) => {
                                             send_and_log_error(

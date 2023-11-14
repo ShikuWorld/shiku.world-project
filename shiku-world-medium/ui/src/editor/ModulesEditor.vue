@@ -9,16 +9,32 @@
     <v-text-field
       label="Add Input Socket"
       v-model="input_socket_name"
-      v-on:keydown="add_input_socket"
+      v-on:keydown="add_insert_point"
     ></v-text-field>
-    <v-chip v-for="insert in module.insert_points">{{ insert.name }}</v-chip>
+    <v-chip v-for="insert in module.insert_points"
+      >{{ insert.name }}
+      <v-btn
+        :icon="mdiTrashCan"
+        class="modules-editor__point-delete"
+        @click="delete_insert_point(insert.name)"
+        size="small"
+      ></v-btn
+    ></v-chip>
     <v-divider></v-divider>
     <v-text-field
       label="Add Output Socket"
       v-model="output_socket_name"
       v-on:keydown="add_output_socket"
     ></v-text-field>
-    <v-chip v-for="exit in module.exit_points">{{ exit.name }}</v-chip>
+    <v-chip v-for="exit in module.exit_points"
+      >{{ exit.name
+      }}<v-btn
+        :icon="mdiTrashCan"
+        class="modules-editor__point-delete"
+        @click="delete_exit_point(exit.name)"
+        size="small"
+      ></v-btn
+    ></v-chip>
     <v-divider></v-divider>
     <v-dialog width="500">
       <template v-slot:activator="{ props }">
@@ -59,24 +75,43 @@
 import { Module } from "@/editor/blueprints/Module";
 import { use_editor_store } from "@/editor/stores/editor";
 import { mdiTrashCan } from "@mdi/js";
-import { ref } from "vue";
+import { ref, toRefs } from "vue";
 
-const { module } = defineProps<{ module: Module }>();
+const props = defineProps<{ module: Module }>();
+const { module } = toRefs(props);
+
 const { save_module_server, delete_module_server } = use_editor_store();
 const input_socket_name = ref("");
 const output_socket_name = ref("");
 
+function delete_insert_point(insert_point_name: string) {
+  console.log(JSON.stringify(module.value.insert_points));
+  save_module_server(module.value.id, {
+    insert_points: module.value.insert_points.filter(
+      (p) => p.name !== insert_point_name,
+    ),
+  });
+}
+
+function delete_exit_point(exit_point_name: string) {
+  save_module_server(module.value.id, {
+    exit_points: module.value.exit_points.filter(
+      (p) => p.name !== exit_point_name,
+    ),
+  });
+}
+
 function change_module_name(val: Event) {
-  save_module_server(module.id, {
+  save_module_server(module.value.id, {
     name: (val.target as HTMLInputElement).value,
   });
 }
 
-function add_input_socket(event: KeyboardEvent) {
+function add_insert_point(event: KeyboardEvent) {
   if (event.key === "Enter") {
-    save_module_server(module.id, {
+    save_module_server(module.value.id, {
       insert_points: [
-        ...module.insert_points,
+        ...module.value.insert_points,
         {
           name: input_socket_name.value,
           condition_script: "",
@@ -89,9 +124,9 @@ function add_input_socket(event: KeyboardEvent) {
 
 function add_output_socket(event: KeyboardEvent) {
   if (event.key === "Enter") {
-    save_module_server(module.id, {
+    save_module_server(module.value.id, {
       exit_points: [
-        ...module.exit_points,
+        ...module.value.exit_points,
         {
           name: output_socket_name.value,
           condition_script: "",

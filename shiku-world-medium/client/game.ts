@@ -105,6 +105,9 @@ export function start_medium() {
             .with({ DeletedModule: P.select() }, (d) => {
               window.medium_gui.editor.delete_module(d);
             })
+            .with({ UpdatedConductor: P.select() }, (d) => {
+              window.medium_gui.editor.set_conductor(d);
+            })
             .exhaustive();
         })
         .with(

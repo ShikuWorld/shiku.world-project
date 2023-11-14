@@ -5,7 +5,7 @@ use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
-use crate::core::blueprint::ModuleId;
+use crate::core::blueprint::{Conductor, ModuleId};
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
@@ -65,6 +65,7 @@ pub enum EditorEvent {
     CreatedModule(ModuleId, blueprint::Module),
     DeletedModule(ModuleId),
     UpdatedModule(ModuleId, blueprint::Module),
+    UpdatedConductor(Conductor),
     MainDoorStatus(bool),
 }
 

@@ -9,7 +9,7 @@
     <!-- Outputs-->
     <div
       class="output"
-      v-for="[key, output] in outputs"
+      v-for="[key, output] in sortByIndex(entries(data.outputs))"
       :key="key + seed"
       :data-testid="'output-' + key"
     >
@@ -41,7 +41,7 @@
     <!-- Inputs-->
     <div
       class="input"
-      v-for="[key, input] in inputs"
+      v-for="[key, input] in sortByIndex(entries(data.inputs))"
       :key="key + seed"
       :data-testid="'input-' + key"
     >
@@ -108,17 +108,20 @@ function sortByIndex<T>(entries: [string, T & { index?: number }][]) {
   });
 }
 
+function entries<T>(entry: Entry<T>) {
+  return Object.entries(entry);
+}
+
 const { data, emit } = toRefs(props);
+
 const nodeStyles = () => ({
   width: Number.isFinite(data.value.width) ? `${data.value.width}px` : "",
   height: Number.isFinite(data.value.height) ? `${data.value.height}px` : "",
 });
 
-const inputs = computed(() => sortByIndex(Object.entries(data.value.inputs)));
 const controls = computed(() =>
   sortByIndex(Object.entries(data.value.controls)),
 );
-const outputs = computed(() => sortByIndex(Object.entries(data.value.outputs)));
 </script>
 
 <style lang="scss" scoped>

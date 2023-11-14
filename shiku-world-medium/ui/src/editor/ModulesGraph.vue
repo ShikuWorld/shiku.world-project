@@ -85,12 +85,14 @@ const render = new VuePlugin<Schemes, AreaExtra>();
 const arrange = new AutoArrangePlugin<Schemes>();
 const node_to_module_map: { [node_id: string]: Module } = {};
 const module_to_node_map: { [module_id: string]: Node } = {};
+const connection_map: { [exit_slot_name: string]: Connection<Node> } = {};
 let area: AreaPlugin<Schemes, AreaExtra> | undefined = undefined;
 let applier: ArrangeAppliers.TransitionApplier<Schemes, never> | undefined =
   undefined;
 const rete = ref<HTMLElement>();
 
-const { set_selected_module_id, create_module_server } = use_editor_store();
+const { set_selected_module_id, create_module_server, save_conductor_server } =
+  use_editor_store();
 
 const new_module_name = ref<string>("");
 
@@ -140,6 +142,27 @@ onMounted(async () => {
   AreaExtensions.simpleNodesOrder(area);
   AreaExtensions.zoomAt(area, editor.getNodes());
   area.signal.addPipe((event) => {
+    if (event.type.includes("connectioncreated")) {
+      const target_module = node_to_module_map[event.data.target];
+      connection_map[event.data.sourceOutput] = event.data;
+      save_conductor_server({
+        ...conductor.value,
+        module_connection_map: {
+          ...conductor.value.module_connection_map,
+          [event.data.sourceOutput]: [target_module.id, event.data.targetInput],
+        },
+      });
+    }
+    if (event.type.includes("connectionremoved")) {
+      const target_module = node_to_module_map[event.data.target];
+      save_conductor_server({
+        ...conductor.value,
+        module_connection_map: {
+          ...conductor.value.module_connection_map,
+          [event.data.sourceOutput]: [target_module.id, event.data.targetInput],
+        },
+      });
+    }
     if (event.type.includes("nodepicked")) {
       if (!node_to_module_map[event.data.id]) {
         console.log(event, node_to_module_map);
@@ -159,24 +182,91 @@ onUnmounted(() => {
 });
 
 const { load_modules } = use_editor_store();
-const { modules } = storeToRefs(use_editor_store());
+const { modules, conductor } = storeToRefs(use_editor_store());
 
 load_modules();
+
+function update_sockets(node: Node) {
+  for (const key of Object.keys(node.inputs)) {
+    if (node.data.insert_points.find((p) => p.name === key) === undefined) {
+      node.removeInput(key);
+    }
+  }
+  for (const insert_point of node.data.insert_points) {
+    if (!node.inputs[insert_point.name]) {
+      node.addInput(
+        insert_point.name,
+        new ClassicPreset.Input(socket, insert_point.name),
+      );
+    }
+  }
+  for (const key of Object.keys(node.outputs)) {
+    if (node.data.exit_points.find((p) => p.name === key) === undefined) {
+      node.removeOutput(key);
+    }
+  }
+  for (const exit_point of node.data.exit_points) {
+    if (!node.outputs[exit_point.name]) {
+      node.addOutput(
+        exit_point.name,
+        new ClassicPreset.Output(socket, exit_point.name),
+      );
+    }
+  }
+}
+
+async function update_connections() {
+  console.log(conductor.value, modules.value);
+  if (conductor.value && modules.value) {
+    console.log(conductor.value.module_connection_map);
+    for (const [
+      exit_slot_name,
+      [target_module_id, enter_slot_name],
+    ] of Object.entries(conductor.value.module_connection_map)) {
+      if (!connection_map[exit_slot_name]) {
+        const source_module =
+          Object.values(modules.value).find((m) =>
+            m.exit_points.some((e) => e.name === exit_slot_name),
+          ) || (exit_slot_name === "LoginOut" ? { id: "Login" } : undefined);
+        if (!source_module) {
+          console.error("Source module not found!?");
+          continue;
+        }
+        const source_node = module_to_node_map[source_module.id];
+        const target_node = module_to_node_map[target_module_id];
+        if (!source_node || !target_node) {
+          console.error("could not connect");
+          continue;
+        }
+        await editor.addConnection(
+          new ClassicPreset.Connection(
+            source_node,
+            exit_slot_name,
+            target_node,
+            enter_slot_name,
+          ),
+        );
+      }
+    }
+  }
+}
 
 async function addOrUpdateNode(module_blueprint: Module) {
   let node = module_to_node_map[module_blueprint.id];
   if (node && area) {
     node.data = module_blueprint;
+    update_sockets(node);
+    await update_connections();
     await area.update("node", node.id);
     return;
   }
   node = new Node(module_blueprint);
   node_to_module_map[node.id] = module_blueprint;
   module_to_node_map[module_blueprint.id] = node;
-  for (const entry_point of module_blueprint.insert_points) {
+  for (const insert_point of module_blueprint.insert_points) {
     node.addInput(
-      entry_point.name,
-      new ClassicPreset.Input(socket, entry_point.name),
+      insert_point.name,
+      new ClassicPreset.Input(socket, insert_point.name),
     );
   }
   for (const exit_point of module_blueprint.exit_points) {
@@ -187,6 +277,7 @@ async function addOrUpdateNode(module_blueprint: Module) {
   }
 
   await editor.addNode(node);
+  await update_connections();
 }
 async function removeNode(node: Node) {
   await editor.removeNode(node.id);
