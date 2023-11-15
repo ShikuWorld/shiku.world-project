@@ -20,7 +20,7 @@ pub type JointId = usize;
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Conductor {
-    pub(super) module_connection_map: HashMap<ModuleExitSlot, (ModuleId, ModuleEnterSlot)>,
+    pub(crate) module_connection_map: HashMap<ModuleExitSlot, (ModuleId, ModuleEnterSlot)>,
 }
 
 impl Conductor {

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::time::Instant;
 
@@ -12,7 +12,7 @@ use crate::conductor_module::def::{ConductorModule, ModuleCommunicationMap, Modu
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
-use crate::core::blueprint::{BlueprintError, BlueprintService, ModuleId};
+use crate::core::blueprint::{BlueprintError, BlueprintService, Conductor, IOPoint, ModuleId};
 use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
@@ -105,25 +105,12 @@ impl ConductorModule {
                                 }
                                 AdminToSystemEvent::Ping => {}
                                 AdminToSystemEvent::UpdateConductor(conductor) => {
-                                    match self
-                                        .blueprint_service
-                                        .save_conductor_blueprint(&conductor)
-                                    {
-                                        Ok(()) => {
-                                            send_and_log_error(
-                                                &mut self.system_to_admin_communication.sender,
-                                                (
-                                                    admin.id,
-                                                    CommunicationEvent::EditorEvent(
-                                                        EditorEvent::UpdatedConductor(conductor),
-                                                    ),
-                                                ),
-                                            );
-                                        }
-                                        Err(err) => {
-                                            error!("Could not save conductor blueprint! {:?}", err)
-                                        }
-                                    }
+                                    Self::save_and_send_conductor_update(
+                                        &mut self.blueprint_service,
+                                        &mut self.system_to_admin_communication,
+                                        admin,
+                                        conductor,
+                                    );
                                 }
                                 AdminToSystemEvent::LoadEditorData => {
                                     match self.blueprint_service.load_conductor_blueprint() {
@@ -170,9 +157,71 @@ impl ConductorModule {
                                             );
                                         }
                                         if let Some(insert_points) = module_update.insert_points {
+                                            if let Ok(mut conductor) =
+                                                self.blueprint_service.load_conductor_blueprint()
+                                            {
+                                                let current_insert_points =
+                                                    Self::io_points_to_hashset(
+                                                        &module.module_blueprint.insert_points,
+                                                    );
+                                                let new_insert_points: HashSet<String> =
+                                                    Self::io_points_to_hashset(&insert_points);
+                                                let removed_points: HashSet<&String> =
+                                                    current_insert_points
+                                                        .difference(&new_insert_points)
+                                                        .collect();
+                                                debug!("removed_points {:?}", removed_points);
+                                                let connections_to_remove: Vec<String> = conductor
+                                                    .module_connection_map
+                                                    .clone()
+                                                    .into_iter()
+                                                    .filter(|(_, (_, insert_point_name))| {
+                                                        removed_points.contains(insert_point_name)
+                                                    })
+                                                    .map(|(exit_slot_name, _)| exit_slot_name)
+                                                    .collect();
+                                                debug!(
+                                                    "connections_to_remove {:?}",
+                                                    connections_to_remove
+                                                );
+                                                for connection_to_remove in connections_to_remove {
+                                                    conductor
+                                                        .module_connection_map
+                                                        .remove(&connection_to_remove);
+                                                }
+                                                Self::save_and_send_conductor_update(
+                                                    &mut self.blueprint_service,
+                                                    &mut self.system_to_admin_communication,
+                                                    admin,
+                                                    conductor,
+                                                );
+                                            }
                                             module.module_blueprint.insert_points = insert_points;
                                         }
                                         if let Some(exit_points) = module_update.exit_points {
+                                            if let Ok(mut conductor) =
+                                                self.blueprint_service.load_conductor_blueprint()
+                                            {
+                                                let current_exit_points =
+                                                    Self::io_points_to_hashset(
+                                                        &module.module_blueprint.exit_points,
+                                                    );
+                                                let new_exit_points: HashSet<String> =
+                                                    Self::io_points_to_hashset(&exit_points);
+                                                for connection_to_remove in
+                                                    current_exit_points.difference(&new_exit_points)
+                                                {
+                                                    conductor
+                                                        .module_connection_map
+                                                        .remove(connection_to_remove);
+                                                }
+                                                Self::save_and_send_conductor_update(
+                                                    &mut self.blueprint_service,
+                                                    &mut self.system_to_admin_communication,
+                                                    admin,
+                                                    conductor,
+                                                );
+                                            }
                                             module.module_blueprint.exit_points = exit_points;
                                         }
                                         log_result_error(
@@ -255,6 +304,32 @@ impl ConductorModule {
                 }
             }
         }
+    }
+
+    fn save_and_send_conductor_update(
+        blueprint_service: &mut BlueprintService,
+        system_to_admin_communication: &mut SystemCommunicationIO,
+        admin: &Admin,
+        conductor: Conductor,
+    ) {
+        match blueprint_service.save_conductor_blueprint(&conductor) {
+            Ok(()) => {
+                send_and_log_error(
+                    &mut system_to_admin_communication.sender,
+                    (
+                        admin.id,
+                        CommunicationEvent::EditorEvent(EditorEvent::UpdatedConductor(conductor)),
+                    ),
+                );
+            }
+            Err(err) => {
+                error!("Could not save conductor {:?}", err)
+            }
+        }
+    }
+
+    fn io_points_to_hashset(points: &Vec<IOPoint>) -> HashSet<String> {
+        points.clone().into_iter().map(|p| p.name).collect()
     }
 
     fn create_game_instance_manager(

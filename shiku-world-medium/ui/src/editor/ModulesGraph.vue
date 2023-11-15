@@ -28,6 +28,7 @@
           </v-card>
         </template>
       </v-dialog>
+      <v-btn :icon="mdiRefreshAuto" size="small" @click="layout"></v-btn>
     </div>
   </div>
 </template>
@@ -62,7 +63,7 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import { use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
 import CustomNode from "@/editor/editor/CustomNode.vue";
-import { mdiPlus } from "@mdi/js";
+import { mdiPlus, mdiRefreshAuto } from "@mdi/js";
 
 class Node extends ClassicPreset.Node {
   width = 180;
@@ -73,7 +74,17 @@ class Node extends ClassicPreset.Node {
     this.data = module;
   }
 }
-class Connection<N extends Node> extends ClassicPreset.Connection<N, N> {}
+class Connection<N extends Node> extends ClassicPreset.Connection<N, N> {
+  constructor(
+    source: N,
+    sourceOutput: keyof N["outputs"],
+    target: N,
+    targetInput: keyof N["inputs"],
+    public change_from_server: boolean,
+  ) {
+    super(source, sourceOutput, target, targetInput);
+  }
+}
 
 type Schemes = GetSchemes<Node, Connection<Node>>;
 type AreaExtra = VueArea2D<Schemes>;
@@ -141,37 +152,51 @@ onMounted(async () => {
 
   AreaExtensions.simpleNodesOrder(area);
   AreaExtensions.zoomAt(area, editor.getNodes());
-  area.signal.addPipe((event) => {
-    if (event.type.includes("connectioncreated")) {
-      const target_module = node_to_module_map[event.data.target];
-      connection_map[event.data.sourceOutput] = event.data;
+  area.signal.addPipe((context: { data: Connection<Node>; type: string }) => {
+    if (context.type.includes("connectioncreate")) {
+      if (context.data.change_from_server) {
+        context.data.change_from_server = false;
+        connection_map[context.data.sourceOutput] = context.data;
+        return context;
+      }
+      const target_module = node_to_module_map[context.data.target];
       save_conductor_server({
         ...conductor.value,
         module_connection_map: {
           ...conductor.value.module_connection_map,
-          [event.data.sourceOutput]: [target_module.id, event.data.targetInput],
+          [context.data.sourceOutput]: [
+            target_module.id,
+            context.data.targetInput,
+          ],
         },
       });
+      return false;
     }
-    if (event.type.includes("connectionremoved")) {
-      const target_module = node_to_module_map[event.data.target];
-      save_conductor_server({
+    if (context.type.includes("connectionremove")) {
+      if (context.data.change_from_server) {
+        delete connection_map[context.data.sourceOutput];
+        context.data.change_from_server = false;
+        return context;
+      }
+      const new_conductor = {
         ...conductor.value,
         module_connection_map: {
           ...conductor.value.module_connection_map,
-          [event.data.sourceOutput]: [target_module.id, event.data.targetInput],
         },
-      });
+      };
+      delete new_conductor.module_connection_map[context.data.sourceOutput];
+      save_conductor_server(new_conductor);
+      return false;
     }
-    if (event.type.includes("nodepicked")) {
-      if (!node_to_module_map[event.data.id]) {
-        console.log(event, node_to_module_map);
+    if (context.type.includes("nodepicked")) {
+      if (!node_to_module_map[context.data.id]) {
+        console.log(context, node_to_module_map);
         console.error(`No module for this id?!`);
         return;
       }
-      set_selected_module_id(node_to_module_map[event.data.id].id);
+      set_selected_module_id(node_to_module_map[context.data.id].id);
     }
-    return event;
+    return context;
   });
 });
 
@@ -185,7 +210,6 @@ const { load_modules } = use_editor_store();
 const { modules, conductor } = storeToRefs(use_editor_store());
 
 load_modules();
-
 function update_sockets(node: Node) {
   for (const key of Object.keys(node.inputs)) {
     if (node.data.insert_points.find((p) => p.name === key) === undefined) {
@@ -216,9 +240,7 @@ function update_sockets(node: Node) {
 }
 
 async function update_connections() {
-  console.log(conductor.value, modules.value);
   if (conductor.value && modules.value) {
-    console.log(conductor.value.module_connection_map);
     for (const [
       exit_slot_name,
       [target_module_id, enter_slot_name],
@@ -235,17 +257,24 @@ async function update_connections() {
         const source_node = module_to_node_map[source_module.id];
         const target_node = module_to_node_map[target_module_id];
         if (!source_node || !target_node) {
-          console.error("could not connect");
+          console.error("could not connect", source_node, target_node);
           continue;
         }
         await editor.addConnection(
-          new ClassicPreset.Connection(
+          new Connection(
             source_node,
             exit_slot_name,
             target_node,
             enter_slot_name,
+            true,
           ),
         );
+      }
+    }
+    for (const [exit_slot_name, connection] of Object.entries(connection_map)) {
+      if (!conductor.value.module_connection_map[exit_slot_name]) {
+        connection.change_from_server = true;
+        await editor.removeConnection(connection.id);
       }
     }
   }
@@ -256,7 +285,6 @@ async function addOrUpdateNode(module_blueprint: Module) {
   if (node && area) {
     node.data = module_blueprint;
     update_sockets(node);
-    await update_connections();
     await area.update("node", node.id);
     return;
   }
@@ -277,7 +305,6 @@ async function addOrUpdateNode(module_blueprint: Module) {
   }
 
   await editor.addNode(node);
-  await update_connections();
 }
 async function removeNode(node: Node) {
   await editor.removeNode(node.id);
@@ -316,7 +343,14 @@ watch(modules, async () => {
       await removeNode(node);
     }
   }
-  await layout();
+  setTimeout(async () => {
+    await update_connections();
+    await layout();
+  }, 100);
+});
+
+watch(conductor, async () => {
+  await update_connections();
 });
 
 defineExpose({

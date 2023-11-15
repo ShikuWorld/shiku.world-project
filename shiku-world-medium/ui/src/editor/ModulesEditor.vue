@@ -1,40 +1,30 @@
 <template>
-  <div>
+  <div class="modules-editor-inner">
     <v-text-field
       label="Label"
       :model-value="module.name"
       v-on:change="change_module_name"
+      density="compact"
+      hide-details="auto"
     ></v-text-field>
     <v-divider></v-divider>
     <v-text-field
-      label="Add Input Socket"
+      label="Insert Point"
       v-model="input_socket_name"
       v-on:keydown="add_insert_point"
+      density="compact"
+      hide-details="auto"
     ></v-text-field>
-    <v-chip v-for="insert in module.insert_points"
-      >{{ insert.name }}
-      <v-btn
-        :icon="mdiTrashCan"
-        class="modules-editor__point-delete"
-        @click="delete_insert_point(insert.name)"
-        size="small"
-      ></v-btn
-    ></v-chip>
+    <ModuleSlots :slots="module.insert_points" @delete="delete_insert_point" />
     <v-divider></v-divider>
     <v-text-field
-      label="Add Output Socket"
+      label="Exit Point"
       v-model="output_socket_name"
       v-on:keydown="add_output_socket"
+      density="compact"
+      hide-details="auto"
     ></v-text-field>
-    <v-chip v-for="exit in module.exit_points"
-      >{{ exit.name
-      }}<v-btn
-        :icon="mdiTrashCan"
-        class="modules-editor__point-delete"
-        @click="delete_exit_point(exit.name)"
-        size="small"
-      ></v-btn
-    ></v-chip>
+    <ModuleSlots :slots="module.exit_points" @delete="delete_exit_point" />
     <v-divider></v-divider>
     <v-dialog width="500">
       <template v-slot:activator="{ props }">
@@ -66,8 +56,12 @@
 </template>
 
 <style>
+.modules-editor-inner {
+  padding: 10px;
+}
 .modules-editor-delete-button {
   color: red;
+  margin: 10px 0;
 }
 </style>
 
@@ -76,6 +70,7 @@ import { Module } from "@/editor/blueprints/Module";
 import { use_editor_store } from "@/editor/stores/editor";
 import { mdiTrashCan } from "@mdi/js";
 import { ref, toRefs } from "vue";
+import ModuleSlots from "@/editor/editor/ModuleSlots.vue";
 
 const props = defineProps<{ module: Module }>();
 const { module } = toRefs(props);
@@ -85,7 +80,6 @@ const input_socket_name = ref("");
 const output_socket_name = ref("");
 
 function delete_insert_point(insert_point_name: string) {
-  console.log(JSON.stringify(module.value.insert_points));
   save_module_server(module.value.id, {
     insert_points: module.value.insert_points.filter(
       (p) => p.name !== insert_point_name,
