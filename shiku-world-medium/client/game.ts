@@ -143,6 +143,9 @@ export function start_medium() {
             );
             if (is_main_instance) {
               current_active_instance = instance_id;
+              window.medium_gui.editor.set_current_main_instance_id(
+                instance_id,
+              );
             }
           },
         )

@@ -26,6 +26,9 @@
     ></v-text-field>
     <ModuleSlots :slots="module.exit_points" @delete="delete_exit_point" />
     <v-divider></v-divider>
+    <v-btn @click="set_main_module_to_edit(module.id)">Select as Main</v-btn>
+    <v-divider></v-divider>
+
     <v-dialog width="500">
       <template v-slot:activator="{ props }">
         <v-btn
@@ -75,7 +78,8 @@ import ModuleSlots from "@/editor/editor/ModuleSlots.vue";
 const props = defineProps<{ module: Module }>();
 const { module } = toRefs(props);
 
-const { save_module_server, delete_module_server } = use_editor_store();
+const { save_module_server, delete_module_server, set_main_module_to_edit } =
+  use_editor_store();
 const input_socket_name = ref("");
 const output_socket_name = ref("");
 

@@ -1,4 +1,10 @@
-use crate::core::module::{GuestEvent, ModuleInstanceEvent, ModuleName};
+use std::collections::HashMap;
+
+use snowflake::SnowflakeIdBucket;
+
+use crate::core::blueprint::ModuleId;
+use crate::core::module::{GuestEvent, ModuleInstanceEvent};
+use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::safe_unwrap;
 use crate::resource_module::def::{
     ActorId, Resource, ResourceBundle, ResourceEvent, ResourceFile, ResourceModule,
@@ -6,11 +12,6 @@ use crate::resource_module::def::{
 use crate::resource_module::errors::{
     ReadResourceMapError, ResourceParseError, SendLoadEventError, SendUnloadEventError,
 };
-
-use crate::core::blueprint::ModuleId;
-use crate::core::module_system::game_instance::GameInstanceId;
-use snowflake::SnowflakeIdBucket;
-use std::collections::HashMap;
 
 impl ResourceModule {
     pub fn new() -> ResourceModule {
@@ -130,7 +131,7 @@ impl ResourceModule {
 
     pub fn get_active_resources_for_module(
         &self,
-        module_name: &ModuleName,
+        module_id: &ModuleId,
         guest_id: &ActorId,
     ) -> Result<Vec<Resource>, ReadResourceMapError> {
         let active_resources = safe_unwrap(
@@ -140,9 +141,9 @@ impl ResourceModule {
 
         let mut resources_out = Vec::new();
 
-        if let Some(true) = active_resources.get(module_name) {
+        if let Some(true) = active_resources.get(module_id) {
             let current_resources_of_module =
-                safe_unwrap(self.resources.get(module_name), ReadResourceMapError::Get)?;
+                safe_unwrap(self.resources.get(module_id), ReadResourceMapError::Get)?;
 
             for resource in current_resources_of_module.values() {
                 resources_out.push(resource.clone());
@@ -151,23 +152,38 @@ impl ResourceModule {
 
         Ok(resources_out)
     }
+    pub fn get_resources_for_module(
+        &self,
+        module_id: &ModuleId,
+    ) -> Result<Vec<Resource>, ReadResourceMapError> {
+        let mut resources_out = Vec::new();
+
+        let resources_of_module =
+            safe_unwrap(self.resources.get(module_id), ReadResourceMapError::Get)?;
+
+        for resource in resources_of_module.values() {
+            resources_out.push(resource.clone());
+        }
+
+        Ok(resources_out)
+    }
 
     pub fn activate_resources_for_guest(
         &mut self,
-        module_name: ModuleName,
+        module_id: ModuleId,
         guest_id: &ActorId,
     ) -> Result<(), SendLoadEventError> {
         self.active_resources
             .entry(guest_id.clone())
             .or_insert_with(HashMap::new)
-            .insert(module_name.clone(), true);
+            .insert(module_id.clone(), true);
 
         Ok(())
     }
 
     pub fn disable_resources_for_guest(
         &mut self,
-        module_name: ModuleName,
+        module_id: ModuleId,
         instance_id: GameInstanceId,
         guest_id: ActorId,
     ) -> Result<(), SendUnloadEventError> {
@@ -180,9 +196,9 @@ impl ResourceModule {
             SendUnloadEventError::NoActiveResourceMapForUser,
         )?;
 
-        active_modules_for_guest_map.remove(&module_name);
+        active_modules_for_guest_map.remove(&module_id);
 
-        self.send_unload_event(guest_id, module_name, instance_id);
+        self.send_unload_event(guest_id, module_id, instance_id);
 
         Ok(())
     }

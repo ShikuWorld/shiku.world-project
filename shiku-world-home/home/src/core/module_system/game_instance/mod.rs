@@ -156,8 +156,8 @@ impl GameInstanceManager {
         resource_module: &mut ResourceModule,
     ) -> Result<(), ResourceParseError> {
         resource_module.register_resources_for_module(
-            self.module_blueprint.name.clone(),
-            self.module_blueprint.name.clone(),
+            self.module_blueprint.id.clone(),
+            self.module_blueprint.id.clone(),
             self.get_base_resource_file(),
             Some(self.get_resource_json()),
         )?;
@@ -199,7 +199,7 @@ impl GameInstanceManager {
         }
     }
 
-    fn lazy_get_game_instance_for_guest_to_join(&mut self) -> GameInstanceId {
+    pub fn lazy_get_game_instance_for_guest_to_join(&mut self) -> GameInstanceId {
         let max_guest_count = self.module_blueprint.max_guests;
         let mut game_instance_id_found = None;
 

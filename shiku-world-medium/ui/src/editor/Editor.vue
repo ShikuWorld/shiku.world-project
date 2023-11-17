@@ -6,7 +6,12 @@
         <v-tab value="modules">Modules</v-tab>
       </v-tabs>
     </div>
-    <div class="editor-nav-left"></div>
+    <div class="editor-nav-left">
+      <EntitiesList
+        v-if="selected_module"
+        :module="selected_module"
+      ></EntitiesList>
+    </div>
     <div class="editor-main-view">
       <v-window v-model="tab">
         <v-window-item value="Current"></v-window-item>
@@ -30,6 +35,7 @@ import { computed, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
 import { use_editor_store } from "@/editor/stores/editor";
+import EntitiesList from "@/editor/editor/EntitiesList.vue";
 const tab = ref<number>(0);
 const { selected_module_id } = storeToRefs(use_editor_store());
 const { get_module } = use_editor_store();

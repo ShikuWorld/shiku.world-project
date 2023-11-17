@@ -92,6 +92,34 @@ impl ConductorModule {
                             }
 
                             match event {
+                                AdminToSystemEvent::SelectMainModuleToEdit(module_id) => match self
+                                    .resource_module
+                                    .get_resources_for_module(&module_id)
+                                {
+                                    Ok(assets) => {
+                                        if let Some(module) = self.module_map.get_mut(&module_id) {
+                                            send_and_log_error(
+                                                    &mut self.system_to_admin_communication.sender,
+                                                    (
+                                                        admin.id,
+                                                        CommunicationEvent::PrepareGame(
+                                                            module_id,
+                                                            module
+                                                                .lazy_get_game_instance_for_guest_to_join(),
+                                                            ResourceBundle {
+                                                                name: "Init".into(),
+                                                                assets,
+                                                            },
+                                                            true,
+                                                        ),
+                                                    ),
+                                                );
+                                        }
+                                    }
+                                    Err(err) => {
+                                        error!("Could not get assets for module {:?}", err);
+                                    }
+                                },
                                 AdminToSystemEvent::SetMainDoorStatus(status) => {
                                     debug!("Setting main door status");
                                     self.web_server_module.set_main_door_status(status).await;

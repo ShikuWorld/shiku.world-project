@@ -3,6 +3,8 @@
 
 let
   golemPath = "/var/lib/podman/volumes/golem";
+  shikuWorldResourcesPath = "/var/lib/podman/volumes/shiku-world-resources";
+  shikuWorldResourcesConfigPath = "/var/lib/podman/volumes/shiku-world-resources-config";
   credentials = {
     registry = "build.shiku.world";
     username = "dockerreg";
@@ -13,7 +15,7 @@ in
   imports = [
     ./ensure-paths.nix
   ];
-  ensurePaths = [ golemPath ];
+  ensurePaths = [ golemPath shikuWorldResourcesPath shikuWorldResourcesConfigPath ];
 
   secrets."docker-registry.password".file = ./secrets/docker-registry.password.age;
   virtualisation.oci-containers.containers = {
@@ -24,12 +26,19 @@ in
         "${golemPath}:/app/storage"
       ];
     };
-  };
-    virtualisation.oci-containers.containers = {
-      "shiku-world-status" = {
-        image = "build.shiku.world/shiku-world-status:latest";
-        login = credentials;
-        ports = ["3333:3000"];
-      };
+    "shiku-world-status" = {
+      image = "build.shiku.world/shiku-world-status:latest";
+      login = credentials;
+      ports = ["3333:3000"];
     };
+    "shiku-world-resources" = {
+      image = "hurlenko/filebrowser";
+      login = credentials;
+        volumes = [
+          "${shikuWorldResourcesPath}:/data"
+          "${shikuWorldResourcesConfigPath}:/config"
+        ];
+      ports = ["8088:8080"];
+    };
+  };
 }

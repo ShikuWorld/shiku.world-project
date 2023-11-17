@@ -8,7 +8,10 @@ export interface EditorStore {
   editor_open: boolean;
   main_door_status: boolean;
   selected_module_id: string;
+  current_main_instance_id: string;
+  edit_module_id: string;
   conductor: Conductor;
+  current_map_index: number;
   modules: { [module_id: string]: Module };
 }
 export const use_editor_store = defineStore("editor", {
@@ -17,11 +20,20 @@ export const use_editor_store = defineStore("editor", {
     modules: {},
     main_door_status: false,
     selected_module_id: "",
+    current_main_instance_id: "",
+    edit_module_id: "",
+    current_map_index: 0,
     conductor: { module_connection_map: {} },
   }),
   actions: {
     set_selected_module_id(id: string) {
       this.selected_module_id = id;
+    },
+    set_current_main_instance_id(id: string) {
+      this.current_main_instance_id = id;
+    },
+    set_main_module_to_edit(module_id: string) {
+      sendAdminEvent({ SelectMainModuleToEdit: module_id });
     },
     update_module(module: Partial<Module> & { id: string }) {
       if (module.id) {

@@ -74,6 +74,7 @@ pub enum EditorEvent {
 pub enum AdminToSystemEvent {
     ProviderLoggedIn(ProviderLoggedIn),
     UpdateConductor(blueprint::Conductor),
+    SelectMainModuleToEdit(ModuleId),
     UpdateModule(ModuleId, blueprint::ModuleUpdate),
     CreateModule(ModuleName),
     DeleteModule(ModuleId),

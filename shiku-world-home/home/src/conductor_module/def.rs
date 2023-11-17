@@ -6,7 +6,7 @@ use snowflake::SnowflakeIdBucket;
 use crate::core::blueprint::{BlueprintService, ModuleId};
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ModuleExitSlot, ProviderUserId};
 use crate::core::module::{ModuleIO, SystemCommunicationIO};
-use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
+use crate::core::module_system::game_instance::GameInstanceManager;
 use crate::core::{blueprint, Snowflake};
 use crate::login::login_manager::LoginManager;
 use crate::persistence_module::PersistenceModule;
@@ -15,7 +15,6 @@ use crate::webserver_module::def::WebServerModule;
 use crate::{ResourceModule, WebsocketModule};
 
 pub type ModuleMap = HashMap<ModuleId, GameInstanceManager>;
-pub type ModuleInstanceToModuleMap = HashMap<GameInstanceId, ModuleId>;
 pub type ModuleCommunicationMap = HashMap<ModuleId, ModuleIO>;
 
 pub struct ConductorModule {
