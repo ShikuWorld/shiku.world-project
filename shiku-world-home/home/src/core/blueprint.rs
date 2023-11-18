@@ -33,7 +33,52 @@ impl Conductor {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub enum Resource {}
+pub enum ResourceKind {
+    TileSet,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Resource {
+    path: String,
+    kind: ResourceKind,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Image {
+    path: String,
+    width: u32,
+    height: u32,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Tileset {
+    name: String,
+    image: Option<Image>,
+    tile_width: u32,
+    tile_height: u32,
+    tile_count: u32,
+    columns: u32,
+    tiles: HashMap<u32, Tile>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct AnimationFrame {
+    id: u32,
+    duration: u32,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Tile {
+    id: u32,
+    image: Option<Image>,
+    animation: Option<Vec<AnimationFrame>>,
+    collision_shape: Option<CollisionShape>,
+}
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
