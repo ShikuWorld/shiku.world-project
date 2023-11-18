@@ -13,7 +13,7 @@ env:
   DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
 
 jobs:
-  build:
+  build-shiku-world-status:
     runs-on: ubuntu-latest
     steps:
       - name: Build and push Docker image
