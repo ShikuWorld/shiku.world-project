@@ -17,7 +17,6 @@ use crate::core::module::{
 };
 use crate::core::module_system::{ModuleCommunication, ModuleCommunicationCallbacks};
 use crate::core::resource_json_generation::generate_resource_map_from_tiled_map;
-use crate::core::resource_watcher::ResourceWatcher;
 use crate::core::{get_out_dir, safe_unwrap_ref};
 use crate::resource_module::def::ResourceFile;
 use crate::resource_module::errors::ResourceParseError;
@@ -101,7 +100,6 @@ impl ArgumentModule {
                 stick_gravity: 0.09,
             });
         ArgumentModule {
-            resource_watcher: ResourceWatcher::new("argument_module/resources/private"),
             game_instance_manager: GameInstanceManager::new(
                 input_receiver,
                 output_sender,

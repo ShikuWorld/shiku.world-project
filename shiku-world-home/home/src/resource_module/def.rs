@@ -1,9 +1,12 @@
+use std::collections::{HashMap, HashSet};
+use std::time::Instant;
+
+use flume::Receiver;
+use notify::event::ModifyKind;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use snowflake::SnowflakeIdBucket;
 use ts_rs::TS;
-
-use std::collections::HashMap;
 
 use crate::core::module::{GuestEvent, ModuleInstanceEvent, ModuleName};
 use crate::core::Snowflake;
@@ -63,20 +66,30 @@ pub enum ResourceEvent {
     UnLoadResource,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct PicUpdateEvent {
+    pub path: String,
+    pub kind: ModifyKind,
+}
+
 pub struct ResourceModule {
     pub(super) active_resources: HashMap<ActorId, HashMap<ModuleName, bool>>,
     pub(super) resources: HashMap<ModuleName, HashMap<ResourceMetaName, Resource>>,
     pub(super) resource_load_events: Vec<GuestEvent<ModuleInstanceEvent<ResourceEvent>>>,
     pub(super) resource_hash_gen: SnowflakeIdBucket,
-    pub(super) pic_changed_events: Vec<String>,
+    pub(super) pic_changed_events_hash: HashSet<String>,
+    pub(super) pic_update_receiver: Receiver<PicUpdateEvent>,
+    pub(super) last_insert: Instant,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::ResourceFile;
-    use schemars::schema_for;
     use std::fs::File;
     use std::io::Write;
+
+    use schemars::schema_for;
+
+    use super::ResourceFile;
 
     #[test]
     pub fn generate_json_schemas() {

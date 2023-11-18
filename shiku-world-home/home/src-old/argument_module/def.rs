@@ -6,7 +6,6 @@ use crate::core::game_instance::GameInstanceManager;
 use crate::core::game_module_communication::{
     GameModuleCommunication, GameModuleCommunicationCallbacks,
 };
-use crate::core::resource_watcher::ResourceWatcher;
 use crate::core::Snowflake;
 use crate::resource_module::def::GuestId;
 use crate::slime_1_module::def::Slime1SimulationConfig;
@@ -24,7 +23,6 @@ pub struct ArgumentModule {
         ArgumentSimulationConfig,
         ArgumentGameModule,
     >,
-    pub(crate) resource_watcher: ResourceWatcher,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

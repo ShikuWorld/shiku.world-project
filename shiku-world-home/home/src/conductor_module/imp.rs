@@ -62,6 +62,7 @@ impl ConductorModule {
         self.send_system_events_to_admins();
         self.process_logins();
         self.send_load_events();
+        self.process_picture_update_events();
 
         self.handle_timeouts();
 
@@ -696,6 +697,15 @@ impl ConductorModule {
                 }
             } else {
                 warn!("connection {:?} did not have a guest assigned to it while trying to remove it.", connection_id);
+            }
+        }
+    }
+
+    pub fn process_picture_update_events(&mut self) {
+        self.resource_module.receive_all_picture_updates();
+        if let Some(updates) = self.resource_module.drain_picture_updates() {
+            for d in updates {
+                debug!("{:?}", d);
             }
         }
     }

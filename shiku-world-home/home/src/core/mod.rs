@@ -17,7 +17,6 @@ pub mod game_module_communication;
 pub mod managed_map;
 pub mod medium_data_storage;
 pub mod module_system;
-pub mod resource_watcher;
 
 pub mod blueprint;
 pub mod guest;
@@ -61,8 +60,12 @@ pub fn get_out_dir() -> PathBuf {
 pub fn send_and_log_error<T>(sender: &mut Sender<T>, data: T) {
     if let Err(err) = sender.send(data) {
         error!("{:?}", err);
-    } else {
-        debug!("I send correctly :D");
+    }
+}
+
+pub fn send_and_log_error_consume<T>(sender: Sender<T>, data: T) {
+    if let Err(err) = sender.send(data) {
+        error!("{:?}", err);
     }
 }
 

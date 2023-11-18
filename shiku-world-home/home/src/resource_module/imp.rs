@@ -1,5 +1,7 @@
-use std::collections::HashMap;
-use std::time::Duration;
+use flume::unbounded;
+use std::collections::hash_set::Drain;
+use std::collections::{HashMap, HashSet};
+use std::time::{Duration, Instant};
 
 use futures_util::{SinkExt, StreamExt};
 use log::{debug, error};
@@ -14,25 +16,20 @@ use url::Url;
 use crate::core::blueprint::ModuleId;
 use crate::core::module::{GuestEvent, ModuleInstanceEvent};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::core::safe_unwrap;
+use crate::core::{safe_unwrap, send_and_log_error, send_and_log_error_consume};
 use crate::resource_module::def::{
-    ActorId, Resource, ResourceBundle, ResourceEvent, ResourceFile, ResourceModule,
+    ActorId, PicUpdateEvent, Resource, ResourceBundle, ResourceEvent, ResourceFile, ResourceModule,
 };
 use crate::resource_module::errors::{
     ReadResourceMapError, ResourceParseError, SendLoadEventError, SendUnloadEventError,
 };
-
-#[derive(Debug, Deserialize)]
-pub struct PicUpdateEvent {
-    pub path: String,
-    pub kind: ModifyKind,
-}
 
 impl ResourceModule {
     pub async fn new() -> ResourceModule {
         let url = Url::parse("wss://resources.shiku.world/ws").unwrap();
         let (ws_stream, _) = connect_async(url).await.unwrap();
         let (mut write, read) = ws_stream.split();
+        let (sender, receiver) = unbounded();
         tokio::spawn(async move {
             loop {
                 sleep(Duration::from_millis(15000)).await;
@@ -44,9 +41,12 @@ impl ResourceModule {
         tokio::spawn(async move {
             let read_future = read.for_each(|message| async {
                 if let Ok(d) = message.unwrap().into_text() {
-                    debug!("{:?}", d.as_str());
-                    let dick: PicUpdateEvent = serde_json::from_str(d.as_str()).unwrap();
-                    debug!("{:?}", dick);
+                    match serde_json::from_str(d.as_str()) {
+                        Ok(pic_update) => {
+                            send_and_log_error_consume::<PicUpdateEvent>(sender.clone(), pic_update)
+                        }
+                        Err(err) => error!("{:?}", err),
+                    }
                 }
             });
 
@@ -58,8 +58,24 @@ impl ResourceModule {
             resources: HashMap::new(),
             resource_load_events: Vec::new(),
             resource_hash_gen: SnowflakeIdBucket::new(1, 7),
-            pic_changed_events: Vec::new(),
+            pic_changed_events_hash: HashSet::new(),
+            pic_update_receiver: receiver,
+            last_insert: Instant::now(),
         }
+    }
+
+    pub fn receive_all_picture_updates(&mut self) {
+        for d in self.pic_update_receiver.drain() {
+            self.pic_changed_events_hash.insert(d.path);
+            self.last_insert = Instant::now();
+        }
+    }
+
+    pub fn drain_picture_updates(&mut self) -> Option<Drain<'_, String>> {
+        if Instant::now().duration_since(self.last_insert).as_millis() > 500 {
+            return Some(self.pic_changed_events_hash.drain());
+        }
+        None
     }
 
     pub fn unregister_resources_for_module(&mut self, module_id: &ModuleId) {
