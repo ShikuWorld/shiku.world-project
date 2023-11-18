@@ -32,12 +32,20 @@ in
       ports = ["3333:3000"];
     };
     "shiku-world-resources" = {
+      image = "build.shiku.world/shiku-world-resources:latest";
+      login = credentials;
+      volumes = [
+        "${shikuWorldResourcesPath}:/static"
+      ];
+      ports = ["8083:8083"];
+    };
+    "shiku-world-files" = {
       image = "hurlenko/filebrowser";
       login = credentials;
-        volumes = [
-          "${shikuWorldResourcesPath}:/data"
-          "${shikuWorldResourcesConfigPath}:/config"
-        ];
+      volumes = [
+        "${shikuWorldResourcesPath}:/data"
+        "${shikuWorldResourcesConfigPath}:/config"
+      ];
       ports = ["8088:8080"];
     };
   };
