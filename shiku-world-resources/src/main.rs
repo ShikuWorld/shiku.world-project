@@ -52,6 +52,7 @@ async fn main() {
                                 let relative_path = &full_path[start_index..];
                                 if let Ok(message_data) = serde_json::to_string(&PicUpdateEvent {
                                     path: relative_path.into(),
+                                    kind: d,
                                 }) {
                                     if let Err(err) =
                                         client.sender.send(Ok(Message::text(message_data)))
