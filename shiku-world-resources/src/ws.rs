@@ -34,7 +34,7 @@ pub fn with_clients(
 }
 
 async fn handle_websocket(websocket: WebSocket, clients: Clients) {
-    let (mut client_ws_sender, mut client_ws_rcv) = websocket.split();
+    let (client_ws_sender, mut client_ws_rcv) = websocket.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
 
     let client_rcv = UnboundedReceiverStream::new(client_rcv);

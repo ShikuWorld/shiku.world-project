@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use notify::{recommended_watcher, RecursiveMode, Watcher};
+use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
 use tokio::sync::{mpsc, RwLock};
 use warp::fs;
 use warp::ws::Message;
@@ -39,19 +39,29 @@ async fn main() {
     tokio::spawn(async move {
         while let Some(message) = rx.recv().await {
             if let Ok(event) = message {
-                println!("{:?}", event);
                 let current_clients = clients.write().await;
                 for client in current_clients.values() {
-                    if let Err(err) = client
-                        .sender
-                        .send(Ok(Message::text(format!("{:?}", event))))
-                    {
-                        eprintln!("Could not send message {:?}", err);
+                    if let EventKind::Modify(d) = event.kind {
+                        if let Some(full_path) =
+                            event.paths.get(0).unwrap_or(&PathBuf::new()).to_str()
+                        {
+                            let search_str = "./static/";
+                            if let Some(index) = full_path.find(search_str) {
+                                let start_index = index + search_str.len();
+                                let relative_path = &full_path[start_index..];
+                                if let Err(err) = client.sender.send(Ok(Message::text(format!(
+                                    "{{\"path\": {:?}, \"kind\": {:?}}}",
+                                    relative_path, d
+                                )))) {
+                                    eprintln!("Could not send message {:?}", err);
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     });
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8083)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 8083)).await;
 }
