@@ -59,8 +59,6 @@ async fn handle_websocket(websocket: WebSocket, clients: Clients) {
         },
     );
 
-    println!("connected");
-
     while let Some(result) = client_ws_rcv.next().await {
         match result {
             Ok(msg) => msg,
@@ -72,5 +70,4 @@ async fn handle_websocket(websocket: WebSocket, clients: Clients) {
     }
 
     clients.write().await.remove(&id);
-    println!("{} disconnected", id);
 }
