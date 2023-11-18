@@ -4,6 +4,8 @@ use std::sync::Arc;
 
 use futures::FutureExt;
 use futures::StreamExt;
+use notify::event::ModifyKind;
+use serde::Serialize;
 use tokio::sync::{mpsc, RwLock};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
@@ -33,6 +35,12 @@ pub fn with_clients(
     warp::any().map(move || clients.clone())
 }
 
+#[derive(Debug, Serialize)]
+pub struct PicUpdateEvent {
+    pub path: String,
+    pub kind: ModifyKind,
+}
+
 async fn handle_websocket(websocket: WebSocket, clients: Clients) {
     let (client_ws_sender, mut client_ws_rcv) = websocket.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
@@ -54,14 +62,13 @@ async fn handle_websocket(websocket: WebSocket, clients: Clients) {
     println!("connected");
 
     while let Some(result) = client_ws_rcv.next().await {
-        let msg = match result {
+        match result {
             Ok(msg) => msg,
             Err(e) => {
                 eprintln!("error receiving ws message for id: {}): {}", id.clone(), e);
                 break;
             }
         };
-        println!("{:?}", msg);
     }
 
     clients.write().await.remove(&id);

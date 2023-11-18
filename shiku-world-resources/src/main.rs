@@ -8,6 +8,7 @@ use warp::fs;
 use warp::ws::Message;
 use warp::Filter;
 
+use crate::ws::PicUpdateEvent;
 use ws::{with_clients, ws_handler, Clients};
 
 mod ws;
@@ -49,11 +50,15 @@ async fn main() {
                             if let Some(index) = full_path.find(search_str) {
                                 let start_index = index + search_str.len();
                                 let relative_path = &full_path[start_index..];
-                                if let Err(err) = client.sender.send(Ok(Message::text(format!(
-                                    "{{\"path\": {:?}, \"kind\": {:?}}}",
-                                    relative_path, d
-                                )))) {
-                                    eprintln!("Could not send message {:?}", err);
+                                if let Ok(message_data) = serde_json::to_string(&PicUpdateEvent {
+                                    path: relative_path.into(),
+                                    kind: d,
+                                }) {
+                                    if let Err(err) =
+                                        client.sender.send(Ok(Message::text(message_data)))
+                                    {
+                                        eprintln!("Could not send message {:?}", err);
+                                    }
                                 }
                             }
                         }

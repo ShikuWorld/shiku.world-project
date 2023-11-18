@@ -590,6 +590,7 @@ dependencies = [
  "libc",
  "log",
  "mio",
+ "serde",
  "walkdir",
  "windows-sys",
 ]
