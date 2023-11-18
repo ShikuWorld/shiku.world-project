@@ -1,6 +1,15 @@
 use std::collections::HashMap;
+use std::time::Duration;
 
+use futures_util::{SinkExt, StreamExt};
+use log::{debug, error};
+use notify::event::ModifyKind;
+use serde::Deserialize;
 use snowflake::SnowflakeIdBucket;
+use tokio::time::sleep;
+use tokio_tungstenite::connect_async;
+use tungstenite::Message;
+use url::Url;
 
 use crate::core::blueprint::ModuleId;
 use crate::core::module::{GuestEvent, ModuleInstanceEvent};
@@ -13,13 +22,43 @@ use crate::resource_module::errors::{
     ReadResourceMapError, ResourceParseError, SendLoadEventError, SendUnloadEventError,
 };
 
+#[derive(Debug, Deserialize)]
+pub struct PicUpdateEvent {
+    pub path: String,
+    pub kind: ModifyKind,
+}
+
 impl ResourceModule {
-    pub fn new() -> ResourceModule {
+    pub async fn new() -> ResourceModule {
+        let url = Url::parse("wss://resources.shiku.world/ws").unwrap();
+        let (ws_stream, _) = connect_async(url).await.unwrap();
+        let (mut write, read) = ws_stream.split();
+        tokio::spawn(async move {
+            loop {
+                sleep(Duration::from_millis(15000)).await;
+                if let Err(err) = write.send(Message::Text("Ping".into())).await {
+                    error!("Could not send ping?! {:?}", err);
+                }
+            }
+        });
+        tokio::spawn(async move {
+            let read_future = read.for_each(|message| async {
+                if let Ok(d) = message.unwrap().into_text() {
+                    debug!("{:?}", d.as_str());
+                    let dick: PicUpdateEvent = serde_json::from_str(d.as_str()).unwrap();
+                    debug!("{:?}", dick);
+                }
+            });
+
+            read_future.await;
+        });
+
         ResourceModule {
             active_resources: HashMap::new(),
             resources: HashMap::new(),
             resource_load_events: Vec::new(),
             resource_hash_gen: SnowflakeIdBucket::new(1, 7),
+            pic_changed_events: Vec::new(),
         }
     }
 

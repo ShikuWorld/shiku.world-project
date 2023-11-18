@@ -68,6 +68,7 @@ pub struct ResourceModule {
     pub(super) resources: HashMap<ModuleName, HashMap<ResourceMetaName, Resource>>,
     pub(super) resource_load_events: Vec<GuestEvent<ModuleInstanceEvent<ResourceEvent>>>,
     pub(super) resource_hash_gen: SnowflakeIdBucket,
+    pub(super) pic_changed_events: Vec<String>,
 }
 
 #[cfg(test)]

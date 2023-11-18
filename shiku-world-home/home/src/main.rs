@@ -51,7 +51,7 @@ async fn main() {
         .expect("Initial saving of conductor blueprint failed!");
 
     let mut conductor_module =
-        ConductorModule::new(websocket_module, blueprint_service, conductor_blueprint);
+        ConductorModule::new(websocket_module, blueprint_service, conductor_blueprint).await;
 
     let mut loop_helper = LoopHelper::builder().build_with_target_rate(TARGET_FPS);
 

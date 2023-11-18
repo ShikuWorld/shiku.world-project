@@ -438,7 +438,7 @@ impl ConductorModule {
         }
     }
 
-    pub fn new(
+    pub async fn new(
         websocket_module: WebsocketModule,
         blueprint_service: BlueprintService,
         blueprint: blueprint::Conductor,
@@ -446,7 +446,7 @@ impl ConductorModule {
         let snowflake_gen = SnowflakeIdBucket::new(1, 1);
         let mut module_communication_map = HashMap::new();
         let mut module_map = HashMap::new();
-        let mut resource_module = ResourceModule::new();
+        let mut resource_module = ResourceModule::new().await;
         let (sender, receiver) = unbounded();
         let system_to_guest_communication = SystemCommunicationIO { receiver, sender };
         let (sender, receiver) = unbounded();
