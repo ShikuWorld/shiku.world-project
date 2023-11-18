@@ -38,6 +38,7 @@ pub fn with_clients(
 #[derive(Debug, Serialize)]
 pub struct PicUpdateEvent {
     pub path: String,
+    pub kind: ModifyKind,
 }
 
 async fn handle_websocket(websocket: WebSocket, clients: Clients) {
