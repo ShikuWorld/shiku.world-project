@@ -4,6 +4,7 @@
       <v-tabs v-model="tab" bg-color="primary">
         <v-tab value="current">Current</v-tab>
         <v-tab value="modules">Modules</v-tab>
+        <v-tab value="resources">Resources</v-tab>
       </v-tabs>
     </div>
     <div class="editor-nav-left">
@@ -17,6 +18,9 @@
         <v-window-item value="Current"></v-window-item>
         <v-window-item value="modules">
           <ModulesGraph class="modules-editor"></ModulesGraph>
+        </v-window-item>
+        <v-window-item value="resources">
+          <ResourcesEditor class="resources-editor"></ResourcesEditor>
         </v-window-item>
       </v-window>
     </div>
@@ -36,6 +40,8 @@ import { storeToRefs } from "pinia";
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
 import { use_editor_store } from "@/editor/stores/editor";
 import EntitiesList from "@/editor/editor/EntitiesList.vue";
+import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
+
 const tab = ref<number>(0);
 const { selected_module_id } = storeToRefs(use_editor_store());
 const { get_module } = use_editor_store();
@@ -53,6 +59,11 @@ onMounted(() => {});
 .modules-editor {
   height: 100vh;
   pointer-events: all;
+}
+
+.resources-editor {
+  pointer-events: all;
+  height: 100%;
 }
 
 .editor-main-view {

@@ -4,7 +4,7 @@ use apecs::World;
 use log::{debug, error};
 use tokio::time::Instant;
 
-use crate::core::blueprint::Module;
+use crate::core::blueprint::def::Module;
 use crate::core::guest::{Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication_input, EnterFailedState, EnterSuccessState, GameSystemToGuestEvent,

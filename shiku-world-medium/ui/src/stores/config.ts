@@ -6,7 +6,7 @@ export interface ConfigStore {
 
 export const use_config_store = defineStore("config", {
   state: (): ConfigStore => ({
-    resource_base_url: "",
+    resource_base_url: "https://resources.shiku.world/static/",
   }),
   actions: {
     set_resource_base_url(resource_base_url: string) {

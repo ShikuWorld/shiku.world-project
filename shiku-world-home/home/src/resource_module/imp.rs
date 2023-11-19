@@ -11,7 +11,7 @@ use tokio_tungstenite::connect_async;
 use tungstenite::Message;
 use url::Url;
 
-use crate::core::blueprint::ModuleId;
+use crate::core::blueprint::def::ModuleId;
 use crate::core::module::{GuestEvent, ModuleInstanceEvent};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::{safe_unwrap, send_and_log_error_consume};

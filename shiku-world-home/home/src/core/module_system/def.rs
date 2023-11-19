@@ -35,7 +35,7 @@ pub type AdminSet = HashSet<ActorId>;
 
 pub struct DynamicGameModule {
     pub world: World,
-    pub blueprint: blueprint::Module,
+    pub blueprint: blueprint::def::Module,
     pub guests: GuestMap,
     pub admins: AdminSet,
     pub module_communication: ModuleCommunication,

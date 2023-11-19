@@ -12,7 +12,7 @@ use crate::conductor_module::def::{ConductorModule, ModuleCommunicationMap, Modu
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
-use crate::core::blueprint::{BlueprintError, BlueprintService, Conductor, IOPoint, ModuleId};
+use crate::core::blueprint::def::{BlueprintError, BlueprintService, Conductor, IOPoint, ModuleId};
 use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
@@ -442,7 +442,7 @@ impl ConductorModule {
     pub async fn new(
         websocket_module: WebsocketModule,
         blueprint_service: BlueprintService,
-        blueprint: blueprint::Conductor,
+        blueprint: blueprint::def::Conductor,
     ) -> ConductorModule {
         let snowflake_gen = SnowflakeIdBucket::new(1, 1);
         let mut module_communication_map = HashMap::new();

@@ -5,7 +5,7 @@ use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
-use crate::core::blueprint::{Conductor, ModuleId};
+use crate::core::blueprint::def::{Conductor, ModuleId};
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
@@ -61,10 +61,10 @@ pub struct ProviderLoggedIn {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub enum EditorEvent {
-    Modules(Vec<blueprint::Module>),
-    CreatedModule(ModuleId, blueprint::Module),
+    Modules(Vec<blueprint::def::Module>),
+    CreatedModule(ModuleId, blueprint::def::Module),
     DeletedModule(ModuleId),
-    UpdatedModule(ModuleId, blueprint::Module),
+    UpdatedModule(ModuleId, blueprint::def::Module),
     UpdatedConductor(Conductor),
     MainDoorStatus(bool),
 }
@@ -73,9 +73,9 @@ pub enum EditorEvent {
 #[ts(export)]
 pub enum AdminToSystemEvent {
     ProviderLoggedIn(ProviderLoggedIn),
-    UpdateConductor(blueprint::Conductor),
+    UpdateConductor(blueprint::def::Conductor),
     SelectMainModuleToEdit(ModuleId),
-    UpdateModule(ModuleId, blueprint::ModuleUpdate),
+    UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),
     DeleteModule(ModuleId),
     SetMainDoorStatus(bool),

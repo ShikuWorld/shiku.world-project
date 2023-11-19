@@ -10,7 +10,7 @@ use log::LevelFilter;
 use spin_sleep::LoopHelper;
 
 use crate::conductor_module::def::ConductorModule;
-use crate::core::blueprint::{BlueprintError, BlueprintService};
+use crate::core::blueprint::def::{BlueprintError, BlueprintService};
 use crate::core::module::SystemModule;
 use crate::core::{blueprint, TARGET_FPS};
 use crate::resource_module::def::ResourceModule;
@@ -42,7 +42,7 @@ async fn main() {
 
     let conductor_blueprint = match blueprint_service.load_conductor_blueprint() {
         Ok(b) => b,
-        Err(BlueprintError::FileDoesNotExist) => blueprint::Conductor::default(),
+        Err(BlueprintError::FileDoesNotExist) => blueprint::def::Conductor::default(),
         Err(err) => panic!("{:?}", err),
     };
 

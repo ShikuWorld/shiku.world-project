@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use snowflake::SnowflakeIdBucket;
 
-use crate::core::blueprint::{BlueprintService, ModuleId};
+use crate::core::blueprint::def::{BlueprintService, ModuleId};
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ModuleExitSlot, ProviderUserId};
 use crate::core::module::{ModuleIO, SystemCommunicationIO};
 use crate::core::module_system::game_instance::GameInstanceManager;
@@ -18,7 +18,7 @@ pub type ModuleMap = HashMap<ModuleId, GameInstanceManager>;
 pub type ModuleCommunicationMap = HashMap<ModuleId, ModuleIO>;
 
 pub struct ConductorModule {
-    pub(super) blueprint: blueprint::Conductor,
+    pub(super) blueprint: blueprint::def::Conductor,
     pub(super) blueprint_service: BlueprintService,
     pub(super) websocket_module: WebsocketModule,
     pub(super) resource_module: ResourceModule,

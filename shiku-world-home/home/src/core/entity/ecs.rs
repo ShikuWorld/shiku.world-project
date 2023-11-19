@@ -9,7 +9,7 @@ mod engine {
     pub type JointId = usize;
     pub type Physics = (Real, Real, Real, Real, Real);
     pub type Entity = (
-        blueprint::EntityId,
+        blueprint::def::EntityId,
         Physics,
         ColliderHandle,
         [Option<Joint>; 32],
@@ -23,7 +23,7 @@ mod engine {
     }
 
     pub struct Joint {
-        id: blueprint::JointId,
+        id: blueprint::def::JointId,
         handle: ImpulseJointHandle,
         collider_a: ColliderHandle,
         collider_b: ColliderHandle,

@@ -5,8 +5,8 @@ use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
-use crate::core::blueprint::BlueprintError;
-use crate::core::blueprint::BlueprintService;
+use crate::core::blueprint::def::BlueprintError;
+use crate::core::blueprint::def::BlueprintService;
 use crate::core::guest::{Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication, EnterFailedState, EnterSuccessState, LeaveFailedState,
@@ -35,7 +35,7 @@ pub struct GameInstanceManager {
     pub(crate) active_admin_instances: HashMap<Snowflake, Vec<GameInstanceId>>,
     pub(crate) input_receiver: ModuleInputReceiver,
     pub(crate) output_sender: ModuleOutputSender,
-    pub(crate) module_blueprint: blueprint::Module,
+    pub(crate) module_blueprint: blueprint::def::Module,
     pub(crate) game_instance_timeout: Real,
     pub(crate) instance_id_gen: SnowflakeIdBucket,
 }
@@ -240,7 +240,7 @@ pub struct GameInstance {
 impl GameInstance {
     pub fn new(
         id: GameInstanceId,
-        module_blueprint: blueprint::Module,
+        module_blueprint: blueprint::def::Module,
         output_sender: ModuleOutputSender,
     ) -> GameInstance {
         let (dynamic_module, input_sender) =
