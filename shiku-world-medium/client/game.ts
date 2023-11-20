@@ -105,6 +105,15 @@ export function start_medium() {
             .with({ DeletedModule: P.select() }, (d) => {
               window.medium_gui.editor.delete_module(d);
             })
+            .with({ CreatedTileset: P.select() }, (d) => {
+              window.medium_gui.editor.set_tileset(d);
+            })
+            .with({ UpdatedTileset: P.select() }, (d) => {
+              window.medium_gui.editor.set_tileset(d);
+            })
+            .with({ DeletedTileset: P.select() }, (d) => {
+              window.medium_gui.editor.delete_tileset(d);
+            })
             .with({ UpdatedConductor: P.select() }, (d) => {
               window.medium_gui.editor.set_conductor(d);
             })

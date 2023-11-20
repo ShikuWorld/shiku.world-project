@@ -2,5 +2,6 @@
 import type { Conductor } from "../blueprints/Conductor";
 import type { ModuleUpdate } from "../blueprints/ModuleUpdate";
 import type { ProviderLoggedIn } from "./ProviderLoggedIn";
+import type { Tileset } from "../blueprints/Tileset";
 
-export type AdminToSystemEvent = { ProviderLoggedIn: ProviderLoggedIn } | { UpdateConductor: Conductor } | { SelectMainModuleToEdit: string } | { UpdateModule: [string, ModuleUpdate] } | { CreateModule: string } | { DeleteModule: string } | { SetMainDoorStatus: boolean } | { SetBackDoorStatus: boolean } | "LoadEditorData" | "Ping";
+export type AdminToSystemEvent = { ProviderLoggedIn: ProviderLoggedIn } | { UpdateConductor: Conductor } | { SelectMainModuleToEdit: string } | { UpdateModule: [string, ModuleUpdate] } | { CreateModule: string } | { CreateTileset: Tileset } | { UpdateTileset: Tileset } | { DeleteTileset: Tileset } | { DeleteModule: string } | { SetMainDoorStatus: boolean } | { SetBackDoorStatus: boolean } | "LoadEditorData" | "Ping";

@@ -3,6 +3,7 @@ import type { Module } from "@/editor/blueprints/Module";
 import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
 import { ModuleUpdate } from "@/editor/blueprints/ModuleUpdate";
 import { Conductor } from "@/editor/blueprints/Conductor";
+import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 
 export interface EditorStore {
   editor_open: boolean;
@@ -11,6 +12,7 @@ export interface EditorStore {
   current_main_instance_id: string;
   edit_module_id: string;
   conductor: Conductor;
+  tileset_map: { [tileset_path: string]: Tileset };
   current_map_index: number;
   modules: { [module_id: string]: Module };
 }
@@ -23,6 +25,7 @@ export const use_editor_store = defineStore("editor", {
     current_main_instance_id: "",
     edit_module_id: "",
     current_map_index: 0,
+    tileset_map: {},
     conductor: { module_connection_map: {} },
   }),
   actions: {
@@ -65,6 +68,17 @@ export const use_editor_store = defineStore("editor", {
         {},
       );
     },
+    set_tileset(tileset: Tileset) {
+      this.tileset_map = {
+        ...this.tileset_map,
+        [tileset_key(tileset)]: tileset,
+      };
+    },
+    delete_tileset(tileset: Tileset) {
+      const tileset_map = { ...this.tileset_map };
+      delete tileset_map[tileset_key(tileset)];
+      this.tileset_map = tileset_map;
+    },
     set_main_door_status(status: boolean) {
       this.main_door_status = status;
     },
@@ -94,6 +108,15 @@ export const use_editor_store = defineStore("editor", {
         ],
       });
     },
+    create_tileset_server(tileset: Tileset) {
+      sendAdminEvent({ CreateTileset: tileset });
+    },
+    update_tileset_server(tileset: Tileset) {
+      sendAdminEvent({ UpdateTileset: tileset });
+    },
+    delete_tileset_server(tileset: Tileset) {
+      sendAdminEvent({ DeleteTileset: tileset });
+    },
     create_module_server(name: string) {
       sendAdminEvent({ CreateModule: name });
     },
@@ -116,4 +139,8 @@ function sendAdminEvent(event: AdminToSystemEvent) {
   if (window.medium.communication_state.is_connection_open) {
     window.medium.communication_state.ws_connection.send(JSON.stringify(event));
   }
+}
+
+function tileset_key(tileset: Tileset) {
+  return `${tileset.resource_path}/${tileset.name}.tileset.json`;
 }

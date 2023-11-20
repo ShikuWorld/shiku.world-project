@@ -3,4 +3,4 @@ import type { IOPoint } from "./IOPoint";
 import type { Map } from "./Map";
 import type { Resource } from "./Resource";
 
-export interface Module { id: string, name: string, resources: Array<Resource>, maps: Array<Map>, insert_points: Array<IOPoint>, exit_points: Array<IOPoint>, max_guests: number, min_guests: number, close_after_full: boolean, }
+export interface Module { id: string, name: string, resources: Array<Resource>, gid_map: Array<[string, number]>, maps: Array<Map>, insert_points: Array<IOPoint>, exit_points: Array<IOPoint>, max_guests: number, min_guests: number, close_after_full: boolean, }

@@ -175,6 +175,54 @@ impl ConductorModule {
                                         }
                                     }
                                 }
+                                AdminToSystemEvent::CreateTileset(tileset) => {
+                                    match self.blueprint_service.create_tileset(&tileset) {
+                                        Ok(()) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::CreatedTileset(tileset),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        Err(err) => error!("Could not create tileset: {:?}", err),
+                                    }
+                                }
+                                AdminToSystemEvent::UpdateTileset(tileset) => {
+                                    match self.blueprint_service.save_tileset(&tileset) {
+                                        Ok(()) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::UpdatedTileset(tileset),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        Err(err) => error!("Could not update tileset: {:?}", err),
+                                    }
+                                }
+                                AdminToSystemEvent::DeleteTileset(tileset) => {
+                                    match self.blueprint_service.delete_tileset(&tileset) {
+                                        Ok(()) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::UpdatedTileset(tileset),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        Err(err) => error!("Could not delete tileset: {:?}", err),
+                                    }
+                                }
                                 AdminToSystemEvent::UpdateModule(module_id, module_update) => {
                                     if let Some(module) = self.module_map.get_mut(&module_id) {
                                         if let Some(new_name) = module_update.name {

@@ -44,7 +44,8 @@ import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
 
 const tab = ref<number>(0);
 const { selected_module_id } = storeToRefs(use_editor_store());
-const { get_module } = use_editor_store();
+const { get_module, load_modules } = use_editor_store();
+load_modules();
 
 const selected_module = computed(() => get_module(selected_module_id?.value));
 onMounted(() => {});

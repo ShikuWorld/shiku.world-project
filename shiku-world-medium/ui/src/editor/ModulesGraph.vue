@@ -206,10 +206,8 @@ onUnmounted(() => {
   }
 });
 
-const { load_modules } = use_editor_store();
 const { modules, conductor } = storeToRefs(use_editor_store());
 
-load_modules();
 function update_sockets(node: Node) {
   for (const key of Object.keys(node.inputs)) {
     if (node.data.insert_points.find((p) => p.name === key) === undefined) {
@@ -325,6 +323,7 @@ addOrUpdateNode({
   insert_points: [],
   name: "Login",
   maps: [],
+  gid_map: [],
   max_guests: 0,
   min_guests: 0,
   close_after_full: false,

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::Infallible;
 
 use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
@@ -15,12 +16,16 @@ pub type JointId = usize;
 #[ts(export, export_to = "blueprints/")]
 pub struct Conductor {
     pub(crate) module_connection_map: HashMap<ModuleExitSlot, (ModuleId, ModuleEnterSlot)>,
+    pub(crate) resources: Vec<Resource>,
+    pub(crate) gid_map: Vec<(ResourcePath, u32)>,
 }
 
 impl Conductor {
     pub fn default() -> Conductor {
         Conductor {
             module_connection_map: HashMap::new(),
+            resources: Vec::new(),
+            gid_map: Vec::new(),
         }
     }
 }
@@ -51,13 +56,14 @@ pub struct Image {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Tileset {
-    name: String,
-    image: Option<Image>,
-    tile_width: u32,
-    tile_height: u32,
-    tile_count: u32,
-    columns: u32,
-    tiles: HashMap<u32, Tile>,
+    pub name: String,
+    pub resource_path: ResourcePath,
+    pub image: Option<Image>,
+    pub tile_width: u32,
+    pub tile_height: u32,
+    pub tile_count: u32,
+    pub columns: u32,
+    pub tiles: HashMap<u32, Tile>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -100,7 +106,7 @@ pub struct Module {
     pub id: ModuleId,
     pub name: ModuleName,
     pub resources: Vec<Resource>,
-    pub gid_order: Vec<(ResourcePath, u32)>,
+    pub gid_map: Vec<(ResourcePath, u32)>,
     pub maps: Vec<Map>,
     pub insert_points: Vec<IOPoint>,
     pub exit_points: Vec<IOPoint>,
@@ -235,4 +241,6 @@ pub enum BlueprintError {
     IOError(#[from] std::io::Error),
     #[error("Could not load blueprint due to malformed json.")]
     SerdeJSONError(#[from] serde_json::error::Error),
+    #[error("Impossible error")]
+    Impossible(#[from] Infallible),
 }

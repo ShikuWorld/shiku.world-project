@@ -17,7 +17,7 @@
         </v-list-item>
       </v-list>
     </v-menu>
-    <v-dialog v-model="create_tileset_dialog" width="auto">
+    <v-dialog v-model="create_tileset_dialog" width="800">
       <CreateTileset
         @close="create_tileset_dialog = false"
         @save="save_tileset"
@@ -30,10 +30,12 @@ import { mdiPlus } from "@mdi/js";
 import CreateTileset from "@/editor/editor/CreateTileset.vue";
 import { ref } from "vue";
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
+import { use_editor_store } from "@/editor/stores/editor";
 const create_tileset_dialog = ref(false);
+const { create_tileset_server } = use_editor_store();
 function save_tileset(tileset: Tileset) {
   create_tileset_dialog.value = false;
-  console.log(tileset);
+  create_tileset_server(tileset);
 }
 </script>
 <style></style>

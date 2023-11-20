@@ -87,7 +87,6 @@ impl ResourceModule {
         mut resource_file: ResourceFile,
         manual_config_option: Option<String>,
     ) -> Result<(), ResourceParseError> {
-        //self.watch_path_for_changes(resource_base_path);
         if let Some(manual_config) = manual_config_option {
             let mut manual_config = ResourceModule::parse_resource_config(manual_config)?;
             resource_file.resources.append(&mut manual_config.resources);
