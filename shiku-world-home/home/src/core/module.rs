@@ -68,6 +68,7 @@ pub enum EditorEvent {
     CreatedTileset(blueprint::def::Tileset),
     UpdatedTileset(blueprint::def::Tileset),
     DeletedTileset(blueprint::def::Tileset),
+    DirectoryInfo(blueprint::def::FileBrowserResult),
     UpdatedConductor(Conductor),
     MainDoorStatus(bool),
 }
@@ -77,6 +78,7 @@ pub enum EditorEvent {
 pub enum AdminToSystemEvent {
     ProviderLoggedIn(ProviderLoggedIn),
     UpdateConductor(blueprint::def::Conductor),
+    BrowseFolder(String),
     SelectMainModuleToEdit(ModuleId),
     UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),

@@ -45,5 +45,6 @@ rhai = "1.14.0"
 flatbuffers = "23.5.26"
 uuid = { version = "1.5.0", features = ["v4"] }
 futures-util = "0.3.28"
+walkdir = "2.4.0"
 [build-dependencies]
 convert_case = "0.6.0"

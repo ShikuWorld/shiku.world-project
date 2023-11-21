@@ -4,11 +4,15 @@ use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use log::debug;
+use log::{debug, error};
 use uuid::Uuid;
+use walkdir::WalkDir;
 
-use crate::core::blueprint::def::{BlueprintError, BlueprintService, Conductor, Module, Tileset};
-use crate::core::get_out_dir;
+use crate::core::blueprint::def::{
+    BlueprintError, BlueprintService, Conductor, FileBrowserFileKind, FileBrowserResult, Module,
+    Resource, ResourceKind, Tileset,
+};
+use crate::core::{get_out_dir, safe_unwrap};
 
 impl Module {
     pub fn new(name: String, id: String) -> Module {
@@ -39,6 +43,49 @@ impl BlueprintService {
         fs::create_dir_all(out_dir.join("modules"))?;
 
         Ok(())
+    }
+
+    pub fn browse_directory(&self, directory: String) -> Result<FileBrowserResult, BlueprintError> {
+        let browsing_dir = get_out_dir().join(directory);
+        let mut file_browser_entry = FileBrowserResult {
+            path: browsing_dir.display().to_string(),
+            resources: Vec::new(),
+            dirs: Vec::new(),
+        };
+        for entry in WalkDir::new(browsing_dir.clone())
+            .min_depth(1)
+            .max_depth(1)
+            .into_iter()
+            .flatten()
+        {
+            let file_name = safe_unwrap(entry.file_name().to_str(), BlueprintError::OsParsing)?;
+            match Self::determine_file_type(file_name) {
+                FileBrowserFileKind::Tileset => {
+                    file_browser_entry.resources.push(Resource {
+                        file_name: file_name.to_string(),
+                        path: browsing_dir.join(file_name).display().to_string(),
+                        kind: ResourceKind::TileSet,
+                    });
+                }
+                FileBrowserFileKind::Folder => {
+                    file_browser_entry.dirs.push(file_name.into());
+                }
+                FileBrowserFileKind::Unknown => {
+                    error!("Unknown file type: {}", file_name);
+                }
+            }
+        }
+        Ok(file_browser_entry)
+    }
+
+    fn determine_file_type(file_name: &str) -> FileBrowserFileKind {
+        let parts: Vec<&str> = file_name.split('.').collect();
+
+        match parts.as_slice() {
+            [_, "tileset", "json"] => FileBrowserFileKind::Tileset,
+            [_] => FileBrowserFileKind::Folder,
+            _ => FileBrowserFileKind::Unknown,
+        }
     }
 
     pub fn module_exists(&self, module_name: &String) -> bool {

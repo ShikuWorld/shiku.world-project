@@ -1,8 +1,7 @@
 <template>
   <div class="entities-list">
-    <div v-if="module.maps.length === 0">
-      No maps yet, <a @click="create_map">click</a> to create.
-    </div>
+    <div class="entities-list__title">{{ module.name }}</div>
+    <div v-if="module.resources.length === 0"></div>
   </div>
 </template>
 
@@ -18,6 +17,4 @@ import { toRefs } from "vue";
 
 const props = defineProps<{ module: Module }>();
 const { module } = toRefs(props);
-
-function create_map() {}
 </script>

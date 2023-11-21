@@ -31,6 +31,18 @@
 
     <v-dialog width="500">
       <template v-slot:activator="{ props }">
+        <v-btn v-bind="props">Assign resources</v-btn>
+      </template>
+
+      <template v-slot:default="{ isActive }">
+        <AddResourcesModal :module="module"></AddResourcesModal>
+      </template>
+    </v-dialog>
+
+    <v-divider></v-divider>
+
+    <v-dialog width="500">
+      <template v-slot:activator="{ props }">
         <v-btn
           :icon="mdiTrashCan"
           class="modules-editor-delete-button"
@@ -74,6 +86,7 @@ import { use_editor_store } from "@/editor/stores/editor";
 import { mdiTrashCan } from "@mdi/js";
 import { ref, toRefs } from "vue";
 import ModuleSlots from "@/editor/editor/ModuleSlots.vue";
+import AddResourcesModal from "@/editor/editor/AddResourcesModal.vue";
 
 const props = defineProps<{ module: Module }>();
 const { module } = toRefs(props);

@@ -198,6 +198,7 @@ onMounted(async () => {
     }
     return context;
   });
+  await update_modules();
 });
 
 onUnmounted(() => {
@@ -331,6 +332,10 @@ addOrUpdateNode({
 });
 
 watch(modules, async () => {
+  await update_modules();
+});
+
+async function update_modules() {
   for (const module of Object.values(modules.value)) {
     await addOrUpdateNode(module);
   }
@@ -346,7 +351,7 @@ watch(modules, async () => {
     await update_connections();
     await layout();
   }, 100);
-});
+}
 
 watch(conductor, async () => {
   await update_connections();

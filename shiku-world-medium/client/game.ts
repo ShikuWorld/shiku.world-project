@@ -108,6 +108,9 @@ export function start_medium() {
             .with({ CreatedTileset: P.select() }, (d) => {
               window.medium_gui.editor.set_tileset(d);
             })
+            .with({ DirectoryInfo: P.select() }, (d) => {
+              window.medium_gui.editor.set_current_file_browser_result(d);
+            })
             .with({ UpdatedTileset: P.select() }, (d) => {
               window.medium_gui.editor.set_tileset(d);
             })

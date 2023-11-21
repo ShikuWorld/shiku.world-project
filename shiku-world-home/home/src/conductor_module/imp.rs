@@ -93,6 +93,24 @@ impl ConductorModule {
                             }
 
                             match event {
+                                AdminToSystemEvent::BrowseFolder(path) => {
+                                    match self.blueprint_service.browse_directory(path) {
+                                        Ok(result) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::DirectoryInfo(result),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        Err(err) => {
+                                            error!("Could not browse directory {:?}", err);
+                                        }
+                                    }
+                                }
                                 AdminToSystemEvent::SelectMainModuleToEdit(module_id) => match self
                                     .resource_module
                                     .get_resources_for_module(&module_id)
@@ -232,6 +250,9 @@ impl ConductorModule {
                                                     new_name,
                                                 ),
                                             );
+                                        }
+                                        if let Some(resources) = module_update.resources {
+                                            module.module_blueprint.resources = resources;
                                         }
                                         if let Some(insert_points) = module_update.insert_points {
                                             if let Ok(mut conductor) =

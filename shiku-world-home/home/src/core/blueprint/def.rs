@@ -5,6 +5,7 @@ use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use ts_rs::TS;
+use walkdir::Error as WalkDirError;
 
 use crate::core::guest::{ModuleEnterSlot, ModuleExitSlot};
 use crate::core::module::ModuleName;
@@ -40,9 +41,26 @@ pub type ResourcePath = String;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub struct FileBrowserResult {
+    pub path: String,
+    pub dirs: Vec<String>,
+    pub resources: Vec<Resource>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum FileBrowserFileKind {
+    Tileset,
+    Folder,
+    Unknown,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct Resource {
-    path: ResourcePath,
-    kind: ResourceKind,
+    pub file_name: String,
+    pub path: ResourcePath,
+    pub kind: ResourceKind,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -240,7 +258,11 @@ pub enum BlueprintError {
     #[error("Could not load blueprint due to IO error.")]
     IOError(#[from] std::io::Error),
     #[error("Could not load blueprint due to malformed json.")]
-    SerdeJSONError(#[from] serde_json::error::Error),
+    SerdeJSON(#[from] serde_json::error::Error),
     #[error("Impossible error")]
     Impossible(#[from] Infallible),
+    #[error("File Browsing error")]
+    FileBrowsing(#[from] WalkDirError),
+    #[error("OS String parsing error")]
+    OsParsing,
 }

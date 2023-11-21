@@ -4,6 +4,7 @@ import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToS
 import { ModuleUpdate } from "@/editor/blueprints/ModuleUpdate";
 import { Conductor } from "@/editor/blueprints/Conductor";
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
+import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
 
 export interface EditorStore {
   editor_open: boolean;
@@ -15,6 +16,7 @@ export interface EditorStore {
   tileset_map: { [tileset_path: string]: Tileset };
   current_map_index: number;
   modules: { [module_id: string]: Module };
+  current_file_browser_result: FileBrowserResult;
 }
 export const use_editor_store = defineStore("editor", {
   state: (): EditorStore => ({
@@ -26,7 +28,8 @@ export const use_editor_store = defineStore("editor", {
     edit_module_id: "",
     current_map_index: 0,
     tileset_map: {},
-    conductor: { module_connection_map: {} },
+    conductor: { module_connection_map: {}, resources: [], gid_map: [] },
+    current_file_browser_result: { resources: [], dirs: [], path: "" },
   }),
   actions: {
     set_selected_module_id(id: string) {
@@ -34,6 +37,9 @@ export const use_editor_store = defineStore("editor", {
     },
     set_current_main_instance_id(id: string) {
       this.current_main_instance_id = id;
+    },
+    set_current_file_browser_result(result: FileBrowserResult) {
+      this.current_file_browser_result = result;
     },
     set_main_module_to_edit(module_id: string) {
       sendAdminEvent({ SelectMainModuleToEdit: module_id });
@@ -107,6 +113,9 @@ export const use_editor_store = defineStore("editor", {
           },
         ],
       });
+    },
+    browse_folder(path: string) {
+      sendAdminEvent({ BrowseFolder: path });
     },
     create_tileset_server(tileset: Tileset) {
       sendAdminEvent({ CreateTileset: tileset });
