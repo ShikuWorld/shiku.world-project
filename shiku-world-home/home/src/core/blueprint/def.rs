@@ -43,6 +43,7 @@ pub type ResourcePath = String;
 #[ts(export, export_to = "blueprints/")]
 pub struct FileBrowserResult {
     pub path: String,
+    pub dir: String,
     pub dirs: Vec<String>,
     pub resources: Vec<Resource>,
 }
@@ -50,6 +51,7 @@ pub struct FileBrowserResult {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum FileBrowserFileKind {
+    Module,
     Tileset,
     Folder,
     Unknown,
@@ -59,6 +61,7 @@ pub enum FileBrowserFileKind {
 #[ts(export, export_to = "blueprints/")]
 pub struct Resource {
     pub file_name: String,
+    pub dir: ResourcePath,
     pub path: ResourcePath,
     pub kind: ResourceKind,
 }

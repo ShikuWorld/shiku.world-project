@@ -1,51 +1,89 @@
 <template>
   <div class="add-resources-modal">
-    <v-text-field v-model="current_path"></v-text-field>
-    <v-list density="compact">
-      <v-list-item
-        class="add-resources-modal__entry add-resources-modal__folder"
-        color="primary"
-        v-if="current_path != ''"
-        @click="go_up()"
-      >
-        <v-list-item-title v-text="'...'"></v-list-item-title>
-      </v-list-item>
-      <v-list-item
-        class="add-resources-modal__entry add-resources-modal__folder"
-        color="primary"
-        v-for="dir in current_file_browser_result.dirs"
-        :key="dir"
-        @click="browse(dir)"
-      >
-        <template v-slot:prepend> <v-icon :icon="mdiFolder"></v-icon> </template
-        ><v-list-item-title v-text="dir"></v-list-item-title>
-      </v-list-item>
-      <v-list-item
-        class="add-resources-modal__entry add-resources-modal__resource"
-        v-for="resource in current_file_browser_result.resources"
-        @click="toggle_resource_on_module(resource)"
-        :active="module.resources.find((r) => r.path === resource.path)"
-        :class="{
-          'add-resources-modal__entry--active': module.resources.find(
-            (r) => r.path === resource.path,
-          ),
-        }"
-        :key="resource.path"
-      >
-        <template v-slot:prepend>
-          <v-icon :icon="mdiPackageVariant"></v-icon> </template
-        ><v-list-item-title v-text="resource.file_name"></v-list-item-title>
-      </v-list-item>
-    </v-list>
+    <div class="add-resources-modal__title">{{ module.name }}</div>
+    <div class="add-resources-modal__file-browser">
+      <v-text-field
+        density="compact"
+        :hide-details="true"
+        class="add-resources-modal__file-browser-input"
+        v-model="current_path"
+      ></v-text-field>
+      <v-list class="add-resources-modal__file-browser-items" density="compact">
+        <v-list-item
+          class="add-resources-modal__entry add-resources-modal__folder"
+          color="primary"
+          :disabled="current_path == ''"
+          @click="go_up()"
+        >
+          <v-list-item-title v-text="'...'"></v-list-item-title>
+        </v-list-item>
+        <v-list-item
+          class="add-resources-modal__entry add-resources-modal__folder"
+          color="primary"
+          v-for="dir in current_file_browser_result.dirs"
+          :key="dir"
+          @click="browse(dir)"
+        >
+          <template v-slot:prepend>
+            <v-icon :icon="mdiFolder"></v-icon> </template
+          ><v-list-item-title v-text="dir"></v-list-item-title>
+        </v-list-item>
+        <v-list-item
+          class="add-resources-modal__entry add-resources-modal__resource"
+          v-for="resource in current_file_browser_result.resources"
+          @click="toggle_resource_on_module(module.id, resource)"
+          :active="active_resources_set.has(resource.path)"
+          :key="resource.path"
+        >
+          <template v-slot:prepend>
+            <v-icon :icon="mdiPackageVariant"></v-icon> </template
+          ><v-list-item-title v-text="resource.file_name"></v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </div>
+    <div class="add-resources-modal__current-resources">
+      <ModuleResourceList :show-remove="true" :module="module" />
+    </div>
   </div>
 </template>
 
 <style>
-.add-resources-modal__entry--active {
-  background-color: blue;
-}
 .add-resources-modal {
   background-color: #37474f;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: baseline;
+  width: 100%;
+}
+.add-resources-modal__title {
+  display: inline-block;
+  width: 100%;
+  padding: 10px;
+}
+.add-resources-modal__file-browser-input {
+  flex-grow: 0;
+}
+.add-resources-modal__file-browser-items {
+  flex-grow: 1;
+  overflow: hidden !important;
+  overflow-y: scroll !important;
+}
+
+.add-resources-modal__file-browser {
+  display: flex;
+  flex-direction: column;
+  width: 66.666%;
+  height: 300px;
+  max-height: 300px;
+}
+.add-resources-modal__current-resources {
+  width: 33.333%;
+  display: flex;
+  flex-direction: column;
+  max-height: 300px;
+  overflow: hidden;
+  overflow-y: scroll;
+  height: 300px;
 }
 .add-resources-modal__entry {
   cursor: pointer;
@@ -57,32 +95,21 @@
 
 <script lang="ts" setup>
 import { Module } from "@/editor/blueprints/Module";
-import { ref, toRefs } from "vue";
+import { computed, ref, toRefs } from "vue";
 import { use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
 import { mdiFolder, mdiPackageVariant } from "@mdi/js";
-import { Resource } from "@/editor/blueprints/Resource";
+import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
 
 const current_path = ref("");
 const props = defineProps<{ module: Module }>();
 const { module } = toRefs(props);
-const { browse_folder, save_module_server } = use_editor_store();
+const active_resources_set = computed(() =>
+  module.value ? new Set(module.value.resources.map((r) => r.path)) : new Set(),
+);
+const { browse_folder, toggle_resource_on_module } = use_editor_store();
 const { current_file_browser_result } = storeToRefs(use_editor_store());
 
-function toggle_resource_on_module(resource: Resource) {
-  const resource_in_module = module.value.resources.find(
-    (r) => r.path === resource.path,
-  );
-  if (resource_in_module) {
-    save_module_server(module.value.id, {
-      resources: module.value.resources.filter((r) => r.path !== resource.path),
-    });
-  } else {
-    save_module_server(module.value.id, {
-      resources: [...module.value.resources, resource],
-    });
-  }
-}
 function go_up() {
   if (current_path.value.includes("/")) {
     const split = current_path.value.split("/");

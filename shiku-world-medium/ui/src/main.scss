@@ -21,6 +21,14 @@
   font-family: Convergence, sans-serif;
 }
 
+.v-list-item__spacer {
+  width: 0 !important;
+}
+
+.v-expansion-panel-text__wrapper {
+  padding: 0 !important;
+}
+
 #ui {
   position: absolute;
   left: 0;

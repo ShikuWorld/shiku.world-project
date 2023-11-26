@@ -1,6 +1,5 @@
 <template>
   <div class="entities-list">
-    <div class="entities-list__title">{{ module.name }}</div>
     <div v-if="module.resources.length === 0"></div>
   </div>
 </template>

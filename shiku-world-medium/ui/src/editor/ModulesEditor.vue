@@ -29,7 +29,7 @@
     <v-btn @click="set_main_module_to_edit(module.id)">Select as Main</v-btn>
     <v-divider></v-divider>
 
-    <v-dialog width="500">
+    <v-dialog width="800">
       <template v-slot:activator="{ props }">
         <v-btn v-bind="props">Assign resources</v-btn>
       </template>

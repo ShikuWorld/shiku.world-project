@@ -8,10 +8,25 @@
       </v-tabs>
     </div>
     <div class="editor-nav-left">
-      <EntitiesList
+      <v-expansion-panels
+        :multiple="true"
+        variant="accordion"
         v-if="selected_module"
-        :module="selected_module"
-      ></EntitiesList>
+      >
+        <v-expansion-panel title="Entities">
+          <v-expansion-panel-text>
+            <EntitiesList :module="selected_module"></EntitiesList>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+        <v-expansion-panel title="Resources">
+          <v-expansion-panel-text>
+            <ModuleResourceList
+              @resourceClick="open_resource_editor"
+              :module="selected_module"
+            />
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
     </div>
     <div class="editor-main-view">
       <v-window v-model="tab">
@@ -35,20 +50,35 @@
 
 <script lang="ts" setup>
 import ModulesGraph from "@/editor/editor/ModulesGraph.vue";
-import { computed, onMounted, ref } from "vue";
+import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
 import { use_editor_store } from "@/editor/stores/editor";
 import EntitiesList from "@/editor/editor/EntitiesList.vue";
 import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
+import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
+import { Resource } from "@/editor/blueprints/Resource";
 
 const tab = ref<number>(0);
 const { selected_module_id } = storeToRefs(use_editor_store());
-const { get_module, load_modules } = use_editor_store();
+const {
+  get_module,
+  load_modules,
+  add_open_resource_path,
+  set_selected_resource_tab,
+} = use_editor_store();
 load_modules();
 
 const selected_module = computed(() => get_module(selected_module_id?.value));
-onMounted(() => {});
+
+function open_resource_editor(resource: Resource) {
+  tab.value = 2;
+  let path_index = add_open_resource_path(resource.path);
+  console.log(path_index);
+  setTimeout(() => {
+    set_selected_resource_tab(path_index + 1);
+  }, 50);
+}
 </script>
 
 <style lang="scss">

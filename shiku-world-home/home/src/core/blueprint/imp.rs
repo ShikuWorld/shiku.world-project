@@ -46,9 +46,10 @@ impl BlueprintService {
     }
 
     pub fn browse_directory(&self, directory: String) -> Result<FileBrowserResult, BlueprintError> {
-        let browsing_dir = get_out_dir().join(directory);
+        let browsing_dir = get_out_dir().join(directory.clone());
         let mut file_browser_entry = FileBrowserResult {
             path: browsing_dir.display().to_string(),
+            dir: directory.clone(),
             resources: Vec::new(),
             dirs: Vec::new(),
         };
@@ -63,6 +64,7 @@ impl BlueprintService {
                 FileBrowserFileKind::Tileset => {
                     file_browser_entry.resources.push(Resource {
                         file_name: file_name.to_string(),
+                        dir: directory.clone(),
                         path: browsing_dir.join(file_name).display().to_string(),
                         kind: ResourceKind::TileSet,
                     });
@@ -70,6 +72,7 @@ impl BlueprintService {
                 FileBrowserFileKind::Folder => {
                     file_browser_entry.dirs.push(file_name.into());
                 }
+                FileBrowserFileKind::Module => {}
                 FileBrowserFileKind::Unknown => {
                     error!("Unknown file type: {}", file_name);
                 }
@@ -83,6 +86,7 @@ impl BlueprintService {
 
         match parts.as_slice() {
             [_, "tileset", "json"] => FileBrowserFileKind::Tileset,
+            [_, "json"] => FileBrowserFileKind::Module,
             [_] => FileBrowserFileKind::Folder,
             _ => FileBrowserFileKind::Unknown,
         }

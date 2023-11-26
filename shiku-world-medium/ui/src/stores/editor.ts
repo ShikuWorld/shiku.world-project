@@ -5,6 +5,7 @@ import { ModuleUpdate } from "@/editor/blueprints/ModuleUpdate";
 import { Conductor } from "@/editor/blueprints/Conductor";
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
+import { Resource } from "@/editor/blueprints/Resource";
 
 export interface EditorStore {
   editor_open: boolean;
@@ -16,6 +17,8 @@ export interface EditorStore {
   tileset_map: { [tileset_path: string]: Tileset };
   current_map_index: number;
   modules: { [module_id: string]: Module };
+  selected_resource_tab: number;
+  open_resource_paths: string[];
   current_file_browser_result: FileBrowserResult;
 }
 export const use_editor_store = defineStore("editor", {
@@ -25,13 +28,30 @@ export const use_editor_store = defineStore("editor", {
     main_door_status: false,
     selected_module_id: "",
     current_main_instance_id: "",
+    open_resource_paths: [],
+    selected_resource_tab: 0,
     edit_module_id: "",
     current_map_index: 0,
     tileset_map: {},
     conductor: { module_connection_map: {}, resources: [], gid_map: [] },
-    current_file_browser_result: { resources: [], dirs: [], path: "" },
+    current_file_browser_result: { resources: [], dirs: [], dir: "", path: "" },
   }),
   actions: {
+    set_selected_resource_tab(index: number) {
+      this.selected_resource_tab = index;
+    },
+    close_resource(path: string) {
+      this.open_resource_paths = this.open_resource_paths.filter(
+        (p) => p !== path,
+      );
+    },
+    add_open_resource_path(path: string): number {
+      if (this.open_resource_paths.includes(path)) {
+        return this.open_resource_paths.findIndex((p) => p === path);
+      }
+      this.open_resource_paths = [...this.open_resource_paths, path];
+      return this.open_resource_paths.length - 1;
+    },
     set_selected_module_id(id: string) {
       this.selected_module_id = id;
     },
@@ -113,6 +133,21 @@ export const use_editor_store = defineStore("editor", {
           },
         ],
       });
+    },
+    toggle_resource_on_module(module_id: string, resource: Resource) {
+      const module = this.get_module(module_id);
+      const resource_in_module = module.resources.find(
+        (r) => r.path === resource.path,
+      );
+      if (resource_in_module) {
+        this.save_module_server(module.id, {
+          resources: module.resources.filter((r) => r.path !== resource.path),
+        });
+      } else {
+        this.save_module_server(module.id, {
+          resources: [...module.resources, resource],
+        });
+      }
     },
     browse_folder(path: string) {
       sendAdminEvent({ BrowseFolder: path });
