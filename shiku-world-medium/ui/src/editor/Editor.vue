@@ -53,7 +53,7 @@ import ModulesGraph from "@/editor/editor/ModulesGraph.vue";
 import { computed, ref } from "vue";
 import { storeToRefs } from "pinia";
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
-import { use_editor_store } from "@/editor/stores/editor";
+import { resource_key, use_editor_store } from "@/editor/stores/editor";
 import EntitiesList from "@/editor/editor/EntitiesList.vue";
 import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
 import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
@@ -73,8 +73,7 @@ const selected_module = computed(() => get_module(selected_module_id?.value));
 
 function open_resource_editor(resource: Resource) {
   tab.value = 2;
-  let path_index = add_open_resource_path(resource.path);
-  console.log(path_index);
+  let path_index = add_open_resource_path(resource_key(resource));
   setTimeout(() => {
     set_selected_resource_tab(path_index + 1);
   }, 50);

@@ -10,7 +10,7 @@ use walkdir::WalkDir;
 
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintService, Conductor, FileBrowserFileKind, FileBrowserResult, Module,
-    Resource, ResourceKind, Tileset,
+    Resource, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::{get_out_dir, safe_unwrap};
 
@@ -66,7 +66,7 @@ impl BlueprintService {
                         file_name: file_name.to_string(),
                         dir: directory.clone(),
                         path: browsing_dir.join(file_name).display().to_string(),
-                        kind: ResourceKind::TileSet,
+                        kind: ResourceKind::Tileset,
                     });
                 }
                 FileBrowserFileKind::Folder => {
@@ -79,6 +79,36 @@ impl BlueprintService {
             }
         }
         Ok(file_browser_entry)
+    }
+
+    pub fn load_resource_by_path(path: String) -> ResourceLoaded {
+        if let Ok(path_buf) = PathBuf::from_str(path.as_str()) {
+            if let Some(file_name_os) = path_buf.as_path().file_name() {
+                if let Some(file_name) = file_name_os.to_str() {
+                    return match BlueprintService::determine_resource_type(file_name) {
+                        ResourceKind::Tileset => match Self::load_tileset(path_buf) {
+                            Ok(tileset) => ResourceLoaded::Tileset(tileset),
+                            Err(err) => {
+                                error!("Could not load Resource: {:?}", err);
+                                ResourceLoaded::Unknown
+                            }
+                        },
+                        ResourceKind::Unknown => ResourceLoaded::Unknown,
+                    };
+                }
+            }
+        }
+
+        ResourceLoaded::Unknown
+    }
+
+    fn determine_resource_type(file_name: &str) -> ResourceKind {
+        let parts: Vec<&str> = file_name.split('.').collect();
+
+        match parts.as_slice() {
+            [_, "tileset", "json"] => ResourceKind::Tileset,
+            _ => ResourceKind::Unknown,
+        }
     }
 
     fn determine_file_type(file_name: &str) -> FileBrowserFileKind {
@@ -137,6 +167,15 @@ impl BlueprintService {
         Ok(())
     }
 
+    pub fn load_tileset(path: PathBuf) -> Result<Tileset, BlueprintError> {
+        if !path.exists() {
+            return Err(BlueprintError::FileDoesNotExist);
+        }
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        Ok(serde_json::from_reader(reader)?)
+    }
+
     pub fn save_tileset(&self, tileset: &Tileset) -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
         let resource_path = PathBuf::from_str(tileset.resource_path.as_str())?;
@@ -173,7 +212,7 @@ impl BlueprintService {
     pub fn create_module(&self, module_name: String) -> Result<Module, BlueprintError> {
         let dir_path = get_out_dir().join("modules").join(&module_name);
 
-        fs::create_dir_all(&dir_path)?;
+        create_dir_all(&dir_path)?;
 
         let file_path = dir_path.join(format!("{}.json", &module_name));
         if file_path.exists() {
@@ -204,7 +243,6 @@ impl BlueprintService {
         for path in paths {
             let module_name = path?
                 .file_name()
-                .to_os_string()
                 .into_string()
                 .unwrap_or("MODULE_NAME_BROKEN".into());
             modules.push(self.load_module(module_name)?);

@@ -10,7 +10,7 @@
           >{{ resource.file_name
           }}<v-icon
             :icon="mdiTrashCan"
-            @click="close_resource(resource.path)"
+            @click="close_resource(resource_key(resource))"
           ></v-icon
         ></v-tab>
       </v-tabs>
@@ -45,29 +45,36 @@
         v-for="resource in open_resources"
         :key="resource.path"
         :value="resource.path"
-        >{{ resource.kind }}</v-window-item
-      >
+        ><TilesetEditor
+          v-if="
+            resource.kind === 'Tileset' && tileset_map[resource_key(resource)]
+          "
+          :tileset="tileset_map[resource_key(resource)]"
+        ></TilesetEditor
+      ></v-window-item>
     </v-window>
   </div>
 </template>
 <script lang="ts" setup>
 import { mdiPlus, mdiTrashCan } from "@mdi/js";
 import CreateTileset from "@/editor/editor/CreateTileset.vue";
-import { computed, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
-import { use_editor_store } from "@/editor/stores/editor";
+import { resource_key, use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
 import { Resource } from "@/editor/blueprints/Resource";
+import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
+import { match } from "ts-pattern";
 const create_tileset_dialog = ref(false);
-const { create_tileset_server, close_resource } = use_editor_store();
-const { open_resource_paths, modules, selected_resource_tab } = storeToRefs(
-  use_editor_store(),
-);
+const { create_tileset_server, close_resource, get_resource_server } =
+  use_editor_store();
+const { open_resource_paths, modules, selected_resource_tab, tileset_map } =
+  storeToRefs(use_editor_store());
 const available_resources = computed(
   () =>
     new Map(
       Object.values(modules.value).flatMap((m) =>
-        m.resources.map((resource) => [resource.path, resource]),
+        m.resources.map((resource) => [resource_key(resource), resource]),
       ),
     ),
 );
@@ -77,6 +84,28 @@ const open_resources = computed(
       available_resources.value.get(path),
     ) as Resource[],
 );
+
+watch(open_resources, () => {
+  ensure_resources_are_loaded();
+});
+
+onMounted(() => {
+  ensure_resources_are_loaded();
+});
+
+function ensure_resources_are_loaded() {
+  for (const resource of open_resources.value) {
+    match(resource)
+      .with({ kind: "Tileset" }, (r) => {
+        if (!tileset_map.value[resource_key(r)]) {
+          get_resource_server(r.path);
+        }
+      })
+      .with({ kind: "Unknown" }, () => {})
+      .exhaustive();
+  }
+}
+
 function save_tileset(tileset: Tileset) {
   create_tileset_dialog.value = false;
   create_tileset_server(tileset);

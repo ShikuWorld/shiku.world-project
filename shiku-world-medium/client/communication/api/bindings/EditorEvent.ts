@@ -4,4 +4,4 @@ import type { FileBrowserResult } from "../blueprints/FileBrowserResult";
 import type { Module } from "../blueprints/Module";
 import type { Tileset } from "../blueprints/Tileset";
 
-export type EditorEvent = { Modules: Array<Module> } | { CreatedModule: [string, Module] } | { DeletedModule: string } | { UpdatedModule: [string, Module] } | { CreatedTileset: Tileset } | { UpdatedTileset: Tileset } | { DeletedTileset: Tileset } | { DirectoryInfo: FileBrowserResult } | { UpdatedConductor: Conductor } | { MainDoorStatus: boolean };
+export type EditorEvent = { Modules: Array<Module> } | { CreatedModule: [string, Module] } | { DeletedModule: string } | { UpdatedModule: [string, Module] } | { CreatedTileset: Tileset } | { SetTileset: Tileset } | { DeletedTileset: Tileset } | { DirectoryInfo: FileBrowserResult } | { UpdatedConductor: Conductor } | { MainDoorStatus: boolean };

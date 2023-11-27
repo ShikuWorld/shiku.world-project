@@ -4,4 +4,4 @@ import type { ModuleUpdate } from "../blueprints/ModuleUpdate";
 import type { ProviderLoggedIn } from "./ProviderLoggedIn";
 import type { Tileset } from "../blueprints/Tileset";
 
-export type AdminToSystemEvent = { ProviderLoggedIn: ProviderLoggedIn } | { UpdateConductor: Conductor } | { BrowseFolder: string } | { SelectMainModuleToEdit: string } | { UpdateModule: [string, ModuleUpdate] } | { CreateModule: string } | { CreateTileset: Tileset } | { UpdateTileset: Tileset } | { DeleteTileset: Tileset } | { DeleteModule: string } | { SetMainDoorStatus: boolean } | { SetBackDoorStatus: boolean } | "LoadEditorData" | "Ping";
+export type AdminToSystemEvent = { ProviderLoggedIn: ProviderLoggedIn } | { UpdateConductor: Conductor } | { BrowseFolder: string } | { SelectMainModuleToEdit: string } | { UpdateModule: [string, ModuleUpdate] } | { CreateModule: string } | { GetResource: string } | { CreateTileset: Tileset } | { SetTileset: Tileset } | { DeleteTileset: Tileset } | { DeleteModule: string } | { SetMainDoorStatus: boolean } | { SetBackDoorStatus: boolean } | "LoadEditorData" | "Ping";

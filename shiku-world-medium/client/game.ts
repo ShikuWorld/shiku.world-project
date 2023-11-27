@@ -111,7 +111,7 @@ export function start_medium() {
             .with({ DirectoryInfo: P.select() }, (d) => {
               window.medium_gui.editor.set_current_file_browser_result(d);
             })
-            .with({ UpdatedTileset: P.select() }, (d) => {
+            .with({ SetTileset: P.select() }, (d) => {
               window.medium_gui.editor.set_tileset(d);
             })
             .with({ DeletedTileset: P.select() }, (d) => {

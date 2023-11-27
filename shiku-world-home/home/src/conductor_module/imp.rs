@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
+use std::str::FromStr;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
@@ -12,7 +13,9 @@ use crate::conductor_module::def::{ConductorModule, ModuleCommunicationMap, Modu
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
-use crate::core::blueprint::def::{BlueprintError, BlueprintService, Conductor, IOPoint, ModuleId};
+use crate::core::blueprint::def::{
+    BlueprintError, BlueprintService, Conductor, IOPoint, ModuleId, ResourceLoaded,
+};
 use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
@@ -93,6 +96,22 @@ impl ConductorModule {
                             }
 
                             match event {
+                                AdminToSystemEvent::GetResource(path) => {
+                                    match BlueprintService::load_resource_by_path(path) {
+                                        ResourceLoaded::Tileset(tileset) => {
+                                            send_and_log_error(
+                                                &mut self.system_to_admin_communication.sender,
+                                                (
+                                                    admin.id,
+                                                    CommunicationEvent::EditorEvent(
+                                                        EditorEvent::SetTileset(tileset),
+                                                    ),
+                                                ),
+                                            );
+                                        }
+                                        ResourceLoaded::Unknown => {}
+                                    }
+                                }
                                 AdminToSystemEvent::BrowseFolder(path) => {
                                     match self.blueprint_service.browse_directory(path) {
                                         Ok(result) => {
@@ -209,7 +228,7 @@ impl ConductorModule {
                                         Err(err) => error!("Could not create tileset: {:?}", err),
                                     }
                                 }
-                                AdminToSystemEvent::UpdateTileset(tileset) => {
+                                AdminToSystemEvent::SetTileset(tileset) => {
                                     match self.blueprint_service.save_tileset(&tileset) {
                                         Ok(()) => {
                                             send_and_log_error(
@@ -217,7 +236,7 @@ impl ConductorModule {
                                                 (
                                                     admin.id,
                                                     CommunicationEvent::EditorEvent(
-                                                        EditorEvent::UpdatedTileset(tileset),
+                                                        EditorEvent::SetTileset(tileset),
                                                     ),
                                                 ),
                                             );
@@ -233,7 +252,7 @@ impl ConductorModule {
                                                 (
                                                     admin.id,
                                                     CommunicationEvent::EditorEvent(
-                                                        EditorEvent::UpdatedTileset(tileset),
+                                                        EditorEvent::DeletedTileset(tileset),
                                                     ),
                                                 ),
                                             );

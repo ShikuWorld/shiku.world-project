@@ -34,7 +34,13 @@ impl Conductor {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum ResourceKind {
-    TileSet,
+    Tileset,
+    Unknown,
+}
+
+pub enum ResourceLoaded {
+    Tileset(Tileset),
+    Unknown,
 }
 
 pub type ResourcePath = String;

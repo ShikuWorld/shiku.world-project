@@ -5,7 +5,7 @@ use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
-use crate::core::blueprint::def::{Conductor, ModuleId};
+use crate::core::blueprint::def::{Conductor, ModuleId, ResourcePath};
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
@@ -66,7 +66,7 @@ pub enum EditorEvent {
     DeletedModule(ModuleId),
     UpdatedModule(ModuleId, blueprint::def::Module),
     CreatedTileset(blueprint::def::Tileset),
-    UpdatedTileset(blueprint::def::Tileset),
+    SetTileset(blueprint::def::Tileset),
     DeletedTileset(blueprint::def::Tileset),
     DirectoryInfo(blueprint::def::FileBrowserResult),
     UpdatedConductor(Conductor),
@@ -82,8 +82,9 @@ pub enum AdminToSystemEvent {
     SelectMainModuleToEdit(ModuleId),
     UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),
+    GetResource(ResourcePath),
     CreateTileset(blueprint::def::Tileset),
-    UpdateTileset(blueprint::def::Tileset),
+    SetTileset(blueprint::def::Tileset),
     DeleteTileset(blueprint::def::Tileset),
     DeleteModule(ModuleId),
     SetMainDoorStatus(bool),

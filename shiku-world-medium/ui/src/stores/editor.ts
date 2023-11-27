@@ -95,6 +95,7 @@ export const use_editor_store = defineStore("editor", {
       );
     },
     set_tileset(tileset: Tileset) {
+      console.log("Setting tileset", tileset);
       this.tileset_map = {
         ...this.tileset_map,
         [tileset_key(tileset)]: tileset,
@@ -152,11 +153,14 @@ export const use_editor_store = defineStore("editor", {
     browse_folder(path: string) {
       sendAdminEvent({ BrowseFolder: path });
     },
+    get_resource_server(path: string) {
+      sendAdminEvent({ GetResource: path });
+    },
     create_tileset_server(tileset: Tileset) {
       sendAdminEvent({ CreateTileset: tileset });
     },
     update_tileset_server(tileset: Tileset) {
-      sendAdminEvent({ UpdateTileset: tileset });
+      sendAdminEvent({ SetTileset: tileset });
     },
     delete_tileset_server(tileset: Tileset) {
       sendAdminEvent({ DeleteTileset: tileset });
@@ -187,4 +191,8 @@ function sendAdminEvent(event: AdminToSystemEvent) {
 
 function tileset_key(tileset: Tileset) {
   return `${tileset.resource_path}/${tileset.name}.tileset.json`;
+}
+
+export function resource_key(resource: Resource) {
+  return `${resource.dir}/${resource.file_name}`
 }
