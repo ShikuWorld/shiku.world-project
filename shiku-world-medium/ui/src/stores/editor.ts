@@ -19,14 +19,20 @@ export interface EditorStore {
   modules: { [module_id: string]: Module };
   selected_resource_tab: number;
   open_resource_paths: string[];
+  selected_tileset_path: string;
+  selected_tile_id: number;
+  side_bar_editor: "module" | "tile" | "nothing";
   current_file_browser_result: FileBrowserResult;
 }
 export const use_editor_store = defineStore("editor", {
   state: (): EditorStore => ({
     editor_open: false,
     modules: {},
+    side_bar_editor: "nothing",
     main_door_status: false,
     selected_module_id: "",
+    selected_tileset_path: "",
+    selected_tile_id: 0,
     current_main_instance_id: "",
     open_resource_paths: [],
     selected_resource_tab: 0,
@@ -37,6 +43,13 @@ export const use_editor_store = defineStore("editor", {
     current_file_browser_result: { resources: [], dirs: [], dir: "", path: "" },
   }),
   actions: {
+    set_selected_tile(tileset_path: string, tile_id: number) {
+      this.selected_tileset_path = tileset_path;
+      this.selected_tile_id = tile_id;
+    },
+    set_sidebar_editor(editor: EditorStore["side_bar_editor"]) {
+      this.side_bar_editor = editor;
+    },
     set_selected_resource_tab(index: number) {
       this.selected_resource_tab = index;
     },
@@ -87,6 +100,9 @@ export const use_editor_store = defineStore("editor", {
     },
     get_module(id: string) {
       return this.modules[id];
+    },
+    get_tileset(tileset_path: string) {
+      return this.tileset_map[tileset_path];
     },
     set_modules(modules: Module[]) {
       this.modules = modules.reduce(
@@ -189,10 +205,10 @@ function sendAdminEvent(event: AdminToSystemEvent) {
   }
 }
 
-function tileset_key(tileset: Tileset) {
+export function tileset_key(tileset: Tileset) {
   return `${tileset.resource_path}/${tileset.name}.tileset.json`;
 }
 
 export function resource_key(resource: Resource) {
-  return `${resource.dir}/${resource.file_name}`
+  return `${resource.dir}/${resource.file_name}`;
 }

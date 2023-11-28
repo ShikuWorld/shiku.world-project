@@ -16,6 +16,7 @@ use crate::conductor_module::errors::{
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintService, Conductor, IOPoint, ModuleId, ResourceLoaded,
 };
+use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
@@ -96,6 +97,9 @@ impl ConductorModule {
                             }
 
                             match event {
+                                AdminToSystemEvent::UpdateMap(_map) => {}
+                                AdminToSystemEvent::DeleteMap(_map) => {}
+                                AdminToSystemEvent::CreateMap(_map) => {}
                                 AdminToSystemEvent::GetResource(path) => {
                                     match BlueprintService::load_resource_by_path(path) {
                                         ResourceLoaded::Tileset(tileset) => {
@@ -213,7 +217,7 @@ impl ConductorModule {
                                     }
                                 }
                                 AdminToSystemEvent::CreateTileset(tileset) => {
-                                    match self.blueprint_service.create_tileset(&tileset) {
+                                    match Blueprint::create_tileset(&tileset) {
                                         Ok(()) => {
                                             send_and_log_error(
                                                 &mut self.system_to_admin_communication.sender,
@@ -229,7 +233,7 @@ impl ConductorModule {
                                     }
                                 }
                                 AdminToSystemEvent::SetTileset(tileset) => {
-                                    match self.blueprint_service.save_tileset(&tileset) {
+                                    match Blueprint::save_tileset(&tileset) {
                                         Ok(()) => {
                                             send_and_log_error(
                                                 &mut self.system_to_admin_communication.sender,
@@ -245,7 +249,7 @@ impl ConductorModule {
                                     }
                                 }
                                 AdminToSystemEvent::DeleteTileset(tileset) => {
-                                    match self.blueprint_service.delete_tileset(&tileset) {
+                                    match Blueprint::delete_tileset(&tileset) {
                                         Ok(()) => {
                                             send_and_log_error(
                                                 &mut self.system_to_admin_communication.sender,

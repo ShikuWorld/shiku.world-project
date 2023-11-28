@@ -158,10 +158,19 @@ pub struct ModuleUpdate {
 #[ts(export, export_to = "blueprints/")]
 pub struct Map {
     pub name: String,
-    pub resources: Vec<Resource>,
+    pub resource_path: String,
     pub entities: Vec<Entity>,
     pub joints: HashMap<JointId, Joint>,
     pub terrain: HashMap<LayerKind, Vec<Chunk>>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct MapUpdate {
+    pub name: Option<String>,
+    pub entities: Option<Vec<Entity>>,
+    pub joints: Option<HashMap<JointId, Joint>>,
+    pub chunk: Option<(LayerKind, usize, Chunk)>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

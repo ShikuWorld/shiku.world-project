@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use apecs::World;
 use log::{debug, error};
 use tokio::time::Instant;
 
@@ -12,7 +11,9 @@ use crate::core::module::{
     ModuleInstanceEvent, ModuleOutputSender,
 };
 use crate::core::module::{GuestInput, GuestToModuleEvent, SystemToModuleEvent};
-use crate::core::module_system::def::{DynamicGameModule, GuestMap, ModuleCommunication};
+use crate::core::module_system::def::{
+    DynamicGameModule, GuestCommunication, GuestMap, ModuleCommunication, ModuleGuest,
+};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::resource_module::def::ActorId;
 
@@ -24,7 +25,7 @@ impl DynamicGameModule {
     ) -> (DynamicGameModule, ModuleInputSender) {
         let (module_input_sender, module_input_receiver) = create_module_communication_input();
         let dynamic_module = DynamicGameModule {
-            world: World::default(),
+            world_map: HashMap::new(),
             blueprint,
             guests: HashMap::new(),
             admins: HashSet::new(),
@@ -45,6 +46,12 @@ impl DynamicGameModule {
         if let Some(guest) = guests.get_mut(guest_id) {
             guest.guest_input = input;
             guest.last_input_time = Instant::now();
+        }
+    }
+
+    fn set_resources_loaded(guests: &mut GuestMap, guest_id: &ActorId) {
+        if let Some(guest) = guests.get_mut(guest_id) {
+            guest.guest_com.resources_loaded = true;
         }
     }
 
@@ -91,6 +98,7 @@ impl DynamicGameModule {
                     Self::set_guest_input(&mut self.guests, &guest_id, input)
                 }
                 GuestToModuleEvent::GameSetupDone => {
+                    Self::set_resources_loaded(&mut self.guests, &guest_id);
                     if let Err(err) = self
                         .module_communication
                         .output_sender
@@ -119,9 +127,23 @@ impl DynamicGameModule {
     }
     pub fn try_enter(
         &mut self,
-        _guest: &Guest,
+        guest: &Guest,
         _module_enter_slot: &ModuleEnterSlot,
     ) -> Result<EnterSuccessState, EnterFailedState> {
+        self.guests.insert(
+            guest.id,
+            ModuleGuest {
+                id: guest.id,
+                guest_com: GuestCommunication {
+                    connected: true,
+                    resources_loaded: false,
+                },
+                guest_input: GuestInput::new(),
+                last_input_time: Instant::now(),
+                world_id: None,
+            },
+        );
+
         Ok(EnterSuccessState::Entered)
     }
 

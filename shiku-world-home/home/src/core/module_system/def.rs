@@ -32,9 +32,9 @@ impl ModuleCommunication {
 
 pub type GuestMap = HashMap<ActorId, ModuleGuest>;
 pub type AdminSet = HashSet<ActorId>;
-
+pub type WorldId = String;
 pub struct DynamicGameModule {
-    pub world: World,
+    pub world_map: HashMap<WorldId, World>,
     pub blueprint: blueprint::def::Module,
     pub guests: GuestMap,
     pub admins: AdminSet,
@@ -44,6 +44,7 @@ pub struct DynamicGameModule {
 
 pub struct ModuleGuest {
     pub(crate) id: ActorId,
+    pub(crate) world_id: Option<WorldId>,
     pub(crate) guest_input: GuestInput,
     pub(crate) guest_com: GuestCommunication,
     pub(crate) last_input_time: Instant,

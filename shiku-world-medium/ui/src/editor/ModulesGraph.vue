@@ -102,8 +102,12 @@ let applier: ArrangeAppliers.TransitionApplier<Schemes, never> | undefined =
   undefined;
 const rete = ref<HTMLElement>();
 
-const { set_selected_module_id, create_module_server, save_conductor_server } =
-  use_editor_store();
+const {
+  set_selected_module_id,
+  set_sidebar_editor,
+  create_module_server,
+  save_conductor_server,
+} = use_editor_store();
 
 const new_module_name = ref<string>("");
 
@@ -195,6 +199,7 @@ onMounted(async () => {
         return;
       }
       set_selected_module_id(node_to_module_map[context.data.id].id);
+      set_sidebar_editor("module");
     }
     return context;
   });

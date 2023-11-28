@@ -1,5 +1,5 @@
 use std::fs;
-use std::fs::{create_dir_all, remove_dir_all, remove_file, rename, File};
+use std::fs::{create_dir_all, remove_dir_all, rename, File};
 use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -10,8 +10,9 @@ use walkdir::WalkDir;
 
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintService, Conductor, FileBrowserFileKind, FileBrowserResult, Module,
-    Resource, ResourceKind, ResourceLoaded, Tileset,
+    Resource, ResourceKind, ResourceLoaded,
 };
+use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::{get_out_dir, safe_unwrap};
 
 impl Module {
@@ -86,7 +87,7 @@ impl BlueprintService {
             if let Some(file_name_os) = path_buf.as_path().file_name() {
                 if let Some(file_name) = file_name_os.to_str() {
                     return match BlueprintService::determine_resource_type(file_name) {
-                        ResourceKind::Tileset => match Self::load_tileset(path_buf) {
+                        ResourceKind::Tileset => match Blueprint::load_tileset(path_buf) {
                             Ok(tileset) => ResourceLoaded::Tileset(tileset),
                             Err(err) => {
                                 error!("Could not load Resource: {:?}", err);
@@ -149,56 +150,6 @@ impl BlueprintService {
             .join(format!("{}.json", &new_name));
         rename(old_file_name, new_file_name)?;
         module.name = new_name;
-        Ok(())
-    }
-
-    pub fn create_tileset(&self, tileset: &Tileset) -> Result<(), BlueprintError> {
-        let out_dir = get_out_dir();
-        let resource_path = PathBuf::from_str(tileset.resource_path.as_str())?;
-        let directory_path = out_dir.join(resource_path);
-        create_dir_all(directory_path.as_path().clone())?;
-        let file_path = directory_path.join(format!("{}.tileset.json", tileset.name));
-        if file_path.exists() {
-            return Err(BlueprintError::FileAlreadyExists);
-        }
-        let file = File::create(file_path)?;
-        let writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(writer, tileset)?;
-        Ok(())
-    }
-
-    pub fn load_tileset(path: PathBuf) -> Result<Tileset, BlueprintError> {
-        if !path.exists() {
-            return Err(BlueprintError::FileDoesNotExist);
-        }
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-        Ok(serde_json::from_reader(reader)?)
-    }
-
-    pub fn save_tileset(&self, tileset: &Tileset) -> Result<(), BlueprintError> {
-        let out_dir = get_out_dir();
-        let resource_path = PathBuf::from_str(tileset.resource_path.as_str())?;
-        let directory_path = out_dir.join(resource_path);
-        let file_path = directory_path.join(format!("{}.tileset.json", tileset.name));
-        if !file_path.exists() {
-            return Err(BlueprintError::FileDoesNotExist);
-        }
-        let file = File::create(file_path)?;
-        let writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(writer, tileset)?;
-        Ok(())
-    }
-
-    pub fn delete_tileset(&self, tileset: &Tileset) -> Result<(), BlueprintError> {
-        let out_dir = get_out_dir();
-        let resource_path = PathBuf::from_str(tileset.resource_path.as_str())?;
-        let directory_path = out_dir.join(resource_path);
-        let file_path = directory_path.join(format!("{}.tileset.json", tileset.name));
-        if !file_path.exists() {
-            return Err(BlueprintError::FileDoesNotExist);
-        }
-        remove_file(file_path)?;
         Ok(())
     }
 
