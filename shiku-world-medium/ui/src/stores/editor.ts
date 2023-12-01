@@ -6,17 +6,22 @@ import { Conductor } from "@/editor/blueprints/Conductor";
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
 import { Resource } from "@/editor/blueprints/Resource";
+import { MapUpdate } from "@/editor/blueprints/MapUpdate";
+import { GameMap } from "@/editor/blueprints/GameMap";
 
 export interface EditorStore {
   editor_open: boolean;
   main_door_status: boolean;
   selected_module_id: string;
   current_main_instance_id: string;
+  current_map_path: string;
   edit_module_id: string;
   conductor: Conductor;
   tileset_map: { [tileset_path: string]: Tileset };
+  game_map_map: { [map_path: string]: GameMap };
   current_map_index: number;
   modules: { [module_id: string]: Module };
+  module_instance_map: { [module_id: string]: string[] };
   selected_resource_tab: number;
   open_resource_paths: string[];
   selected_tileset_path: string;
@@ -28,21 +33,49 @@ export const use_editor_store = defineStore("editor", {
   state: (): EditorStore => ({
     editor_open: false,
     modules: {},
+    module_instance_map: {},
     side_bar_editor: "nothing",
     main_door_status: false,
     selected_module_id: "",
     selected_tileset_path: "",
     selected_tile_id: 0,
     current_main_instance_id: "",
+    current_map_path: "",
     open_resource_paths: [],
     selected_resource_tab: 0,
     edit_module_id: "",
     current_map_index: 0,
     tileset_map: {},
+    game_map_map: {},
     conductor: { module_connection_map: {}, resources: [], gid_map: [] },
     current_file_browser_result: { resources: [], dirs: [], dir: "", path: "" },
   }),
   actions: {
+    set_game_instance_map(instance_data: [string, string[]][]) {
+      const module_instance_map: EditorStore["module_instance_map"] = {};
+      for (const d of instance_data) {
+        module_instance_map[d[0]] = d[1];
+      }
+      this.module_instance_map = module_instance_map;
+    },
+    add_module_instance(module_id: string, game_instance_id: string) {
+      this.module_instance_map = {
+        ...this.module_instance_map,
+        [module_id]: this.module_instance_map[module_id]
+          ? [...this.module_instance_map[module_id], game_instance_id]
+          : [],
+      };
+    },
+    remove_module_instance(module_id: string, game_instance_id: string) {
+      this.module_instance_map = {
+        ...this.module_instance_map,
+        [module_id]: this.module_instance_map[module_id]
+          ? this.module_instance_map[module_id].filter(
+              (g) => g != game_instance_id,
+            )
+          : [],
+      };
+    },
     set_selected_tile(tileset_path: string, tile_id: number) {
       this.selected_tileset_path = tileset_path;
       this.selected_tile_id = tile_id;
@@ -74,8 +107,14 @@ export const use_editor_store = defineStore("editor", {
     set_current_file_browser_result(result: FileBrowserResult) {
       this.current_file_browser_result = result;
     },
-    set_main_module_to_edit(module_id: string) {
-      sendAdminEvent({ SelectMainModuleToEdit: module_id });
+    set_main_module_to_edit(
+      module_id: string,
+      game_instance_id: string,
+      map_path: string,
+    ) {
+      send_admin_event({
+        SelectMainInstanceToWorkOn: [module_id, game_instance_id, map_path],
+      });
     },
     update_module(module: Partial<Module> & { id: string }) {
       if (module.id) {
@@ -98,8 +137,37 @@ export const use_editor_store = defineStore("editor", {
         [module.id]: module,
       };
     },
+    set_map(game_map: GameMap) {
+      const module = this.get_module(game_map.module_id);
+      this.game_map_map = {
+        ...this.game_map_map,
+        [map_key(module, game_map)]: game_map,
+      };
+    },
+    update_map(
+      module_id: string,
+      map_update: Partial<GameMap> & { resource_path: string; name: string },
+    ) {
+      const module = this.get_module(module_id);
+      const key = map_key(module, map_update);
+      this.game_map_map = {
+        ...this.game_map_map,
+        [key]: { ...this.get_map(key), ...map_update },
+      };
+    },
+    delete_map(game_map: GameMap) {
+      const module = this.get_module(game_map.module_id);
+      const maps = {
+        ...this.game_map_map,
+      };
+      delete maps[map_key(module, game_map)];
+      this.game_map_map = maps;
+    },
     get_module(id: string) {
       return this.modules[id];
+    },
+    get_map(id: string) {
+      return this.game_map_map[id];
     },
     get_tileset(tileset_path: string) {
       return this.tileset_map[tileset_path];
@@ -111,7 +179,6 @@ export const use_editor_store = defineStore("editor", {
       );
     },
     set_tileset(tileset: Tileset) {
-      console.log("Setting tileset", tileset);
       this.tileset_map = {
         ...this.tileset_map,
         [tileset_key(tileset)]: tileset,
@@ -126,21 +193,23 @@ export const use_editor_store = defineStore("editor", {
       this.main_door_status = status;
     },
     load_modules() {
-      sendAdminEvent("LoadEditorData");
+      send_admin_event("LoadEditorData");
     },
     set_conductor(conductor: Conductor) {
       this.conductor = conductor;
+    },
+    open_game_instance_server(module_id: string) {
+      send_admin_event({ OpenInstance: module_id });
     },
     save_module_server(
       module_id: string,
       module_update: Partial<ModuleUpdate>,
     ) {
-      sendAdminEvent({
+      send_admin_event({
         UpdateModule: [
           module_id,
           {
             name: null,
-            maps: null,
             exit_points: null,
             max_guests: null,
             min_guests: null,
@@ -167,28 +236,37 @@ export const use_editor_store = defineStore("editor", {
       }
     },
     browse_folder(path: string) {
-      sendAdminEvent({ BrowseFolder: path });
+      send_admin_event({ BrowseFolder: path });
     },
     get_resource_server(path: string) {
-      sendAdminEvent({ GetResource: path });
+      send_admin_event({ GetResource: path });
+    },
+    create_map_server(map: GameMap) {
+      send_admin_event({ CreateMap: [map.module_id, map] });
+    },
+    update_map_server(module_id: string, map_update: MapUpdate) {
+      send_admin_event({ UpdateMap: [module_id, map_update] });
+    },
+    delete_map_server(map: GameMap) {
+      send_admin_event({ DeleteMap: [map.module_id, map] });
     },
     create_tileset_server(tileset: Tileset) {
-      sendAdminEvent({ CreateTileset: tileset });
+      send_admin_event({ CreateTileset: tileset });
     },
     update_tileset_server(tileset: Tileset) {
-      sendAdminEvent({ SetTileset: tileset });
+      send_admin_event({ SetTileset: tileset });
     },
     delete_tileset_server(tileset: Tileset) {
-      sendAdminEvent({ DeleteTileset: tileset });
+      send_admin_event({ DeleteTileset: tileset });
     },
     create_module_server(name: string) {
-      sendAdminEvent({ CreateModule: name });
+      send_admin_event({ CreateModule: name });
     },
     delete_module_server(id: string) {
-      sendAdminEvent({ DeleteModule: id });
+      send_admin_event({ DeleteModule: id });
     },
     save_conductor_server(conductor: Conductor) {
-      sendAdminEvent({ UpdateConductor: conductor });
+      send_admin_event({ UpdateConductor: conductor });
     },
     show_editor() {
       this.editor_open = true;
@@ -199,7 +277,7 @@ export const use_editor_store = defineStore("editor", {
   },
 });
 
-function sendAdminEvent(event: AdminToSystemEvent) {
+function send_admin_event(event: AdminToSystemEvent) {
   if (window.medium.communication_state.is_connection_open) {
     window.medium.communication_state.ws_connection.send(JSON.stringify(event));
   }
@@ -211,4 +289,11 @@ export function tileset_key(tileset: Tileset) {
 
 export function resource_key(resource: Resource) {
   return `${resource.dir}/${resource.file_name}`;
+}
+
+export function map_key(
+  module: Module,
+  game_map: { resource_path: string; name: string },
+) {
+  return `modules/${module.name}/${game_map.resource_path}/${game_map.name}.map.json`;
 }

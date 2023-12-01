@@ -6,4 +6,4 @@ import type { ResourceEvent } from "./ResourceEvent";
 import type { SignalToMedium } from "./SignalToMedium";
 import type { ToastAlertLevel } from "./ToastAlertLevel";
 
-export type CommunicationEvent = { ResourceEvent: [string, ResourceEvent] } | { PrepareGame: [string, string, ResourceBundle, boolean] } | { GameSystemEvent: [string, string, GameSystemToGuestEvent] } | { PositionEvent: [string, string, Array<[string, number, number, number]>] } | { ConnectionReady: [string, boolean] } | { Signal: SignalToMedium } | { Toast: [ToastAlertLevel, string] } | { ShowGlobalMessage: string } | "AlreadyConnected" | { EditorEvent: EditorEvent };
+export type CommunicationEvent = { "ResourceEvent": [string, ResourceEvent] } | { "PrepareGame": [string, string, ResourceBundle, boolean] } | { "GameSystemEvent": [string, string, GameSystemToGuestEvent] } | { "PositionEvent": [string, string, Array<[string, number, number, number]>] } | { "ConnectionReady": [string, boolean] } | { "Signal": SignalToMedium } | { "Toast": [ToastAlertLevel, string] } | { "ShowGlobalMessage": string } | "AlreadyConnected" | { "EditorEvent": EditorEvent };

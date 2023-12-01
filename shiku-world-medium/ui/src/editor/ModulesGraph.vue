@@ -328,7 +328,6 @@ addOrUpdateNode({
   exit_points: [{ name: "LoginOut", condition_script: "" }],
   insert_points: [],
   name: "Login",
-  maps: [],
   gid_map: [],
   max_guests: 0,
   min_guests: 0,

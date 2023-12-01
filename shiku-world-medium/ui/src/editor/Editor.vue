@@ -43,6 +43,7 @@
         <ModulesEditor
           v-if="selected_module"
           :module="selected_module"
+          :module_instances="module_instance_map[selected_module.id]"
         ></ModulesEditor>
       </div>
       <div v-if="side_bar_editor === 'tile'">
@@ -73,6 +74,7 @@ const {
   selected_tileset_path,
   selected_tile_id,
   side_bar_editor,
+  module_instance_map,
 } = storeToRefs(use_editor_store());
 const {
   get_module,

@@ -1,6 +1,7 @@
 import { create_game_renderer } from "./renderer/create_game_renderer";
 import {
   check_for_connection_ready,
+  send_admin_event,
   send_module_event,
   send_ticket,
   setup_communication_system,
@@ -38,7 +39,7 @@ export function start_medium() {
     if (!resource_manager_map[module_name]) {
       resource_manager_map[module_name] = create_resource_manager();
       resource_manager_map[module_name].resource_bundle_complete.sub(() => {
-        send_module_event("GameSetupDone", communication_system);
+        send_admin_event("GameSetupDone", communication_system);
       });
     }
 
@@ -117,9 +118,43 @@ export function start_medium() {
             .with({ DeletedTileset: P.select() }, (d) => {
               window.medium_gui.editor.delete_tileset(d);
             })
+            .with({ CreatedMap: P.select() }, (d) => {
+              window.medium_gui.editor.set_map(d);
+            })
+            .with({ SetMap: P.select() }, (d) => {
+              window.medium_gui.editor.set_map(d);
+            })
+            .with({ UpdatedMap: P.select() }, ([module_id, d]) => {
+              window.medium_gui.editor.update_map(module_id, d);
+            })
+            .with({ DeletedMap: P.select() }, (d) => {
+              window.medium_gui.editor.delete_map(d);
+            })
             .with({ UpdatedConductor: P.select() }, (d) => {
               window.medium_gui.editor.set_conductor(d);
             })
+            .with({ ModuleInstances: P.select() }, (d) => {
+              window.medium_gui.editor.set_game_instance_map(d);
+            })
+            .with(
+              { ModuleInstanceOpened: P.select() },
+              ([module_id, game_instance_id]) => {
+                window.medium_gui.editor.add_module_instance(
+                  module_id,
+                  game_instance_id,
+                );
+              },
+            )
+            .with(
+              { ModuleInstanceClosed: P.select() },
+              ([module_id, game_instance_id]) => {
+                window.medium_gui.editor.remove_module_instance(
+                  module_id,
+                  game_instance_id,
+                );
+              },
+            )
+
             .exhaustive();
         })
         .with(

@@ -3,6 +3,5 @@ import type { Chunk } from "./Chunk";
 import type { Entity } from "./Entity";
 import type { Joint } from "./Joint";
 import type { LayerKind } from "./LayerKind";
-import type { Resource } from "./Resource";
 
-export interface Map { name: string, resources: Array<Resource>, entities: Array<Entity>, joints: Record<number, Joint>, terrain: Record<LayerKind, Array<Chunk>>, }
+export interface GameMap { module_id: string, name: string, resource_path: string, entities: Array<Entity>, joints: Record<number, Joint>, chunk_size: number, tile_width: number, tile_height: number, terrain: Record<LayerKind, Array<Chunk>>, }

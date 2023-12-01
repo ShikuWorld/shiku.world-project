@@ -26,7 +26,17 @@
     ></v-text-field>
     <ModuleSlots :slots="module.exit_points" @delete="delete_exit_point" />
     <v-divider></v-divider>
-    <v-btn @click="set_main_module_to_edit(module.id)">Select as Main</v-btn>
+    <v-list>
+      <v-list-item v-if="module_instances.length === 0">
+        <v-btn @click="open_game_instance_server(module.id)"
+          >Create new instance</v-btn
+        >
+      </v-list-item>
+      <v-list-item v-for="instance in module_instances">{{
+        instance
+      }}</v-list-item>
+    </v-list>
+
     <v-divider></v-divider>
 
     <v-dialog width="800">
@@ -88,10 +98,10 @@ import { ref, toRefs } from "vue";
 import ModuleSlots from "@/editor/editor/ModuleSlots.vue";
 import AddResourcesModal from "@/editor/editor/AddResourcesModal.vue";
 
-const props = defineProps<{ module: Module }>();
-const { module } = toRefs(props);
+const props = defineProps<{ module: Module; module_instances: string[] }>();
+const { module, module_instances } = toRefs(props);
 
-const { save_module_server, delete_module_server, set_main_module_to_edit } =
+const { save_module_server, delete_module_server, open_game_instance_server } =
   use_editor_store();
 const input_socket_name = ref("");
 const output_socket_name = ref("");

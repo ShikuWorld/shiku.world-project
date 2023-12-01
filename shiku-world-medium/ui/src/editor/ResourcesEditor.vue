@@ -32,6 +32,11 @@
                 >Tileset</v-list-item-title
               >
             </v-list-item>
+            <v-list-item v-if="selected_module">
+              <v-list-item-title @click="create_map_dialog = true"
+                >Map</v-list-item-title
+              >
+            </v-list-item>
           </v-list>
         </v-menu>
         <v-dialog v-model="create_tileset_dialog" width="800">
@@ -39,6 +44,13 @@
             @close="create_tileset_dialog = false"
             @save="save_tileset"
           ></CreateTileset>
+        </v-dialog>
+        <v-dialog v-model="create_map_dialog" width="800">
+          <CreateMap
+            @close="create_map_dialog = false"
+            @save="save_map"
+            :module="selected_module"
+          ></CreateMap>
         </v-dialog>
       </v-window-item>
       <v-window-item
@@ -60,16 +72,29 @@ import { mdiPlus, mdiTrashCan } from "@mdi/js";
 import CreateTileset from "@/editor/editor/CreateTileset.vue";
 import { computed, onMounted, ref, watch } from "vue";
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
+import { GameMap } from "@/client/communication/api/blueprints/GameMap";
 import { resource_key, use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
 import { Resource } from "@/editor/blueprints/Resource";
 import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
 import { match } from "ts-pattern";
+import CreateMap from "@/editor/editor/CreateMap.vue";
 const create_tileset_dialog = ref(false);
-const { create_tileset_server, close_resource, get_resource_server } =
-  use_editor_store();
-const { open_resource_paths, modules, selected_resource_tab, tileset_map } =
-  storeToRefs(use_editor_store());
+const create_map_dialog = ref(false);
+const {
+  create_tileset_server,
+  create_map_server,
+  get_module,
+  close_resource,
+  get_resource_server,
+} = use_editor_store();
+const {
+  open_resource_paths,
+  modules,
+  selected_resource_tab,
+  selected_module_id,
+  tileset_map,
+} = storeToRefs(use_editor_store());
 const available_resources = computed(
   () =>
     new Map(
@@ -78,6 +103,7 @@ const available_resources = computed(
       ),
     ),
 );
+const selected_module = computed(() => get_module(selected_module_id.value));
 const open_resources = computed(
   () =>
     open_resource_paths.value.map((path) =>
@@ -101,6 +127,11 @@ function ensure_resources_are_loaded() {
           get_resource_server(r.path);
         }
       })
+      .with({ kind: "Map" }, (r) => {
+        if (!tileset_map.value[resource_key(r)]) {
+          get_resource_server(r.path);
+        }
+      })
       .with({ kind: "Unknown" }, () => {})
       .exhaustive();
   }
@@ -109,6 +140,11 @@ function ensure_resources_are_loaded() {
 function save_tileset(tileset: Tileset) {
   create_tileset_dialog.value = false;
   create_tileset_server(tileset);
+}
+
+function save_map(game_map: GameMap) {
+  create_map_dialog.value = false;
+  create_map_server(game_map);
 }
 </script>
 <style></style>

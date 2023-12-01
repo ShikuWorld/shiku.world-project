@@ -62,14 +62,21 @@ pub struct ProviderLoggedIn {
 #[ts(export)]
 pub enum EditorEvent {
     Modules(Vec<blueprint::def::Module>),
+    ModuleInstances(Vec<(ModuleId, Vec<GameInstanceId>)>),
     CreatedModule(ModuleId, blueprint::def::Module),
     DeletedModule(ModuleId),
     UpdatedModule(ModuleId, blueprint::def::Module),
+    CreatedMap(blueprint::def::GameMap),
+    SetMap(blueprint::def::GameMap),
+    UpdatedMap(ModuleId, blueprint::def::MapUpdate),
+    DeletedMap(blueprint::def::GameMap),
     CreatedTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
     DeletedTileset(blueprint::def::Tileset),
     DirectoryInfo(blueprint::def::FileBrowserResult),
     UpdatedConductor(Conductor),
+    ModuleInstanceOpened(ModuleId, GameInstanceId),
+    ModuleInstanceClosed(ModuleId, GameInstanceId),
     MainDoorStatus(bool),
 }
 
@@ -79,16 +86,17 @@ pub enum AdminToSystemEvent {
     ProviderLoggedIn(ProviderLoggedIn),
     UpdateConductor(blueprint::def::Conductor),
     BrowseFolder(String),
-    SelectMainModuleToEdit(ModuleId),
+    OpenInstance(ModuleId),
+    SelectMainInstanceToWorkOn(ModuleId, GameInstanceId, ResourcePath),
     UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),
     GetResource(ResourcePath),
     CreateTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
     DeleteTileset(blueprint::def::Tileset),
-    CreateMap(blueprint::def::Map),
-    UpdateMap(blueprint::def::Map),
-    DeleteMap(blueprint::def::Map),
+    CreateMap(ModuleId, blueprint::def::GameMap),
+    UpdateMap(ModuleId, blueprint::def::MapUpdate),
+    DeleteMap(ModuleId, blueprint::def::GameMap),
     DeleteModule(ModuleId),
     SetMainDoorStatus(bool),
     SetBackDoorStatus(bool),
@@ -134,6 +142,8 @@ pub enum GuestStateChange {
 #[derive(Debug)]
 pub enum ModuleToSystemEvent {
     GuestStateChange(ActorId, GuestStateChange),
+    GameInstanceCreated(ModuleId, GameInstanceId),
+    GameInstanceClosed(ModuleId, GameInstanceId),
     GlobalMessage(String),
     ToastMessage(ActorId, ToastAlertLevel, String),
 }

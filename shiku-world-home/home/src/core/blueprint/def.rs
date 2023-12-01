@@ -35,11 +35,13 @@ impl Conductor {
 #[ts(export, export_to = "blueprints/")]
 pub enum ResourceKind {
     Tileset,
+    Map,
     Unknown,
 }
 
 pub enum ResourceLoaded {
     Tileset(Tileset),
+    Map(GameMap),
     Unknown,
 }
 
@@ -112,8 +114,6 @@ pub struct Tile {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Chunk {
-    pub width: u32,
-    pub height: u32,
     pub position: (i32, i32),
     pub data: Vec<Vec<u32>>,
 }
@@ -134,7 +134,6 @@ pub struct Module {
     pub name: ModuleName,
     pub resources: Vec<Resource>,
     pub gid_map: Vec<(ResourcePath, u32)>,
-    pub maps: Vec<Map>,
     pub insert_points: Vec<IOPoint>,
     pub exit_points: Vec<IOPoint>,
     pub max_guests: usize,
@@ -147,27 +146,49 @@ pub struct Module {
 pub struct ModuleUpdate {
     pub name: Option<String>,
     pub resources: Option<Vec<Resource>>,
-    pub maps: Option<Vec<Map>>,
     pub insert_points: Option<Vec<IOPoint>>,
     pub exit_points: Option<Vec<IOPoint>>,
     pub max_guests: Option<usize>,
     pub min_guests: Option<usize>,
 }
 
+impl ModuleUpdate {
+    pub fn default() -> ModuleUpdate {
+        ModuleUpdate {
+            name: None,
+            resources: None,
+            insert_points: None,
+            exit_points: None,
+            max_guests: None,
+            min_guests: None,
+        }
+    }
+
+    pub fn resources(mut self, resources: Vec<Resource>) -> ModuleUpdate {
+        self.resources = Some(resources);
+        self
+    }
+}
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub struct Map {
+pub struct GameMap {
+    pub module_id: String,
     pub name: String,
     pub resource_path: String,
     pub entities: Vec<Entity>,
     pub joints: HashMap<JointId, Joint>,
+    pub chunk_size: u32,
+    pub tile_width: u32,
+    pub tile_height: u32,
     pub terrain: HashMap<LayerKind, Vec<Chunk>>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct MapUpdate {
-    pub name: Option<String>,
+    pub name: String,
+    pub resource_path: ResourcePath,
     pub entities: Option<Vec<Entity>>,
     pub joints: Option<HashMap<JointId, Joint>>,
     pub chunk: Option<(LayerKind, usize, Chunk)>,

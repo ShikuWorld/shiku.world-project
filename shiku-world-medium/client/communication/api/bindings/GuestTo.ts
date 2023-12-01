@@ -2,4 +2,4 @@
 import type { GuestToModuleEvent } from "./GuestToModuleEvent";
 import type { GuestToSystemEvent } from "./GuestToSystemEvent";
 
-export type GuestTo = { GuestToSystemEvent: GuestToSystemEvent } | { GuestToModuleEvent: GuestToModuleEvent };
+export type GuestTo = { "GuestToSystemEvent": GuestToSystemEvent } | { "GuestToModuleEvent": GuestToModuleEvent };

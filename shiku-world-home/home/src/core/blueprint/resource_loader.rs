@@ -1,4 +1,4 @@
-use crate::core::blueprint::def::{BlueprintError, Map, Tileset};
+use crate::core::blueprint::def::{BlueprintError, GameMap, Tileset};
 use crate::core::get_out_dir;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -75,34 +75,34 @@ impl Blueprint {
     }
 
     pub fn create_tileset(tileset: &Tileset) -> Result<(), BlueprintError> {
-        return Self::create(tileset, &tileset.resource_path, &tileset.name, "tileset");
+        Self::create(tileset, &tileset.resource_path, &tileset.name, "tileset")
     }
 
     pub fn load_tileset(path: PathBuf) -> Result<Tileset, BlueprintError> {
-        return Self::load(path);
+        Self::load(path)
     }
 
     pub fn save_tileset(tileset: &Tileset) -> Result<(), BlueprintError> {
-        return Self::save(tileset, &tileset.resource_path, &tileset.name, "tileset");
+        Self::save(tileset, &tileset.resource_path, &tileset.name, "tileset")
     }
 
     pub fn delete_tileset(tileset: &Tileset) -> Result<(), BlueprintError> {
-        return Self::delete(&tileset.resource_path, &tileset.name, "tileset");
+        Self::delete(&tileset.resource_path, &tileset.name, "tileset")
     }
 
-    pub fn create_map(map: &Map) -> Result<(), BlueprintError> {
-        return Self::create(map, &map.resource_path, &map.name, "map");
+    pub fn create_map(map: &GameMap) -> Result<(), BlueprintError> {
+        Self::create(map, &map.resource_path, &map.name, "map")
     }
 
-    pub fn load_map(path: PathBuf) -> Result<Tileset, BlueprintError> {
-        return Self::load(path);
+    pub fn load_map(path: PathBuf) -> Result<GameMap, BlueprintError> {
+        Self::load(path)
     }
 
-    pub fn save_map(map: &Map) -> Result<(), BlueprintError> {
-        return Self::save(map, &map.resource_path, &map.name, "map");
+    pub fn save_map(map: &GameMap) -> Result<(), BlueprintError> {
+        Self::save(map, &map.resource_path, &map.name, "map")
     }
 
-    pub fn delete_map(map: &Map) -> Result<(), BlueprintError> {
-        return Self::delete(&map.resource_path, &map.name, "map");
+    pub fn delete_map(map: &GameMap) -> Result<(), BlueprintError> {
+        Self::delete(&map.resource_path, &map.name, "map")
     }
 }

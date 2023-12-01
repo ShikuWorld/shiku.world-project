@@ -20,7 +20,6 @@ impl Module {
         Module {
             id,
             name,
-            maps: Vec::new(),
             max_guests: 0,
             min_guests: 0,
             gid_map: Vec::new(),
@@ -66,7 +65,7 @@ impl BlueprintService {
                     file_browser_entry.resources.push(Resource {
                         file_name: file_name.to_string(),
                         dir: directory.clone(),
-                        path: browsing_dir.join(file_name).display().to_string(),
+                        path: format!("{}/{}", file_name, directory),
                         kind: ResourceKind::Tileset,
                     });
                 }
@@ -83,12 +82,22 @@ impl BlueprintService {
     }
 
     pub fn load_resource_by_path(path: String) -> ResourceLoaded {
+        let out_dir = get_out_dir();
         if let Ok(path_buf) = PathBuf::from_str(path.as_str()) {
             if let Some(file_name_os) = path_buf.as_path().file_name() {
                 if let Some(file_name) = file_name_os.to_str() {
                     return match BlueprintService::determine_resource_type(file_name) {
-                        ResourceKind::Tileset => match Blueprint::load_tileset(path_buf) {
-                            Ok(tileset) => ResourceLoaded::Tileset(tileset),
+                        ResourceKind::Tileset => {
+                            match Blueprint::load_tileset(out_dir.join(path_buf)) {
+                                Ok(tileset) => ResourceLoaded::Tileset(tileset),
+                                Err(err) => {
+                                    error!("Could not load Resource: {:?}", err);
+                                    ResourceLoaded::Unknown
+                                }
+                            }
+                        }
+                        ResourceKind::Map => match Blueprint::load_map(out_dir.join(path_buf)) {
+                            Ok(map) => ResourceLoaded::Map(map),
                             Err(err) => {
                                 error!("Could not load Resource: {:?}", err);
                                 ResourceLoaded::Unknown
@@ -187,9 +196,7 @@ impl BlueprintService {
 
     pub fn get_all_modules(&self) -> Result<Vec<Module>, BlueprintError> {
         let dir_path = get_out_dir().join("modules");
-        debug!("1");
         let paths = fs::read_dir(dir_path)?;
-        debug!("2");
         let mut modules = Vec::new();
         for path in paths {
             let module_name = path?
@@ -197,7 +204,6 @@ impl BlueprintService {
                 .into_string()
                 .unwrap_or("MODULE_NAME_BROKEN".into());
             modules.push(self.load_module(module_name)?);
-            debug!("4");
         }
 
         Ok(modules)

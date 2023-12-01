@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use log::error;
 use rapier2d::prelude::Real;
@@ -7,14 +7,14 @@ use thiserror::Error;
 
 use crate::core::blueprint::def::BlueprintError;
 use crate::core::blueprint::def::BlueprintService;
-use crate::core::guest::{Guest, ModuleEnterSlot};
+use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication, EnterFailedState, EnterSuccessState, LeaveFailedState,
     LeaveSuccessState, ModuleInputReceiver, ModuleInputSender, ModuleOutputReceiver,
-    ModuleOutputSender,
+    ModuleOutputSender, ModuleToSystemEvent,
 };
 use crate::core::module_system::def::DynamicGameModule;
-use crate::core::{blueprint, Snowflake, TARGET_FRAME_DURATION};
+use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
 use crate::resource_module::def::{ActorId, ResourceFile, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 
@@ -32,7 +32,7 @@ pub struct GameInstanceManager {
     pub(crate) game_instances: HashMap<GameInstanceId, GameInstance>,
     pub(crate) inactive_game_instances: Vec<GameInstanceId>,
     pub(crate) guest_to_game_instance_map: HashMap<ActorId, GameInstanceId>,
-    pub(crate) active_admin_instances: HashMap<Snowflake, Vec<GameInstanceId>>,
+    pub(crate) active_admins: HashMap<ActorId, HashSet<GameInstanceId>>,
     pub(crate) input_receiver: ModuleInputReceiver,
     pub(crate) output_sender: ModuleOutputSender,
     pub(crate) module_blueprint: blueprint::def::Module,
@@ -56,7 +56,7 @@ impl GameInstanceManager {
             game_instances: HashMap::new(),
             inactive_game_instances: Vec::new(),
             guest_to_game_instance_map: HashMap::new(),
-            active_admin_instances: HashMap::new(),
+            active_admins: HashMap::new(),
             instance_id_gen: SnowflakeIdBucket::new(1, 6),
             game_instance_timeout: 30000.0,
             input_receiver,
@@ -85,7 +85,40 @@ impl GameInstanceManager {
 
         for inactive_game_instanced_id in self.inactive_game_instances.drain(..) {
             self.game_instances.remove(&inactive_game_instanced_id);
+            send_and_log_error(
+                &mut self.output_sender.module_to_system_sender,
+                ModuleToSystemEvent::GameInstanceClosed(
+                    self.module_blueprint.id.clone(),
+                    inactive_game_instanced_id,
+                ),
+            );
         }
+    }
+
+    pub fn let_admin_into_instance(
+        &mut self,
+        admin: &Admin,
+        instance_id: GameInstanceId,
+    ) -> Result<(), EnterFailedState> {
+        let current_instance = self.active_admins.entry(admin.id).or_insert(HashSet::new());
+        if current_instance.contains(&instance_id) {
+            return Err(EnterFailedState::AlreadyEntered);
+        }
+        current_instance.insert(instance_id);
+        Ok(())
+    }
+
+    pub fn let_admin_leave_instance(
+        &mut self,
+        admin: &Admin,
+        instance_id: GameInstanceId,
+    ) -> Result<(), LeaveFailedState> {
+        let current_instance = self.active_admins.entry(admin.id).or_insert(HashSet::new());
+        if !current_instance.contains(&instance_id) {
+            return Err(LeaveFailedState::NotInModule);
+        }
+        current_instance.remove(&instance_id);
+        Ok(())
     }
 
     pub fn try_enter(
@@ -199,6 +232,27 @@ impl GameInstanceManager {
         }
     }
 
+    pub fn create_new_game_instance(&mut self) -> GameInstanceId {
+        let new_game_instance = GameInstance::new(
+            self.instance_id_gen.get_id().to_string(),
+            self.module_blueprint.clone(),
+            self.output_sender.clone(),
+        );
+        let new_game_instance_id = new_game_instance.id.clone();
+        self.game_instances
+            .entry(new_game_instance.id.clone())
+            .or_insert(new_game_instance);
+        send_and_log_error(
+            &mut self.output_sender.module_to_system_sender,
+            ModuleToSystemEvent::GameInstanceCreated(
+                self.module_blueprint.id.clone(),
+                new_game_instance_id.clone(),
+            ),
+        );
+
+        new_game_instance_id
+    }
+
     pub fn lazy_get_game_instance_for_guest_to_join(&mut self) -> GameInstanceId {
         let max_guest_count = self.module_blueprint.max_guests;
         let mut game_instance_id_found = None;
@@ -215,17 +269,7 @@ impl GameInstanceManager {
             return game_instance_id;
         }
 
-        let new_game_instance = GameInstance::new(
-            self.instance_id_gen.get_id().to_string(),
-            self.module_blueprint.clone(),
-            self.output_sender.clone(),
-        );
-        let new_game_instance_id = new_game_instance.id.clone();
-        self.game_instances
-            .entry(new_game_instance.id.clone())
-            .or_insert(new_game_instance);
-
-        new_game_instance_id
+        self.create_new_game_instance()
     }
 }
 

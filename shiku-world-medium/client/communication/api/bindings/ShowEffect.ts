@@ -2,4 +2,4 @@
 import type { ShakeScreenEffect } from "./ShakeScreenEffect";
 import type { SimpleImageEffect } from "./SimpleImageEffect";
 
-export type ShowEffect = { SimpleImageEffect: SimpleImageEffect } | { ShakeScreenEffect: ShakeScreenEffect };
+export type ShowEffect = { "SimpleImageEffect": SimpleImageEffect } | { "ShakeScreenEffect": ShakeScreenEffect };
