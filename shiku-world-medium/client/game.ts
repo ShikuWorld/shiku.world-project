@@ -32,15 +32,26 @@ export function start_medium() {
   const menu_system = new MenuSystem();
   const guest_input = create_guest_input();
   const button_feedback_update = setup_button_feedback();
-  const instances: { [instance_id: string]: GameInstance } = {};
+  const instances: {
+    [instance_id: string]: { [world_id: string]: GameInstance };
+  } = {};
   const resource_manager_map: { [module_name: string]: ResourceManager } = {};
-  let current_active_instance: string | null = null;
+  const current_active_instance: string | null = null;
   function lazy_get_resource_manager(module_name: string) {
     if (!resource_manager_map[module_name]) {
       resource_manager_map[module_name] = create_resource_manager();
-      resource_manager_map[module_name].resource_bundle_complete.sub(() => {
-        send_admin_event("GameSetupDone", communication_system);
-      });
+      resource_manager_map[module_name].resource_bundle_complete.sub(
+        ({ module_id }) => {
+          if (is_admin) {
+            send_admin_event(
+              { InitialResourcesLoaded: module_id },
+              communication_system,
+            );
+          } else {
+            send_module_event("GameSetupDone", communication_system);
+          }
+        },
+      );
     }
 
     return resource_manager_map[module_name];
@@ -124,8 +135,8 @@ export function start_medium() {
             .with({ SetMap: P.select() }, (d) => {
               window.medium_gui.editor.set_map(d);
             })
-            .with({ UpdatedMap: P.select() }, ([module_id, d]) => {
-              window.medium_gui.editor.update_map(module_id, d);
+            .with({ UpdatedMap: P.select() }, (d) => {
+              window.medium_gui.editor.update_map(d);
             })
             .with({ DeletedMap: P.select() }, (d) => {
               window.medium_gui.editor.delete_map(d);
@@ -177,40 +188,57 @@ export function start_medium() {
         )
         .with(
           { PrepareGame: P.select() },
-          ([module_name, instance_id, resource_bundle, is_main_instance]) => {
-            lazy_get_resource_manager(module_name).load_resource_bundle(
-              module_name,
+          ([module_id, instance_id, w_id, resource_bundle]) => {
+            lazy_get_resource_manager(module_id).load_resource_bundle(
+              module_id,
               instance_id,
               resource_bundle,
             );
-            instances[instance_id] = create_new_game_instance(
+            if (!instances[instance_id]) {
+              instances[instance_id] = {};
+            }
+            const world_id = w_id ? w_id : "default";
+            instances[instance_id][world_id] = create_new_game_instance(
               instance_id,
-              module_name,
+              module_id,
+              world_id,
               render_system,
             );
-            if (is_main_instance) {
-              current_active_instance = instance_id;
-              window.medium_gui.editor.set_current_main_instance_id(
-                instance_id,
+            window.medium_gui.editor.set_game_instances(instances);
+          },
+        )
+        .with({ UnloadGame: P.select() }, ([_, instance_id, w_id]) => {
+          const world_id = w_id ? w_id : "default";
+          if (instances[instance_id] && instances[instance_id][world_id]) {
+            instances[instance_id][world_id].destroy();
+            delete instances[instance_id][world_id];
+            if (Object.keys(instances[instance_id]).length === 0) {
+              delete instances[instance_id];
+            }
+            window.medium_gui.editor.set_game_instances(instances);
+          }
+        })
+        .with(
+          { GameSystemEvent: P.select() },
+          ([module_id, instance_id, w_id, game_system_event]) => {
+            const world_id = w_id ? w_id : "default";
+            if (instances[instance_id] && instances[instance_id][world_id]) {
+              instances[instance_id][world_id].handle_game_system_event(
+                game_system_event,
+                menu_system,
+                lazy_get_resource_manager(module_id),
               );
             }
           },
         )
         .with(
-          { GameSystemEvent: P.select() },
-          ([module_name, instance_id, game_system_event]) => {
-            instances[instance_id].handle_game_system_event(
-              game_system_event,
-              menu_system,
-              lazy_get_resource_manager(module_name),
-            );
-          },
-        )
-        .with(
           { PositionEvent: P.select() },
-          ([_moudule_name, instance_id, position_event]) => {
-            if (instances[instance_id]) {
-              instances[instance_id].handle_position_update(position_event);
+          ([_module_id, instance_id, w_id, position_event]) => {
+            const world_id = w_id ? w_id : "default";
+            if (instances[instance_id] && instances[instance_id][world_id]) {
+              instances[instance_id][world_id].handle_position_update(
+                position_event,
+              );
             }
           },
         )
@@ -239,8 +267,10 @@ export function start_medium() {
     }
     communication_system.inbox = [];
 
-    for (const instance of Object.values(instances)) {
-      instance.update();
+    for (const instances_per_world of Object.values(instances)) {
+      for (const instance of Object.values(instances_per_world)) {
+        instance.update();
+      }
     }
 
     if (guest_input.is_dirty && current_active_instance !== null) {

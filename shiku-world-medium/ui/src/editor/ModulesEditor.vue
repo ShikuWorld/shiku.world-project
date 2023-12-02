@@ -29,12 +29,24 @@
     <v-list>
       <v-list-item v-if="module_instances.length === 0">
         <v-btn @click="open_game_instance_server(module.id)"
-          >Create new instance</v-btn
+          >Get Instance</v-btn
         >
       </v-list-item>
-      <v-list-item v-for="instance in module_instances">{{
-        instance
-      }}</v-list-item>
+      <v-list-item
+        v-for="(instance_id, index) in module_instances"
+        :key="instance_id"
+        :title="`${module.name}-${index}`"
+      >
+        <v-list>
+          <v-list-item
+            v-for="game_map in game_maps"
+            @click="
+              start_inspecting_world(module.id, instance_id, game_map.world_id)
+            "
+            >{{ game_map.name }}</v-list-item
+          >
+        </v-list>
+      </v-list-item>
     </v-list>
 
     <v-divider></v-divider>
@@ -94,17 +106,47 @@
 import { Module } from "@/editor/blueprints/Module";
 import { use_editor_store } from "@/editor/stores/editor";
 import { mdiTrashCan } from "@mdi/js";
-import { ref, toRefs } from "vue";
+import { computed, onMounted, ref, toRefs, watch } from "vue";
 import ModuleSlots from "@/editor/editor/ModuleSlots.vue";
 import AddResourcesModal from "@/editor/editor/AddResourcesModal.vue";
+import { storeToRefs } from "pinia";
+import { GameMap } from "@/editor/blueprints/GameMap";
 
 const props = defineProps<{ module: Module; module_instances: string[] }>();
 const { module, module_instances } = toRefs(props);
 
-const { save_module_server, delete_module_server, open_game_instance_server } =
-  use_editor_store();
+const {
+  save_module_server,
+  delete_module_server,
+  open_game_instance_server,
+  get_resource_server,
+  start_inspecting_world,
+} = use_editor_store();
+const { game_map_map } = storeToRefs(use_editor_store());
 const input_socket_name = ref("");
 const output_socket_name = ref("");
+const game_maps = computed<GameMap[]>(() =>
+  module.value.resources
+    .filter((m) => m.kind === "Map")
+    .map((m) => game_map_map.value[m.path])
+    .filter((m) => !!m),
+);
+
+onMounted(() => {
+  load_missing_maps();
+});
+
+watch(module, () => {
+  load_missing_maps();
+});
+
+function load_missing_maps() {
+  for (const r of module.value.resources.filter(
+    (m) => m.kind === "Map" && !game_map_map.value[m.path],
+  )) {
+    get_resource_server(r.path);
+  }
+}
 
 function delete_insert_point(insert_point_name: string) {
   save_module_server(module.value.id, {

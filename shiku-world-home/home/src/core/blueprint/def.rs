@@ -31,7 +31,7 @@ impl Conductor {
     }
 }
 
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[derive(TS, Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum ResourceKind {
     Tileset,
@@ -174,6 +174,7 @@ impl ModuleUpdate {
 #[ts(export, export_to = "blueprints/")]
 pub struct GameMap {
     pub module_id: String,
+    pub world_id: String,
     pub name: String,
     pub resource_path: String,
     pub entities: Vec<Entity>,

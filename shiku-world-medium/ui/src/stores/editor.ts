@@ -8,6 +8,7 @@ import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
 import { Resource } from "@/editor/blueprints/Resource";
 import { MapUpdate } from "@/editor/blueprints/MapUpdate";
 import { GameMap } from "@/editor/blueprints/GameMap";
+import { GameInstance } from "@/client/game-instance";
 
 export interface EditorStore {
   editor_open: boolean;
@@ -26,6 +27,9 @@ export interface EditorStore {
   open_resource_paths: string[];
   selected_tileset_path: string;
   selected_tile_id: number;
+  game_instances: {
+    [instance_id: string]: { [world_id: string]: GameInstance };
+  };
   side_bar_editor: "module" | "tile" | "nothing";
   current_file_browser_result: FileBrowserResult;
 }
@@ -46,6 +50,7 @@ export const use_editor_store = defineStore("editor", {
     edit_module_id: "",
     current_map_index: 0,
     tileset_map: {},
+    game_instances: {},
     game_map_map: {},
     conductor: { module_connection_map: {}, resources: [], gid_map: [] },
     current_file_browser_result: { resources: [], dirs: [], dir: "", path: "" },
@@ -75,6 +80,9 @@ export const use_editor_store = defineStore("editor", {
             )
           : [],
       };
+    },
+    set_game_instances(game_instances: EditorStore["game_instances"]) {
+      this.game_instances = game_instances;
     },
     set_selected_tile(tileset_path: string, tile_id: number) {
       this.selected_tileset_path = tileset_path;
@@ -107,13 +115,22 @@ export const use_editor_store = defineStore("editor", {
     set_current_file_browser_result(result: FileBrowserResult) {
       this.current_file_browser_result = result;
     },
-    set_main_module_to_edit(
+    start_inspecting_world(
       module_id: string,
       game_instance_id: string,
-      map_path: string,
+      world_id: string,
     ) {
       send_admin_event({
-        SelectMainInstanceToWorkOn: [module_id, game_instance_id, map_path],
+        StartInspectingWorld: [module_id, game_instance_id, world_id],
+      });
+    },
+    stop_inspecting_world(
+      module_id: string,
+      game_instance_id: string,
+      world_id: string,
+    ) {
+      send_admin_event({
+        StopInspectingWorld: [module_id, game_instance_id, world_id],
       });
     },
     update_module(module: Partial<Module> & { id: string }) {
@@ -138,38 +155,40 @@ export const use_editor_store = defineStore("editor", {
       };
     },
     set_map(game_map: GameMap) {
-      const module = this.get_module(game_map.module_id);
       this.game_map_map = {
         ...this.game_map_map,
-        [map_key(module, game_map)]: game_map,
+        [map_key(game_map)]: game_map,
       };
     },
     update_map(
-      module_id: string,
       map_update: Partial<GameMap> & { resource_path: string; name: string },
     ) {
-      const module = this.get_module(module_id);
-      const key = map_key(module, map_update);
+      const key = map_key(map_update);
       this.game_map_map = {
         ...this.game_map_map,
         [key]: { ...this.get_map(key), ...map_update },
       };
     },
     delete_map(game_map: GameMap) {
-      const module = this.get_module(game_map.module_id);
       const maps = {
         ...this.game_map_map,
       };
-      delete maps[map_key(module, game_map)];
+      delete maps[map_key(game_map)];
       this.game_map_map = maps;
     },
     get_module(id: string) {
       return this.modules[id];
     },
-    get_map(id: string) {
-      return this.game_map_map[id];
+    get_map(key: string) {
+      if (!this.game_map_map[key]) {
+        this.get_resource_server(key);
+      }
+      return this.game_map_map[key];
     },
     get_tileset(tileset_path: string) {
+      if (!this.game_map_map[tileset_path]) {
+        this.get_resource_server(tileset_path);
+      }
       return this.tileset_map[tileset_path];
     },
     set_modules(modules: Module[]) {
@@ -291,9 +310,6 @@ export function resource_key(resource: Resource) {
   return `${resource.dir}/${resource.file_name}`;
 }
 
-export function map_key(
-  module: Module,
-  game_map: { resource_path: string; name: string },
-) {
-  return `modules/${module.name}/${game_map.resource_path}/${game_map.name}.map.json`;
+export function map_key(game_map: { resource_path: string; name: string }) {
+  return `${game_map.resource_path}/${game_map.name}.map.json`;
 }

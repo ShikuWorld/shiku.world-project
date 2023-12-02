@@ -13,6 +13,7 @@ use url::Url;
 
 use crate::core::blueprint::def::ModuleId;
 use crate::core::module::{GuestEvent, ModuleInstanceEvent};
+use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::{safe_unwrap, send_and_log_error_consume};
 use crate::resource_module::def::{
@@ -144,12 +145,14 @@ impl ResourceModule {
         guest_id: &ActorId,
         module_id: &ModuleId,
         instance_id: GameInstanceId,
+        world_id: Option<WorldId>,
     ) -> Result<(), SendLoadEventError> {
         self.resource_load_events.push(GuestEvent {
             guest_id: *guest_id,
             event_type: ModuleInstanceEvent {
                 module_id: module_id.clone(),
                 instance_id,
+                world_id,
                 event_type: ResourceEvent::LoadResource(ResourceBundle {
                     name: "TBD".into(),
                     assets: self.get_active_resources_for_module(module_id, guest_id)?,
@@ -165,6 +168,7 @@ impl ResourceModule {
         guest_id: ActorId,
         module_id: ModuleId,
         instance_id: GameInstanceId,
+        world_id: Option<WorldId>,
     ) {
         self.resource_load_events.push(GuestEvent {
             guest_id,
@@ -172,6 +176,7 @@ impl ResourceModule {
             event_type: ModuleInstanceEvent {
                 module_id,
                 instance_id,
+                world_id,
                 event_type: ResourceEvent::UnLoadResource,
             },
         });
@@ -226,7 +231,7 @@ impl ResourceModule {
         guest_id: &ActorId,
     ) -> Result<(), SendLoadEventError> {
         self.active_resources
-            .entry(guest_id.clone())
+            .entry(*guest_id)
             .or_insert_with(HashMap::new)
             .insert(module_id.clone(), true);
 
@@ -239,7 +244,7 @@ impl ResourceModule {
         instance_id: GameInstanceId,
         guest_id: ActorId,
     ) -> Result<(), SendUnloadEventError> {
-        if let None = self.active_resources.get(&guest_id) {
+        if self.active_resources.get(&guest_id).is_none() {
             return Ok(());
         }
 
@@ -250,7 +255,7 @@ impl ResourceModule {
 
         active_modules_for_guest_map.remove(&module_id);
 
-        self.send_unload_event(guest_id, module_id, instance_id);
+        self.send_unload_event(guest_id, module_id, instance_id, None);
 
         Ok(())
     }

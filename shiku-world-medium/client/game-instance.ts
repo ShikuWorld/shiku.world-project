@@ -20,6 +20,7 @@ export class GameInstance {
   constructor(
     public id: string,
     public module_name: string,
+    public world_id: string,
   ) {
     this.renderer = create_instance_rendering();
     this.entity_manager = create_entity_manager();
@@ -172,14 +173,17 @@ export class GameInstance {
       })
       .exhaustive();
   }
+
+  destroy() {}
 }
 
 export function create_new_game_instance(
   id: string,
   module_name: string,
+  world_id: string,
   render_system: RenderSystem,
 ) {
-  const game_instance = new GameInstance(id, module_name);
+  const game_instance = new GameInstance(id, module_name, world_id);
   render_system.stage.addChild(game_instance.renderer.mainContainerWrapper);
   render_system.renderMap[id] = game_instance.renderer;
 

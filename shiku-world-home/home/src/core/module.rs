@@ -9,6 +9,7 @@ use crate::core::blueprint::def::{Conductor, ModuleId, ResourcePath};
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId};
+use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::resource_module::def::{ActorId, ResourceBundle, ResourceEvent, ResourceFile};
 use crate::resource_module::errors::ResourceParseError;
@@ -68,7 +69,7 @@ pub enum EditorEvent {
     UpdatedModule(ModuleId, blueprint::def::Module),
     CreatedMap(blueprint::def::GameMap),
     SetMap(blueprint::def::GameMap),
-    UpdatedMap(ModuleId, blueprint::def::MapUpdate),
+    UpdatedMap(blueprint::def::MapUpdate),
     DeletedMap(blueprint::def::GameMap),
     CreatedTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
@@ -87,7 +88,9 @@ pub enum AdminToSystemEvent {
     UpdateConductor(blueprint::def::Conductor),
     BrowseFolder(String),
     OpenInstance(ModuleId),
-    SelectMainInstanceToWorkOn(ModuleId, GameInstanceId, ResourcePath),
+    StartInspectingWorld(ModuleId, GameInstanceId, WorldId),
+    StopInspectingWorld(ModuleId, GameInstanceId, WorldId),
+    InitialResourcesLoaded(ModuleId),
     UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),
     GetResource(ResourcePath),
@@ -95,7 +98,7 @@ pub enum AdminToSystemEvent {
     SetTileset(blueprint::def::Tileset),
     DeleteTileset(blueprint::def::Tileset),
     CreateMap(ModuleId, blueprint::def::GameMap),
-    UpdateMap(ModuleId, blueprint::def::MapUpdate),
+    UpdateMap(blueprint::def::MapUpdate),
     DeleteMap(ModuleId, blueprint::def::GameMap),
     DeleteModule(ModuleId),
     SetMainDoorStatus(bool),
@@ -157,11 +160,24 @@ pub struct GuestEvent<T> {
 pub struct ModuleInstanceEvent<T> {
     pub module_id: ModuleId,
     pub instance_id: GameInstanceId,
+    pub world_id: Option<WorldId>,
     pub event_type: T,
 }
 
 pub enum EnterSuccessState {
     Entered,
+}
+
+#[derive(Debug)]
+pub enum AdminEnterSuccessState {
+    EnteredWorld,
+    EnteredInstanceAndWorld,
+}
+
+#[derive(Debug)]
+pub enum AdminLeftSuccessState {
+    LeftWorld,
+    LeftWorldAndInstance,
 }
 
 #[derive(Error, Debug)]
@@ -240,9 +256,20 @@ type IsMainInstance = bool;
 #[ts(export, export_to = "bindings/Events.ts")]
 pub enum CommunicationEvent {
     ResourceEvent(ModuleId, ResourceEvent),
-    PrepareGame(ModuleId, GameInstanceId, ResourceBundle, IsMainInstance),
-    GameSystemEvent(ModuleId, GameInstanceId, GameSystemToGuestEvent),
-    PositionEvent(ModuleId, GameInstanceId, Vec<(EntityId, Real, Real, Real)>),
+    PrepareGame(ModuleId, GameInstanceId, Option<WorldId>, ResourceBundle),
+    UnloadGame(ModuleId, GameInstanceId, Option<WorldId>),
+    GameSystemEvent(
+        ModuleId,
+        GameInstanceId,
+        Option<WorldId>,
+        GameSystemToGuestEvent,
+    ),
+    PositionEvent(
+        ModuleId,
+        GameInstanceId,
+        Option<WorldId>,
+        Vec<(EntityId, Real, Real, Real)>,
+    ),
     ConnectionReady((SessionId, ShouldLogin)),
     Signal(SignalToMedium),
     Toast(ToastAlertLevel, String),
@@ -291,6 +318,7 @@ pub type GameSystemToGuest = GuestEvent<ModuleInstanceEvent<GameSystemToGuestEve
 pub type GamePosition = GuestEvent<(
     ModuleName,
     GameInstanceId,
+    Option<WorldId>,
     Vec<(EntityId, Real, Real, Real)>,
 )>;
 

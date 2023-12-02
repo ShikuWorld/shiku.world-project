@@ -1,5 +1,7 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -32,6 +34,51 @@ pub type Snowflake = i64;
 pub const LOGGED_IN_TODAY_DELAY_IN_HOURS: i64 = 16;
 pub const TARGET_FPS: Real = 60.0;
 pub const TARGET_FRAME_DURATION: Real = 1000.0 / 60.0;
+
+pub struct LazyHashmapSet<K: Eq + Hash, T: Eq + Hash> {
+    data: HashMap<K, HashSet<T>>,
+}
+
+impl<K: Eq + Hash, T: Eq + Hash> LazyHashmapSet<K, T> {
+    pub fn new() -> LazyHashmapSet<K, T> {
+        LazyHashmapSet {
+            data: HashMap::new(),
+        }
+    }
+    pub fn init(&mut self, key: K) {
+        self.data.insert(key, HashSet::new());
+    }
+    pub fn remove(&mut self, key: &K) -> Option<HashSet<T>> {
+        self.data.remove(key)
+    }
+    pub fn remove_entry(&mut self, key: &K, value: &T) -> bool {
+        if let Some(data) = self.data.get_mut(key) {
+            return data.remove(value);
+        }
+        false
+    }
+    pub fn insert_entry(&mut self, key: &K, value: T) {
+        if let Some(data) = self.data.get_mut(key) {
+            data.insert(value);
+        }
+    }
+
+    pub fn filter<F>(&mut self, key: K, mut callback: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        if let Some(vec) = self.data.get_mut(&key) {
+            vec.retain(callback);
+        }
+    }
+
+    pub fn len(&mut self, key: &K) -> usize {
+        if let Some(data) = self.data.get_mut(key) {
+            return data.len();
+        }
+        0
+    }
+}
 
 pub fn safe_unwrap<T, E>(option: Option<T>, err: E) -> Result<T, E> {
     match option {

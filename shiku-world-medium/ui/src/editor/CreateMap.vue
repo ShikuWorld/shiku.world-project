@@ -41,6 +41,7 @@ import { Module } from "@/editor/blueprints/Module";
 const props = defineProps<{ module: Module }>();
 const { module } = toRefs(props);
 const game_map = reactive<GameMap>({
+  world_id: "",
   module_id: module.value.id,
   chunk_size: 8,
   entities: [],

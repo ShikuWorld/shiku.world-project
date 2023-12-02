@@ -1,7 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
-use std::path::PathBuf;
-use std::str::FromStr;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
@@ -10,15 +8,13 @@ use log::{debug, error, warn};
 use snowflake::SnowflakeIdBucket;
 use tungstenite::protocol::frame::coding::CloseCode;
 
-use crate::conductor_module::def::{ConductorModule, ModuleCommunicationMap, ModuleMap};
+use crate::conductor_module::admin_to_system_events::handle_admin_to_system_event;
+use crate::conductor_module::def::ConductorModule;
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
-use crate::core::blueprint::def::{
-    BlueprintError, BlueprintService, Conductor, IOPoint, ModuleId, Resource, ResourceKind,
-    ResourceLoaded,
-};
-use crate::core::blueprint::resource_loader::Blueprint;
+use crate::conductor_module::game_instances::create_game_instance_manager;
+use crate::core::blueprint::def::{BlueprintService, ModuleId};
 use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
@@ -27,8 +23,9 @@ use crate::core::module::{
     ModuleInstanceEvent, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent,
     SignalToMedium, SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
 };
+use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
-use crate::core::{blueprint, log_result_error, send_and_log_error};
+use crate::core::{blueprint, send_and_log_error};
 use crate::core::{fix_intellij_error_bug, safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
@@ -99,11 +96,10 @@ impl ConductorModule {
                                 }
                                 continue;
                             }
-                            Self::handle_admin_to_system_event(
+                            handle_admin_to_system_event(
                                 &mut self.module_communication_map,
                                 &mut self.web_server_module,
                                 &mut self.resource_module,
-                                &mut self.blueprint_service,
                                 &mut self.module_map,
                                 &mut self.system_to_admin_communication.sender,
                                 admin,
@@ -116,415 +112,6 @@ impl ConductorModule {
                 }
             }
         }
-    }
-
-    async fn handle_admin_to_system_event(
-        module_communication_map: &mut ModuleCommunicationMap,
-        web_server_module: &mut WebServerModule,
-        resource_module: &mut ResourceModule,
-        blueprint_service: &mut BlueprintService,
-        module_map: &mut ModuleMap,
-        system_to_admin_communication_sender: &mut Sender<(ActorId, CommunicationEvent)>,
-        admin: &Admin,
-        event: AdminToSystemEvent,
-    ) {
-        let mut send_communication_event = |event: CommunicationEvent| {
-            send_and_log_error(system_to_admin_communication_sender, (admin.id, event));
-        };
-
-        let mut send_editor_event = |event: EditorEvent| {
-            send_communication_event(CommunicationEvent::EditorEvent(event));
-        };
-
-        match event {
-            AdminToSystemEvent::OpenInstance(module_id) => {
-                if let Some(module) = module_map.get_mut(&module_id) {
-                    module.create_new_game_instance();
-                }
-            }
-            AdminToSystemEvent::SelectMainInstanceToWorkOn(
-                module_id,
-                game_instance_id,
-                resource_path,
-            ) => {}
-            AdminToSystemEvent::UpdateMap(module_id, map_update) => {
-                let map_path = format!("{}/{}", map_update.resource_path, map_update.name);
-                match Blueprint::load_map(PathBuf::from(map_path)) {
-                    Ok(mut map) => {
-                        if let Some(entities) = map_update.entities.clone() {
-                            map.entities = entities;
-                        }
-                        if let Some(joints) = map_update.joints.clone() {
-                            map.joints = joints;
-                        }
-                        if let Some((layer, n, chunk)) = map_update.chunk.clone() {
-                            if let Some(chunks) = map.terrain.get_mut(&layer) {
-                                if chunks.get(n).is_some() {
-                                    chunks[n] = chunk;
-                                }
-                            }
-                        }
-                        match Blueprint::save_map(&map) {
-                            Ok(()) => {
-                                send_editor_event(EditorEvent::UpdatedMap(module_id, map_update));
-                            }
-                            Err(err) => {
-                                error!("Could not update map {:?}", err);
-                            }
-                        }
-                    }
-                    Err(err) => {
-                        error!("Could not load map {:?}", err);
-                    }
-                }
-            }
-            AdminToSystemEvent::DeleteMap(module_id, map) => {
-                if let Some(module) = module_map.get_mut(&module_id) {
-                    match Blueprint::delete_map(&map) {
-                        Ok(()) => {
-                            let map_path = format!("{}/{}", map.resource_path, map.name);
-                            module
-                                .module_blueprint
-                                .resources
-                                .retain(|r| r.path != map_path);
-
-                            match blueprint_service.save_module(&module.module_blueprint) {
-                                Ok(()) => {
-                                    send_editor_event(EditorEvent::UpdatedModule(
-                                        module_id,
-                                        module.module_blueprint.clone(),
-                                    ));
-                                    send_editor_event(EditorEvent::DeletedMap(map));
-                                }
-                                Err(err) => {
-                                    error!("Could not save module {:?}", err);
-                                }
-                            }
-                        }
-                        Err(err) => {
-                            error!("Could not create map {:?}", err);
-                        }
-                    }
-                }
-            }
-            AdminToSystemEvent::CreateMap(module_id, map) => {
-                if let Some(module) = module_map.get_mut(&module_id) {
-                    match Blueprint::create_map(&map) {
-                        Ok(()) => {
-                            module.module_blueprint.resources.push(Resource {
-                                file_name: format!("{}.map.json", map.name),
-                                dir: map.resource_path.clone(),
-                                path: format!("{}/{}.map.json", map.resource_path, map.name),
-                                kind: ResourceKind::Map,
-                            });
-                            match blueprint_service.save_module(&module.module_blueprint) {
-                                Ok(()) => {
-                                    send_editor_event(EditorEvent::UpdatedModule(
-                                        module_id,
-                                        module.module_blueprint.clone(),
-                                    ));
-                                    send_editor_event(EditorEvent::SetMap(map));
-                                }
-                                Err(err) => {
-                                    error!("Could not save module {:?}", err);
-                                }
-                            }
-                        }
-                        Err(err) => {
-                            error!("Could not create map {:?}", err);
-                        }
-                    }
-                }
-            }
-            AdminToSystemEvent::GetResource(path) => {
-                match BlueprintService::load_resource_by_path(path) {
-                    ResourceLoaded::Tileset(tileset) => {
-                        send_editor_event(EditorEvent::SetTileset(tileset));
-                    }
-                    ResourceLoaded::Map(map) => {
-                        send_editor_event(EditorEvent::SetMap(map));
-                    }
-                    ResourceLoaded::Unknown => {}
-                }
-            }
-            AdminToSystemEvent::BrowseFolder(path) => {
-                match blueprint_service.browse_directory(path) {
-                    Ok(result) => {
-                        send_editor_event(EditorEvent::DirectoryInfo(result));
-                    }
-                    Err(err) => {
-                        error!("Could not browse directory {:?}", err);
-                    }
-                }
-            }
-            /*AdminToSystemEvent::SelectMainModuleToEdit(module_id) => {
-                match resource_module.get_resources_for_module(&module_id) {
-                    Ok(assets) => {
-                        if let Some(module) = module_map.get_mut(&module_id) {
-                            send_communication_event(CommunicationEvent::PrepareGame(
-                                module_id,
-                                module.lazy_get_game_instance_for_guest_to_join(),
-                                ResourceBundle {
-                                    name: "Init".into(),
-                                    assets,
-                                },
-                                true,
-                            ));
-                        }
-                    }
-                    Err(err) => {
-                        error!("Could not get assets for module {:?}", err);
-                    }
-                }
-            }*/
-            AdminToSystemEvent::SetMainDoorStatus(status) => {
-                debug!("Setting main door status");
-                web_server_module.set_main_door_status(status).await;
-            }
-            AdminToSystemEvent::SetBackDoorStatus(status) => {
-                debug!("Setting back door status");
-                web_server_module.set_back_door_status(status).await;
-            }
-            AdminToSystemEvent::ProviderLoggedIn(_) => {
-                error!("Admin should already be logged in!")
-            }
-            AdminToSystemEvent::Ping => {}
-            AdminToSystemEvent::UpdateConductor(conductor) => {
-                Self::save_and_send_conductor_update(
-                    blueprint_service,
-                    conductor,
-                    &mut send_editor_event,
-                );
-            }
-            AdminToSystemEvent::LoadEditorData => {
-                match blueprint_service.load_conductor_blueprint() {
-                    Ok(conductor) => {
-                        send_editor_event(EditorEvent::UpdatedConductor(conductor));
-                    }
-                    Err(err) => {
-                        error!("Could not load conductor! {:?}", err);
-                    }
-                }
-                match blueprint_service.get_all_modules() {
-                    Ok(modules) => {
-                        send_editor_event(EditorEvent::Modules(modules));
-                    }
-                    Err(err) => {
-                        error!("Could not retrieve modules! {:?}", err);
-                    }
-                }
-                send_editor_event(EditorEvent::ModuleInstances(
-                    module_map
-                        .values()
-                        .map(|m| {
-                            (
-                                m.module_blueprint.id.clone(),
-                                m.game_instances.values().map(|g| g.id.clone()).collect(),
-                            )
-                        })
-                        .collect(),
-                ));
-            }
-            AdminToSystemEvent::CreateTileset(tileset) => {
-                match Blueprint::create_tileset(&tileset) {
-                    Ok(()) => {
-                        send_editor_event(EditorEvent::CreatedTileset(tileset));
-                    }
-                    Err(err) => error!("Could not create tileset: {:?}", err),
-                }
-            }
-            AdminToSystemEvent::SetTileset(tileset) => match Blueprint::save_tileset(&tileset) {
-                Ok(()) => {
-                    send_editor_event(EditorEvent::SetTileset(tileset));
-                }
-                Err(err) => error!("Could not update tileset: {:?}", err),
-            },
-            AdminToSystemEvent::DeleteTileset(tileset) => {
-                match Blueprint::delete_tileset(&tileset) {
-                    Ok(()) => {
-                        send_editor_event(EditorEvent::DeletedTileset(tileset));
-                    }
-                    Err(err) => error!("Could not delete tileset: {:?}", err),
-                }
-            }
-            AdminToSystemEvent::UpdateModule(module_id, module_update) => {
-                if let Some(module) = module_map.get_mut(&module_id) {
-                    if let Some(new_name) = module_update.name {
-                        log_result_error(
-                            blueprint_service
-                                .change_module_name(&mut module.module_blueprint, new_name),
-                        );
-                    }
-                    if let Some(resources) = module_update.resources {
-                        module.module_blueprint.resources = resources;
-                    }
-                    if let Some(insert_points) = module_update.insert_points {
-                        if let Ok(mut conductor) = blueprint_service.load_conductor_blueprint() {
-                            let current_insert_points =
-                                Self::io_points_to_hashset(&module.module_blueprint.insert_points);
-                            let new_insert_points: HashSet<String> =
-                                Self::io_points_to_hashset(&insert_points);
-                            let removed_points: HashSet<&String> = current_insert_points
-                                .difference(&new_insert_points)
-                                .collect();
-                            debug!("removed_points {:?}", removed_points);
-                            let connections_to_remove: Vec<String> = conductor
-                                .module_connection_map
-                                .clone()
-                                .into_iter()
-                                .filter(|(_, (_, insert_point_name))| {
-                                    removed_points.contains(insert_point_name)
-                                })
-                                .map(|(exit_slot_name, _)| exit_slot_name)
-                                .collect();
-                            debug!("connections_to_remove {:?}", connections_to_remove);
-                            for connection_to_remove in connections_to_remove {
-                                conductor
-                                    .module_connection_map
-                                    .remove(&connection_to_remove);
-                            }
-                            Self::save_and_send_conductor_update(
-                                blueprint_service,
-                                conductor,
-                                &mut send_editor_event,
-                            );
-                        }
-                        module.module_blueprint.insert_points = insert_points;
-                    }
-                    if let Some(exit_points) = module_update.exit_points {
-                        if let Ok(mut conductor) = blueprint_service.load_conductor_blueprint() {
-                            let current_exit_points =
-                                Self::io_points_to_hashset(&module.module_blueprint.exit_points);
-                            let new_exit_points: HashSet<String> =
-                                Self::io_points_to_hashset(&exit_points);
-                            for connection_to_remove in
-                                current_exit_points.difference(&new_exit_points)
-                            {
-                                conductor.module_connection_map.remove(connection_to_remove);
-                            }
-                            Self::save_and_send_conductor_update(
-                                blueprint_service,
-                                conductor,
-                                &mut send_editor_event,
-                            );
-                        }
-                        module.module_blueprint.exit_points = exit_points;
-                    }
-                    log_result_error(blueprint_service.save_module(&module.module_blueprint));
-                    send_editor_event(EditorEvent::UpdatedModule(
-                        module_id,
-                        module.module_blueprint.clone(),
-                    ));
-                }
-            }
-            AdminToSystemEvent::CreateModule(module_name) => {
-                if blueprint_service.module_exists(&module_name) {
-                    error!("Module already existed!");
-                    return;
-                }
-                if let Some(module_id) = Self::create_game_instance_manager(
-                    module_name,
-                    module_map,
-                    resource_module,
-                    module_communication_map,
-                    blueprint_service,
-                ) {
-                    if let Some(module) = module_map.get(&module_id) {
-                        send_editor_event(EditorEvent::CreatedModule(
-                            module_id,
-                            module.module_blueprint.clone(),
-                        ));
-                    }
-                }
-            }
-            AdminToSystemEvent::DeleteModule(module_id) => {
-                debug!("Deleting module!");
-                match Self::remove_game_instance_manager(
-                    &module_id,
-                    module_map,
-                    resource_module,
-                    module_communication_map,
-                    blueprint_service,
-                ) {
-                    Ok(()) => {
-                        send_editor_event(EditorEvent::DeletedModule(module_id));
-                    }
-                    Err(err) => {
-                        error!(
-                            "Something went wrong while deleting module {}: {:?}",
-                            module_id, err
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    fn save_and_send_conductor_update<F>(
-        blueprint_service: &mut BlueprintService,
-        conductor: Conductor,
-        send_editor_event: &mut F,
-    ) where
-        F: FnMut(EditorEvent),
-    {
-        match blueprint_service.save_conductor_blueprint(&conductor) {
-            Ok(()) => {
-                send_editor_event(EditorEvent::UpdatedConductor(conductor));
-            }
-            Err(err) => {
-                error!("Could not save conductor {:?}", err)
-            }
-        }
-    }
-
-    fn io_points_to_hashset(points: &Vec<IOPoint>) -> HashSet<String> {
-        points.clone().into_iter().map(|p| p.name).collect()
-    }
-
-    fn create_game_instance_manager(
-        module_name: ModuleName,
-        module_map: &mut ModuleMap,
-        resource_module: &mut ResourceModule,
-        module_communication_map: &mut ModuleCommunicationMap,
-        blueprint_service: &BlueprintService,
-    ) -> Option<ModuleId> {
-        match GameInstanceManager::new(module_name.clone(), blueprint_service, resource_module) {
-            Ok((game_instance_manager, module_input_sender, module_output_receiver)) => {
-                let module_id = game_instance_manager.module_blueprint.id.clone();
-                module_map.insert(module_id.clone(), game_instance_manager);
-                module_communication_map.insert(
-                    module_id.clone(),
-                    ModuleIO {
-                        receiver: module_output_receiver,
-                        sender: module_input_sender,
-                    },
-                );
-                Some(module_id)
-            }
-            Err(err) => {
-                error!("Could not create dynamic module: {:?}", err);
-                None
-            }
-        }
-    }
-
-    fn remove_game_instance_manager(
-        module_id: &ModuleId,
-        module_map: &mut ModuleMap,
-        resource_module: &mut ResourceModule,
-        module_communication_map: &mut ModuleCommunicationMap,
-        blueprint_service: &BlueprintService,
-    ) -> Result<(), BlueprintError> {
-        debug!("{:?}", module_map.keys());
-        if let Some(instance_manager) = module_map.remove(module_id) {
-            module_communication_map.remove(module_id);
-            resource_module.unregister_resources_for_module(module_id);
-            blueprint_service.delete_module(&instance_manager.module_blueprint.name)?;
-        } else {
-            return Err(BlueprintError::FileDoesNotExist);
-        }
-
-        Ok(())
     }
 
     fn handle_timeouts(&mut self) {
@@ -573,14 +160,13 @@ impl ConductorModule {
         let (sender, receiver) = unbounded();
         let system_to_admin_communication = SystemCommunicationIO { receiver, sender };
 
-        let modules = blueprint_service.get_all_modules().unwrap();
+        let modules = BlueprintService::get_all_modules().unwrap();
         for module in modules {
-            Self::create_game_instance_manager(
+            create_game_instance_manager(
                 module.name.clone(),
                 &mut module_map,
                 &mut resource_module,
                 &mut module_communication_map,
-                &blueprint_service,
             )
             .unwrap();
         }
@@ -712,6 +298,7 @@ impl ConductorModule {
                             ModuleInstanceEvent {
                                 module_id: current_module_id.clone(),
                                 instance_id: current_instance_id.clone(),
+                                world_id: None,
                                 event_type: SystemToModuleEvent::Reconnected(guest.id),
                             },
                         ) {
@@ -802,6 +389,7 @@ impl ConductorModule {
                                 .send(ModuleInstanceEvent {
                                     module_id: current_module_id.clone(),
                                     instance_id: current_instance_id.clone(),
+                                    world_id: None,
                                     event_type: SystemToModuleEvent::Disconnected(guest_id),
                                 })
                             {
@@ -837,6 +425,7 @@ impl ConductorModule {
                 ModuleInstanceEvent {
                     module_id,
                     instance_id,
+                    world_id,
                     event_type,
                 },
         } in self.resource_module.drain_load_events()
@@ -1027,11 +616,11 @@ impl ConductorModule {
                 &CommunicationEvent::PrepareGame(
                     module_id.clone(),
                     instance_id.clone(),
+                    None,
                     ResourceBundle {
                         name: "Init".into(),
                         assets: resources,
                     },
-                    true,
                 ),
             ) {
                 error!("Cold not send communicastion event to guest {:?}", err);
@@ -1223,6 +812,7 @@ impl ConductorModule {
             event_type.0,
             event_type.1,
             event_type.2,
+            event_type.3,
         )) {
             if let Some(guest) = self.guests.get(&guest_id) {
                 Self::send_to_guest(guest, &mut self.websocket_module, message_as_string);
@@ -1245,11 +835,13 @@ impl ConductorModule {
         let ModuleInstanceEvent {
             instance_id,
             module_id,
+            world_id,
             event_type,
         } = event_type;
         if let Ok(message_as_string) = serde_json::to_string(&CommunicationEvent::GameSystemEvent(
             module_id,
             instance_id,
+            world_id,
             event_type,
         )) {
             if let Some(guest) = self.guests.get(&guest_id) {
@@ -1358,6 +950,7 @@ impl ConductorModule {
                                             *guest_id,
                                             current_module_id.clone(),
                                             current_instance_id.clone(),
+                                            None,
                                             event,
                                         ) {
                                             error!("process_events_from_guest, send_event_to_module {:?}", err);
@@ -1395,6 +988,7 @@ impl ConductorModule {
         guest_id: ActorId,
         module_id: ModuleId,
         instance_id: GameInstanceId,
+        world_id: Option<WorldId>,
         event: GuestToModuleEvent,
     ) -> Result<(), SendEventToModuleError> {
         module_communication
@@ -1405,6 +999,7 @@ impl ConductorModule {
                 event_type: ModuleInstanceEvent {
                     module_id,
                     instance_id,
+                    world_id,
                     event_type: event,
                 },
             })?;

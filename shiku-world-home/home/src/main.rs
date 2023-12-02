@@ -40,14 +40,13 @@ async fn main() {
     let blueprint_service =
         BlueprintService::create().expect("Could not create blueprint service!");
 
-    let conductor_blueprint = match blueprint_service.load_conductor_blueprint() {
+    let conductor_blueprint = match BlueprintService::load_conductor_blueprint() {
         Ok(b) => b,
         Err(BlueprintError::FileDoesNotExist) => blueprint::def::Conductor::default(),
         Err(err) => panic!("{:?}", err),
     };
 
-    blueprint_service
-        .save_conductor_blueprint(&conductor_blueprint)
+    BlueprintService::save_conductor_blueprint(&conductor_blueprint)
         .expect("Initial saving of conductor blueprint failed!");
 
     let mut conductor_module =

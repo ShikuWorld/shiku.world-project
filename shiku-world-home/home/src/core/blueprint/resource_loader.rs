@@ -1,7 +1,8 @@
-use crate::core::blueprint::def::{BlueprintError, GameMap, Tileset};
+use crate::core::blueprint::def::{BlueprintError, GameMap, IOPoint, Tileset};
 use crate::core::get_out_dir;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use std::collections::HashSet;
 use std::fs::{create_dir_all, remove_file, File};
 use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
@@ -104,5 +105,9 @@ impl Blueprint {
 
     pub fn delete_map(map: &GameMap) -> Result<(), BlueprintError> {
         Self::delete(&map.resource_path, &map.name, "map")
+    }
+
+    pub fn io_points_to_hashset(points: &Vec<IOPoint>) -> HashSet<String> {
+        points.clone().into_iter().map(|p| p.name).collect()
     }
 }

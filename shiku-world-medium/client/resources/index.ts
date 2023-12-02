@@ -47,7 +47,7 @@ export class ResourceManager {
   };
 
   resource_bundle_complete = new SimpleEventDispatcher<{
-    module_name: string;
+    module_id: string;
     instance_id: string;
     bundle_name: string;
   }>();
@@ -90,16 +90,16 @@ export class ResourceManager {
   }
 
   load_resource_bundle(
-    module_name: string,
+    module_id: string,
     instance_id: string,
     resource_bundle: ResourceBundle,
   ) {
-    const bundle_id = `${module_name}-${resource_bundle.name}`;
+    const bundle_id = `${module_id}-${resource_bundle.name}`;
     Assets.addBundle(
       bundle_id,
       resource_bundle.assets.map((asset) => ({
         name: asset.meta_name,
-        srcs: `${this._base_url}/${module_name}/${asset.path}`,
+        srcs: `${this._base_url}/${module_id}/${asset.path}`,
       })),
     );
     Assets.loadBundle(bundle_id).then(() => {
@@ -107,7 +107,7 @@ export class ResourceManager {
         console.log("Do something with res", res);
       }
       this.resource_bundle_complete.dispatch({
-        module_name,
+        module_id,
         instance_id,
         bundle_name: resource_bundle.name,
       });

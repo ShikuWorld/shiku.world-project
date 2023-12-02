@@ -1,19 +1,20 @@
 use std::collections::{HashMap, HashSet};
 
-use log::error;
+use log::{debug, error};
 use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
-use crate::core::blueprint::def::BlueprintError;
 use crate::core::blueprint::def::BlueprintService;
+use crate::core::blueprint::def::{BlueprintError, GameMap};
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
-    create_module_communication, EnterFailedState, EnterSuccessState, LeaveFailedState,
-    LeaveSuccessState, ModuleInputReceiver, ModuleInputSender, ModuleOutputReceiver,
-    ModuleOutputSender, ModuleToSystemEvent,
+    create_module_communication, AdminEnterSuccessState, AdminLeftSuccessState, EnterFailedState,
+    EnterSuccessState, LeaveFailedState, LeaveSuccessState, ModuleInputReceiver, ModuleInputSender,
+    ModuleOutputReceiver, ModuleOutputSender, ModuleToSystemEvent,
 };
-use crate::core::module_system::def::DynamicGameModule;
+use crate::core::module_system::def::{DynamicGameModule, WorldId};
+use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
 use crate::resource_module::def::{ActorId, ResourceFile, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
@@ -43,13 +44,12 @@ pub struct GameInstanceManager {
 impl GameInstanceManager {
     pub fn new(
         module_name: String,
-        blueprint_service: &BlueprintService,
         resource_module: &mut ResourceModule,
     ) -> Result<
         (GameInstanceManager, ModuleInputSender, ModuleOutputReceiver),
         CreateInstanceManagerError,
     > {
-        let module_blueprint = blueprint_service.lazy_load_module(module_name)?;
+        let module_blueprint = BlueprintService::lazy_load_module(module_name)?;
         let (input_sender, input_receiver, output_sender, output_receiver) =
             create_module_communication();
         let manager = GameInstanceManager {
@@ -74,12 +74,15 @@ impl GameInstanceManager {
 
         for game_instance in self.game_instances.values_mut() {
             game_instance.update();
-            if !game_instance.dynamic_module.guests.is_empty() {
+            if !game_instance.dynamic_module.guests.is_empty()
+                || !game_instance.dynamic_module.admins.is_empty()
+            {
                 game_instance.inactive_time = 0.0;
             }
             game_instance.inactive_time += TARGET_FRAME_DURATION;
             if game_instance.inactive_time > self.game_instance_timeout {
                 self.inactive_game_instances.push(game_instance.id.clone());
+                debug!("Closing game instance.");
             }
         }
 
@@ -99,26 +102,40 @@ impl GameInstanceManager {
         &mut self,
         admin: &Admin,
         instance_id: GameInstanceId,
-    ) -> Result<(), EnterFailedState> {
-        let current_instance = self.active_admins.entry(admin.id).or_insert(HashSet::new());
-        if current_instance.contains(&instance_id) {
-            return Err(EnterFailedState::AlreadyEntered);
+        world_id: WorldId,
+    ) -> Result<AdminEnterSuccessState, EnterFailedState> {
+        let admin_active_instances = self.active_admins.entry(admin.id).or_insert(HashSet::new());
+        let mut success_state = AdminEnterSuccessState::EnteredWorld;
+        if !admin_active_instances.contains(&instance_id) {
+            admin_active_instances.insert(instance_id.clone());
+            success_state = AdminEnterSuccessState::EnteredInstanceAndWorld;
         }
-        current_instance.insert(instance_id);
-        Ok(())
+        if let Some(instance) = self.game_instances.get_mut(&instance_id) {
+            instance.dynamic_module.let_admin_enter(admin, world_id)?;
+        }
+
+        Ok(success_state)
     }
 
     pub fn let_admin_leave_instance(
         &mut self,
         admin: &Admin,
         instance_id: GameInstanceId,
-    ) -> Result<(), LeaveFailedState> {
-        let current_instance = self.active_admins.entry(admin.id).or_insert(HashSet::new());
-        if !current_instance.contains(&instance_id) {
+        world_id: WorldId,
+    ) -> Result<AdminLeftSuccessState, LeaveFailedState> {
+        let mut success_state = AdminLeftSuccessState::LeftWorld;
+        let active_admin_instances = self.active_admins.entry(admin.id).or_insert(HashSet::new());
+        if !active_admin_instances.contains(&instance_id) {
             return Err(LeaveFailedState::NotInModule);
         }
-        current_instance.remove(&instance_id);
-        Ok(())
+        if let Some(instance) = self.game_instances.get_mut(&instance_id) {
+            instance.dynamic_module.let_admin_leave(admin, world_id)?;
+            if !instance.dynamic_module.admins.contains_key(&admin.id) {
+                success_state = AdminLeftSuccessState::LeftWorldAndInstance;
+            }
+        }
+        active_admin_instances.remove(&instance_id);
+        Ok(success_state)
     }
 
     pub fn try_enter(
@@ -169,6 +186,26 @@ impl GameInstanceManager {
         }
 
         Err(LeaveFailedState::NotInModule)
+    }
+
+    pub fn create_world(
+        &mut self,
+        game_map: &GameMap,
+    ) -> HashMap<GameInstanceId, Result<WorldId, CreateWorldError>> {
+        self.game_instances
+            .values_mut()
+            .map(|v| (v.id.clone(), v.dynamic_module.create_world(game_map)))
+            .collect()
+    }
+
+    pub fn destroy_world(
+        &mut self,
+        game_map: &GameMap,
+    ) -> HashMap<GameInstanceId, Result<WorldId, DestroyWorldError>> {
+        self.game_instances
+            .values_mut()
+            .map(|v| (v.id.clone(), v.dynamic_module.destroy_world(game_map)))
+            .collect()
     }
 
     fn get_base_resource_file(&self) -> ResourceFile {
