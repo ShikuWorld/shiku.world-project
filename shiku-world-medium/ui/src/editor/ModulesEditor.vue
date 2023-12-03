@@ -26,29 +26,14 @@
     ></v-text-field>
     <ModuleSlots :slots="module.exit_points" @delete="delete_exit_point" />
     <v-divider></v-divider>
-    <v-list>
-      <v-list-item v-if="module_instances.length === 0">
-        <v-btn @click="open_game_instance_server(module.id)"
-          >Get Instance</v-btn
-        >
-      </v-list-item>
-      <v-list-item
-        v-for="(instance_id, index) in module_instances"
-        :key="instance_id"
-        :title="`${module.name}-${index}`"
-      >
-        <v-list>
-          <v-list-item
-            v-for="game_map in game_maps"
-            @click="
-              start_inspecting_world(module.id, instance_id, game_map.world_id)
-            "
-            >{{ game_map.name }}</v-list-item
-          >
-        </v-list>
-      </v-list-item>
-    </v-list>
-
+    <div v-if="module_instances.length === 0">
+      <v-btn @click="open_game_instance_server(module.id)">Get Instance</v-btn>
+    </div>
+    <ModuleInstanceList
+      :module="module"
+      :module_instances="module_instances"
+      @world_click="toggle_inspect_world"
+    />
     <v-divider></v-divider>
 
     <v-dialog width="800">
@@ -106,11 +91,11 @@
 import { Module } from "@/editor/blueprints/Module";
 import { use_editor_store } from "@/editor/stores/editor";
 import { mdiTrashCan } from "@mdi/js";
-import { computed, onMounted, ref, toRefs, watch } from "vue";
+import { getCurrentInstance, onMounted, ref, toRefs, watch } from "vue";
 import ModuleSlots from "@/editor/editor/ModuleSlots.vue";
 import AddResourcesModal from "@/editor/editor/AddResourcesModal.vue";
 import { storeToRefs } from "pinia";
-import { GameMap } from "@/editor/blueprints/GameMap";
+import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 
 const props = defineProps<{ module: Module; module_instances: string[] }>();
 const { module, module_instances } = toRefs(props);
@@ -121,16 +106,25 @@ const {
   open_game_instance_server,
   get_resource_server,
   start_inspecting_world,
+  stop_inspecting_world,
 } = use_editor_store();
-const { game_map_map } = storeToRefs(use_editor_store());
+const { game_map_map, game_instances } = storeToRefs(use_editor_store());
+function toggle_inspect_world(
+  module_id: string,
+  instance_id: string,
+  world_id: string,
+) {
+  if (
+    game_instances.value[instance_id] &&
+    game_instances.value[instance_id][world_id]
+  ) {
+    stop_inspecting_world(module_id, instance_id, world_id);
+  } else {
+    start_inspecting_world(module_id, instance_id, world_id);
+  }
+}
 const input_socket_name = ref("");
 const output_socket_name = ref("");
-const game_maps = computed<GameMap[]>(() =>
-  module.value.resources
-    .filter((m) => m.kind === "Map")
-    .map((m) => game_map_map.value[m.path])
-    .filter((m) => !!m),
-);
 
 onMounted(() => {
   load_missing_maps();
@@ -138,6 +132,11 @@ onMounted(() => {
 
 watch(module, () => {
   load_missing_maps();
+});
+
+watch(game_instances, () => {
+  const instance = getCurrentInstance();
+  instance?.proxy?.$forceUpdate();
 });
 
 function load_missing_maps() {

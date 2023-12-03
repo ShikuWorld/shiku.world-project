@@ -13,6 +13,10 @@ declare global {
     medium: {
       twitch_login: typeof login;
       communication_state: CommunicationState;
+      swap_main_render_instance: (
+        instance_id: string,
+        world_id: string,
+      ) => void;
     };
     medium_gui: {
       ui: ReturnType<typeof use_ui_store>;

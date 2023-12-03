@@ -21,10 +21,12 @@ import { GameInstance, create_new_game_instance } from "@/client/game-instance";
 import { ResourceManager } from "@/client/resources";
 import { create_resource_manager } from "@/client/resources/create_resource_manager";
 import { is_admin } from "@/client/is_admin";
+import { handle_editor_event } from "@/client/handle-editor-event";
 
 export function start_medium() {
   const signal_broadcast_channel = new BroadcastChannel(signal_channel_name);
 
+  const GUEST_SINGLE_WORLD_ID = "default";
   const canvas = document.getElementById("canvas");
   const door = document.getElementById("door");
   const render_system = create_game_renderer();
@@ -37,6 +39,7 @@ export function start_medium() {
   } = {};
   const resource_manager_map: { [module_name: string]: ResourceManager } = {};
   const current_active_instance: string | null = null;
+
   function lazy_get_resource_manager(module_name: string) {
     if (!resource_manager_map[module_name]) {
       resource_manager_map[module_name] = create_resource_manager();
@@ -58,7 +61,7 @@ export function start_medium() {
   }
 
   initialize_input_plugins(guest_input);
-  setup_medium_api(communication_system);
+  setup_medium_api(communication_system, instances, render_system);
 
   menu_system.create_menu_from_config(loginMenuConfig, "login-menu");
 
@@ -100,74 +103,7 @@ export function start_medium() {
     for (const communication_event of communication_system.inbox) {
       match(communication_event)
         .with("AlreadyConnected", () => {})
-        .with({ EditorEvent: P.select() }, (e) => {
-          match(e)
-            .with({ MainDoorStatus: P.select() }, (status) => {
-              window.medium_gui.editor.set_main_door_status(status);
-            })
-            .with({ Modules: P.select() }, (modules) => {
-              window.medium_gui.editor.set_modules(modules);
-            })
-            .with({ CreatedModule: P.select() }, (d) => {
-              window.medium_gui.editor.create_module(d[1]);
-            })
-            .with({ UpdatedModule: P.select() }, (d) => {
-              window.medium_gui.editor.update_module(d[1]);
-            })
-            .with({ DeletedModule: P.select() }, (d) => {
-              window.medium_gui.editor.delete_module(d);
-            })
-            .with({ CreatedTileset: P.select() }, (d) => {
-              window.medium_gui.editor.set_tileset(d);
-            })
-            .with({ DirectoryInfo: P.select() }, (d) => {
-              window.medium_gui.editor.set_current_file_browser_result(d);
-            })
-            .with({ SetTileset: P.select() }, (d) => {
-              window.medium_gui.editor.set_tileset(d);
-            })
-            .with({ DeletedTileset: P.select() }, (d) => {
-              window.medium_gui.editor.delete_tileset(d);
-            })
-            .with({ CreatedMap: P.select() }, (d) => {
-              window.medium_gui.editor.set_map(d);
-            })
-            .with({ SetMap: P.select() }, (d) => {
-              window.medium_gui.editor.set_map(d);
-            })
-            .with({ UpdatedMap: P.select() }, (d) => {
-              window.medium_gui.editor.update_map(d);
-            })
-            .with({ DeletedMap: P.select() }, (d) => {
-              window.medium_gui.editor.delete_map(d);
-            })
-            .with({ UpdatedConductor: P.select() }, (d) => {
-              window.medium_gui.editor.set_conductor(d);
-            })
-            .with({ ModuleInstances: P.select() }, (d) => {
-              window.medium_gui.editor.set_game_instance_map(d);
-            })
-            .with(
-              { ModuleInstanceOpened: P.select() },
-              ([module_id, game_instance_id]) => {
-                window.medium_gui.editor.add_module_instance(
-                  module_id,
-                  game_instance_id,
-                );
-              },
-            )
-            .with(
-              { ModuleInstanceClosed: P.select() },
-              ([module_id, game_instance_id]) => {
-                window.medium_gui.editor.remove_module_instance(
-                  module_id,
-                  game_instance_id,
-                );
-              },
-            )
-
-            .exhaustive();
-        })
+        .with({ EditorEvent: P.select() }, handle_editor_event)
         .with(
           { ConnectionReady: P.select() },
           ([_session_id, should_login]) => {
@@ -189,27 +125,60 @@ export function start_medium() {
         .with(
           { PrepareGame: P.select() },
           ([module_id, instance_id, w_id, resource_bundle]) => {
-            lazy_get_resource_manager(module_id).load_resource_bundle(
-              module_id,
-              instance_id,
-              resource_bundle,
-            );
+            if (resource_manager_map[module_id]) {
+              send_admin_event(
+                { InitialResourcesLoaded: module_id },
+                communication_system,
+              );
+            } else {
+              lazy_get_resource_manager(module_id).load_resource_bundle(
+                module_id,
+                instance_id,
+                resource_bundle,
+              );
+            }
+
             if (!instances[instance_id]) {
               instances[instance_id] = {};
             }
-            const world_id = w_id ? w_id : "default";
+            const world_id = w_id ? w_id : GUEST_SINGLE_WORLD_ID;
             instances[instance_id][world_id] = create_new_game_instance(
               instance_id,
               module_id,
               world_id,
-              render_system,
             );
+            console.log("added...?", instances);
+            if (world_id === GUEST_SINGLE_WORLD_ID) {
+              render_system.stage.addChild(
+                instances[instance_id][world_id].renderer.mainContainerWrapper,
+              );
+            }
             window.medium_gui.editor.set_game_instances(instances);
           },
         )
         .with({ UnloadGame: P.select() }, ([_, instance_id, w_id]) => {
-          const world_id = w_id ? w_id : "default";
+          const world_id = w_id ? w_id : GUEST_SINGLE_WORLD_ID;
+          console.log("wait not even?", instance_id, world_id, instances);
           if (instances[instance_id] && instances[instance_id][world_id]) {
+            if (world_id === GUEST_SINGLE_WORLD_ID) {
+              render_system.stage.removeChild(
+                instances[instance_id][world_id].renderer.mainContainerWrapper,
+              );
+            }
+            console.log(
+              render_system.current_main_instance,
+              instance_id,
+              world_id,
+            );
+            if (
+              render_system.current_main_instance.instance_id === instance_id &&
+              render_system.current_main_instance.world_id === world_id
+            ) {
+              console.log("removing?");
+              render_system.stage.removeChild(
+                instances[instance_id][world_id].renderer.mainContainerWrapper,
+              );
+            }
             instances[instance_id][world_id].destroy();
             delete instances[instance_id][world_id];
             if (Object.keys(instances[instance_id]).length === 0) {
@@ -221,7 +190,7 @@ export function start_medium() {
         .with(
           { GameSystemEvent: P.select() },
           ([module_id, instance_id, w_id, game_system_event]) => {
-            const world_id = w_id ? w_id : "default";
+            const world_id = w_id ? w_id : GUEST_SINGLE_WORLD_ID;
             if (instances[instance_id] && instances[instance_id][world_id]) {
               instances[instance_id][world_id].handle_game_system_event(
                 game_system_event,

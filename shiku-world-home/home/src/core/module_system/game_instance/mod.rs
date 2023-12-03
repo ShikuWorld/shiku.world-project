@@ -5,8 +5,8 @@ use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
-use crate::core::blueprint::def::BlueprintService;
 use crate::core::blueprint::def::{BlueprintError, GameMap};
+use crate::core::blueprint::def::{BlueprintService, Module};
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication, AdminEnterSuccessState, AdminLeftSuccessState, EnterFailedState,
@@ -73,7 +73,7 @@ impl GameInstanceManager {
         self.relay_messages_to_correct_instances();
 
         for game_instance in self.game_instances.values_mut() {
-            game_instance.update();
+            game_instance.update(&self.module_blueprint);
             if !game_instance.dynamic_module.guests.is_empty()
                 || !game_instance.dynamic_module.admins.is_empty()
             {
@@ -124,7 +124,7 @@ impl GameInstanceManager {
         world_id: WorldId,
     ) -> Result<AdminLeftSuccessState, LeaveFailedState> {
         let mut success_state = AdminLeftSuccessState::LeftWorld;
-        let active_admin_instances = self.active_admins.entry(admin.id).or_insert(HashSet::new());
+        let active_admin_instances = self.active_admins.entry(admin.id).or_default();
         if !active_admin_instances.contains(&instance_id) {
             return Err(LeaveFailedState::NotInModule);
         }
@@ -272,7 +272,7 @@ impl GameInstanceManager {
     pub fn create_new_game_instance(&mut self) -> GameInstanceId {
         let new_game_instance = GameInstance::new(
             self.instance_id_gen.get_id().to_string(),
-            self.module_blueprint.clone(),
+            &self.module_blueprint,
             self.output_sender.clone(),
         );
         let new_game_instance_id = new_game_instance.id.clone();
@@ -321,11 +321,11 @@ pub struct GameInstance {
 impl GameInstance {
     pub fn new(
         id: GameInstanceId,
-        module_blueprint: blueprint::def::Module,
+        module: &Module,
         output_sender: ModuleOutputSender,
     ) -> GameInstance {
         let (dynamic_module, input_sender) =
-            DynamicGameModule::create(module_blueprint, id.clone(), output_sender);
+            DynamicGameModule::create(id.clone(), module, output_sender);
         GameInstance {
             id,
             dynamic_module,
@@ -335,7 +335,7 @@ impl GameInstance {
         }
     }
 
-    pub fn update(&mut self) {
-        self.dynamic_module.update();
+    pub fn update(&mut self, module: &Module) {
+        self.dynamic_module.update(module);
     }
 }

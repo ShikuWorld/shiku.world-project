@@ -1,4 +1,4 @@
-import { InstanceRendering, RenderSystem } from "@/client/renderer";
+import { InstanceRendering } from "@/client/renderer";
 import { create_entity_manager, EntityManager } from "@/client/entities";
 import { create_terrain_manager, TerrainManager } from "@/client/terrain";
 import { create_instance_rendering } from "@/client/renderer/create_game_renderer";
@@ -10,7 +10,10 @@ import { MousePluginType } from "../plugins/mouse-input";
 import { new_shaker } from "@/client/renderer/shaker-factory";
 import { MenuSystem } from "@/client/menu";
 import { ResourceManager } from "@/client/resources";
-import { Graphics } from "pixi.js-legacy";
+
+export type GameInstanceMap = {
+  [instance_id: string]: { [world_id: string]: GameInstance };
+};
 
 export class GameInstance {
   renderer: InstanceRendering;
@@ -181,31 +184,6 @@ export function create_new_game_instance(
   id: string,
   module_name: string,
   world_id: string,
-  render_system: RenderSystem,
 ) {
-  const game_instance = new GameInstance(id, module_name, world_id);
-  render_system.stage.addChild(game_instance.renderer.mainContainerWrapper);
-  render_system.renderMap[id] = game_instance.renderer;
-
-  const graphics = new Graphics();
-
-  // Set the fill color to red
-  graphics.beginFill(0xff0000);
-
-  // Draw the triangle
-  graphics.drawPolygon([
-    100,
-    100, // First vertex
-    200,
-    100, // Second vertex
-    150,
-    200, // Third vertex
-  ]);
-
-  // End the fill
-  graphics.endFill();
-
-  game_instance.renderer.mainContainer.addChild(graphics);
-
-  return game_instance;
+  return new GameInstance(id, module_name, world_id);
 }

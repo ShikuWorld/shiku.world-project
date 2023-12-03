@@ -58,7 +58,7 @@ export function create_game_renderer(): RenderSystem {
   return {
     renderer,
     isDirty: true,
-    renderMap: {},
+    current_main_instance: {},
     stage: mainContainer,
   };
 }

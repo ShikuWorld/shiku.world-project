@@ -5,7 +5,7 @@ use tokio::time::Instant;
 
 use crate::core::module::{GuestInput, ModuleInputReceiver, ModuleOutputSender};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::core::{blueprint, LazyHashmapSet};
+use crate::core::LazyHashmapSet;
 use crate::resource_module::def::ActorId;
 
 pub struct GuestCommunication {
@@ -43,7 +43,6 @@ pub struct DynamicGameModule {
     pub world_to_guest: LazyHashmapSet<WorldId, ActorId>,
     pub admin_to_world: LazyHashmapSet<ActorId, WorldId>,
     pub guest_to_world: HashMap<ActorId, WorldId>,
-    pub blueprint: blueprint::def::Module,
     pub module_communication: ModuleCommunication,
     pub instance_id: GameInstanceId,
 }

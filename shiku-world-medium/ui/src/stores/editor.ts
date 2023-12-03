@@ -27,6 +27,7 @@ export interface EditorStore {
   open_resource_paths: string[];
   selected_tileset_path: string;
   selected_tile_id: number;
+  current_main_instance: { instance_id?: string; world_id?: string };
   game_instances: {
     [instance_id: string]: { [world_id: string]: GameInstance };
   };
@@ -50,6 +51,7 @@ export const use_editor_store = defineStore("editor", {
     edit_module_id: "",
     current_map_index: 0,
     tileset_map: {},
+    current_main_instance: {},
     game_instances: {},
     game_map_map: {},
     conductor: { module_connection_map: {}, resources: [], gid_map: [] },
@@ -62,6 +64,16 @@ export const use_editor_store = defineStore("editor", {
         module_instance_map[d[0]] = d[1];
       }
       this.module_instance_map = module_instance_map;
+    },
+    set_current_main_instance(instance_id: string, world_id: string) {
+      this.current_main_instance = { instance_id, world_id };
+      window.medium.swap_main_render_instance(instance_id, world_id);
+    },
+    game_instance_exists(instance_id: string, world_id: string): boolean {
+      return (
+        !!this.game_instances[instance_id] &&
+        !!this.game_instances[instance_id][world_id]
+      );
     },
     add_module_instance(module_id: string, game_instance_id: string) {
       this.module_instance_map = {
@@ -82,7 +94,7 @@ export const use_editor_store = defineStore("editor", {
       };
     },
     set_game_instances(game_instances: EditorStore["game_instances"]) {
-      this.game_instances = game_instances;
+      this.game_instances = { ...game_instances };
     },
     set_selected_tile(tileset_path: string, tile_id: number) {
       this.selected_tileset_path = tileset_path;
@@ -114,24 +126,6 @@ export const use_editor_store = defineStore("editor", {
     },
     set_current_file_browser_result(result: FileBrowserResult) {
       this.current_file_browser_result = result;
-    },
-    start_inspecting_world(
-      module_id: string,
-      game_instance_id: string,
-      world_id: string,
-    ) {
-      send_admin_event({
-        StartInspectingWorld: [module_id, game_instance_id, world_id],
-      });
-    },
-    stop_inspecting_world(
-      module_id: string,
-      game_instance_id: string,
-      world_id: string,
-    ) {
-      send_admin_event({
-        StopInspectingWorld: [module_id, game_instance_id, world_id],
-      });
     },
     update_module(module: Partial<Module> & { id: string }) {
       if (module.id) {
@@ -254,6 +248,24 @@ export const use_editor_store = defineStore("editor", {
         });
       }
     },
+    start_inspecting_world(
+      module_id: string,
+      game_instance_id: string,
+      world_id: string,
+    ) {
+      send_admin_event({
+        StartInspectingWorld: [module_id, game_instance_id, world_id],
+      });
+    },
+    stop_inspecting_world(
+      module_id: string,
+      game_instance_id: string,
+      world_id: string,
+    ) {
+      send_admin_event({
+        StopInspectingWorld: [module_id, game_instance_id, world_id],
+      });
+    },
     browse_folder(path: string) {
       send_admin_event({ BrowseFolder: path });
     },
@@ -264,7 +276,7 @@ export const use_editor_store = defineStore("editor", {
       send_admin_event({ CreateMap: [map.module_id, map] });
     },
     update_map_server(module_id: string, map_update: MapUpdate) {
-      send_admin_event({ UpdateMap: [module_id, map_update] });
+      send_admin_event({ UpdateMap: map_update });
     },
     delete_map_server(map: GameMap) {
       send_admin_event({ DeleteMap: [map.module_id, map] });

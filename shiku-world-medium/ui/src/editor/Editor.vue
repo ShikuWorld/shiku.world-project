@@ -24,6 +24,14 @@
             />
           </v-expansion-panel-text>
         </v-expansion-panel>
+        <v-expansion-panel title="Instances">
+          <ModuleInstanceList
+            :module="selected_module"
+            :show_current_instance="true"
+            :module_instances="module_instance_map[selected_module.id]"
+            @world_click="select_as_main_instance"
+          />
+        </v-expansion-panel>
       </v-expansion-panels>
     </div>
     <div class="editor-main-view">
@@ -67,6 +75,7 @@ import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
 import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
 import { Resource } from "@/editor/blueprints/Resource";
 import TileEditor from "@/editor/editor/TileEditor.vue";
+import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 
 const tab = ref<number>(0);
 const {
@@ -82,6 +91,8 @@ const {
   load_modules,
   add_open_resource_path,
   set_selected_resource_tab,
+  game_instance_exists,
+  set_current_main_instance,
 } = use_editor_store();
 load_modules();
 
@@ -89,6 +100,15 @@ const selected_module = computed(() => get_module(selected_module_id?.value));
 const selected_tileset = computed(() =>
   get_tileset(selected_tileset_path.value),
 );
+function select_as_main_instance(
+  _module_id: string,
+  instance_id: string,
+  world_id: string,
+) {
+  if (game_instance_exists(instance_id, world_id)) {
+    set_current_main_instance(instance_id, world_id);
+  }
+}
 function open_resource_editor(resource: Resource) {
   tab.value = 2;
   let path_index = add_open_resource_path(resource_key(resource));

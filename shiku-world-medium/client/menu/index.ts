@@ -1,5 +1,5 @@
 import { ResourceManager } from "../resources";
-import { ComponentConfig } from "@/gui/ui";
+import { ComponentConfig } from "../../ui/src/ui";
 
 export class MenuSystem {
   private _menus: { [name: string]: ComponentConfig };

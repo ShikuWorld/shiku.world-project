@@ -1,20 +1,24 @@
 import { Button, GuestInputState } from "@/client/input";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { InputPlugin } from "@/client/plugins";
-import {match} from "ts-pattern";
-import {MouseInputSchema} from "@/client/communication/api/bindings/MouseInputSchema";
+import { match } from "ts-pattern";
+import { MouseInputSchema } from "@/client/communication/api/bindings/MouseInputSchema";
 
 const plugin_id = "MOUSE";
 let activate_plugin$: SimpleEventDispatcher<string>;
 let mouse_active = false;
 
-export type MousePluginType = InputPlugin<{mouse_mode: MouseInputSchema}>;
+export type MousePluginType = InputPlugin<{ mouse_mode: MouseInputSchema }>;
 
-const plugin: MousePluginType = { initialize: mouse_input, id: plugin_id, plugin_options: {mouse_mode: 'PurelyDirectionalNoJump'} };
+const plugin: MousePluginType = {
+  initialize: mouse_input,
+  id: plugin_id,
+  plugin_options: { mouse_mode: "PurelyDirectionalNoJump" },
+};
 
 function mouse_input(
   guest_input: GuestInputState,
-  activate_plugin: SimpleEventDispatcher<string>
+  activate_plugin: SimpleEventDispatcher<string>,
 ) {
   activate_plugin$ = activate_plugin;
 
@@ -47,7 +51,7 @@ function mouse_input(
         set_button(guest_input, Button.Jump, false);
       }
     },
-    false
+    false,
   );
 
   document.addEventListener("mouseleave", function (event) {
@@ -68,9 +72,12 @@ function mouse_input(
 
 function update_mouse_input_button(
   mouse_event: MouseEvent,
-  guest_input: GuestInputState
+  guest_input: GuestInputState,
 ) {
   const canvas = document.getElementById("canvas");
+  if (!canvas) {
+    return;
+  }
   const width = canvas.offsetWidth / 2;
   const height = canvas.offsetHeight / 2;
 
@@ -78,11 +85,11 @@ function update_mouse_input_button(
   const cursor_y = mouse_event.y - height;
 
   match(plugin.plugin_options.mouse_mode)
-    .with('UpIsJumpAndNoDown', () => {
+    .with("UpIsJumpAndNoDown", () => {
       set_button(guest_input, Button.Jump, cursor_y < -50);
       left_right_standard(cursor_x, guest_input);
     })
-    .with('PurelyDirectionalNoJump', () => {
+    .with("PurelyDirectionalNoJump", () => {
       up_down_standard(cursor_y, guest_input);
       left_right_standard(cursor_x, guest_input);
     })
@@ -126,7 +133,7 @@ function up_down_standard(cursor_y: number, guest_input: GuestInputState) {
 function set_button(
   guest_input: GuestInputState,
   button: Button,
-  button_state: boolean
+  button_state: boolean,
 ) {
   if (guest_input.button_pressed_map[button] !== button_state) {
     guest_input.button_pressed_map[button] = button_state;

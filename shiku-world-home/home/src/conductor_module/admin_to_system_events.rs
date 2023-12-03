@@ -13,9 +13,7 @@ use crate::conductor_module::game_instances::{
 use crate::core::blueprint::def::{BlueprintService, Resource, ResourceKind, ResourceLoaded};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::Admin;
-use crate::core::module::{
-    AdminEnterSuccessState, AdminToSystemEvent, CommunicationEvent, EditorEvent,
-};
+use crate::core::module::{AdminToSystemEvent, CommunicationEvent, EditorEvent};
 use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ActorId, ResourceBundle, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
@@ -40,7 +38,11 @@ pub async fn handle_admin_to_system_event(
     match event {
         AdminToSystemEvent::InitialResourcesLoaded(module_id) => {
             if let Some(module) = module_map.get_mut(&module_id) {
-                module.create_new_game_instance();
+                for instance in module.game_instances.values_mut() {
+                    if let Some(module_admin) = instance.dynamic_module.admins.get_mut(&admin.id) {
+                        module_admin.resources_loaded = true;
+                    }
+                }
             }
         }
         AdminToSystemEvent::OpenInstance(module_id) => {
@@ -55,20 +57,15 @@ pub async fn handle_admin_to_system_event(
                     game_instance_id.clone(),
                     world_id.clone(),
                 ) {
-                    Ok(success) => match success {
-                        AdminEnterSuccessState::EnteredWorld => {}
-                        AdminEnterSuccessState::EnteredInstanceAndWorld => {
-                            send_communication_event(CommunicationEvent::PrepareGame(
-                                module_id,
-                                game_instance_id,
-                                Some(world_id),
-                                ResourceBundle {
-                                    name: "Default".into(),
-                                    assets: Vec::new(),
-                                },
-                            ));
-                        }
-                    },
+                    Ok(_) => send_communication_event(CommunicationEvent::PrepareGame(
+                        module_id,
+                        game_instance_id,
+                        Some(world_id),
+                        ResourceBundle {
+                            name: "Default".into(),
+                            assets: Vec::new(),
+                        },
+                    )),
                     Err(err) => error!("Could not get admin into instance/map {:?}", err),
                 }
             }

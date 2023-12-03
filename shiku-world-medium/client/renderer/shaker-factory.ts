@@ -21,7 +21,7 @@ export interface DefaultShakeProps extends ShakeProps {
  * @param defaults - a valid set of default ShakeProps
  */
 export const new_shaker = (
-  defaults?: DefaultShakeProps
+  defaults?: DefaultShakeProps,
 ): { shake: () => void; setTarget: (shakeTarger: Target) => void } => {
   // set optional default state
   const defaultState = defaults
@@ -55,7 +55,7 @@ export const new_shaker = (
    */
   const reposition = (
     target: Container,
-    pos: { x?: number; y?: number }
+    pos: { x?: number; y?: number },
   ): void => {
     target.x = pos.x ? pos.x : target.x;
     target.y = pos.y ? pos.y : target.y;
@@ -66,6 +66,10 @@ export const new_shaker = (
    * @param shakeProps - a valid SakeProps object
    */
   const shake = (shakeProps?: ShakeProps): void => {
+    if (!state.target) {
+      console.error("No target in state?!");
+      return;
+    }
     // override defaults w/ new props if they're set, we'll use defaults set in factory creation otherwise
     if (shakeProps) {
       state.shakeCountMax = shakeProps.shakeCountMax;

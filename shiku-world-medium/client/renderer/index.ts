@@ -93,7 +93,7 @@ export type LayerContainer = {
 export interface RenderSystem {
   renderer: IRenderer;
   stage: Container;
-  renderMap: { [instance_id: string]: InstanceRendering };
+  current_main_instance: { instance_id?: string; world_id?: string };
   isDirty: boolean;
 }
 

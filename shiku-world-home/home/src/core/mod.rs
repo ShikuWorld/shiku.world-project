@@ -35,6 +35,7 @@ pub const LOGGED_IN_TODAY_DELAY_IN_HOURS: i64 = 16;
 pub const TARGET_FPS: Real = 60.0;
 pub const TARGET_FRAME_DURATION: Real = 1000.0 / 60.0;
 
+#[derive(Debug)]
 pub struct LazyHashmapSet<K: Eq + Hash, T: Eq + Hash> {
     data: HashMap<K, HashSet<T>>,
 }

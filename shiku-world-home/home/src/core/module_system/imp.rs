@@ -23,14 +23,13 @@ use crate::resource_module::def::ActorId;
 
 impl DynamicGameModule {
     pub fn create(
-        blueprint: Module,
         instance_id: GameInstanceId,
+        module: &Module,
         module_output_sender: ModuleOutputSender,
     ) -> (DynamicGameModule, ModuleInputSender) {
         let (module_input_sender, module_input_receiver) = create_module_communication_input();
         let mut dynamic_module = DynamicGameModule {
             world_map: HashMap::new(),
-            blueprint,
             guests: HashMap::new(),
             admins: HashMap::new(),
             guest_to_world: HashMap::new(),
@@ -43,8 +42,7 @@ impl DynamicGameModule {
             ),
             instance_id,
         };
-        let game_maps = match BlueprintService::load_all_maps_for_module(&dynamic_module.blueprint)
-        {
+        let game_maps = match BlueprintService::load_all_maps_for_module(module) {
             Ok(maps) => maps,
             Err(err) => {
                 error!("Could not load maps for module to create worlds {:?}", err);
@@ -86,10 +84,6 @@ impl DynamicGameModule {
         Ok(game_map.world_id.clone())
     }
 
-    pub fn name(&self) -> String {
-        self.blueprint.name.clone()
-    }
-
     fn set_guest_input(guests: &mut GuestMap, guest_id: &ActorId, input: GuestInput) {
         if let Some(guest) = guests.get_mut(guest_id) {
             guest.guest_input = input;
@@ -103,8 +97,8 @@ impl DynamicGameModule {
         }
     }
 
-    pub fn update(&mut self) {
-        self.handle_guest_events();
+    pub fn update(&mut self, module: &Module) {
+        self.handle_guest_events(module);
         self.handle_system_events();
     }
 
@@ -136,7 +130,7 @@ impl DynamicGameModule {
         }
     }
 
-    fn handle_guest_events(&mut self) {
+    fn handle_guest_events(&mut self, module: &Module) {
         for event in self
             .module_communication
             .input_receiver
@@ -162,7 +156,7 @@ impl DynamicGameModule {
                             guest_id,
                             event_type: {
                                 ModuleInstanceEvent {
-                                    module_id: self.blueprint.id.clone(),
+                                    module_id: module.id.clone(),
                                     instance_id: self.instance_id.clone(),
                                     world_id: None,
                                     event_type: GameSystemToGuestEvent::OpenMenu(
@@ -187,16 +181,11 @@ impl DynamicGameModule {
     ) -> Result<EnterSuccessState, EnterFailedState> {
         self.world_to_admin.insert_entry(&world_id, admin.id);
         self.admin_to_world.insert_entry(&admin.id, world_id);
-        if !self.admins.contains_key(&admin.id) {
-            self.admins.insert(
-                admin.id,
-                ModuleAdmin {
-                    id: admin.id,
-                    connected: false,
-                    resources_loaded: false,
-                },
-            );
-        }
+        self.admins.entry(admin.id).or_insert(ModuleAdmin {
+            id: admin.id,
+            connected: false,
+            resources_loaded: false,
+        });
 
         Ok(EnterSuccessState::Entered)
     }
