@@ -4,8 +4,8 @@ use rapier2d::prelude::{ColliderHandle, Real};
 
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::ShowEffect;
+use crate::core::guest::ActorId;
 use crate::core::rapier_simulation::def::RapierSimulation;
-use crate::resource_module::def::ActorId;
 use crate::resource_module::map::def::{TerrainChunk, TiledMap};
 
 pub type HideEntityMap = HashMap<ActorId, HashSet<EntityId>>;

@@ -3,10 +3,10 @@ use std::collections::{HashMap, HashSet};
 use apecs::World;
 use tokio::time::Instant;
 
+use crate::core::guest::ActorId;
 use crate::core::module::{GuestInput, ModuleInputReceiver, ModuleOutputSender};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::LazyHashmapSet;
-use crate::resource_module::def::ActorId;
 
 pub struct GuestCommunication {
     pub resources_loaded: bool,

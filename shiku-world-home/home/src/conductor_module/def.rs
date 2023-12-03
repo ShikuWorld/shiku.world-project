@@ -4,13 +4,13 @@ use std::time::Instant;
 use snowflake::SnowflakeIdBucket;
 
 use crate::core::blueprint::def::{BlueprintService, ModuleId};
+use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ModuleExitSlot, ProviderUserId};
 use crate::core::module::{ModuleIO, SystemCommunicationIO};
 use crate::core::module_system::game_instance::GameInstanceManager;
 use crate::core::{blueprint, Snowflake};
 use crate::login::login_manager::LoginManager;
 use crate::persistence_module::PersistenceModule;
-use crate::resource_module::def::ActorId;
 use crate::webserver_module::def::WebServerModule;
 use crate::{ResourceModule, WebsocketModule};
 

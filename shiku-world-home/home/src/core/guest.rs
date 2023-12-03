@@ -5,13 +5,12 @@ use crate::core::module::ModuleName;
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::Snowflake;
 use crate::persistence_module::models::PersistedGuest;
-use crate::resource_module::def::ActorId;
 
 pub type SessionId = String;
 pub type ProviderUserId = String;
 pub type ModuleExitSlot = String;
 pub type ModuleEnterSlot = String;
-
+pub type ActorId = Snowflake;
 #[derive(Debug)]
 pub struct Guest {
     pub id: ActorId,

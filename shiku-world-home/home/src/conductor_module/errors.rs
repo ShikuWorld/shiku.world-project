@@ -2,9 +2,9 @@ use flume::SendError;
 use serde_json::Error as SerdeJsonError;
 use thiserror::Error;
 
+use crate::core::guest::ActorId;
 use crate::core::module::GuestToModule;
 use crate::persistence_module::PersistenceError;
-use crate::resource_module::def::ActorId;
 
 #[derive(Debug)]
 pub enum SendEventToModuleError {

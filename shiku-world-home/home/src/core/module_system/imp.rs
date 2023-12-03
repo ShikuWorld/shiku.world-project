@@ -5,6 +5,7 @@ use log::{debug, error};
 use tokio::time::Instant;
 
 use crate::core::blueprint::def::{BlueprintService, GameMap, Module};
+use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication_input, EnterFailedState, EnterSuccessState, GameSystemToGuestEvent,
@@ -19,7 +20,6 @@ use crate::core::module_system::def::{
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::{send_and_log_error, LazyHashmapSet};
-use crate::resource_module::def::ActorId;
 
 impl DynamicGameModule {
     pub fn create(

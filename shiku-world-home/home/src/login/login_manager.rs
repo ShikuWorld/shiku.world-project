@@ -5,12 +5,12 @@ use log::debug;
 use reqwest::blocking::Client as BlockingClient;
 use reqwest::Url;
 
+use crate::core::guest::ActorId;
 use crate::core::guest::{LoginData, LoginProvider};
 use crate::core::module::ProviderLoggedIn;
 use crate::login::twitch_login::{
     TwitchApiError, TwitchApiLogin, TwitchExtensionOauthTokenResponse,
 };
-use crate::resource_module::def::ActorId;
 
 pub struct LoginManager {
     twitch_ext_access_token: String,

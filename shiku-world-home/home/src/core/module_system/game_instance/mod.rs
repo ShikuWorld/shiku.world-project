@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::core::blueprint::def::{BlueprintError, GameMap};
 use crate::core::blueprint::def::{BlueprintService, Module};
-use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
+use crate::core::guest::{ActorId, Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication, AdminEnterSuccessState, AdminLeftSuccessState, EnterFailedState,
     EnterSuccessState, LeaveFailedState, LeaveSuccessState, ModuleInputReceiver, ModuleInputSender,
@@ -16,7 +16,7 @@ use crate::core::module::{
 use crate::core::module_system::def::{DynamicGameModule, WorldId};
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
-use crate::resource_module::def::{ActorId, ResourceFile, ResourceModule};
+use crate::resource_module::def::{ResourceFile, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 
 #[derive(Error, Debug)]

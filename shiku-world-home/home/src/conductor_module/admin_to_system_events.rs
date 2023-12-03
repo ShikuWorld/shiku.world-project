@@ -12,10 +12,10 @@ use crate::conductor_module::game_instances::{
 };
 use crate::core::blueprint::def::{BlueprintService, Resource, ResourceKind, ResourceLoaded};
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::guest::Admin;
+use crate::core::guest::{ActorId, Admin};
 use crate::core::module::{AdminToSystemEvent, CommunicationEvent, EditorEvent};
 use crate::core::{log_result_error, send_and_log_error};
-use crate::resource_module::def::{ActorId, ResourceBundle, ResourceModule};
+use crate::resource_module::def::{ResourceBundle, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
 
 pub async fn handle_admin_to_system_event(

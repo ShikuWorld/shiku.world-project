@@ -15,7 +15,9 @@ use crate::conductor_module::errors::{
 };
 use crate::conductor_module::game_instances::create_game_instance_manager;
 use crate::core::blueprint::def::{BlueprintService, ModuleId};
-use crate::core::guest::{Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId};
+use crate::core::guest::{
+    ActorId, Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId,
+};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
     GamePosition, GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo, GuestToModule,
@@ -30,7 +32,7 @@ use crate::core::{fix_intellij_error_bug, safe_unwrap, Snowflake, LOGGED_IN_TODA
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
-use crate::resource_module::def::{ActorId, ResourceBundle};
+use crate::resource_module::def::ResourceBundle;
 use crate::webserver_module::def::WebServerModule;
 use crate::{ResourceModule, SystemModule, WebsocketModule};
 
@@ -569,7 +571,7 @@ impl ConductorModule {
                 guest.current_instance_id = Some(instance_id.clone());
                 guest.pending_module_exit = None;
                 if let Err(err) =
-                    resource_module.activate_resources_for_guest(module_name.clone(), &guest.id)
+                    resource_module.activate_module_resource_updates(module_name.clone(), &guest.id)
                 {
                     error!(
                         "Error activating resource for guest: {}",

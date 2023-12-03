@@ -7,8 +7,8 @@ use reqwest::{Client, Error as ReqwestError, Url};
 use serde::Deserialize;
 use url::ParseError as UrlParseError;
 
+use crate::core::guest::ActorId;
 use crate::core::module::{ModuleInputReceiver, ModuleOutputSender};
-use crate::resource_module::def::ActorId;
 
 pub struct LoginModule {
     current_guests: HashSet<ActorId>,
