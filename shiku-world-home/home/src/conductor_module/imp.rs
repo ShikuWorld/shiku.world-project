@@ -909,6 +909,7 @@ impl ConductorModule {
         for (guest_id, guest) in &self.guests {
             if let Some(ws_connection_id) = &guest.ws_connection_id {
                 for message in self.websocket_module.drain_events(ws_connection_id) {
+                    println!("{}", message.to_string().as_str());
                     match serde_json::from_str::<GuestTo>(message.to_string().as_str()) {
                         Ok(guest_to) => match guest_to {
                             GuestTo::GuestToSystemEvent(event) => {

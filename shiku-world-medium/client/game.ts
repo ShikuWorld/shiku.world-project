@@ -114,14 +114,11 @@ export function start_medium() {
             }
           },
         )
-        .with(
-          { ResourceEvent: P.select() },
-          ([module_name, resource_event]) => {
-            lazy_get_resource_manager(module_name).handle_resource_event(
-              resource_event,
-            );
-          },
-        )
+        .with({ ResourceEvent: P.select() }, ([module_id, resource_event]) => {
+          lazy_get_resource_manager(module_id).handle_resource_event(
+            resource_event,
+          );
+        })
         .with(
           { PrepareGame: P.select() },
           ([module_id, instance_id, w_id, resource_bundle]) => {

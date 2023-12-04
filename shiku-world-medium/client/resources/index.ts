@@ -57,8 +57,19 @@ export class ResourceManager {
 
   handle_resource_event(resource_event: ResourceEvent) {
     match(resource_event)
-      .with({ LoadResource: P.select() }, (module_resources_map) => {
-        console.log(module_resources_map);
+      .with({ LoadResource: P.select() }, (resource_bundle) => {
+        Assets.addBundle(
+          resource_bundle.name,
+          resource_bundle.assets.map((asset) => ({
+            alias: asset.path,
+            src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`,
+          })),
+        );
+        Assets.loadBundle(resource_bundle.name).then(() => {
+          for (const res of resource_bundle.assets) {
+            console.log("Do something with res", res);
+          }
+        });
       })
       .with("UnLoadResource", () => console.log("unload"))
       .exhaustive();

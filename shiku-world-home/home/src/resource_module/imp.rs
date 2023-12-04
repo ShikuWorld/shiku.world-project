@@ -1,10 +1,9 @@
-use std::collections::hash_set::Drain;
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
 use flume::unbounded;
 use futures_util::{SinkExt, StreamExt};
-use log::{debug, error};
+use log::error;
 use snowflake::SnowflakeIdBucket;
 use tokio::time::sleep;
 use tokio_tungstenite::connect_async;
@@ -13,17 +12,12 @@ use url::Url;
 
 use crate::core::blueprint::def::{ModuleId, ResourcePath};
 use crate::core::guest::ActorId;
-use crate::core::module::{GuestEvent, ModuleInstanceEvent};
-use crate::core::module_system::def::WorldId;
-use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::{safe_unwrap, send_and_log_error_consume};
 use crate::resource_module::def::{
     LoadResource, PicUpdateEvent, ResourceBundle, ResourceEvent, ResourceModule,
     ResourceModuleBookKeeping, ResourceModulePicUpdates,
 };
-use crate::resource_module::errors::{
-    ReadResourceMapError, SendLoadEventError, SendUnloadEventError,
-};
+use crate::resource_module::errors::{ReadResourceMapError, SendUnloadEventError};
 
 impl ResourceModule {
     pub async fn new() -> ResourceModule {
@@ -58,7 +52,7 @@ impl ResourceModule {
             book_keeping: ResourceModuleBookKeeping {
                 active_resources: HashMap::new(),
                 path_to_module_map: HashMap::new(),
-                active_actor_ids_by_module: HashMap::new(),
+                module_actor_set: HashMap::new(),
                 resources: HashMap::new(),
                 resource_hash_gen: SnowflakeIdBucket::new(1, 7),
             },
@@ -113,7 +107,7 @@ impl ResourceModule {
                 self.book_keeping.path_to_module_map.remove(resource_path);
             }
         }
-        if let Some(actor_ids) = self.book_keeping.active_actor_ids_by_module.get(module_id) {
+        if let Some(actor_ids) = self.book_keeping.module_actor_set.get(module_id) {
             for actor_id in actor_ids {
                 Self::send_unload_event(
                     &mut self.resource_load_events,
@@ -151,26 +145,25 @@ impl ResourceModule {
         resource: LoadResource,
     ) {
         let resource_map = book_keeping.resources.entry(module_id.clone()).or_default();
+        let new_resource = LoadResource {
+            kind: resource.kind.clone(),
+            path: resource.path.clone(),
+            cache_hash: book_keeping.resource_hash_gen.get_id().to_string(),
+        };
         book_keeping
             .path_to_module_map
-            .insert(resource.path.clone(), module_id.clone());
-        resource_map.insert(
-            resource.path.clone(),
-            LoadResource {
-                kind: resource.kind.clone(),
-                path: resource.path.clone(),
-                cache_hash: book_keeping.resource_hash_gen.get_id(),
-            },
-        );
+            .insert(new_resource.path.clone(), module_id.clone());
+        resource_map.insert(new_resource.path.clone(), new_resource.clone());
         let update_name = book_keeping.resource_hash_gen.get_id().to_string();
-        if let Some(actor_ids) = book_keeping.active_actor_ids_by_module.get(&module_id) {
+        println!("hm? {:?}", book_keeping.module_actor_set);
+        if let Some(actor_ids) = book_keeping.module_actor_set.get(&module_id) {
             for actor_id in actor_ids {
                 Self::send_load_event(
                     resource_load_events,
                     actor_id,
                     module_id.clone(),
                     update_name.clone(),
-                    vec![resource.clone()],
+                    vec![new_resource.clone()],
                 );
             }
         }
@@ -211,7 +204,6 @@ impl ResourceModule {
             self.book_keeping.active_resources.get(guest_id),
             ReadResourceMapError::Get,
         )?;
-        debug!("active_resources? {:?}", active_resources);
 
         let mut resources_out = Vec::new();
 
@@ -246,31 +238,42 @@ impl ResourceModule {
         Ok(resources_out)
     }
 
-    pub fn activate_module_resource_updates(&mut self, module_id: ModuleId, guest_id: &ActorId) {
+    pub fn activate_module_resource_updates(&mut self, module_id: ModuleId, actor_id: &ActorId) {
         self.book_keeping
             .active_resources
-            .entry(*guest_id)
-            .or_insert_with(HashMap::new)
+            .entry(*actor_id)
+            .or_default()
             .insert(module_id.clone(), true);
+        self.book_keeping
+            .module_actor_set
+            .entry(module_id.clone())
+            .or_default()
+            .insert(*actor_id);
     }
 
     pub fn disable_module_resource_updates(
         &mut self,
         module_id: ModuleId,
-        guest_id: &ActorId,
+        actor_id: &ActorId,
     ) -> Result<(), SendUnloadEventError> {
-        if self.book_keeping.active_resources.get(guest_id).is_none() {
+        if self.book_keeping.active_resources.get(actor_id).is_none() {
             return Ok(());
         }
 
         let active_modules_for_guest_map = safe_unwrap(
-            self.book_keeping.active_resources.get_mut(guest_id),
+            self.book_keeping.active_resources.get_mut(actor_id),
             SendUnloadEventError::NoActiveResourceMapForUser,
         )?;
 
         active_modules_for_guest_map.remove(&module_id);
 
-        Self::send_unload_event(&mut self.resource_load_events, guest_id, module_id);
+        self.book_keeping
+            .module_actor_set
+            .entry(module_id.clone())
+            .or_default()
+            .insert(*actor_id);
+
+        Self::send_unload_event(&mut self.resource_load_events, actor_id, module_id);
 
         Ok(())
     }

@@ -24,13 +24,13 @@ pub enum LoadResourceKind {
 pub struct LoadResource {
     pub(super) kind: LoadResourceKind,
     pub(super) path: ResourcePath,
-    pub(super) cache_hash: Snowflake,
+    pub(super) cache_hash: String,
 }
 
 impl LoadResource {
     pub fn image(path: ResourcePath) -> LoadResource {
         LoadResource {
-            cache_hash: Snowflake::default(),
+            cache_hash: String::default(),
             kind: LoadResourceKind::Image,
             path,
         }
@@ -60,7 +60,7 @@ pub struct PicUpdateEvent {
 pub struct ResourceModuleBookKeeping {
     pub(super) active_resources: HashMap<ActorId, HashMap<ModuleId, bool>>,
     pub(super) path_to_module_map: HashMap<ResourcePath, ModuleId>,
-    pub(super) active_actor_ids_by_module: HashMap<ModuleId, HashSet<ActorId>>,
+    pub(super) module_actor_set: HashMap<ModuleId, HashSet<ActorId>>,
     pub(super) resources: HashMap<ModuleId, HashMap<ResourcePath, LoadResource>>,
     pub(super) resource_hash_gen: SnowflakeIdBucket,
 }

@@ -25,11 +25,13 @@ in
       volumes = [
         "${golemPath}:/app/storage"
       ];
+      extraOptions = [ "--pull=always" ];
     };
     "shiku-world-status" = {
       image = "build.shiku.world/shiku-world-status:latest";
       login = credentials;
       ports = ["3333:3000"];
+      extraOptions = [ "--pull=always" ];
     };
     "shiku-world-resources" = {
       image = "build.shiku.world/shiku-world-resources:latest";
@@ -38,6 +40,7 @@ in
         "${shikuWorldResourcesPath}:/static"
       ];
       ports = ["8083:8083"];
+      extraOptions = [ "--pull=always" ];
     };
     "shiku-world-files" = {
       image = "hurlenko/filebrowser";
@@ -47,6 +50,7 @@ in
         "${shikuWorldResourcesConfigPath}:/config"
       ];
       ports = ["8088:8080"];
+      extraOptions = [ "--pull=always" ];
     };
   };
 }
