@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
-use crate::core::blueprint::def::ResourcePath;
+use crate::core::blueprint::def::{ModuleId, ResourcePath};
 use crate::core::guest::ActorId;
 use flume::Receiver;
 use notify::event::ModifyKind;
@@ -21,16 +21,27 @@ pub enum LoadResourceKind {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
-pub struct Resource {
+pub struct LoadResource {
     pub(super) kind: LoadResourceKind,
     pub(super) path: ResourcePath,
     pub(super) cache_hash: Snowflake,
 }
+
+impl LoadResource {
+    pub fn image(path: ResourcePath) -> LoadResource {
+        LoadResource {
+            cache_hash: Snowflake::default(),
+            kind: LoadResourceKind::Image,
+            path,
+        }
+    }
+}
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub struct ResourceBundle {
     pub name: String,
-    pub assets: Vec<Resource>,
+    pub assets: Vec<LoadResource>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -46,12 +57,22 @@ pub struct PicUpdateEvent {
     pub kind: ModifyKind,
 }
 
-pub struct ResourceModule {
-    pub(super) active_resources: HashMap<ActorId, HashMap<ModuleName, bool>>,
-    pub(super) resources: HashMap<ModuleName, HashMap<ResourcePath, Resource>>,
-    pub(super) resource_load_events: Vec<GuestEvent<ModuleInstanceEvent<ResourceEvent>>>,
+pub struct ResourceModuleBookKeeping {
+    pub(super) active_resources: HashMap<ActorId, HashMap<ModuleId, bool>>,
+    pub(super) path_to_module_map: HashMap<ResourcePath, ModuleId>,
+    pub(super) active_actor_ids_by_module: HashMap<ModuleId, HashSet<ActorId>>,
+    pub(super) resources: HashMap<ModuleId, HashMap<ResourcePath, LoadResource>>,
     pub(super) resource_hash_gen: SnowflakeIdBucket,
+}
+
+pub struct ResourceModulePicUpdates {
     pub(super) pic_changed_events_hash: HashSet<String>,
     pub(super) pic_update_receiver: Receiver<PicUpdateEvent>,
     pub(super) last_insert: Instant,
+}
+
+pub struct ResourceModule {
+    pub(super) book_keeping: ResourceModuleBookKeeping,
+    pub(super) pic_updates: ResourceModulePicUpdates,
+    pub(super) resource_load_events: Vec<(ActorId, ModuleId, ResourceEvent)>,
 }

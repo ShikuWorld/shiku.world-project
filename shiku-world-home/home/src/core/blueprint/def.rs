@@ -17,7 +17,7 @@ pub type JointId = usize;
 #[ts(export, export_to = "blueprints/")]
 pub struct Conductor {
     pub(crate) module_connection_map: HashMap<ModuleExitSlot, (ModuleId, ModuleEnterSlot)>,
-    pub(crate) resources: Vec<Resource>,
+    pub(crate) resources: Vec<BlueprintResource>,
     pub(crate) gid_map: Vec<(ResourcePath, u32)>,
 }
 
@@ -53,7 +53,7 @@ pub struct FileBrowserResult {
     pub path: String,
     pub dir: String,
     pub dirs: Vec<String>,
-    pub resources: Vec<Resource>,
+    pub resources: Vec<BlueprintResource>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -67,7 +67,7 @@ pub enum FileBrowserFileKind {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub struct Resource {
+pub struct BlueprintResource {
     pub file_name: String,
     pub dir: ResourcePath,
     pub path: ResourcePath,
@@ -93,6 +93,25 @@ pub struct Tileset {
     pub tile_count: u32,
     pub columns: u32,
     pub tiles: HashMap<u32, Tile>,
+}
+
+impl Tileset {
+    pub fn get_image_paths(&self) -> Vec<ResourcePath> {
+        if let Some(image) = &self.image {
+            vec![image.path.clone()]
+        } else {
+            self.tiles
+                .values()
+                .filter_map(|t| {
+                    if let Some(image) = &t.image {
+                        Some(image.path.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        }
+    }
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -132,7 +151,7 @@ pub type ModuleId = String;
 pub struct Module {
     pub id: ModuleId,
     pub name: ModuleName,
-    pub resources: Vec<Resource>,
+    pub resources: Vec<BlueprintResource>,
     pub gid_map: Vec<(ResourcePath, u32)>,
     pub insert_points: Vec<IOPoint>,
     pub exit_points: Vec<IOPoint>,
@@ -145,7 +164,7 @@ pub struct Module {
 #[ts(export, export_to = "blueprints/")]
 pub struct ModuleUpdate {
     pub name: Option<String>,
-    pub resources: Option<Vec<Resource>>,
+    pub resources: Option<Vec<BlueprintResource>>,
     pub insert_points: Option<Vec<IOPoint>>,
     pub exit_points: Option<Vec<IOPoint>>,
     pub max_guests: Option<usize>,
@@ -164,7 +183,7 @@ impl ModuleUpdate {
         }
     }
 
-    pub fn resources(mut self, resources: Vec<Resource>) -> ModuleUpdate {
+    pub fn resources(mut self, resources: Vec<BlueprintResource>) -> ModuleUpdate {
         self.resources = Some(resources);
         self
     }

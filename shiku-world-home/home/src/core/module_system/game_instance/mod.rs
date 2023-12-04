@@ -1,12 +1,14 @@
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 
 use log::{debug, error};
 use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
-use crate::core::blueprint::def::{BlueprintError, GameMap};
+use crate::core::blueprint::def::{BlueprintError, BlueprintResource, GameMap, ResourceKind};
 use crate::core::blueprint::def::{BlueprintService, Module};
+use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication, AdminEnterSuccessState, AdminLeftSuccessState, EnterFailedState,
@@ -16,7 +18,7 @@ use crate::core::module::{
 use crate::core::module_system::def::{DynamicGameModule, WorldId};
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
-use crate::resource_module::def::{ResourceFile, ResourceModule};
+use crate::resource_module::def::{LoadResource, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 
 #[derive(Error, Debug)]
@@ -64,7 +66,7 @@ impl GameInstanceManager {
             module_blueprint,
         };
 
-        manager.register_resources(resource_module)?;
+        manager.register_resources(resource_module);
 
         Ok((manager, input_sender, output_receiver))
     }
@@ -208,31 +210,37 @@ impl GameInstanceManager {
             .collect()
     }
 
-    fn get_base_resource_file(&self) -> ResourceFile {
-        ResourceFile {
-            resources: Vec::new(),
-            module_name: self.module_blueprint.name.clone(),
+    fn loading_resources_from_blueprint_resource(
+        blueprint_resource: &BlueprintResource,
+    ) -> Vec<LoadResource> {
+        match blueprint_resource.kind {
+            ResourceKind::Tileset => {
+                match Blueprint::load_tileset(PathBuf::from(blueprint_resource.path.clone())) {
+                    Ok(tileset) => tileset
+                        .get_image_paths()
+                        .iter()
+                        .map(|path| LoadResource::image(path.clone()))
+                        .collect(),
+                    Err(err) => {
+                        error!("Could not load tileset! {:?}", err);
+                        Vec::new()
+                    }
+                }
+            }
+            ResourceKind::Map => Vec::new(),
+            ResourceKind::Unknown => Vec::new(),
         }
     }
-    fn get_resource_json(&self) -> String {
-        format!(
-            "{{\"module_name\": \"{}\", \"resources\": [{{\"kind\": \"Image\", \"meta_name\": \"test\", \"path\": \"test.png\"}}]}}",
-            self.module_blueprint.name
-        )
-    }
 
-    pub fn register_resources(
-        &self,
-        resource_module: &mut ResourceModule,
-    ) -> Result<(), ResourceParseError> {
-        resource_module.register_resources_for_module(
-            self.module_blueprint.id.clone(),
-            self.module_blueprint.id.clone(),
-            self.get_base_resource_file(),
-            Some(self.get_resource_json()),
-        )?;
-
-        Ok(())
+    pub fn register_resources(&self, resource_module: &mut ResourceModule) {
+        for resource in &self.module_blueprint.resources {
+            Self::loading_resources_from_blueprint_resource(resource)
+                .into_iter()
+                .for_each(|resource| {
+                    resource_module
+                        .register_resource_for_module(self.module_blueprint.id.clone(), resource)
+                });
+        }
     }
 
     fn relay_messages_to_correct_instances(&mut self) {

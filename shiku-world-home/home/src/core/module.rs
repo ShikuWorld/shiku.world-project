@@ -13,7 +13,7 @@ use crate::core::guest::{
 };
 use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceFile};
+use crate::resource_module::def::{ResourceBundle, ResourceEvent};
 use crate::resource_module::errors::ResourceParseError;
 use crate::resource_module::map::def::{LayerName, TerrainChunk};
 use crate::ResourceModule;
@@ -216,32 +216,6 @@ pub trait SystemModule {
     fn status(&self) -> &ModuleState;
     fn start(&mut self);
     fn shutdown(&mut self);
-}
-
-pub trait GameModule: SystemModule {
-    fn get_base_resource_file(&self) -> ResourceFile;
-    fn get_resource_json(&self) -> String;
-
-    fn register_resources(
-        &self,
-        resource_module: &mut ResourceModule,
-    ) -> Result<(), ResourceParseError> {
-        resource_module.register_resources_for_module(
-            self.module_name(),
-            self.module_name(),
-            self.get_base_resource_file(),
-            Some(self.get_resource_json()),
-        )?;
-
-        Ok(())
-    }
-    fn update(&mut self);
-    fn try_enter(
-        &mut self,
-        guest: &Guest,
-        module_enter_slot: &ModuleEnterSlot,
-    ) -> Result<EnterSuccessState, EnterFailedState>;
-    fn try_leave(&mut self, guest: &Guest) -> Result<LeaveSuccessState, LeaveFailedState>;
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

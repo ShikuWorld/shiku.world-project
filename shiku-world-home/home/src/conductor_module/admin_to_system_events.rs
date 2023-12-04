@@ -10,7 +10,9 @@ use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap};
 use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
-use crate::core::blueprint::def::{BlueprintService, Resource, ResourceKind, ResourceLoaded};
+use crate::core::blueprint::def::{
+    BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded,
+};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin};
 use crate::core::module::{AdminToSystemEvent, CommunicationEvent, EditorEvent};
@@ -57,15 +59,27 @@ pub async fn handle_admin_to_system_event(
                     game_instance_id.clone(),
                     world_id.clone(),
                 ) {
-                    Ok(_) => send_communication_event(CommunicationEvent::PrepareGame(
-                        module_id,
-                        game_instance_id,
-                        Some(world_id),
-                        ResourceBundle {
-                            name: "Default".into(),
-                            assets: Vec::new(),
-                        },
-                    )),
+                    Ok(_) => {
+                        resource_module
+                            .activate_module_resource_updates(module_id.clone(), &admin.id);
+                        match resource_module.get_active_resources_for_module(&module_id, &admin.id)
+                        {
+                            Ok(assets) => {
+                                send_communication_event(CommunicationEvent::PrepareGame(
+                                    module_id,
+                                    game_instance_id,
+                                    Some(world_id),
+                                    ResourceBundle {
+                                        name: "Default".into(),
+                                        assets,
+                                    },
+                                ))
+                            }
+                            Err(err) => {
+                                error!("Could not send prepare game, no resources?! {:?}", err)
+                            }
+                        }
+                    }
                     Err(err) => error!("Could not get admin into instance/map {:?}", err),
                 }
             }
@@ -78,6 +92,11 @@ pub async fn handle_admin_to_system_event(
                     world_id.clone(),
                 ) {
                     Ok(_) => {
+                        if let Err(err) = resource_module
+                            .disable_module_resource_updates(module_id.clone(), &admin.id)
+                        {
+                            error!("Could not unregister from resource updates! {:?}", err);
+                        }
                         send_communication_event(CommunicationEvent::UnloadGame(
                             module_id,
                             game_instance_id,
@@ -153,7 +172,7 @@ pub async fn handle_admin_to_system_event(
                 map.world_id = Uuid::new_v4().to_string();
                 match Blueprint::create_map(&map) {
                     Ok(()) => {
-                        module.module_blueprint.resources.push(Resource {
+                        module.module_blueprint.resources.push(BlueprintResource {
                             file_name: format!("{}.map.json", map.name),
                             dir: map.resource_path.clone(),
                             path: format!("{}/{}.map.json", map.resource_path, map.name),

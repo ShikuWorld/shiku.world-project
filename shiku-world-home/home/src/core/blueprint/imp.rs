@@ -9,8 +9,8 @@ use uuid::Uuid;
 use walkdir::WalkDir;
 
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintService, Conductor, FileBrowserFileKind, FileBrowserResult, GameMap,
-    Module, Resource, ResourceKind, ResourceLoaded,
+    BlueprintError, BlueprintResource, BlueprintService, Conductor, FileBrowserFileKind,
+    FileBrowserResult, GameMap, Module, ResourceKind, ResourceLoaded,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::{get_out_dir, safe_unwrap};
@@ -62,7 +62,7 @@ impl BlueprintService {
             let file_name = safe_unwrap(entry.file_name().to_str(), BlueprintError::OsParsing)?;
             match Self::determine_file_type(file_name) {
                 FileBrowserFileKind::Tileset => {
-                    file_browser_entry.resources.push(Resource {
+                    file_browser_entry.resources.push(BlueprintResource {
                         file_name: file_name.to_string(),
                         dir: directory.clone(),
                         path: format!("{}/{}", file_name, directory),
@@ -82,21 +82,18 @@ impl BlueprintService {
     }
 
     pub fn load_resource_by_path(path: &String) -> ResourceLoaded {
-        let out_dir = get_out_dir();
         if let Ok(path_buf) = PathBuf::from_str(path.as_str()) {
             if let Some(file_name_os) = path_buf.as_path().file_name() {
                 if let Some(file_name) = file_name_os.to_str() {
                     return match BlueprintService::determine_resource_type(file_name) {
-                        ResourceKind::Tileset => {
-                            match Blueprint::load_tileset(out_dir.join(path_buf)) {
-                                Ok(tileset) => ResourceLoaded::Tileset(tileset),
-                                Err(err) => {
-                                    error!("Could not load Resource: {:?}", err);
-                                    ResourceLoaded::Unknown
-                                }
+                        ResourceKind::Tileset => match Blueprint::load_tileset(path_buf) {
+                            Ok(tileset) => ResourceLoaded::Tileset(tileset),
+                            Err(err) => {
+                                error!("Could not load Resource: {:?}", err);
+                                ResourceLoaded::Unknown
                             }
-                        }
-                        ResourceKind::Map => match Blueprint::load_map(out_dir.join(path_buf)) {
+                        },
+                        ResourceKind::Map => match Blueprint::load_map(path_buf) {
                             Ok(map) => ResourceLoaded::Map(map),
                             Err(err) => {
                                 error!("Could not load Resource: {:?}", err);

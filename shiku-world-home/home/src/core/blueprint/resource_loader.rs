@@ -20,7 +20,7 @@ impl Blueprint {
         let out_dir = get_out_dir();
         let resource_path = PathBuf::from_str(resource_path.as_str())?;
         let directory_path = out_dir.join(resource_path);
-        create_dir_all(directory_path.as_path().clone())?;
+        create_dir_all(directory_path.as_path())?;
         let file_path = directory_path.join(format!("{}.{}.json", resource_name, file_extension));
         if file_path.exists() {
             return Err(BlueprintError::FileAlreadyExists);
@@ -32,10 +32,11 @@ impl Blueprint {
     }
 
     pub fn load<T: DeserializeOwned>(path: PathBuf) -> Result<T, BlueprintError> {
-        if !path.exists() {
+        let actual_path = get_out_dir().join(path);
+        if !actual_path.exists() {
             return Err(BlueprintError::FileDoesNotExist);
         }
-        let file = File::open(path)?;
+        let file = File::open(actual_path)?;
         let reader = BufReader::new(file);
         Ok(serde_json::from_reader(reader)?)
     }

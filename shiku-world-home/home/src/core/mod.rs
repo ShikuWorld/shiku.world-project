@@ -24,7 +24,6 @@ pub mod blueprint;
 pub mod guest;
 pub mod module;
 pub mod rapier_simulation;
-pub mod resource_json_generation;
 pub mod ring;
 pub mod terrain_gen;
 pub mod tween;

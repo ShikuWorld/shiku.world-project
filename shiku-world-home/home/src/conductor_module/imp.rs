@@ -28,7 +28,7 @@ use crate::core::module::{
 use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
 use crate::core::{blueprint, send_and_log_error};
-use crate::core::{fix_intellij_error_bug, safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
+use crate::core::{safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
@@ -413,31 +413,19 @@ impl ConductorModule {
 
     pub fn process_picture_update_events(&mut self) {
         self.resource_module.receive_all_picture_updates();
-        if let Some(updates) = self.resource_module.drain_picture_updates() {
-            for d in updates {
-                debug!("{:?}", d);
-            }
-        }
+        self.resource_module.process_picture_updates();
     }
 
     pub fn send_load_events(&mut self) {
-        for GuestEvent {
-            guest_id,
-            event_type:
-                ModuleInstanceEvent {
-                    module_id,
-                    instance_id,
-                    world_id,
-                    event_type,
-                },
-        } in self.resource_module.drain_load_events()
-        {
+        for (actor_id, module_id, event_type) in self.resource_module.drain_load_events() {
             if let Ok(message_as_string) =
                 serde_json::to_string(&CommunicationEvent::ResourceEvent(module_id, event_type))
             {
-                debug!("Sending load event to guest");
-                if let Some(guest) = self.guests.get(&guest_id) {
+                debug!("Sending load event to actor");
+                if let Some(guest) = self.guests.get(&actor_id) {
                     Self::send_to_guest(guest, &mut self.websocket_module, message_as_string);
+                } else if let Some(admin) = self.admins.get(&actor_id) {
+                    Self::send_to_admin(admin, &mut self.websocket_module, message_as_string);
                 }
             } else {
                 error!("Error serializing resource event!");
@@ -533,11 +521,9 @@ impl ConductorModule {
         match module.try_leave(guest) {
             Ok((instance_id, LeaveSuccessState::Left)) => {
                 guest.current_module_id = None;
-                if let Err(err) = resource_module.disable_resources_for_guest(
-                    module.module_blueprint.name.clone(),
-                    instance_id,
-                    guest.id.clone(),
-                ) {
+                if let Err(err) = resource_module
+                    .disable_module_resource_updates(module.module_blueprint.id.clone(), &guest.id)
+                {
                     error!("Error disabling resource for guest {:?}", err);
                 };
             }
@@ -570,14 +556,7 @@ impl ConductorModule {
                 guest.current_module_id = Some(module_name.clone());
                 guest.current_instance_id = Some(instance_id.clone());
                 guest.pending_module_exit = None;
-                if let Err(err) =
-                    resource_module.activate_module_resource_updates(module_name.clone(), &guest.id)
-                {
-                    error!(
-                        "Error activating resource for guest: {}",
-                        fix_intellij_error_bug(&err)
-                    );
-                };
+                resource_module.activate_module_resource_updates(module_name.clone(), &guest.id);
                 Self::send_prepare_game_event(
                     &guest,
                     resource_module,
@@ -611,7 +590,6 @@ impl ConductorModule {
         if let Ok(resources) =
             resource_module.get_active_resources_for_module(&module_id, &guest.id)
         {
-            debug!("Resources sending?");
             if let Err(err) = Self::send_communication_event_to_guest_direct(
                 guest,
                 websocket_module,

@@ -98,8 +98,8 @@ export class ResourceManager {
     Assets.addBundle(
       bundle_id,
       resource_bundle.assets.map((asset) => ({
-        name: asset.meta_name,
-        srcs: `${this._base_url}/${module_id}/${asset.path}`,
+        alias: asset.path,
+        src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`,
       })),
     );
     Assets.loadBundle(bundle_id).then(() => {

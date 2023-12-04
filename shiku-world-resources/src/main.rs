@@ -15,7 +15,10 @@ mod ws;
 
 #[tokio::main]
 async fn main() {
-    let static_files = warp::path("static").and(fs::dir("static"));
+    let mut cors = warp::cors().allow_methods(vec!["GET", "POST", "DELETE"]);
+    cors = cors.allow_any_origin();
+
+    let static_files = warp::path("static").and(fs::dir("static")).with(cors);
     let clients: Clients = Arc::from(RwLock::from(HashMap::new()));
 
     let ws_handler = warp::path("ws")
