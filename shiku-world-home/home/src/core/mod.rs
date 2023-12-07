@@ -110,6 +110,12 @@ pub fn send_and_log_error<T>(sender: &mut Sender<T>, data: T) {
     }
 }
 
+pub fn send_and_log_error_custom<T>(sender: &mut Sender<T>, data: T, custom: &str) {
+    if let Err(err) = sender.send(data) {
+        error!("{}-{:?}", custom, err);
+    }
+}
+
 pub fn send_and_log_error_consume<T>(sender: Sender<T>, data: T) {
     if let Err(err) = sender.send(data) {
         error!("{:?}", err);

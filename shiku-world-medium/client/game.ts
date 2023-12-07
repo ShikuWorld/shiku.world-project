@@ -40,10 +40,10 @@ export function start_medium() {
   const resource_manager_map: { [module_name: string]: ResourceManager } = {};
   const current_active_instance: string | null = null;
 
-  function lazy_get_resource_manager(module_name: string) {
-    if (!resource_manager_map[module_name]) {
-      resource_manager_map[module_name] = create_resource_manager();
-      resource_manager_map[module_name].resource_bundle_complete.sub(
+  function lazy_get_resource_manager(module_id: string) {
+    if (!resource_manager_map[module_id]) {
+      resource_manager_map[module_id] = create_resource_manager();
+      resource_manager_map[module_id].resource_bundle_complete.sub(
         ({ module_id }) => {
           if (is_admin) {
             send_admin_event(
@@ -57,7 +57,7 @@ export function start_medium() {
       );
     }
 
-    return resource_manager_map[module_name];
+    return resource_manager_map[module_id];
   }
 
   initialize_input_plugins(guest_input);
@@ -121,14 +121,24 @@ export function start_medium() {
         })
         .with(
           { PrepareGame: P.select() },
-          ([module_id, instance_id, w_id, resource_bundle]) => {
+          ([
+            module_id,
+            instance_id,
+            w_id,
+            resource_bundle,
+            tilesets,
+            gid_map,
+          ]) => {
+            const resource_manager = lazy_get_resource_manager(module_id);
+            resource_manager.gid_map = gid_map;
+            resource_manager.tilesets = tilesets;
             if (resource_manager_map[module_id]) {
               send_admin_event(
                 { InitialResourcesLoaded: module_id },
                 communication_system,
               );
             } else {
-              lazy_get_resource_manager(module_id).load_resource_bundle(
+              resource_manager.load_resource_bundle(
                 module_id,
                 instance_id,
                 resource_bundle,
@@ -144,7 +154,6 @@ export function start_medium() {
               module_id,
               world_id,
             );
-            console.log("added...?", instances);
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.addChild(
                 instances[instance_id][world_id].renderer.mainContainerWrapper,

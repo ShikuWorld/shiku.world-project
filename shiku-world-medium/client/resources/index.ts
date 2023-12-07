@@ -1,50 +1,31 @@
 import { Assets, Texture } from "pixi.js-legacy";
 import { SimpleEventDispatcher } from "strongly-typed-events";
-import { Resource as ResourceLoadingDefinition } from "../communication/api/bindings/Resource";
 import { FrameObject } from "@pixi/sprite-animated";
 import { InstanceRendering } from "@/client/renderer";
 import { ResourceEvent } from "@/client/communication/api/bindings/ResourceEvent";
 import { match, P } from "ts-pattern";
 import { ResourceBundle } from "@/client/communication/api/bindings/ResourceBundle";
-
-interface TileSet {
-  rawData: Document;
-  name: string;
-  id_to_image_resource_map?: Map<number, { width: number; height: number }>;
-  start_gid: number;
-  tile_animation_map: TileAnimationMap;
-  width: number;
-  height: number;
-  columns: number;
-}
-
-interface ResourceModule {
-  resource_map: {
-    [resource_name: string]: {
-      definition: ResourceLoadingDefinition;
-    };
-  };
-  graphic_id_map: {
-    [gid: string]: Graphics;
-  };
-  tile_sets: TileSet[];
-}
+import { Tileset } from "../communication/api/blueprints/Tileset";
+import { LoadResource } from "../communication/api/bindings/LoadResource";
+import { GidMap } from "@/ui/blueprints/GidMap";
 
 export interface Graphics {
   textures: Texture[];
   frame_objects: FrameObject[];
 }
 
-interface TileAnimationMap {
-  [tile_id: number]: Array<{ tile_id: number; duration: number }>;
-}
-
 export class ResourceManager {
-  resourceModule: ResourceModule = {
-    resource_map: {},
-    graphic_id_map: {},
-    tile_sets: [],
-  };
+  image_texture_map: {
+    [path: string]: Texture;
+  } = {};
+  graphic_id_map: {
+    [gid: string]: Graphics;
+  } = {};
+  gid_map: GidMap = [];
+  tilesets: Tileset[] = [];
+  tile_set_map: {
+    [path: string]: Tileset;
+  } = {};
 
   resource_bundle_complete = new SimpleEventDispatcher<{
     module_id: string;
@@ -65,13 +46,22 @@ export class ResourceManager {
             src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`,
           })),
         );
-        Assets.loadBundle(resource_bundle.name).then(() => {
-          for (const res of resource_bundle.assets) {
-            console.log("Do something with res", res);
-          }
+        Assets.loadBundle(resource_bundle.name).then((r) => {
+          console.log(r);
+          /*for (const res of resource_bundle.assets) {
+            this.resource_map[res.path] = r;
+          }*/
         });
       })
-      .with("UnLoadResource", () => console.log("unload"))
+      .with({ LoadTilesets: P.select() }, (tilesets) => {
+        for (const tileset of tilesets) {
+          this.tile_set_map[tileset.resource_path] = tileset;
+        }
+      })
+      .with({ UpdateGidMap: P.select() }, (gid_map) => {
+        console.log(gid_map);
+      })
+      .with("UnLoadResources", () => console.log("unload"))
       .exhaustive();
   }
 
@@ -104,8 +94,13 @@ export class ResourceManager {
     module_id: string,
     instance_id: string,
     resource_bundle: ResourceBundle,
+    dispatch_resource_bundle_complete: boolean = false,
   ) {
     const bundle_id = `${module_id}-${resource_bundle.name}`;
+    const path_to_resource_map = resource_bundle.assets.reduce(
+      (acc, r) => ({ ...acc, [r.path]: r }),
+      {} as { [path: string]: LoadResource },
+    );
     Assets.addBundle(
       bundle_id,
       resource_bundle.assets.map((asset) => ({
@@ -113,15 +108,23 @@ export class ResourceManager {
         src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`,
       })),
     );
-    Assets.loadBundle(bundle_id).then(() => {
-      for (const res of resource_bundle.assets) {
-        console.log("Do something with res", res);
+    Assets.loadBundle(bundle_id).then((r) => {
+      const loaded: { [path: string]: Texture | "other" } = r;
+      for (const [path, loaded_resource] of Object.entries(loaded)) {
+        match(path_to_resource_map[path].kind)
+          .with("Image", () => {
+            this.image_texture_map[path] = loaded_resource as Texture;
+          })
+          .with("Unknown", () => {})
+          .exhaustive();
       }
-      this.resource_bundle_complete.dispatch({
-        module_id,
-        instance_id,
-        bundle_name: resource_bundle.name,
-      });
+      if (dispatch_resource_bundle_complete) {
+        this.resource_bundle_complete.dispatch({
+          module_id,
+          instance_id,
+          bundle_name: resource_bundle.name,
+        });
+      }
     });
   }
 

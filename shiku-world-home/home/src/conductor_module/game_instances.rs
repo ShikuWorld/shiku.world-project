@@ -42,7 +42,9 @@ pub fn remove_game_instance_manager(
         resource_module.unregister_resources_for_module(module_id);
         BlueprintService::delete_module(&instance_manager.module_blueprint.name)?;
     } else {
-        return Err(BlueprintError::FileDoesNotExist);
+        return Err(BlueprintError::FileDoesNotExist(
+            "Instance Manager not there".into(),
+        ));
     }
 
     Ok(())

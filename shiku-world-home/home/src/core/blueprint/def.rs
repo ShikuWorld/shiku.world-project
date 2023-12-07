@@ -18,7 +18,7 @@ pub type JointId = usize;
 pub struct Conductor {
     pub(crate) module_connection_map: HashMap<ModuleExitSlot, (ModuleId, ModuleEnterSlot)>,
     pub(crate) resources: Vec<BlueprintResource>,
-    pub(crate) gid_map: Vec<(ResourcePath, u32)>,
+    pub(crate) gid_map: GidMap,
 }
 
 impl Conductor {
@@ -26,7 +26,7 @@ impl Conductor {
         Conductor {
             module_connection_map: HashMap::new(),
             resources: Vec::new(),
-            gid_map: Vec::new(),
+            gid_map: GidMap(Vec::new()),
         }
     }
 }
@@ -60,6 +60,7 @@ pub struct FileBrowserResult {
 #[ts(export, export_to = "blueprints/")]
 pub enum FileBrowserFileKind {
     Module,
+    Map,
     Tileset,
     Folder,
     Unknown,
@@ -148,11 +149,15 @@ pub type ModuleId = String;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub struct GidMap(pub Vec<(ResourcePath, u32)>);
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct Module {
     pub id: ModuleId,
     pub name: ModuleName,
     pub resources: Vec<BlueprintResource>,
-    pub gid_map: Vec<(ResourcePath, u32)>,
+    pub gid_map: GidMap,
     pub insert_points: Vec<IOPoint>,
     pub exit_points: Vec<IOPoint>,
     pub max_guests: usize,
@@ -311,7 +316,7 @@ pub struct BlueprintService;
 #[derive(Error, Debug)]
 pub enum BlueprintError {
     #[error("Tried to load a file that should exist")]
-    FileDoesNotExist,
+    FileDoesNotExist(String),
     #[error("Tried to write a file that shouldn't already exist")]
     FileAlreadyExists,
     #[error("Could not load blueprint due to IO error.")]

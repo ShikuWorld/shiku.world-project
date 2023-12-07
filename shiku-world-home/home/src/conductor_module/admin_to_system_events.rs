@@ -17,7 +17,7 @@ use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin};
 use crate::core::module::{AdminToSystemEvent, CommunicationEvent, EditorEvent};
 use crate::core::{log_result_error, send_and_log_error};
-use crate::resource_module::def::{ResourceBundle, ResourceModule};
+use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
 
 pub async fn handle_admin_to_system_event(
@@ -65,15 +65,26 @@ pub async fn handle_admin_to_system_event(
                         match resource_module.get_active_resources_for_module(&module_id, &admin.id)
                         {
                             Ok(assets) => {
-                                send_communication_event(CommunicationEvent::PrepareGame(
-                                    module_id,
-                                    game_instance_id,
-                                    Some(world_id),
-                                    ResourceBundle {
-                                        name: "Default".into(),
-                                        assets,
-                                    },
-                                ))
+                                match BlueprintService::load_module_tilesets(
+                                    &module.module_blueprint.resources,
+                                ) {
+                                    Ok(tilesets) => {
+                                        send_communication_event(CommunicationEvent::PrepareGame(
+                                            module_id,
+                                            game_instance_id,
+                                            Some(world_id),
+                                            ResourceBundle {
+                                                name: "Default".into(),
+                                                assets,
+                                            },
+                                            tilesets,
+                                            module.module_blueprint.gid_map.clone(),
+                                        ))
+                                    }
+                                    Err(err) => {
+                                        error!("Could not load tilesets for module! {:?}", err)
+                                    }
+                                }
                             }
                             Err(err) => {
                                 error!("Could not send prepare game, no resources?! {:?}", err)
@@ -294,7 +305,17 @@ pub async fn handle_admin_to_system_event(
                     ));
                 }
                 if let Some(resources) = module_update.resources {
-                    module.module_blueprint.resources = resources;
+                    match BlueprintService::generate_gid_map(&resources) {
+                        Ok(gid_map) => {
+                            resource_module.send_resource_event_to_all_in_module(
+                                ResourceEvent::UpdateGidMap(gid_map.clone()),
+                                &module_id,
+                            );
+                            module.module_blueprint.gid_map = gid_map;
+                            module.module_blueprint.resources = resources;
+                        }
+                        Err(err) => error!("Could not generate gid map! {:?}", err),
+                    }
                 }
                 if let Some(insert_points) = module_update.insert_points {
                     if let Ok(mut conductor) = BlueprintService::load_conductor_blueprint() {
@@ -305,7 +326,6 @@ pub async fn handle_admin_to_system_event(
                         let removed_points: HashSet<&String> = current_insert_points
                             .difference(&new_insert_points)
                             .collect();
-                        debug!("removed_points {:?}", removed_points);
                         let connections_to_remove: Vec<String> = conductor
                             .module_connection_map
                             .clone()
@@ -315,7 +335,6 @@ pub async fn handle_admin_to_system_event(
                             })
                             .map(|(exit_slot_name, _)| exit_slot_name)
                             .collect();
-                        debug!("connections_to_remove {:?}", connections_to_remove);
                         for connection_to_remove in connections_to_remove {
                             conductor
                                 .module_connection_map

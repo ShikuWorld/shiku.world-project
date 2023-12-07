@@ -14,7 +14,7 @@ use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
 use crate::conductor_module::game_instances::create_game_instance_manager;
-use crate::core::blueprint::def::{BlueprintService, ModuleId};
+use crate::core::blueprint::def::{BlueprintService, GidMap, ModuleId, Tileset};
 use crate::core::guest::{
     ActorId, Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId,
 };
@@ -27,7 +27,7 @@ use crate::core::module::{
 };
 use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
-use crate::core::{blueprint, send_and_log_error};
+use crate::core::{blueprint, send_and_log_error, send_and_log_error_custom};
 use crate::core::{safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
@@ -296,23 +296,32 @@ impl ConductorModule {
                     if let Some(module_communication) =
                         self.module_communication_map.get_mut(current_module_id)
                     {
-                        if let Err(err) = module_communication.sender.system_to_module_sender.send(
+                        send_and_log_error_custom(
+                            &mut module_communication.sender.system_to_module_sender,
                             ModuleInstanceEvent {
                                 module_id: current_module_id.clone(),
                                 instance_id: current_instance_id.clone(),
                                 world_id: None,
                                 event_type: SystemToModuleEvent::Reconnected(guest.id),
                             },
-                        ) {
-                            error!("Error sending reconnect event ${}", err);
-                        }
-                        Self::send_prepare_game_event(
-                            &guest,
-                            &mut self.resource_module,
-                            &mut self.websocket_module,
-                            current_module_id,
-                            current_instance_id,
+                            "Error sending reconnect event",
                         );
+                        if let Some(module) = self.module_map.get(current_module_id) {
+                            match BlueprintService::load_module_tilesets(
+                                &module.module_blueprint.resources,
+                            ) {
+                                Ok(tilesets) => Self::send_prepare_game_event(
+                                    &guest,
+                                    &mut self.resource_module,
+                                    &mut self.websocket_module,
+                                    current_module_id,
+                                    current_instance_id,
+                                    tilesets,
+                                    module.module_blueprint.gid_map.clone(),
+                                ),
+                                Err(err) => error!("Could not load tilesets for module! {:?}", err),
+                            }
+                        }
                     }
                 }
                 guest.id
@@ -557,13 +566,20 @@ impl ConductorModule {
                 guest.current_instance_id = Some(instance_id.clone());
                 guest.pending_module_exit = None;
                 resource_module.activate_module_resource_updates(module_name.clone(), &guest.id);
-                Self::send_prepare_game_event(
-                    &guest,
-                    resource_module,
-                    websocket_module,
-                    &module_name,
-                    &instance_id,
-                );
+                match BlueprintService::load_module_tilesets(&module.module_blueprint.resources) {
+                    Ok(tilesets) => Self::send_prepare_game_event(
+                        &guest,
+                        resource_module,
+                        websocket_module,
+                        &module_name,
+                        &instance_id,
+                        tilesets,
+                        module.module_blueprint.gid_map.clone(),
+                    ),
+                    Err(err) => {
+                        error!("Could not load tilesets for module! {:?}", err)
+                    }
+                }
             }
             Err(EnterFailedState::PersistedStateGoneMissingGoneWild) => {
                 error!("Guest state could not be loaded...? {}", module_name);
@@ -586,9 +602,10 @@ impl ConductorModule {
         websocket_module: &mut WebsocketModule,
         module_id: &ModuleId,
         instance_id: &GameInstanceId,
+        tilesets: Vec<Tileset>,
+        gid_map: GidMap,
     ) {
-        if let Ok(resources) =
-            resource_module.get_active_resources_for_module(&module_id, &guest.id)
+        if let Ok(resources) = resource_module.get_active_resources_for_module(module_id, &guest.id)
         {
             if let Err(err) = Self::send_communication_event_to_guest_direct(
                 guest,
@@ -601,6 +618,8 @@ impl ConductorModule {
                         name: "Init".into(),
                         assets: resources,
                     },
+                    tilesets,
+                    gid_map,
                 ),
             ) {
                 error!("Cold not send communicastion event to guest {:?}", err);

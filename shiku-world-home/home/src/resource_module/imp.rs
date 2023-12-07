@@ -61,7 +61,7 @@ impl ResourceModule {
                 pic_update_receiver: receiver,
                 last_insert: Instant::now(),
             },
-            resource_load_events: Vec::new(),
+            resource_events: Vec::new(),
         }
     }
 
@@ -92,7 +92,7 @@ impl ResourceModule {
                 if let (Some(resource), Some(module_id)) = (r, m) {
                     Self::register_resource_for_module_static(
                         &mut self.book_keeping,
-                        &mut self.resource_load_events,
+                        &mut self.resource_events,
                         module_id,
                         resource,
                     );
@@ -109,11 +109,7 @@ impl ResourceModule {
         }
         if let Some(actor_ids) = self.book_keeping.module_actor_set.get(module_id) {
             for actor_id in actor_ids {
-                Self::send_unload_event(
-                    &mut self.resource_load_events,
-                    actor_id,
-                    module_id.clone(),
-                );
+                Self::send_unload_event(&mut self.resource_events, actor_id, module_id.clone());
             }
         }
     }
@@ -132,7 +128,7 @@ impl ResourceModule {
     pub fn register_resource_for_module(&mut self, module_id: ModuleId, resource: LoadResource) {
         Self::register_resource_for_module_static(
             &mut self.book_keeping,
-            &mut self.resource_load_events,
+            &mut self.resource_events,
             module_id,
             resource,
         );
@@ -183,6 +179,18 @@ impl ResourceModule {
         ));
     }
 
+    pub fn send_resource_event_to_all_in_module(
+        &mut self,
+        resource_event: ResourceEvent,
+        module_id: &ModuleId,
+    ) {
+        if let Some(actor_ids) = self.book_keeping.module_actor_set.get(module_id) {
+            for actor_id in actor_ids {
+                self.resource_events
+                    .push((*actor_id, module_id.clone(), resource_event.clone()));
+            }
+        }
+    }
     pub fn send_unload_event(
         resource_load_events: &mut Vec<(ActorId, ModuleId, ResourceEvent)>,
         actor_id: &ActorId,
@@ -192,7 +200,7 @@ impl ResourceModule {
     }
 
     pub fn drain_load_events(&mut self) -> std::vec::Drain<'_, (ActorId, ModuleId, ResourceEvent)> {
-        self.resource_load_events.drain(..)
+        self.resource_events.drain(..)
     }
 
     pub fn get_active_resources_for_module(
@@ -273,7 +281,7 @@ impl ResourceModule {
             .or_default()
             .insert(*actor_id);
 
-        Self::send_unload_event(&mut self.resource_load_events, actor_id, module_id);
+        Self::send_unload_event(&mut self.resource_events, actor_id, module_id);
 
         Ok(())
     }

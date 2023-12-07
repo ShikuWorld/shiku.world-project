@@ -10,7 +10,8 @@ use walkdir::WalkDir;
 
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, BlueprintService, Conductor, FileBrowserFileKind,
-    FileBrowserResult, GameMap, Module, ResourceKind, ResourceLoaded,
+    FileBrowserResult, GameMap, GidMap, Module, ResourceKind, ResourceLoaded, ResourcePath,
+    Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::{get_out_dir, safe_unwrap};
@@ -22,7 +23,7 @@ impl Module {
             name,
             max_guests: 0,
             min_guests: 0,
-            gid_map: Vec::new(),
+            gid_map: GidMap(Vec::new()),
             exit_points: Vec::new(),
             insert_points: Vec::new(),
             resources: Vec::new(),
@@ -40,7 +41,7 @@ impl BlueprintService {
 
     fn setup_blueprints() -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
-        fs::create_dir_all(out_dir.join("modules"))?;
+        create_dir_all(out_dir.join("modules"))?;
 
         Ok(())
     }
@@ -65,8 +66,16 @@ impl BlueprintService {
                     file_browser_entry.resources.push(BlueprintResource {
                         file_name: file_name.to_string(),
                         dir: directory.clone(),
-                        path: format!("{}/{}", file_name, directory),
+                        path: format!("{}/{}", directory, file_name),
                         kind: ResourceKind::Tileset,
+                    });
+                }
+                FileBrowserFileKind::Map => {
+                    file_browser_entry.resources.push(BlueprintResource {
+                        file_name: file_name.to_string(),
+                        dir: directory.clone(),
+                        path: format!("{}/{}", directory, file_name),
+                        kind: ResourceKind::Map,
                     });
                 }
                 FileBrowserFileKind::Folder => {
@@ -81,8 +90,8 @@ impl BlueprintService {
         Ok(file_browser_entry)
     }
 
-    pub fn load_resource_by_path(path: &String) -> ResourceLoaded {
-        if let Ok(path_buf) = PathBuf::from_str(path.as_str()) {
+    pub fn load_resource_by_path(path: &str) -> ResourceLoaded {
+        if let Ok(path_buf) = PathBuf::from_str(path) {
             if let Some(file_name_os) = path_buf.as_path().file_name() {
                 if let Some(file_name) = file_name_os.to_str() {
                     return match BlueprintService::determine_resource_type(file_name) {
@@ -119,11 +128,38 @@ impl BlueprintService {
         }
     }
 
+    pub fn load_module_tilesets(
+        resources: &[BlueprintResource],
+    ) -> Result<Vec<Tileset>, BlueprintError> {
+        let mut tiles = Vec::new();
+        for resource in resources.iter().filter(|r| ResourceKind::Tileset == r.kind) {
+            tiles.push(Blueprint::load_tileset(resource.path.clone().into())?);
+        }
+        Ok(tiles)
+    }
+
+    pub fn generate_gid_map(resources: &[BlueprintResource]) -> Result<GidMap, BlueprintError> {
+        let mut gid_map = Vec::new();
+        let mut current_count = 0;
+        debug!("tileset path {:?}", resources);
+        for resource in resources.iter().filter(|r| ResourceKind::Tileset == r.kind) {
+            let tileset = Blueprint::load_tileset(resource.path.clone().into())?;
+            gid_map.push((resource.path.clone(), current_count));
+            if tileset.image.is_some() {
+                current_count += tileset.tile_count;
+            } else {
+                current_count += tileset.tiles.len() as u32;
+            }
+        }
+        Ok(GidMap(gid_map))
+    }
+
     fn determine_file_type(file_name: &str) -> FileBrowserFileKind {
         let parts: Vec<&str> = file_name.split('.').collect();
 
         match parts.as_slice() {
             [_, "tileset", "json"] => FileBrowserFileKind::Tileset,
+            [_, "map", "json"] => FileBrowserFileKind::Map,
             [_, "json"] => FileBrowserFileKind::Module,
             [_] => FileBrowserFileKind::Folder,
             _ => FileBrowserFileKind::Unknown,
@@ -221,7 +257,7 @@ impl BlueprintService {
         let dir_path = get_out_dir().join("modules").join(&module_name);
         let file_path = dir_path.join(format!("{}.json", &module_name));
         if !file_path.exists() {
-            return Err(BlueprintError::FileDoesNotExist);
+            return Err(BlueprintError::FileDoesNotExist(format!("{:?}", file_path)));
         }
 
         let file = File::open(file_path)?;
@@ -242,7 +278,7 @@ impl BlueprintService {
     pub fn load_conductor_blueprint() -> Result<Conductor, BlueprintError> {
         let file_path = get_out_dir().join("conductor.json");
         if !file_path.exists() {
-            return Err(BlueprintError::FileDoesNotExist);
+            return Err(BlueprintError::FileDoesNotExist("conductor.json".into()));
         }
 
         let file = File::open(file_path)?;

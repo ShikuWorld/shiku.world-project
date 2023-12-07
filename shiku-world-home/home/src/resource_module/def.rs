@@ -1,16 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
-use crate::core::blueprint::def::{ModuleId, ResourcePath};
+use crate::core::blueprint::def::{GidMap, ModuleId, ResourcePath, Tileset};
 use crate::core::guest::ActorId;
 use flume::Receiver;
 use notify::event::ModifyKind;
 use serde::{Deserialize, Serialize};
 use snowflake::SnowflakeIdBucket;
 use ts_rs::TS;
-
-use crate::core::module::{GuestEvent, ModuleInstanceEvent, ModuleName};
-use crate::core::Snowflake;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
@@ -47,6 +44,8 @@ pub struct ResourceBundle {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub enum ResourceEvent {
+    LoadTilesets(Vec<Tileset>),
+    UpdateGidMap(GidMap),
     LoadResource(ResourceBundle),
     UnLoadResources,
 }
@@ -74,5 +73,5 @@ pub struct ResourceModulePicUpdates {
 pub struct ResourceModule {
     pub(super) book_keeping: ResourceModuleBookKeeping,
     pub(super) pic_updates: ResourceModulePicUpdates,
-    pub(super) resource_load_events: Vec<(ActorId, ModuleId, ResourceEvent)>,
+    pub(super) resource_events: Vec<(ActorId, ModuleId, ResourceEvent)>,
 }

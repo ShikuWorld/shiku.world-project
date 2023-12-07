@@ -42,7 +42,7 @@ async fn main() {
 
     let conductor_blueprint = match BlueprintService::load_conductor_blueprint() {
         Ok(b) => b,
-        Err(BlueprintError::FileDoesNotExist) => blueprint::def::Conductor::default(),
+        Err(BlueprintError::FileDoesNotExist(_)) => blueprint::def::Conductor::default(),
         Err(err) => panic!("{:?}", err),
     };
 

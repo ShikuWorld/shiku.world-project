@@ -5,7 +5,7 @@ use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
-use crate::core::blueprint::def::{Conductor, ModuleId, ResourcePath};
+use crate::core::blueprint::def::{Conductor, GidMap, ModuleId, ResourcePath, Tileset};
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{
@@ -232,7 +232,14 @@ type IsMainInstance = bool;
 #[ts(export, export_to = "bindings/Events.ts")]
 pub enum CommunicationEvent {
     ResourceEvent(ModuleId, ResourceEvent),
-    PrepareGame(ModuleId, GameInstanceId, Option<WorldId>, ResourceBundle),
+    PrepareGame(
+        ModuleId,
+        GameInstanceId,
+        Option<WorldId>,
+        ResourceBundle,
+        Vec<Tileset>,
+        GidMap,
+    ),
     UnloadGame(ModuleId, GameInstanceId, Option<WorldId>),
     GameSystemEvent(
         ModuleId,

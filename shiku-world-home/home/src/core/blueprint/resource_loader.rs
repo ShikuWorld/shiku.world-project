@@ -34,7 +34,10 @@ impl Blueprint {
     pub fn load<T: DeserializeOwned>(path: PathBuf) -> Result<T, BlueprintError> {
         let actual_path = get_out_dir().join(path);
         if !actual_path.exists() {
-            return Err(BlueprintError::FileDoesNotExist);
+            return Err(BlueprintError::FileDoesNotExist(format!(
+                "load {:?}",
+                actual_path
+            )));
         }
         let file = File::open(actual_path)?;
         let reader = BufReader::new(file);
@@ -52,7 +55,7 @@ impl Blueprint {
         let directory_path = out_dir.join(resource_path);
         let file_path = directory_path.join(format!("{}.{}.json", resource_name, file_extension));
         if !file_path.exists() {
-            return Err(BlueprintError::FileDoesNotExist);
+            return Err(BlueprintError::FileDoesNotExist(format!("{:?}", file_path)));
         }
         let file = File::create(file_path)?;
         let writer = BufWriter::new(file);
@@ -70,7 +73,7 @@ impl Blueprint {
         let directory_path = out_dir.join(resource_path);
         let file_path = directory_path.join(format!("{}.{}.json", resource_name, file_extension));
         if !file_path.exists() {
-            return Err(BlueprintError::FileDoesNotExist);
+            return Err(BlueprintError::FileDoesNotExist(format!("{:?}", file_path)));
         }
         remove_file(file_path)?;
         Ok(())

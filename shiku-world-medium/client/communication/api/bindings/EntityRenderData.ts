@@ -4,4 +4,4 @@ import type { RenderTypeText } from "./RenderTypeText";
 import type { RenderTypeTimer } from "./RenderTypeTimer";
 import type { StaticImage } from "./StaticImage";
 
-export type EntityRenderData = { "StaticImage": StaticImage } | { "RenderTypeTimer": RenderTypeTimer } | { "RenderTypeText": RenderTypeText } | { "NoRender": NoRender };
+export type EntityRenderData = { StaticImage: StaticImage } | { RenderTypeTimer: RenderTypeTimer } | { RenderTypeText: RenderTypeText } | { NoRender: NoRender };
