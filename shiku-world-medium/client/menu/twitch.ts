@@ -3,7 +3,7 @@ import {
   signal_channel_name,
   twitch_login_channel_name,
 } from "../communication";
-import { SignalToGuest } from "../communication/api/bindings/SignalToGuest";
+import { SignalToMedium } from "../communication/api/bindings/SignalToMedium";
 import { twitch_service } from "../communication/api/twitch/twitch";
 import {
   send_admin_event,
@@ -47,7 +47,7 @@ export function login(communication_state: CommunicationState): Promise<void> {
         }
       };
       signal_channel.onmessage = async (message) => {
-        const signal = message.data as SignalToGuest;
+        const signal = message.data as SignalToMedium;
         if (signal === "LoginSuccess") {
           resolve();
         }

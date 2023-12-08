@@ -1,14 +1,19 @@
 import { Button, GuestInputState } from "./input";
 
 export const setup_button_feedback = (): ((
-  _guest_input: GuestInputState
+  _guest_input: GuestInputState,
 ) => void) => {
   const button_element_map: { [key: string]: HTMLElement } = {};
   const input_feedback = document.getElementById("input-feedback");
   const input_toggle = document.getElementById("toggle-input-feedback");
   const input_toggle_icon = document.querySelector(
-    "#toggle-input-feedback span"
+    "#toggle-input-feedback span",
   );
+  if (!input_toggle || !input_feedback || !input_toggle_icon) {
+    console.error("Button feedback elements are missing!");
+
+    return (_) => {};
+  }
   input_toggle.addEventListener("click", () => {
     if (input_toggle_icon.textContent === "visibility") {
       input_toggle_icon.textContent = "visibility_off";

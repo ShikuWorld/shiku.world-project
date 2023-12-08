@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
 import type { Module } from "@/editor/blueprints/Module";
-import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
 import { ModuleUpdate } from "@/editor/blueprints/ModuleUpdate";
 import { Conductor } from "@/editor/blueprints/Conductor";
-import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
-import { Resource } from "@/editor/blueprints/Resource";
+import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
 import { MapUpdate } from "@/editor/blueprints/MapUpdate";
 import { GameMap } from "@/editor/blueprints/GameMap";
+import { Tileset } from "@/client/communication/api/blueprints/Tileset";
+import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
 import { GameInstance } from "@/client/game-instance";
 
 export interface EditorStore {
@@ -233,7 +233,7 @@ export const use_editor_store = defineStore("editor", {
         ],
       });
     },
-    toggle_resource_on_module(module_id: string, resource: Resource) {
+    toggle_resource_on_module(module_id: string, resource: BlueprintResource) {
       const module = this.get_module(module_id);
       const resource_in_module = module.resources.find(
         (r) => r.path === resource.path,
@@ -318,7 +318,7 @@ export function tileset_key(tileset: Tileset) {
   return `${tileset.resource_path}/${tileset.name}.tileset.json`;
 }
 
-export function resource_key(resource: Resource) {
+export function resource_key(resource: BlueprintResource) {
   return `${resource.dir}/${resource.file_name}`;
 }
 

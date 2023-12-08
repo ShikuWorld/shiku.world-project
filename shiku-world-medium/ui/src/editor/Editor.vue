@@ -73,7 +73,7 @@ import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
 import { resource_key, use_editor_store } from "@/editor/stores/editor";
 import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
 import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
-import { Resource } from "@/editor/blueprints/Resource";
+import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
 import TileEditor from "@/editor/editor/TileEditor.vue";
 import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 
@@ -109,7 +109,7 @@ function select_as_main_instance(
     set_current_main_instance(instance_id, world_id);
   }
 }
-function open_resource_editor(resource: Resource) {
+function open_resource_editor(resource: BlueprintResource) {
   tab.value = 2;
   let path_index = add_open_resource_path(resource_key(resource));
   setTimeout(() => {

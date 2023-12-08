@@ -25,9 +25,11 @@ import { Module } from "@/editor/blueprints/Module";
 import { toRefs } from "vue";
 import { mdiPackageVariant, mdiTrashCan } from "@mdi/js";
 import { use_editor_store } from "@/editor/stores/editor";
-import { Resource } from "@/editor/blueprints/Resource";
+import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
 const { toggle_resource_on_module } = use_editor_store();
-const emit = defineEmits<{ (e: "resourceClick", value: Resource): void }>();
+const emit = defineEmits<{
+  (e: "resourceClick", value: BlueprintResource): void;
+}>();
 const props = defineProps<{ module: Module; showRemove?: boolean }>();
 const { module, showRemove } = toRefs(props);
 </script>

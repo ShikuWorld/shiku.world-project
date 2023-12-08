@@ -1,4 +1,6 @@
-export const loginMenuConfig = {
+import { ComponentConfig } from "@/editor/ui";
+
+export const loginMenuConfig: ComponentConfig = {
   name: "HLayout",
   config: {
     columns: [

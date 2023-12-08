@@ -6,11 +6,11 @@
     "baseUrl": ".",
     "paths": {
       "@/client/*": ["./client/*"],
-      "@/ui/*": ["./ui/src/*"],
+      "@/editor/*": ["./ui/src/*"],
       "@/shared/*": ["./shared/*"]
     },
     "strict": true
   },
-  "include": ["plugins/**/*.ts", "shared/**/*.ts"],
+  "include": ["plugins/**/*.ts", "shared/**/*.ts", "client/**/*.ts"],
   "exclude": ["node_modules/**/*"]
 }

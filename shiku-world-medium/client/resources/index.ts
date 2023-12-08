@@ -5,9 +5,9 @@ import { InstanceRendering } from "@/client/renderer";
 import { ResourceEvent } from "@/client/communication/api/bindings/ResourceEvent";
 import { match, P } from "ts-pattern";
 import { ResourceBundle } from "@/client/communication/api/bindings/ResourceBundle";
-import { Tileset } from "../communication/api/blueprints/Tileset";
-import { LoadResource } from "../communication/api/bindings/LoadResource";
-import { GidMap } from "@/ui/blueprints/GidMap";
+import { Tileset } from "@/client/communication/api/blueprints/Tileset";
+import { LoadResource } from "@/client/communication/api/bindings/LoadResource";
+import { GidMap } from "@/editor/blueprints/GidMap";
 
 export interface Graphics {
   textures: Texture[];

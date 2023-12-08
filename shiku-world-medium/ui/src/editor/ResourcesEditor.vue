@@ -75,10 +75,10 @@ import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { GameMap } from "@/client/communication/api/blueprints/GameMap";
 import { resource_key, use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
-import { Resource } from "@/editor/blueprints/Resource";
 import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
 import { match } from "ts-pattern";
 import CreateMap from "@/editor/editor/CreateMap.vue";
+import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
 const {
@@ -108,7 +108,7 @@ const open_resources = computed(
   () =>
     open_resource_paths.value.map((path) =>
       available_resources.value.get(path),
-    ) as Resource[],
+    ) as BlueprintResource[],
 );
 
 watch(open_resources, () => {
