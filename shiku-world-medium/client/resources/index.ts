@@ -14,6 +14,8 @@ export interface Graphics {
   frame_objects: FrameObject[];
 }
 
+export type ResourceManagerMap = { [module_id: string]: ResourceManager };
+
 export class ResourceManager {
   image_texture_map: {
     [path: string]: Texture;
@@ -66,23 +68,20 @@ export class ResourceManager {
   }
 
   get_graphics_data_by_gid(
-    _gid: number,
+    gid: number,
     _renderer: InstanceRendering,
   ): Graphics {
-    /*if (!this.resourceModule.graphic_id_map[gid]) {
-      const tile_set: TileSet = ResourceManager._get_tileset_by_gid(
+    if (!this.graphic_id_map[gid]) {
+      /*const tile_set: TileSet = ResourceManager._get_tileset_by_gid(
         gid,
-          this.resourceModule.tile_sets,
+        this.resourceModule.tile_sets,
       );
 
       const id_in_tileset = gid - tile_set.start_gid;
 
-      this.resourceModule.graphic_id_map[gid] = ResourceManager._calculate_graphics(
-        id_in_tileset,
-        tile_set,
-        renderer,
-      );
-    }*/
+      this.resourceModule.graphic_id_map[gid] =
+        ResourceManager._calculate_graphics(id_in_tileset, tile_set, renderer);*/
+    }
 
     return {
       frame_objects: [],

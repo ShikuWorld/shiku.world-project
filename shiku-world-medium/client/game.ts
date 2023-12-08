@@ -17,8 +17,11 @@ import { initialize_input_plugins, update_input_plugins } from "./plugins";
 import { setup_button_feedback } from "./button-feedback";
 import { setup_medium_api } from "./api";
 import { loginMenuConfig } from "@/client/login-menu";
-import { GameInstance, create_new_game_instance } from "@/client/game-instance";
-import { ResourceManager } from "@/client/resources";
+import {
+  create_new_game_instance,
+  GameInstanceMap,
+} from "@/client/game-instance";
+import { ResourceManagerMap } from "@/client/resources";
 import { create_resource_manager } from "@/client/resources/create_resource_manager";
 import { is_admin } from "@/client/is_admin";
 import { handle_editor_event } from "@/client/handle-editor-event";
@@ -34,10 +37,8 @@ export function start_medium() {
   const menu_system = new MenuSystem();
   const guest_input = create_guest_input();
   const button_feedback_update = setup_button_feedback();
-  const instances: {
-    [instance_id: string]: { [world_id: string]: GameInstance };
-  } = {};
-  const resource_manager_map: { [module_name: string]: ResourceManager } = {};
+  const instances: GameInstanceMap = {};
+  const resource_manager_map: ResourceManagerMap = {};
   const current_active_instance: string | null = null;
 
   function lazy_get_resource_manager(module_id: string) {

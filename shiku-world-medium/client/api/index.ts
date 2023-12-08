@@ -33,7 +33,6 @@ export const setup_medium_api = (
         render_system.stage.addChild(
           instances[instance_id][world_id].renderer.mainContainerWrapper,
         );
-        console.log(render_system.stage);
         render_system.current_main_instance = { instance_id, world_id };
       }
     },

@@ -36,7 +36,13 @@
     </div>
     <div class="editor-main-view">
       <v-window v-model="tab">
-        <v-window-item value="Current"></v-window-item>
+        <v-window-item value="current">
+          <MapEditor
+            class="map-editor"
+            v-if="current_main_map"
+            :map="current_main_map"
+          ></MapEditor>
+        </v-window-item>
         <v-window-item value="modules">
           <ModulesGraph class="modules-editor"></ModulesGraph>
         </v-window-item>
@@ -76,6 +82,8 @@ import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
 import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
 import TileEditor from "@/editor/editor/TileEditor.vue";
 import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
+import MapEditor from "@/editor/editor/MapEditor.vue";
+import { GameMap } from "@/editor/blueprints/GameMap";
 
 const tab = ref<number>(0);
 const {
@@ -84,6 +92,8 @@ const {
   selected_tile_id,
   side_bar_editor,
   module_instance_map,
+  current_main_instance,
+  game_map_map,
 } = storeToRefs(use_editor_store());
 const {
   get_module,
@@ -100,6 +110,14 @@ const selected_module = computed(() => get_module(selected_module_id?.value));
 const selected_tileset = computed(() =>
   get_tileset(selected_tileset_path.value),
 );
+const current_main_map = computed<GameMap | undefined>(() => {
+  if (current_main_instance.value?.world_id && game_map_map.value) {
+    return Object.values(game_map_map.value).find(
+      (m) => m.world_id === current_main_instance.value.world_id,
+    );
+  }
+  return undefined;
+});
 function select_as_main_instance(
   _module_id: string,
   instance_id: string,
@@ -122,6 +140,11 @@ function open_resource_editor(resource: BlueprintResource) {
 .editor-wrapper {
   display: flex;
   flex-wrap: wrap;
+}
+
+.map-editor {
+  height: 100vh;
+  pointer-events: all;
 }
 
 .modules-editor {

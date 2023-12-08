@@ -1,5 +1,6 @@
 import { match, P } from "ts-pattern";
 import { EditorEvent } from "@/client/communication/api/bindings/EditorEvent";
+import { GameMap } from "@/editor/blueprints/GameMap";
 
 export function handle_editor_event(event: EditorEvent) {
   match(event)
@@ -37,7 +38,9 @@ export function handle_editor_event(event: EditorEvent) {
       window.medium_gui.editor.set_map(d);
     })
     .with({ UpdatedMap: P.select() }, (d) => {
-      window.medium_gui.editor.update_map(d);
+      window.medium_gui.editor.update_map(
+        d as Partial<GameMap> & { resource_path: string; name: string },
+      );
     })
     .with({ DeletedMap: P.select() }, (d) => {
       window.medium_gui.editor.delete_map(d);

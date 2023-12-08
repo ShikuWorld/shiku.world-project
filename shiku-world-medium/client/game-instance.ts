@@ -30,6 +30,14 @@ export class GameInstance {
     this.terrain_manager = create_terrain_manager();
   }
 
+  show_grid(size: [number, number], offset: [number, number]) {
+    this.terrain_manager.show_grid(size, offset);
+  }
+
+  hide_grid() {
+    this.terrain_manager.hide_grid();
+  }
+
   update() {
     this.renderer.camera.update_camera_position(this.entity_manager);
 

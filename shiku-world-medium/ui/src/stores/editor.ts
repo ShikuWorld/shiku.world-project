@@ -9,6 +9,7 @@ import { GameMap } from "@/editor/blueprints/GameMap";
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
 import { GameInstance } from "@/client/game-instance";
+import { Camera } from "@/client/camera";
 
 export interface EditorStore {
   editor_open: boolean;
@@ -31,6 +32,7 @@ export interface EditorStore {
   game_instances: {
     [instance_id: string]: { [world_id: string]: GameInstance };
   };
+  camera: Camera;
   side_bar_editor: "module" | "tile" | "nothing";
   current_file_browser_result: FileBrowserResult;
 }
@@ -41,6 +43,7 @@ export const use_editor_store = defineStore("editor", {
     module_instance_map: {},
     side_bar_editor: "nothing",
     main_door_status: false,
+    camera: new Camera(),
     selected_module_id: "",
     selected_tileset_path: "",
     selected_tile_id: 0,
@@ -58,6 +61,9 @@ export const use_editor_store = defineStore("editor", {
     current_file_browser_result: { resources: [], dirs: [], dir: "", path: "" },
   }),
   actions: {
+    set_camera(camera: Camera) {
+      this.camera = camera;
+    },
     set_game_instance_map(instance_data: [string, string[]][]) {
       const module_instance_map: EditorStore["module_instance_map"] = {};
       for (const d of instance_data) {

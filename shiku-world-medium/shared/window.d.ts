@@ -1,11 +1,12 @@
 import { InputPlugin } from "@/client/plugins";
 import { login } from "@/client/menu/twitch";
 import { CommunicationState } from "@/client/communication";
-import { use_ui_store } from "@/ui/stores/ui";
-import { use_config_store } from "@/ui/stores/config";
-import { use_current_module_store } from "@/ui/stores/current-module";
-import { use_toast_store } from "@/ui/stores/toast";
-import { use_editor_store } from "@/ui/stores/editor";
+import { use_ui_store } from "@/editor/stores/ui";
+import { use_config_store } from "@/editor/stores/config";
+import { use_current_module_store } from "@/editor/stores/current-module";
+import { use_toast_store } from "@/editor/stores/toast";
+import { use_editor_store } from "@/editor/stores/editor";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 declare global {
   interface Window {

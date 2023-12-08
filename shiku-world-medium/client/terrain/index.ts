@@ -24,6 +24,10 @@ export class TerrainManager {
     this._chunk_map = new Map<LayerName, Chunk>();
   }
 
+  show_grid(_size: [number, number], _offset: [number, number]) {}
+
+  hide_grid() {}
+
   remove_all_chunks_for_module(renderer: InstanceRendering) {
     for (const [layer, layer_chunks] of this._chunk_map.entries()) {
       for (const chunk of Object.values(layer_chunks)) {

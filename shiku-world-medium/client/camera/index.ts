@@ -29,6 +29,10 @@ export class Camera {
     this._entity_id_ref = { entity_id: "", module_name: "" };
   }
 
+  get zoom(): number {
+    return this._camera_settings.zoom || 1;
+  }
+
   get camera_isometry(): Isometry {
     return this._camera_isometry;
   }
@@ -50,6 +54,10 @@ export class Camera {
       set_camera_zoom(this._camera_settings.zoom);
       viewPortResize(width, height, renderer);*/
     }
+  }
+
+  set_camera_zoom(zoom: number) {
+    this._camera_settings.zoom = zoom;
   }
 
   update_camera_position(entities: EntityManager) {
