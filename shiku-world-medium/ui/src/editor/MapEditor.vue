@@ -46,7 +46,6 @@ function move_selected_tile($event: MouseEvent) {
     return;
   }
   let bounding_rect = editor_element.value.getBoundingClientRect();
-  console.log($event.pageX - bounding_rect.left, tile_width.value);
   let tile_x =
     Math.round(
       ($event.pageX -
@@ -65,7 +64,6 @@ function move_selected_tile($event: MouseEvent) {
     ) *
     tile_height.value *
     camera.value.zoom;
-  console.log(tile_x, tile_y);
   if (
     selected_tile_position.value.x != tile_x ||
     selected_tile_position.value.y != tile_y
