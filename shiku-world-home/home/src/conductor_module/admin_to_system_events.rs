@@ -119,7 +119,7 @@ pub async fn handle_admin_to_system_event(
             }
         }
         AdminToSystemEvent::UpdateMap(map_update) => {
-            let map_path = format!("{}/{}", map_update.resource_path, map_update.name);
+            let map_path = format!("{}/{}.map.json", map_update.resource_path, map_update.name);
             match Blueprint::load_map(PathBuf::from(map_path)) {
                 Ok(mut map) => {
                     if let Some(entities) = map_update.entities.clone() {
@@ -128,12 +128,8 @@ pub async fn handle_admin_to_system_event(
                     if let Some(joints) = map_update.joints.clone() {
                         map.joints = joints;
                     }
-                    if let Some((layer, n, chunk)) = map_update.chunk.clone() {
-                        if let Some(chunks) = map.terrain.get_mut(&layer) {
-                            if chunks.get(n).is_some() {
-                                chunks[n] = chunk;
-                            }
-                        }
+                    if let Some((layer, chunk)) = map_update.chunk.clone() {
+                        map.set_chunk(layer, chunk);
                     }
                     match Blueprint::save_map(&map) {
                         Ok(()) => {

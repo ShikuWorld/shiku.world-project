@@ -32,6 +32,7 @@
             @world_click="select_as_main_instance"
           />
         </v-expansion-panel>
+        <v-btn @click="set_sidebar_editor('map')">Map editor</v-btn>
       </v-expansion-panels>
     </div>
     <div class="editor-main-view">
@@ -41,6 +42,7 @@
             class="map-editor"
             v-if="current_main_map"
             :map="current_main_map"
+            @tile_click="on_tile_click"
           ></MapEditor>
         </v-window-item>
         <v-window-item value="modules">
@@ -59,6 +61,9 @@
           :module="selected_module"
           :module_instances="module_instance_map[selected_module.id]"
         ></ModulesEditor>
+      </div>
+      <div v-if="side_bar_editor === 'map'">
+        <TileSelector :tilesets="tilesets_of_current_module"></TileSelector>
       </div>
       <div v-if="side_bar_editor === 'tile'">
         <TileEditor
@@ -84,6 +89,8 @@ import TileEditor from "@/editor/editor/TileEditor.vue";
 import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 import MapEditor from "@/editor/editor/MapEditor.vue";
 import { GameMap } from "@/editor/blueprints/GameMap";
+import TileSelector from "@/editor/editor/TileSelector.vue";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 const tab = ref<number>(0);
 const {
@@ -94,6 +101,7 @@ const {
   module_instance_map,
   current_main_instance,
   game_map_map,
+  tileset_map,
 } = storeToRefs(use_editor_store());
 const {
   get_module,
@@ -103,6 +111,8 @@ const {
   set_selected_resource_tab,
   game_instance_exists,
   set_current_main_instance,
+  set_sidebar_editor,
+  update_map_server,
 } = use_editor_store();
 load_modules();
 
@@ -110,6 +120,14 @@ const selected_module = computed(() => get_module(selected_module_id?.value));
 const selected_tileset = computed(() =>
   get_tileset(selected_tileset_path.value),
 );
+const tilesets_of_current_module = computed(() => {
+  return selected_module.value.resources
+    .filter((r) => r.kind == "Tileset")
+    .map((r) => {
+      console.log(Object.values(tileset_map.value), r.path);
+      return tileset_map.value[r.path];
+    });
+});
 const current_main_map = computed<GameMap | undefined>(() => {
   if (current_main_instance.value?.world_id && game_map_map.value) {
     return Object.values(game_map_map.value).find(
@@ -118,6 +136,44 @@ const current_main_map = computed<GameMap | undefined>(() => {
   }
   return undefined;
 });
+
+function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
+  if (current_main_map.value) {
+    let game_map = current_main_map.value;
+    let chunk_x = Math.round(tile_x / game_map.chunk_size);
+    let chunk_y = Math.round(tile_y / game_map.chunk_size);
+    if (!game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)]) {
+      game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)] = {
+        position: [chunk_x, chunk_y],
+        data: new Array(game_map.chunk_size * game_map.chunk_size).fill(0),
+      };
+    }
+    const chunk = game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)];
+
+    // TODO: fill chunk(s)
+    chunk.data[0] = 1;
+
+    update_map_server({
+      name: game_map.name,
+      resource_path: game_map.resource_path,
+      chunk: [layer_kind, chunk],
+    });
+  }
+}
+
+function toNatural(num: number): number {
+  if (num < 0) {
+    return -2 * num - 1;
+  } else {
+    return 2 * num;
+  }
+}
+
+function cantorPair(x: number, y: number): number {
+  const xx = toNatural(x);
+  const yy = toNatural(y);
+  return ((xx + yy) * (xx + yy + 1)) / 2 + yy;
+}
 function select_as_main_instance(
   _module_id: string,
   instance_id: string,

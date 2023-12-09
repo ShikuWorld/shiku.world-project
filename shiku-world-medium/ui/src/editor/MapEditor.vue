@@ -3,6 +3,7 @@
     <div
       class="map-editor--grid"
       ref="editor_element"
+      @click="emit_tile_click"
       @mousemove="move_selected_tile"
     >
       <div class="map-editor__selected-tile" :style="tile_position_vars"></div>
@@ -15,14 +16,19 @@ import { GameMap } from "@/editor/blueprints/GameMap";
 import { computed, onMounted, ref, toRefs } from "vue";
 import { use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 const props = defineProps<{ map: GameMap }>();
 const { map } = toRefs(props);
 const editor_element = ref<HTMLElement>();
-
+const layer = ref<LayerKind>("Terrain");
 onMounted(() => {
   camera.value.set_camera_zoom(1.5);
 });
+
+const emit = defineEmits<{
+  (e: "tile_click", layer: LayerKind, tile_x: number, tile_y: number): void;
+}>();
 
 const tile_width = computed(() => map.value.tile_width * camera.value.zoom);
 const tile_height = computed(() => map.value.tile_height * camera.value.zoom);
@@ -41,6 +47,26 @@ const selected_tile_position = ref({
   y: 0,
 });
 const { camera } = storeToRefs(use_editor_store());
+
+function emit_tile_click($event: MouseEvent) {
+  if (!editor_element.value) {
+    return;
+  }
+  let bounding_rect = editor_element.value.getBoundingClientRect();
+  let tile_x = Math.round(
+    ($event.pageX -
+      bounding_rect.left -
+      (tile_width.value / 2) * camera.value.zoom) /
+      (tile_width.value * camera.value.zoom),
+  );
+  let tile_y = Math.round(
+    ($event.pageY -
+      bounding_rect.top -
+      (tile_height.value / 2) * camera.value.zoom) /
+      (tile_height.value * camera.value.zoom),
+  );
+  emit("tile_click", layer.value, tile_x, tile_y);
+}
 function move_selected_tile($event: MouseEvent) {
   if (!editor_element.value) {
     return;

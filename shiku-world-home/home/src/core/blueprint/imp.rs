@@ -9,12 +9,12 @@ use uuid::Uuid;
 use walkdir::WalkDir;
 
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, BlueprintService, Conductor, FileBrowserFileKind,
-    FileBrowserResult, GameMap, GidMap, Module, ResourceKind, ResourceLoaded, ResourcePath,
-    Tileset,
+    BlueprintError, BlueprintResource, BlueprintService, Chunk, Conductor, FileBrowserFileKind,
+    FileBrowserResult, GameMap, GidMap, LayerKind, Module, ResourceKind, ResourceLoaded,
+    ResourcePath, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::{get_out_dir, safe_unwrap};
+use crate::core::{cantor_pair, get_out_dir, safe_unwrap};
 
 impl Module {
     pub fn new(name: String, id: String) -> Module {
@@ -291,5 +291,14 @@ impl BlueprintService {
         let file = File::create(file_path)?;
         let writer = BufWriter::new(file);
         Ok(serde_json::to_writer_pretty(writer, blueprint)?)
+    }
+}
+
+impl GameMap {
+    pub fn set_chunk(&mut self, layer_kind: LayerKind, chunk: Chunk) {
+        self.terrain
+            .entry(layer_kind)
+            .or_default()
+            .insert(cantor_pair(chunk.position.0, chunk.position.1), chunk);
     }
 }

@@ -29,7 +29,7 @@ pub fn condense_terrain_from_tiles(layer: &Layer) -> Vec<TerrainGenTerrainChunk>
     let mut chunk_tile_width: Real = 0.0;
     let mut chunk_tile_height: Real = 0.0;
 
-    for chunk in &layer.terrain_chunks {
+    /*for chunk in &layer.terrain_chunks {
         chunk_tile_height = chunk.height;
         chunk_tile_width = chunk.width;
 
@@ -44,7 +44,7 @@ pub fn condense_terrain_from_tiles(layer: &Layer) -> Vec<TerrainGenTerrainChunk>
                 }
             }
         }
-    }
+    }*/
 
     while !tile_not_visited.is_empty() {
         let tile = tile_not_visited.iter().next().unwrap().clone();

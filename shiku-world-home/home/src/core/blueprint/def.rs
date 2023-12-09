@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::hash::Hash;
 
 use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
@@ -135,7 +136,7 @@ pub struct Tile {
 #[ts(export, export_to = "blueprints/")]
 pub struct Chunk {
     pub position: (i32, i32),
-    pub data: Vec<Vec<u32>>,
+    pub data: Vec<u32>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -206,7 +207,7 @@ pub struct GameMap {
     pub chunk_size: u32,
     pub tile_width: u32,
     pub tile_height: u32,
-    pub terrain: HashMap<LayerKind, Vec<Chunk>>,
+    pub terrain: HashMap<LayerKind, HashMap<u32, Chunk>>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -216,7 +217,7 @@ pub struct MapUpdate {
     pub resource_path: ResourcePath,
     pub entities: Option<Vec<Entity>>,
     pub joints: Option<HashMap<JointId, Joint>>,
-    pub chunk: Option<(LayerKind, usize, Chunk)>,
+    pub chunk: Option<(LayerKind, Chunk)>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

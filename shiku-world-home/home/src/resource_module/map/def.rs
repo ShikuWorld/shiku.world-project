@@ -118,7 +118,7 @@ pub struct Layer {
     pub name: LayerName,
     pub encoding: String,
     pub parallax: (Real, Real),
-    pub terrain_chunks: Vec<TerrainChunk>,
+    pub terrain_chunks: HashMap<(i32, i32), TerrainChunk>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -152,7 +152,7 @@ impl Layer {
             name: LayerName::Empty,
             encoding: "".to_string(),
             parallax: (1.0, 1.0),
-            terrain_chunks: vec![],
+            terrain_chunks: HashMap::new(),
         }
     }
 }

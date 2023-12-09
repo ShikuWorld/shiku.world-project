@@ -19,6 +19,7 @@ export interface EditorStore {
   current_map_path: string;
   edit_module_id: string;
   conductor: Conductor;
+  tile_brush: number[][];
   tileset_map: { [tileset_path: string]: Tileset };
   game_map_map: { [map_path: string]: GameMap };
   current_map_index: number;
@@ -33,7 +34,7 @@ export interface EditorStore {
     [instance_id: string]: { [world_id: string]: GameInstance };
   };
   camera: Camera;
-  side_bar_editor: "module" | "tile" | "nothing";
+  side_bar_editor: "module" | "tile" | "map" | "nothing";
   current_file_browser_result: FileBrowserResult;
 }
 export const use_editor_store = defineStore("editor", {
@@ -44,6 +45,7 @@ export const use_editor_store = defineStore("editor", {
     side_bar_editor: "nothing",
     main_door_status: false,
     camera: new Camera(),
+    tile_brush: [[1]],
     selected_module_id: "",
     selected_tileset_path: "",
     selected_tile_id: 0,
@@ -281,8 +283,18 @@ export const use_editor_store = defineStore("editor", {
     create_map_server(map: GameMap) {
       send_admin_event({ CreateMap: [map.module_id, map] });
     },
-    update_map_server(module_id: string, map_update: MapUpdate) {
-      send_admin_event({ UpdateMap: map_update });
+    update_map_server(
+      map_update: Partial<MapUpdate> &
+        Pick<MapUpdate, "resource_path" | "name">,
+    ) {
+      send_admin_event({
+        UpdateMap: {
+          chunk: null,
+          joints: null,
+          entities: null,
+          ...map_update,
+        },
+      });
     },
     delete_map_server(map: GameMap) {
       send_admin_event({ DeleteMap: [map.module_id, map] });

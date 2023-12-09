@@ -46,12 +46,12 @@ impl Blueprint {
 
     pub fn save<T: Serialize>(
         resource: &T,
-        resource_path: &String,
-        resource_name: &String,
+        resource_path: &str,
+        resource_name: &str,
         file_extension: &str,
     ) -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
-        let resource_path = PathBuf::from_str(resource_path.as_str())?;
+        let resource_path = PathBuf::from_str(resource_path)?;
         let directory_path = out_dir.join(resource_path);
         let file_path = directory_path.join(format!("{}.{}.json", resource_name, file_extension));
         if !file_path.exists() {
@@ -59,7 +59,7 @@ impl Blueprint {
         }
         let file = File::create(file_path)?;
         let writer = BufWriter::new(file);
-        serde_json::to_writer_pretty(writer, resource)?;
+        serde_json::to_writer(writer, resource)?;
         Ok(())
     }
 

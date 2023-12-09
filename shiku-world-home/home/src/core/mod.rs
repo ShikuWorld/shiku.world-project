@@ -139,3 +139,40 @@ pub fn fix_intellij_error_bug<T: fmt::Debug + fmt::Display>(error: &T) -> impl f
 
     DisplayWrapper(error)
 }
+
+fn to_natural(num: i32) -> u32 {
+    if num < 0 {
+        (-2 * num - 1) as u32
+    } else {
+        (2 * num) as u32
+    }
+}
+
+fn cantor_pair(x: i32, y: i32) -> u32 {
+    let xx = to_natural(x);
+    let yy = to_natural(y);
+    (xx + yy) * (xx + yy + 1) / 2 + yy
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn test_cantor_pair_no_collisions() {
+        let mut set = HashSet::new();
+        let mut collisions = 0;
+
+        for x in -500..=500 {
+            for y in -500..=500 {
+                let hash = cantor_pair(x, y);
+                if !set.insert(hash) {
+                    collisions += 1;
+                }
+            }
+        }
+
+        assert_eq!(collisions, 0, "There were {} collisions", collisions);
+    }
+}

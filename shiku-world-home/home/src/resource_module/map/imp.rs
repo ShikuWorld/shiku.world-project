@@ -302,7 +302,7 @@ impl TiledMap {
                         current_object_attributes = GeneralObject::new();
                     }
                     "chunk" => {
-                        current_layer.terrain_chunks.push(current_chunk.clone());
+                        //current_layer.terrain_chunks.insert(current_chunk.clone());
                         current_chunk = TerrainChunk::new();
                     }
                     _ => {

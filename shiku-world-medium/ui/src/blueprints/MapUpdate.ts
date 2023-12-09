@@ -4,4 +4,4 @@ import type { Entity } from "./Entity";
 import type { Joint } from "./Joint";
 import type { LayerKind } from "./LayerKind";
 
-export interface MapUpdate { name: string, resource_path: string, entities: Array<Entity> | null, joints: Record<number, Joint> | null, chunk: [LayerKind, number, Chunk] | null, }
+export interface MapUpdate { name: string, resource_path: string, entities: Array<Entity> | null, joints: Record<number, Joint> | null, chunk: [LayerKind, Chunk] | null, }

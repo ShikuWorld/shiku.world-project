@@ -8,15 +8,11 @@ use crate::core::blueprint;
 use crate::core::blueprint::def::{Conductor, GidMap, ModuleId, ResourcePath, Tileset};
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
-use crate::core::guest::{
-    ActorId, Guest, LoginProvider, ModuleEnterSlot, ModuleExitSlot, SessionId,
-};
+use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
 use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::resource_module::def::{ResourceBundle, ResourceEvent};
-use crate::resource_module::errors::ResourceParseError;
 use crate::resource_module::map::def::{LayerName, TerrainChunk};
-use crate::ResourceModule;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
