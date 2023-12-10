@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
-use apecs::World;
+use apecs::World as ApecsWorld;
 use log::{debug, error};
 use tokio::time::Instant;
 
-use crate::core::blueprint::def::{BlueprintService, GameMap, Module};
+use crate::core::blueprint::def::{
+    BlueprintService, Chunk, GameMap, Layer, LayerKind, Module, TerrainParams,
+};
 use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
@@ -15,11 +17,11 @@ use crate::core::module::{
 use crate::core::module::{GuestInput, GuestToModuleEvent, SystemToModuleEvent};
 use crate::core::module_system::def::{
     DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication, ModuleGuest,
-    WorldId,
+    World, WorldId,
 };
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::core::{send_and_log_error, LazyHashmapSet};
+use crate::core::{send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
 
 impl DynamicGameModule {
     pub fn create(
@@ -40,6 +42,7 @@ impl DynamicGameModule {
                 module_input_receiver,
                 module_output_sender,
             ),
+            module_id: module.id.clone(),
             instance_id,
         };
         let game_maps = match BlueprintService::load_all_maps_for_module(module) {
@@ -62,11 +65,27 @@ impl DynamicGameModule {
         if self.world_map.contains_key(&game_map.world_id) {
             return Err(CreateWorldError::DidAlreadyExist);
         }
-        self.world_map
-            .insert(game_map.world_id.clone(), World::default());
+        self.world_map.insert(
+            game_map.world_id.clone(),
+            World {
+                apecs_world: ApecsWorld::default(),
+                terrain_params: TerrainParams {
+                    chunk_size: game_map.chunk_size,
+                    tile_height: game_map.tile_height,
+                    tile_width: game_map.tile_width,
+                },
+            },
+        );
         self.world_to_admin.init(game_map.world_id.clone());
         self.world_to_guest.init(game_map.world_id.clone());
         Ok(game_map.world_id.clone())
+    }
+
+    pub fn get_terrain_params(&self, world_id: &WorldId) -> Option<TerrainParams> {
+        if let Some(world) = self.world_map.get(world_id) {
+            return Some(world.terrain_params.clone());
+        }
+        None
     }
 
     pub fn destroy_world(&mut self, game_map: &GameMap) -> Result<WorldId, DestroyWorldError> {
@@ -99,34 +118,69 @@ impl DynamicGameModule {
 
     pub fn update(&mut self, module: &Module) {
         self.handle_guest_events(module);
-        self.handle_system_events();
     }
 
-    fn handle_system_events(&mut self) {
-        for event in self
-            .module_communication
-            .input_receiver
-            .system_to_module_receiver
-            .drain()
-        {
-            match event.event_type {
-                SystemToModuleEvent::Disconnected(actor_id) => {
-                    if let Some(guest) = self.guests.get_mut(&actor_id) {
-                        guest.guest_com.connected = false;
-                    }
-                    if let Some(admin) = self.admins.get_mut(&actor_id) {
-                        admin.connected = false;
-                    }
-                }
-                SystemToModuleEvent::Reconnected(actor_id) => {
-                    if let Some(guest) = self.guests.get_mut(&actor_id) {
-                        guest.guest_com.connected = true;
-                    }
-                    if let Some(admin) = self.admins.get_mut(&actor_id) {
-                        admin.connected = true;
-                    }
-                }
+    pub fn actor_disconnected(&mut self, actor_id: &ActorId) {
+        if let Some(guest) = self.guests.get_mut(actor_id) {
+            guest.guest_com.connected = false;
+        }
+        if let Some(admin) = self.admins.get_mut(actor_id) {
+            admin.connected = false;
+        }
+    }
+
+    pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
+        //TODO: Update terrain if layer is terrain
+        if let (Some(guest_ids), Some(admin_ids)) = (
+            self.world_to_guest.hashset(world_id),
+            self.world_to_admin.hashset(world_id),
+        ) {
+            debug!("Updating guests {:?} admins {:?}", guest_ids, admin_ids);
+            let mut terrain_update = ModuleInstanceEvent {
+                world_id: None,
+                module_id: self.module_id.clone(),
+                instance_id: self.instance_id.clone(),
+                event_type: GameSystemToGuestEvent::ShowTerrain(vec![(
+                    layer_kind.clone(),
+                    vec![chunk.clone()],
+                )]),
+            };
+            for guest_id in guest_ids {
+                send_and_log_error_custom(
+                    &mut self
+                        .module_communication
+                        .output_sender
+                        .game_system_to_guest_sender,
+                    GuestEvent {
+                        guest_id: *guest_id,
+                        event_type: terrain_update.clone(),
+                    },
+                    "Could not send show Terrain!",
+                );
             }
+            terrain_update.world_id = Some(world_id.clone());
+            for admin_id in admin_ids {
+                send_and_log_error_custom(
+                    &mut self
+                        .module_communication
+                        .output_sender
+                        .game_system_to_guest_sender,
+                    GuestEvent {
+                        guest_id: *admin_id,
+                        event_type: terrain_update.clone(),
+                    },
+                    "Could not send show Terrain!",
+                );
+            }
+        }
+    }
+
+    pub fn actor_reconnected(&mut self, actor_id: &ActorId) {
+        if let Some(guest) = self.guests.get_mut(actor_id) {
+            guest.guest_com.connected = true;
+        }
+        if let Some(admin) = self.admins.get_mut(actor_id) {
+            admin.connected = true;
         }
     }
 

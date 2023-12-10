@@ -14,10 +14,10 @@ import { EntityRenderData } from "../communication/api/bindings/EntityRenderData
 import { match, P } from "ts-pattern";
 import { Config } from "../config";
 import { create_countdown } from "../countdown";
-import { LayerName } from "../communication/api/bindings/LayerName";
 import { RemoveEntity } from "../communication/api/bindings/RemoveEntity";
 import { StaticImage } from "../communication/api/bindings/StaticImage";
 import { SimpleImageEffect } from "../communication/api/bindings/SimpleImageEffect";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 export function create_entity_manager(): EntityManager {
   return new EntityManager();
@@ -143,9 +143,6 @@ export class EntityManager {
 
     container.x = Math.round(isometry.x * Config.get_simulation_scale());
     container.y = Math.round(isometry.y * Config.get_simulation_scale());
-    if (layer_name === "Menu" && isometry.x < 0) {
-      container.x = Config.get_stage_width() + container.x;
-    }
     container.rotation = isometry.rotation;
 
     const parent = show_entity.parent_entity
@@ -197,10 +194,6 @@ export class EntityManager {
     entity.wrapper.y = Math.round(
       entity.isometry.y * Config.get_simulation_scale(),
     );
-
-    if (entity.layer_name === "Menu" && entity.isometry.x < 0) {
-      entity.wrapper.x = Config.get_stage_width() + entity.wrapper.x;
-    }
     entity.wrapper.rotation = entity.isometry.rotation;
   }
 
@@ -341,13 +334,13 @@ function get_display_obj_from_render(
   resource_manager: ResourceManager,
   render: EntityRenderData,
   renderer: InstanceRendering,
-): [Container, LayerName | undefined] {
+): [Container, LayerKind | undefined] {
   const container = new Container();
-  let layer_name: LayerName | undefined = undefined;
+  let layer_name: LayerKind | undefined = undefined;
   container.addChild(
     match(render)
       .with({ StaticImage: P.select() }, (staticImageData) => {
-        layer_name = staticImageData.layer;
+        layer_name = staticImageData.layer as LayerKind;
         const graphics = resource_manager.get_graphics_data_by_gid(
           Number(staticImageData.graphic_id),
           renderer,
@@ -356,12 +349,12 @@ function get_display_obj_from_render(
         return get_sprite_from_render(staticImageData, graphics);
       })
       .with({ RenderTypeTimer: P.select() }, (data) => {
-        layer_name = data.layer;
+        layer_name = data.layer as LayerKind;
 
         return create_countdown(data);
       })
       .with({ RenderTypeText: P.select() }, (data) => {
-        layer_name = data.layer;
+        layer_name = data.layer as LayerKind;
         const text = new BitmapText(data.text, { fontName: data.font_family });
 
         if (data.center_x) {
@@ -386,7 +379,7 @@ export interface Renderable {
 
 export interface Entity extends Renderable {
   id: string;
-  layer_name: LayerName;
+  layer_name: LayerKind;
   render: EntityRenderData;
 }
 

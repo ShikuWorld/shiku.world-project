@@ -6,14 +6,16 @@ use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
-use crate::core::blueprint::def::{BlueprintError, BlueprintResource, GameMap, ResourceKind};
+use crate::core::blueprint::def::{
+    BlueprintError, BlueprintResource, Chunk, GameMap, LayerKind, ResourceKind, TerrainParams,
+};
 use crate::core::blueprint::def::{BlueprintService, Module};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication, AdminEnterSuccessState, AdminLeftSuccessState, EnterFailedState,
     EnterSuccessState, LeaveFailedState, LeaveSuccessState, ModuleInputReceiver, ModuleInputSender,
-    ModuleOutputReceiver, ModuleOutputSender, ModuleToSystemEvent,
+    ModuleOutputReceiver, ModuleOutputSender, ModuleToSystemEvent, SystemToModuleEvent,
 };
 use crate::core::module_system::def::{DynamicGameModule, WorldId};
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
@@ -34,6 +36,7 @@ pub type GameInstanceId = String;
 pub struct GameInstanceManager {
     pub(crate) game_instances: HashMap<GameInstanceId, GameInstance>,
     pub(crate) inactive_game_instances: Vec<GameInstanceId>,
+    pub(crate) connected_actor_ids: HashSet<ActorId>,
     pub(crate) guest_to_game_instance_map: HashMap<ActorId, GameInstanceId>,
     pub(crate) active_admins: HashMap<ActorId, HashSet<GameInstanceId>>,
     pub(crate) input_receiver: ModuleInputReceiver,
@@ -59,6 +62,7 @@ impl GameInstanceManager {
             inactive_game_instances: Vec::new(),
             guest_to_game_instance_map: HashMap::new(),
             active_admins: HashMap::new(),
+            connected_actor_ids: HashSet::new(),
             instance_id_gen: SnowflakeIdBucket::new(1, 6),
             game_instance_timeout: 30000.0,
             input_receiver,
@@ -100,6 +104,36 @@ impl GameInstanceManager {
         }
     }
 
+    pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
+        debug!("Updating world!");
+        for game_instance in self.game_instances.values_mut() {
+            debug!("Updating world for instance!");
+            game_instance
+                .dynamic_module
+                .update_world_map(world_id, layer_kind, chunk);
+        }
+    }
+
+    pub fn get_active_actor_ids(&self) -> Vec<ActorId> {
+        let mut active_actors = Vec::new();
+        active_actors.extend(
+            self.guest_to_game_instance_map
+                .iter()
+                .filter(|(actor_id, game_instance_id)| {
+                    if let Some(game_instance) = self.game_instances.get(*game_instance_id) {
+                        if let Some(guest) = game_instance.dynamic_module.guests.get(*actor_id) {
+                            return guest.guest_com.connected;
+                        }
+                    }
+                    false
+                })
+                .map(|(actor_id, _)| actor_id.clone()),
+        );
+        active_actors.extend(self.active_admins.keys());
+
+        active_actors
+    }
+
     pub fn let_admin_into_instance(
         &mut self,
         admin: &Admin,
@@ -115,7 +149,7 @@ impl GameInstanceManager {
         if let Some(instance) = self.game_instances.get_mut(&instance_id) {
             instance.dynamic_module.let_admin_enter(admin, world_id)?;
         }
-
+        self.connected_actor_ids.insert(admin.id);
         Ok(success_state)
     }
 
@@ -137,6 +171,7 @@ impl GameInstanceManager {
             }
         }
         active_admin_instances.remove(&instance_id);
+        self.connected_actor_ids.remove(&admin.id);
         Ok(success_state)
     }
 
@@ -159,6 +194,7 @@ impl GameInstanceManager {
                     let game_instance_id = game_instance.id.clone();
                     self.guest_to_game_instance_map
                         .insert(guest.id, game_instance_id.clone());
+                    self.connected_actor_ids.insert(guest.id);
                     if self.module_blueprint.close_after_full
                         && game_instance.dynamic_module.guests.len()
                             >= self.module_blueprint.max_guests
@@ -181,7 +217,10 @@ impl GameInstanceManager {
         if let Some(game_instance_id) = self.guest_to_game_instance_map.remove(&guest.id) {
             if let Some(game_instance) = self.game_instances.get_mut(&game_instance_id) {
                 return match game_instance.dynamic_module.try_leave(guest) {
-                    Ok(success_state) => Ok((game_instance_id, success_state)),
+                    Ok(success_state) => {
+                        self.connected_actor_ids.remove(&guest.id);
+                        Ok((game_instance_id, success_state))
+                    }
                     Err(err) => Err(err),
                 };
             }
@@ -263,15 +302,15 @@ impl GameInstanceManager {
 
         for message in self.input_receiver.system_to_module_receiver.drain() {
             if let Some(game_instance) = self.game_instances.get_mut(&message.instance_id) {
-                if let Err(err) = game_instance
-                    .input_sender
-                    .system_to_module_sender
-                    .send(message)
-                {
-                    error!(
-                        "Game instance message could not send system message to module?! {:?}",
-                        err
-                    );
+                match message.event_type {
+                    SystemToModuleEvent::Disconnected(actor_id) => {
+                        game_instance.dynamic_module.actor_disconnected(&actor_id);
+                        self.connected_actor_ids.remove(&actor_id);
+                    }
+                    SystemToModuleEvent::Reconnected(actor_id) => {
+                        game_instance.dynamic_module.actor_reconnected(&actor_id);
+                        self.connected_actor_ids.insert(actor_id);
+                    }
                 }
             }
         }
@@ -315,6 +354,31 @@ impl GameInstanceManager {
         }
 
         self.create_new_game_instance()
+    }
+
+    pub fn get_terrain_params_for_guest(
+        &self,
+        guest_id: &ActorId,
+        game_instance_id: &GameInstanceId,
+    ) -> Option<TerrainParams> {
+        if let Some(instance) = self.game_instances.get(game_instance_id) {
+            if let Some(world_id) = instance.dynamic_module.guest_to_world.get(guest_id) {
+                return instance.dynamic_module.get_terrain_params(world_id);
+            }
+        }
+        None
+    }
+
+    pub fn get_terrain_params_for_admin(
+        &self,
+        guest_id: &ActorId,
+        game_instance_id: &GameInstanceId,
+        world_id: &WorldId,
+    ) -> Option<TerrainParams> {
+        if let Some(instance) = self.game_instances.get(game_instance_id) {
+            return instance.dynamic_module.get_terrain_params(world_id);
+        }
+        None
     }
 }
 

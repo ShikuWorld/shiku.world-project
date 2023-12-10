@@ -1,7 +1,14 @@
-import { Assets, Texture } from "pixi.js-legacy";
+import {
+  Assets,
+  BaseTexture,
+  Graphics as PixijsGraphics,
+  Rectangle,
+  RenderTexture,
+  Texture,
+} from "pixi.js-legacy";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { FrameObject } from "@pixi/sprite-animated";
-import { InstanceRendering } from "@/client/renderer";
+import { RenderSystem } from "@/client/renderer";
 import { ResourceEvent } from "@/client/communication/api/bindings/ResourceEvent";
 import { match, P } from "ts-pattern";
 import { ResourceBundle } from "@/client/communication/api/bindings/ResourceBundle";
@@ -28,7 +35,7 @@ export class ResourceManager {
   tile_set_map: {
     [path: string]: Tileset;
   } = {};
-
+  dummy_texture: RenderTexture;
   resource_bundle_complete = new SimpleEventDispatcher<{
     module_id: string;
     instance_id: string;
@@ -36,7 +43,15 @@ export class ResourceManager {
   }>();
   resources_unload = new SimpleEventDispatcher<void>();
 
-  constructor(private _base_url: string) {}
+  constructor(
+    private _base_url: string,
+    renderer: RenderSystem,
+  ) {
+    const obj = new PixijsGraphics();
+    obj.beginFill(0xff007f);
+    obj.drawRect(0, 0, 100, 100);
+    this.dummy_texture = renderer.renderer.generateTexture(obj);
+  }
 
   handle_resource_event(resource_event: ResourceEvent) {
     match(resource_event)
@@ -50,43 +65,43 @@ export class ResourceManager {
         );
         Assets.loadBundle(resource_bundle.name).then((r) => {
           console.log(r);
-          /*for (const res of resource_bundle.assets) {
-            this.resource_map[res.path] = r;
-          }*/
+          for (const res of resource_bundle.assets) {
+            this.image_texture_map[res.path] = r;
+          }
         });
       })
       .with({ LoadTilesets: P.select() }, (tilesets) => {
-        for (const tileset of tilesets) {
-          this.tile_set_map[tileset.resource_path] = tileset;
-        }
+        this.set_tileset_map(tilesets);
       })
       .with({ UpdateGidMap: P.select() }, (gid_map) => {
-        console.log(gid_map);
+        this.gid_map = gid_map;
       })
       .with("UnLoadResources", () => console.log("unload"))
       .exhaustive();
   }
 
-  get_graphics_data_by_gid(
-    gid: number,
-    _renderer: InstanceRendering,
-  ): Graphics {
+  set_tileset_map(tilesets: Tileset[]) {
+    for (const tileset of tilesets) {
+      this.tile_set_map[
+        `${tileset.resource_path}/${tileset.name}.tileset.json`
+      ] = tileset;
+    }
+  }
+
+  get_graphics_data_by_gid(gid: number): Graphics {
     if (!this.graphic_id_map[gid]) {
-      /*const tile_set: TileSet = ResourceManager._get_tileset_by_gid(
-        gid,
-        this.resourceModule.tile_sets,
+      const [tileset, start_gid] = this._get_tileset_by_gid(gid);
+      console.log("_get_tileset_by_gid", tileset, start_gid);
+
+      const id_in_tileset = gid - start_gid;
+
+      this.graphic_id_map[gid] = this._calculate_graphics(
+        id_in_tileset,
+        tileset,
       );
-
-      const id_in_tileset = gid - tile_set.start_gid;
-
-      this.resourceModule.graphic_id_map[gid] =
-        ResourceManager._calculate_graphics(id_in_tileset, tile_set, renderer);*/
     }
 
-    return {
-      frame_objects: [],
-      textures: [],
-    };
+    return this.graphic_id_map[gid];
   }
 
   load_resource_bundle(
@@ -100,6 +115,7 @@ export class ResourceManager {
       (acc, r) => ({ ...acc, [r.path]: r }),
       {} as { [path: string]: LoadResource },
     );
+    console.log("load bundle", resource_bundle);
     Assets.addBundle(
       bundle_id,
       resource_bundle.assets.map((asset) => ({
@@ -109,6 +125,7 @@ export class ResourceManager {
     );
     Assets.loadBundle(bundle_id).then((r) => {
       const loaded: { [path: string]: Texture | "other" } = r;
+      console.log("loaded bundle", loaded);
       for (const [path, loaded_resource] of Object.entries(loaded)) {
         match(path_to_resource_map[path].kind)
           .with("Image", () => {
@@ -128,4 +145,64 @@ export class ResourceManager {
   }
 
   unload_resources() {}
+
+  private _get_tileset_by_gid(gid: number): [Tileset | undefined, number] {
+    console.log(gid, this.tile_set_map, this.gid_map);
+    for (let i = 0; i < this.gid_map.length; i++) {
+      const [path, start_gid] = this.gid_map[i];
+      if (start_gid <= gid) {
+        return [this.tile_set_map[path], start_gid];
+      }
+    }
+    return [undefined, 0];
+  }
+
+  private _calculate_graphics(
+    id: number,
+    tileset: Tileset | undefined,
+  ): Graphics {
+    const graphics: Graphics = { textures: [], frame_objects: [] };
+    console.log("_calculate_graphics", tileset);
+    if (id < 0 || !tileset) {
+      graphics.textures.push(this.dummy_texture);
+      return graphics;
+    }
+
+    ///const animation_frames = tileset.tile_animation_map[id];
+
+    if (tileset.image) {
+      console.log("tileset.image");
+      const base_texture: BaseTexture =
+        this.image_texture_map[tileset.image.path].baseTexture;
+      if (!base_texture) {
+        graphics.textures.push(this.dummy_texture);
+        return graphics;
+      }
+      const x = (id % tileset.columns) * tileset.tile_width;
+      const y = Math.floor(id / tileset.columns) * tileset.tile_height;
+      console.log(x, y);
+      const texture = new Texture(
+        base_texture,
+        new Rectangle(x, y, tileset.tile_width, tileset.tile_height),
+      );
+      graphics.textures.push(texture);
+    } else {
+      graphics.textures.push(this.dummy_texture);
+    }
+
+    return graphics;
+  }
 }
+
+/*
+      for (const frame of animation_frames) {
+        const x = (frame.tile_id % tileset.columns) * tileset.width;
+        const y = Math.floor(frame.tile_id / tileset.columns) * tileset.height;
+        const texture = new Texture(
+          tileset.tile_set_image_resource.texture.baseTexture,
+          new Rectangle(x, y, tileset.width, tileset.height),
+        );
+
+        graphics.textures.push(texture);
+        graphics.frame_objects.push({ texture, time: frame.duration });
+      } */

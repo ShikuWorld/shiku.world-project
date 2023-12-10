@@ -65,24 +65,31 @@ pub async fn handle_admin_to_system_event(
                         match resource_module.get_active_resources_for_module(&module_id, &admin.id)
                         {
                             Ok(assets) => {
-                                match BlueprintService::load_module_tilesets(
-                                    &module.module_blueprint.resources,
+                                if let Some(terrain_params) = module.get_terrain_params_for_admin(
+                                    &admin.id,
+                                    &game_instance_id,
+                                    &world_id,
                                 ) {
-                                    Ok(tilesets) => {
-                                        send_communication_event(CommunicationEvent::PrepareGame(
-                                            module_id,
-                                            game_instance_id,
-                                            Some(world_id),
-                                            ResourceBundle {
-                                                name: "Default".into(),
-                                                assets,
-                                            },
-                                            tilesets,
-                                            module.module_blueprint.gid_map.clone(),
-                                        ))
-                                    }
-                                    Err(err) => {
-                                        error!("Could not load tilesets for module! {:?}", err)
+                                    match BlueprintService::load_module_tilesets(
+                                        &module.module_blueprint.resources,
+                                    ) {
+                                        Ok(tilesets) => send_communication_event(
+                                            CommunicationEvent::PrepareGame(
+                                                module_id,
+                                                game_instance_id,
+                                                Some(world_id),
+                                                ResourceBundle {
+                                                    name: "Default".into(),
+                                                    assets,
+                                                },
+                                                terrain_params,
+                                                tilesets,
+                                                module.module_blueprint.gid_map.clone(),
+                                            ),
+                                        ),
+                                        Err(err) => {
+                                            error!("Could not load tilesets for module! {:?}", err)
+                                        }
                                     }
                                 }
                             }
@@ -133,6 +140,11 @@ pub async fn handle_admin_to_system_event(
                     }
                     match Blueprint::save_map(&map) {
                         Ok(()) => {
+                            if let (Some(module), Some((layer_kind, chunk))) =
+                                (module_map.get_mut(&map.module_id), &map_update.chunk)
+                            {
+                                module.update_world_map(&map.world_id, layer_kind, chunk);
+                            }
                             send_editor_event(EditorEvent::UpdatedMap(map_update));
                         }
                         Err(err) => {
@@ -303,9 +315,10 @@ pub async fn handle_admin_to_system_event(
                 if let Some(resources) = module_update.resources {
                     match BlueprintService::generate_gid_map(&resources) {
                         Ok(gid_map) => {
-                            resource_module.send_resource_event_to_all_in_module(
+                            resource_module.send_resource_event_to(
                                 ResourceEvent::UpdateGidMap(gid_map.clone()),
-                                &module_id,
+                                module_id.clone(),
+                                module.get_active_actor_ids(),
                             );
                             module.module_blueprint.gid_map = gid_map;
                             module.module_blueprint.resources = resources;

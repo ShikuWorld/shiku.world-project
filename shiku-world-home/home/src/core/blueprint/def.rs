@@ -97,6 +97,14 @@ pub struct Tileset {
     pub tiles: HashMap<u32, Tile>,
 }
 
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct TerrainParams {
+    pub chunk_size: u32,
+    pub tile_width: u32,
+    pub tile_height: u32,
+}
+
 impl Tileset {
     pub fn get_image_paths(&self) -> Vec<ResourcePath> {
         if let Some(image) = &self.image {

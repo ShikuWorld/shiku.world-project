@@ -1,45 +1,41 @@
 import { Container, DisplayObject, IRenderer } from "pixi.js-legacy";
-import { LayerName } from "../communication/api/bindings/LayerName";
 import { ParallaxContainer } from "./create_game_renderer";
 import { Camera } from "@/client/camera";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 export interface Point {
   x: number;
   y: number;
 }
 
-export type LayerMap = { [keys in LayerName]: Container };
+export type LayerMap = { [keys in LayerKind]: Container };
 
 export const createLayerMap: () => LayerMap = () => ({
-  BG0: new Container(),
-  BG1: new Container(),
-  BG2: new Container(),
-  BG3: new Container(),
-  BG4: new Container(),
-  BG5: new Container(),
-  BG6: new Container(),
-  BG7: new Container(),
-  BG8: new Container(),
-  BG9: new Container(),
+  BG00: new Container(),
+  BG01: new Container(),
+  BG02: new Container(),
+  BG03: new Container(),
+  BG04: new Container(),
+  BG05: new Container(),
+  BG06: new Container(),
+  BG07: new Container(),
+  BG08: new Container(),
+  BG09: new Container(),
   BG10: new Container(),
-  BG11: new Container(),
-  GameObjects: new Container(),
+  ObjectsBelow: new Container(),
   Terrain: new Container(),
-  Guest: new Container(),
-  Empty: new Container(),
-  FG0: new Container(),
-  FG1: new Container(),
-  FG2: new Container(),
-  FG3: new Container(),
-  FG4: new Container(),
-  FG5: new Container(),
-  FG6: new Container(),
-  FG7: new Container(),
-  FG8: new Container(),
-  FG9: new Container(),
+  ObjectsFront: new Container(),
+  FG00: new Container(),
+  FG01: new Container(),
+  FG02: new Container(),
+  FG03: new Container(),
+  FG04: new Container(),
+  FG05: new Container(),
+  FG06: new Container(),
+  FG07: new Container(),
+  FG08: new Container(),
+  FG09: new Container(),
   FG10: new Container(),
-  FG11: new Container(),
-  Menu: new Container(),
 });
 
 export const addLayerMapToContainer = (
@@ -47,35 +43,31 @@ export const addLayerMapToContainer = (
   layerMap: LayerMap,
 ) => {
   container.addChild(
-    layerMap.BG0,
-    layerMap.BG1,
-    layerMap.BG2,
-    layerMap.BG3,
-    layerMap.BG4,
-    layerMap.BG5,
-    layerMap.BG6,
-    layerMap.BG7,
-    layerMap.BG8,
-    layerMap.BG9,
+    layerMap.BG00,
+    layerMap.BG01,
+    layerMap.BG02,
+    layerMap.BG03,
+    layerMap.BG04,
+    layerMap.BG05,
+    layerMap.BG06,
+    layerMap.BG07,
+    layerMap.BG08,
+    layerMap.BG09,
     layerMap.BG10,
-    layerMap.BG11,
-    layerMap.GameObjects,
+    layerMap.ObjectsBelow,
     layerMap.Terrain,
-    layerMap.Guest,
-    layerMap.Empty,
-    layerMap.FG0,
-    layerMap.FG1,
-    layerMap.FG2,
-    layerMap.FG3,
-    layerMap.FG4,
-    layerMap.FG5,
-    layerMap.FG6,
-    layerMap.FG7,
-    layerMap.FG8,
-    layerMap.FG9,
+    layerMap.ObjectsFront,
+    layerMap.FG00,
+    layerMap.FG01,
+    layerMap.FG02,
+    layerMap.FG03,
+    layerMap.FG04,
+    layerMap.FG05,
+    layerMap.FG06,
+    layerMap.FG07,
+    layerMap.FG08,
+    layerMap.FG09,
     layerMap.FG10,
-    layerMap.FG11,
-    layerMap.Menu,
   );
 };
 
@@ -87,7 +79,7 @@ export interface RenderingObject {
 }
 
 export type LayerContainer = {
-  [key in LayerName]: ParallaxContainer;
+  [key in LayerKind]: ParallaxContainer;
 };
 
 export interface RenderSystem {

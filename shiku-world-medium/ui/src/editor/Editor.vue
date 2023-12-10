@@ -151,7 +151,10 @@ function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
     const chunk = game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)];
 
     // TODO: fill chunk(s)
-    chunk.data[0] = 1;
+    let chunk_tile_x = chunk_x * game_map.chunk_size - tile_x;
+    let chunk_tile_y = chunk_y * game_map.chunk_size - tile_y;
+    console.log(chunk_tile_x, chunk_tile_y);
+    chunk.data[chunk_tile_y * game_map.chunk_size + chunk_tile_x] = 1;
 
     update_map_server({
       name: game_map.name,

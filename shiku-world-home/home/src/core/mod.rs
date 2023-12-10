@@ -1,3 +1,4 @@
+use std::collections::hash_map::Values;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fmt::Debug;
@@ -44,6 +45,10 @@ impl<K: Eq + Hash, T: Eq + Hash> LazyHashmapSet<K, T> {
         LazyHashmapSet {
             data: HashMap::new(),
         }
+    }
+
+    pub fn hashset(&mut self, key: &K) -> Option<&HashSet<T>> {
+        self.data.get(key)
     }
     pub fn init(&mut self, key: K) {
         self.data.insert(key, HashSet::new());

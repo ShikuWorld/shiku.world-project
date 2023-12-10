@@ -5,7 +5,9 @@ use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
-use crate::core::blueprint::def::{Conductor, GidMap, ModuleId, ResourcePath, Tileset};
+use crate::core::blueprint::def::{
+    Chunk, Conductor, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
+};
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
@@ -154,7 +156,7 @@ pub struct GuestEvent<T> {
     pub guest_id: ActorId,
     pub event_type: T,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModuleInstanceEvent<T> {
     pub module_id: ModuleId,
     pub instance_id: GameInstanceId,
@@ -233,6 +235,7 @@ pub enum CommunicationEvent {
         GameInstanceId,
         Option<WorldId>,
         ResourceBundle,
+        TerrainParams,
         Vec<Tileset>,
         GidMap,
     ),
@@ -278,7 +281,7 @@ pub enum GameSystemToGuestEvent {
     OpenMenu(String),
     CloseMenu(String),
     UpdateDataStore(String),
-    ShowTerrainChunks(Real, Vec<TerrainChunk>),
+    ShowTerrain(Vec<(LayerKind, Vec<Chunk>)>),
     SetParallax(Vec<(LayerName, (Real, Real))>),
     ShowEntities(Vec<ShowEntity>),
     ShowEffects(Vec<ShowEffect>),

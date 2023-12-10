@@ -1,27 +1,24 @@
 import { AnimatedSprite, Container, Sprite } from "pixi.js-legacy";
-
-import { LayerName } from "../communication/api/bindings/LayerName";
-import { TerrainChunk } from "../communication/api/bindings/TerrainChunk";
 import { ResourceManager } from "../resources";
 import { InstanceRendering } from "../renderer";
+import { TerrainParams } from "@/editor/blueprints/TerrainParams";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { Chunk } from "@/editor/blueprints/Chunk";
 
-export function create_terrain_manager(): TerrainManager {
-  return new TerrainManager();
+export function create_terrain_manager(
+  terrain_params: TerrainParams,
+): TerrainManager {
+  return new TerrainManager(terrain_params);
 }
 
-type Chunk = {
-  [chunk_key: string]: {
-    x: number;
-    y: number;
-    container: Container;
-  };
-};
-
 export class TerrainManager {
-  private _chunk_map: Map<LayerName, Chunk>;
+  private _chunk_map: Map<
+    LayerKind,
+    Map<number, { container: Container; data: Chunk }>
+  >;
 
-  constructor() {
-    this._chunk_map = new Map<LayerName, Chunk>();
+  constructor(public terrain_params: TerrainParams) {
+    this._chunk_map = new Map();
   }
 
   show_grid(_size: [number, number], _offset: [number, number]) {}
@@ -39,23 +36,35 @@ export class TerrainManager {
   add_chunk(
     resource_manager: ResourceManager,
     renderer: InstanceRendering,
-    tile_size: number,
-    chunk: TerrainChunk,
+    layer_kind: LayerKind,
+    chunk: Chunk,
   ) {
-    if (!this._chunk_map.has(chunk.layer)) {
-      this._chunk_map.set(chunk.layer, {});
+    console.log("adding chunk", chunk);
+    if (!this._chunk_map.has(layer_kind)) {
+      this._chunk_map.set(layer_kind, new Map());
     }
 
-    const chunk_map = this._chunk_map.get(chunk.layer) as Chunk;
-    chunk_map[`${chunk.x}-${chunk.y}`] = {
-      y: 0,
-      x: 0,
-      container: new Container(),
-    };
+    const chunk_map = this._chunk_map.get(layer_kind)!;
+    const chunk_key = this._cantorPair(chunk.position[0], chunk.position[1]);
+    if (!chunk_map.has(chunk_key)) {
+      const chunk_map_entry = {
+        container: new Container(),
+        data: chunk,
+      };
+      chunk_map_entry.container.x =
+        chunk.position[0] *
+        this.terrain_params.chunk_size *
+        this.terrain_params.tile_width;
+      chunk_map_entry.container.y =
+        chunk.position[1] *
+        this.terrain_params.chunk_size *
+        this.terrain_params.tile_height;
+      chunk_map.set(chunk_key, chunk_map_entry);
+      console.log("Adding new container");
+      renderer.layerMap[layer_kind].addChild(chunk_map_entry.container);
+    }
 
-    const chunk_map_entry = chunk_map[`${chunk.x}-${chunk.y}`];
-    chunk_map_entry.x = chunk.x * tile_size;
-    chunk_map_entry.y = chunk.y * tile_size;
+    const chunk_map_entry = chunk_map.get(chunk_key)!;
 
     /*const graphics = new Graphics();
 
@@ -69,37 +78,48 @@ export class TerrainManager {
 
     renderer.debugContainer.addChild(graphics);*/
 
-    renderer.layerMap[chunk.layer].addChild(chunk_map_entry.container);
-
-    for (const [y, row] of chunk.tile_ids.entries()) {
-      for (const [x, gid] of row.entries()) {
-        if (gid === 0) {
-          continue;
-        }
-
-        const graphics = resource_manager.get_graphics_data_by_gid(
-          gid,
-          renderer,
-        );
-
-        let sprite: Sprite;
-
-        if (graphics.frame_objects.length > 0) {
-          const animated_sprite = new AnimatedSprite(graphics.frame_objects);
-
-          animated_sprite.play();
-          sprite = animated_sprite;
-        } else {
-          sprite = new Sprite(graphics.textures[0]);
-        }
-
-        sprite.anchor.set(0, 1);
-        sprite.x = (chunk.x + x) * tile_size;
-        sprite.y = (chunk.y + y) * tile_size;
-        sprite.rotation = 0;
-
-        chunk_map_entry.container.addChild(sprite);
+    for (const [i, gid] of chunk.data.entries()) {
+      if (gid === 0) {
+        continue;
       }
+
+      console.log("Getting graphics");
+      const graphics = resource_manager.get_graphics_data_by_gid(gid);
+      let sprite: Sprite;
+
+      if (graphics.frame_objects.length > 0) {
+        const animated_sprite = new AnimatedSprite(graphics.frame_objects);
+
+        animated_sprite.play();
+        sprite = animated_sprite;
+      } else {
+        sprite = new Sprite(graphics.textures[0]);
+      }
+
+      sprite.anchor.set(0, 1);
+      sprite.x =
+        (i % this.terrain_params.chunk_size) * this.terrain_params.tile_width;
+      sprite.y =
+        Math.floor(i / this.terrain_params.chunk_size) *
+        this.terrain_params.tile_height;
+      console.log(sprite.x, sprite.y);
+      sprite.rotation = 0;
+
+      chunk_map_entry.container.addChild(sprite);
     }
+  }
+
+  private _toNatural(num: number): number {
+    if (num < 0) {
+      return -2 * num - 1;
+    } else {
+      return 2 * num;
+    }
+  }
+
+  private _cantorPair(x: number, y: number): number {
+    const xx = this._toNatural(x);
+    const yy = this._toNatural(y);
+    return ((xx + yy) * (xx + yy + 1)) / 2 + yy;
   }
 }

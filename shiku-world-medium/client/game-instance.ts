@@ -10,6 +10,7 @@ import { MousePluginType } from "../plugins/mouse-input";
 import { new_shaker } from "@/client/renderer/shaker-factory";
 import { MenuSystem } from "@/client/menu";
 import { ResourceManager } from "@/client/resources";
+import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 
 export type GameInstanceMap = {
   [instance_id: string]: { [world_id: string]: GameInstance };
@@ -24,10 +25,11 @@ export class GameInstance {
     public id: string,
     public module_name: string,
     public world_id: string,
+    terrain_params: TerrainParams,
   ) {
     this.renderer = create_instance_rendering();
     this.entity_manager = create_entity_manager();
-    this.terrain_manager = create_terrain_manager();
+    this.terrain_manager = create_terrain_manager(terrain_params);
   }
 
   show_grid(size: [number, number], offset: [number, number]) {
@@ -112,14 +114,16 @@ export class GameInstance {
       .with({ ChangeEntity: P.select() }, ([update_entities, _moduleName]) => {
         console.log(update_entities);
       })
-      .with({ ShowTerrainChunks: P.select() }, ([tile_size, chunks]) => {
-        for (const chunk of chunks) {
-          this.terrain_manager.add_chunk(
-            resource_manager,
-            this.renderer,
-            tile_size,
-            chunk,
-          );
+      .with({ ShowTerrain: P.select() }, (layers) => {
+        for (const [layer_kind, chunks] of layers) {
+          for (const chunk of chunks) {
+            this.terrain_manager.add_chunk(
+              resource_manager,
+              this.renderer,
+              layer_kind,
+              chunk,
+            );
+          }
         }
       })
       .with({ UpdateDataStore: P.select() }, (store_update) => {
@@ -192,6 +196,7 @@ export function create_new_game_instance(
   id: string,
   module_name: string,
   world_id: string,
+  terrain_params: TerrainParams,
 ) {
-  return new GameInstance(id, module_name, world_id);
+  return new GameInstance(id, module_name, world_id, terrain_params);
 }

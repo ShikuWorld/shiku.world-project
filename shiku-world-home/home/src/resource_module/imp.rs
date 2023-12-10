@@ -12,6 +12,7 @@ use url::Url;
 
 use crate::core::blueprint::def::{ModuleId, ResourcePath};
 use crate::core::guest::ActorId;
+use crate::core::module_system::def::{World, WorldId};
 use crate::core::{safe_unwrap, send_and_log_error_consume};
 use crate::resource_module::def::{
     LoadResource, PicUpdateEvent, ResourceBundle, ResourceEvent, ResourceModule,
@@ -151,7 +152,6 @@ impl ResourceModule {
             .insert(new_resource.path.clone(), module_id.clone());
         resource_map.insert(new_resource.path.clone(), new_resource.clone());
         let update_name = book_keeping.resource_hash_gen.get_id().to_string();
-        println!("hm? {:?}", book_keeping.module_actor_set);
         if let Some(actor_ids) = book_keeping.module_actor_set.get(&module_id) {
             for actor_id in actor_ids {
                 Self::send_load_event(
@@ -179,16 +179,15 @@ impl ResourceModule {
         ));
     }
 
-    pub fn send_resource_event_to_all_in_module(
+    pub fn send_resource_event_to(
         &mut self,
         resource_event: ResourceEvent,
-        module_id: &ModuleId,
+        module_id: ModuleId,
+        actor_ids: Vec<ActorId>,
     ) {
-        if let Some(actor_ids) = self.book_keeping.module_actor_set.get(module_id) {
-            for actor_id in actor_ids {
-                self.resource_events
-                    .push((*actor_id, module_id.clone(), resource_event.clone()));
-            }
+        for actor_id in actor_ids {
+            self.resource_events
+                .push((actor_id, module_id.clone(), resource_event.clone()));
         }
     }
     pub fn send_unload_event(

@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use apecs::World;
+use crate::core::blueprint::def::{ModuleId, TerrainParams};
+use apecs::World as ApecsWorld;
 use tokio::time::Instant;
 
 use crate::core::guest::ActorId;
@@ -35,6 +36,11 @@ pub type AdminMap = HashMap<ActorId, ModuleAdmin>;
 pub type AdminSet = HashSet<ActorId>;
 pub type WorldId = String;
 
+pub struct World {
+    pub apecs_world: ApecsWorld,
+    pub terrain_params: TerrainParams,
+}
+
 pub struct DynamicGameModule {
     pub world_map: HashMap<WorldId, World>,
     pub guests: GuestMap,
@@ -45,6 +51,7 @@ pub struct DynamicGameModule {
     pub guest_to_world: HashMap<ActorId, WorldId>,
     pub module_communication: ModuleCommunication,
     pub instance_id: GameInstanceId,
+    pub module_id: ModuleId,
 }
 
 pub struct ModuleGuest {

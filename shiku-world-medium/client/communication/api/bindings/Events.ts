@@ -5,7 +5,8 @@ import type { GidMap } from "../blueprints/GidMap";
 import type { ResourceBundle } from "./ResourceBundle";
 import type { ResourceEvent } from "./ResourceEvent";
 import type { SignalToMedium } from "./SignalToMedium";
+import type { TerrainParams } from "../blueprints/TerrainParams";
 import type { Tileset } from "../blueprints/Tileset";
 import type { ToastAlertLevel } from "./ToastAlertLevel";
 
-export type CommunicationEvent = { ResourceEvent: [string, ResourceEvent] } | { PrepareGame: [string, string, string | null, ResourceBundle, Array<Tileset>, GidMap] } | { UnloadGame: [string, string, string | null] } | { GameSystemEvent: [string, string, string | null, GameSystemToGuestEvent] } | { PositionEvent: [string, string, string | null, Array<[string, number, number, number]>] } | { ConnectionReady: [string, boolean] } | { Signal: SignalToMedium } | { Toast: [ToastAlertLevel, string] } | { ShowGlobalMessage: string } | "AlreadyConnected" | { EditorEvent: EditorEvent };
+export type CommunicationEvent = { ResourceEvent: [string, ResourceEvent] } | { PrepareGame: [string, string, string | null, ResourceBundle, TerrainParams, Array<Tileset>, GidMap] } | { UnloadGame: [string, string, string | null] } | { GameSystemEvent: [string, string, string | null, GameSystemToGuestEvent] } | { PositionEvent: [string, string, string | null, Array<[string, number, number, number]>] } | { ConnectionReady: [string, boolean] } | { Signal: SignalToMedium } | { Toast: [ToastAlertLevel, string] } | { ShowGlobalMessage: string } | "AlreadyConnected" | { EditorEvent: EditorEvent };

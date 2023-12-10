@@ -43,7 +43,7 @@ export function start_medium() {
 
   function lazy_get_resource_manager(module_id: string) {
     if (!resource_manager_map[module_id]) {
-      resource_manager_map[module_id] = create_resource_manager();
+      resource_manager_map[module_id] = create_resource_manager(render_system);
       resource_manager_map[module_id].resource_bundle_complete.sub(
         ({ module_id }) => {
           if (is_admin) {
@@ -127,24 +127,28 @@ export function start_medium() {
             instance_id,
             w_id,
             resource_bundle,
+            terrain_params,
             tilesets,
             gid_map,
           ]) => {
-            const resource_manager = lazy_get_resource_manager(module_id);
-            resource_manager.gid_map = gid_map;
-            resource_manager.tilesets = tilesets;
             if (resource_manager_map[module_id]) {
               send_admin_event(
                 { InitialResourcesLoaded: module_id },
                 communication_system,
               );
-            } else {
-              resource_manager.load_resource_bundle(
-                module_id,
-                instance_id,
-                resource_bundle,
-              );
+              return;
             }
+
+            const resource_manager = lazy_get_resource_manager(module_id);
+            resource_manager.gid_map = gid_map;
+            resource_manager.tilesets = tilesets;
+            resource_manager.set_tileset_map(tilesets);
+
+            resource_manager.load_resource_bundle(
+              module_id,
+              instance_id,
+              resource_bundle,
+            );
 
             if (!instances[instance_id]) {
               instances[instance_id] = {};
@@ -154,6 +158,7 @@ export function start_medium() {
               instance_id,
               module_id,
               world_id,
+              terrain_params,
             );
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.addChild(
