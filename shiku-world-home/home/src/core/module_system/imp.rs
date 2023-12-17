@@ -1,27 +1,28 @@
 use std::collections::HashMap;
 
 use apecs::World as ApecsWorld;
+use flume::Sender;
 use log::{debug, error};
 use tokio::time::Instant;
 
 use crate::core::blueprint::def::{
-    BlueprintService, Chunk, GameMap, Layer, LayerKind, Module, TerrainParams,
+    BlueprintService, Chunk, GameMap, LayerKind, Module, ModuleId, TerrainParams,
 };
 use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
-    create_module_communication_input, EnterFailedState, EnterSuccessState, GameSystemToGuestEvent,
-    GuestEvent, GuestToModule, LeaveFailedState, LeaveSuccessState, ModuleInputSender,
-    ModuleInstanceEvent, ModuleOutputSender,
+    create_module_communication_input, EnterFailedState, EnterSuccessState, GameSystemToGuest,
+    GameSystemToGuestEvent, GuestEvent, GuestToModule, LeaveFailedState, LeaveSuccessState,
+    ModuleInputSender, ModuleInstanceEvent, ModuleOutputSender,
 };
-use crate::core::module::{GuestInput, GuestToModuleEvent, SystemToModuleEvent};
+use crate::core::module::{GuestInput, GuestToModuleEvent};
 use crate::core::module_system::def::{
     DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication, ModuleGuest,
     World, WorldId,
 };
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::core::{send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
+use crate::core::{cantor_pair, send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
 
 impl DynamicGameModule {
     pub fn create(
@@ -74,6 +75,7 @@ impl DynamicGameModule {
                     tile_height: game_map.tile_height,
                     tile_width: game_map.tile_width,
                 },
+                terrain_tmp: game_map.terrain.clone(),
             },
         );
         self.world_to_admin.init(game_map.world_id.clone());
@@ -131,46 +133,49 @@ impl DynamicGameModule {
 
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
         //TODO: Update terrain if layer is terrain
+
+        self.world_map
+            .get_mut(world_id)
+            .and_then(|world| world.terrain_tmp.get_mut(layer_kind))
+            .and_then(|chunks| {
+                chunks.insert(
+                    cantor_pair(chunk.position.0, chunk.position.1),
+                    chunk.clone(),
+                )
+            });
+        let mut terrain_update = ModuleInstanceEvent {
+            world_id: None,
+            module_id: self.module_id.clone(),
+            instance_id: self.instance_id.clone(),
+            event_type: GameSystemToGuestEvent::ShowTerrain(vec![(
+                layer_kind.clone(),
+                vec![chunk.clone()],
+            )]),
+        };
         if let (Some(guest_ids), Some(admin_ids)) = (
             self.world_to_guest.hashset(world_id),
             self.world_to_admin.hashset(world_id),
         ) {
-            debug!("Updating guests {:?} admins {:?}", guest_ids, admin_ids);
-            let mut terrain_update = ModuleInstanceEvent {
-                world_id: None,
-                module_id: self.module_id.clone(),
-                instance_id: self.instance_id.clone(),
-                event_type: GameSystemToGuestEvent::ShowTerrain(vec![(
-                    layer_kind.clone(),
-                    vec![chunk.clone()],
-                )]),
-            };
+            let send_terrain_update =
+                &mut |actor_id: ActorId, update: ModuleInstanceEvent<GameSystemToGuestEvent>| {
+                    send_and_log_error_custom(
+                        &mut self
+                            .module_communication
+                            .output_sender
+                            .game_system_to_guest_sender,
+                        GuestEvent {
+                            guest_id: actor_id,
+                            event_type: update,
+                        },
+                        "Could not send show Terrain!",
+                    );
+                };
             for guest_id in guest_ids {
-                send_and_log_error_custom(
-                    &mut self
-                        .module_communication
-                        .output_sender
-                        .game_system_to_guest_sender,
-                    GuestEvent {
-                        guest_id: *guest_id,
-                        event_type: terrain_update.clone(),
-                    },
-                    "Could not send show Terrain!",
-                );
+                send_terrain_update(*guest_id, terrain_update.clone());
             }
             terrain_update.world_id = Some(world_id.clone());
             for admin_id in admin_ids {
-                send_and_log_error_custom(
-                    &mut self
-                        .module_communication
-                        .output_sender
-                        .game_system_to_guest_sender,
-                    GuestEvent {
-                        guest_id: *admin_id,
-                        event_type: terrain_update.clone(),
-                    },
-                    "Could not send show Terrain!",
-                );
+                send_terrain_update(*admin_id, terrain_update.clone());
             }
         }
     }
@@ -201,25 +206,20 @@ impl DynamicGameModule {
                 }
                 GuestToModuleEvent::GameSetupDone => {
                     Self::set_resources_loaded(&mut self.guests, &guest_id);
-                    send_and_log_error(
-                        &mut self
-                            .module_communication
-                            .output_sender
-                            .game_system_to_guest_sender,
-                        GuestEvent {
+                    if let Some(world_id) = self.guest_to_world.get(&guest_id) {
+                        Self::send_initial_world_events(
+                            &mut self
+                                .module_communication
+                                .output_sender
+                                .game_system_to_guest_sender,
+                            &self.world_map,
+                            self.instance_id.clone(),
                             guest_id,
-                            event_type: {
-                                ModuleInstanceEvent {
-                                    module_id: module.id.clone(),
-                                    instance_id: self.instance_id.clone(),
-                                    world_id: None,
-                                    event_type: GameSystemToGuestEvent::OpenMenu(
-                                        "login-menu".into(),
-                                    ),
-                                }
-                            },
-                        },
-                    );
+                            world_id,
+                            module.id.clone(),
+                            false,
+                        );
+                    }
                 }
                 GuestToModuleEvent::WantToChangeModule(_exit_slot) => {
                     debug!("WantToChangeModule not implemented!");
@@ -228,13 +228,79 @@ impl DynamicGameModule {
         }
     }
 
+    pub fn send_initial_world_events_admin(
+        &mut self,
+        admin_id: ActorId,
+        world_id: &WorldId,
+        module_id: ModuleId,
+    ) {
+        Self::send_initial_world_events(
+            &mut self
+                .module_communication
+                .output_sender
+                .game_system_to_guest_sender,
+            &self.world_map,
+            self.instance_id.clone(),
+            admin_id,
+            world_id,
+            module_id,
+            true,
+        );
+    }
+
+    pub fn send_initial_world_events(
+        sender: &mut Sender<GameSystemToGuest>,
+        world_map: &HashMap<WorldId, World>,
+        instance_id: GameInstanceId,
+        actor_id: ActorId,
+        world_id: &WorldId,
+        module_id: ModuleId,
+        set_world: bool,
+    ) {
+        if let Some(initial_terrain_event) = Self::get_initial_terrain_event(
+            world_map,
+            module_id.clone(),
+            instance_id,
+            world_id,
+            set_world,
+        ) {
+            send_and_log_error(
+                sender,
+                GuestEvent {
+                    guest_id: actor_id,
+                    event_type: initial_terrain_event,
+                },
+            );
+        }
+    }
+
+    pub fn get_initial_terrain_event(
+        world_map: &HashMap<WorldId, World>,
+        module_id: ModuleId,
+        instance_id: GameInstanceId,
+        world_id: &WorldId,
+        set_world: bool,
+    ) -> Option<ModuleInstanceEvent<GameSystemToGuestEvent>> {
+        Self::get_all_terrain(world_map, world_id).map(|terrain| ModuleInstanceEvent {
+            module_id,
+            instance_id,
+            world_id: if set_world {
+                Some(world_id.clone())
+            } else {
+                None
+            },
+            event_type: GameSystemToGuestEvent::ShowTerrain(terrain),
+        })
+    }
+
     pub fn let_admin_enter(
         &mut self,
         admin: &Admin,
         world_id: WorldId,
     ) -> Result<EnterSuccessState, EnterFailedState> {
         self.world_to_admin.insert_entry(&world_id, admin.id);
-        self.admin_to_world.insert_entry(&admin.id, world_id);
+        self.admin_to_world
+            .insert_entry(&admin.id, world_id.clone());
         self.admins.entry(admin.id).or_insert(ModuleAdmin {
             id: admin.id,
             connected: false,
@@ -282,5 +348,18 @@ impl DynamicGameModule {
 
     pub fn try_leave(&mut self, _guest: &Guest) -> Result<LeaveSuccessState, LeaveFailedState> {
         Ok(LeaveSuccessState::Left)
+    }
+
+    pub fn get_all_terrain(
+        world_map: &HashMap<WorldId, World>,
+        world_id: &WorldId,
+    ) -> Option<Vec<(LayerKind, Vec<Chunk>)>> {
+        world_map.get(world_id).map(|world| {
+            world
+                .terrain_tmp
+                .iter()
+                .map(|(a, b)| (a.clone(), b.values().cloned().collect()))
+                .collect()
+        })
     }
 }

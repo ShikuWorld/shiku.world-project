@@ -140,8 +140,8 @@ const current_main_map = computed<GameMap | undefined>(() => {
 function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
   if (current_main_map.value) {
     let game_map = current_main_map.value;
-    let chunk_x = Math.round(tile_x / game_map.chunk_size);
-    let chunk_y = Math.round(tile_y / game_map.chunk_size);
+    let chunk_x = Math.floor(tile_x / game_map.chunk_size);
+    let chunk_y = Math.floor(tile_y / game_map.chunk_size);
     if (!game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)]) {
       game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)] = {
         position: [chunk_x, chunk_y],
@@ -151,9 +151,9 @@ function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
     const chunk = game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)];
 
     // TODO: fill chunk(s)
-    let chunk_tile_x = chunk_x * game_map.chunk_size - tile_x;
-    let chunk_tile_y = chunk_y * game_map.chunk_size - tile_y;
-    console.log(chunk_tile_x, chunk_tile_y);
+    let chunk_tile_x = tile_x - chunk_x * game_map.chunk_size;
+    let chunk_tile_y = tile_y - chunk_y * game_map.chunk_size;
+
     chunk.data[chunk_tile_y * game_map.chunk_size + chunk_tile_x] = 1;
 
     update_map_server({

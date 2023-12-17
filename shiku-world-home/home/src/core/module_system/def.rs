@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::blueprint::def::{ModuleId, TerrainParams};
+use crate::core::blueprint::def::{Chunk, LayerKind, ModuleId, TerrainParams};
 use apecs::World as ApecsWorld;
 use tokio::time::Instant;
 
@@ -38,6 +38,7 @@ pub type WorldId = String;
 
 pub struct World {
     pub apecs_world: ApecsWorld,
+    pub terrain_tmp: HashMap<LayerKind, HashMap<u32, Chunk>>,
     pub terrain_params: TerrainParams,
 }
 

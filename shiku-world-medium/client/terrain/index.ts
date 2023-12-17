@@ -102,7 +102,6 @@ export class TerrainManager {
       sprite.y =
         Math.floor(i / this.terrain_params.chunk_size) *
         this.terrain_params.tile_height;
-      console.log(sprite.x, sprite.y);
       sprite.rotation = 0;
 
       chunk_map_entry.container.addChild(sprite);

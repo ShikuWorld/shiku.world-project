@@ -90,7 +90,6 @@ export class EntityManager {
     if (display_object instanceof AnimatedSprite) {
       const graphics = resource_manager.get_graphics_data_by_gid(
         Number(simple_image_effect.graphic_id),
-        renderer,
       );
       display_object.loop = false;
       display_object.alpha = simple_image_effect.transparency;
@@ -200,7 +199,7 @@ export class EntityManager {
   update_entity(
     update_entity: UpdateEntity,
     resource_manager: ResourceManager,
-    renderer: InstanceRendering,
+    _renderer: InstanceRendering,
   ) {
     const entity = this.get_entity(update_entity.id);
     if (!entity) {
@@ -224,10 +223,7 @@ export class EntityManager {
     if ("StaticImage" in update_entity.render) {
       graphic_id = Number(update_entity.render.StaticImage.graphic_id);
     }
-    const graphics = resource_manager.get_graphics_data_by_gid(
-      graphic_id,
-      renderer,
-    );
+    const graphics = resource_manager.get_graphics_data_by_gid(graphic_id);
 
     if (!graphics) {
       return;
@@ -333,7 +329,7 @@ function get_sprite_from_render(
 function get_display_obj_from_render(
   resource_manager: ResourceManager,
   render: EntityRenderData,
-  renderer: InstanceRendering,
+  _renderer: InstanceRendering,
 ): [Container, LayerKind | undefined] {
   const container = new Container();
   let layer_name: LayerKind | undefined = undefined;
@@ -343,7 +339,6 @@ function get_display_obj_from_render(
         layer_name = staticImageData.layer as LayerKind;
         const graphics = resource_manager.get_graphics_data_by_gid(
           Number(staticImageData.graphic_id),
-          renderer,
         );
 
         return get_sprite_from_render(staticImageData, graphics);

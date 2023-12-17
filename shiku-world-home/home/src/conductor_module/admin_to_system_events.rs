@@ -38,13 +38,19 @@ pub async fn handle_admin_to_system_event(
     };
 
     match event {
-        AdminToSystemEvent::InitialResourcesLoaded(module_id) => {
-            if let Some(module) = module_map.get_mut(&module_id) {
-                for instance in module.game_instances.values_mut() {
-                    if let Some(module_admin) = instance.dynamic_module.admins.get_mut(&admin.id) {
-                        module_admin.resources_loaded = true;
-                    }
+        AdminToSystemEvent::WorldInitialized(module_id, instance_id, world_id) => {
+            if let Some(instance) = module_map
+                .get_mut(&module_id)
+                .and_then(|module| module.game_instances.get_mut(&instance_id))
+            {
+                if let Some(module_admin) = instance.dynamic_module.admins.get_mut(&admin.id) {
+                    module_admin.resources_loaded = true;
                 }
+                instance.dynamic_module.send_initial_world_events_admin(
+                    admin.id.clone(),
+                    &world_id,
+                    module_id.clone(),
+                );
             }
         }
         AdminToSystemEvent::OpenInstance(module_id) => {
@@ -73,20 +79,22 @@ pub async fn handle_admin_to_system_event(
                                     match BlueprintService::load_module_tilesets(
                                         &module.module_blueprint.resources,
                                     ) {
-                                        Ok(tilesets) => send_communication_event(
-                                            CommunicationEvent::PrepareGame(
-                                                module_id,
-                                                game_instance_id,
-                                                Some(world_id),
-                                                ResourceBundle {
-                                                    name: "Default".into(),
-                                                    assets,
-                                                },
-                                                terrain_params,
-                                                tilesets,
-                                                module.module_blueprint.gid_map.clone(),
-                                            ),
-                                        ),
+                                        Ok(tilesets) => {
+                                            send_communication_event(
+                                                CommunicationEvent::PrepareGame(
+                                                    module_id.clone(),
+                                                    game_instance_id.clone(),
+                                                    Some(world_id.clone()),
+                                                    ResourceBundle {
+                                                        name: "Default".into(),
+                                                        assets,
+                                                    },
+                                                    terrain_params,
+                                                    tilesets,
+                                                    module.module_blueprint.gid_map.clone(),
+                                                ),
+                                            );
+                                        }
                                         Err(err) => {
                                             error!("Could not load tilesets for module! {:?}", err)
                                         }

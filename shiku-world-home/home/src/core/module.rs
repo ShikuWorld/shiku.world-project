@@ -90,7 +90,7 @@ pub enum AdminToSystemEvent {
     OpenInstance(ModuleId),
     StartInspectingWorld(ModuleId, GameInstanceId, WorldId),
     StopInspectingWorld(ModuleId, GameInstanceId, WorldId),
-    InitialResourcesLoaded(ModuleId),
+    WorldInitialized(ModuleId, GameInstanceId, WorldId),
     UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),
     GetResource(ResourcePath),

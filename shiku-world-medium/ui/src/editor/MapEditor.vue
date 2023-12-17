@@ -23,7 +23,7 @@ const { map } = toRefs(props);
 const editor_element = ref<HTMLElement>();
 const layer = ref<LayerKind>("Terrain");
 onMounted(() => {
-  camera.value.set_camera_zoom(1.5);
+  camera.value.set_camera_zoom(1.0);
 });
 
 const emit = defineEmits<{

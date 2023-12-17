@@ -44,18 +44,11 @@ export function start_medium() {
   function lazy_get_resource_manager(module_id: string) {
     if (!resource_manager_map[module_id]) {
       resource_manager_map[module_id] = create_resource_manager(render_system);
-      resource_manager_map[module_id].resource_bundle_complete.sub(
-        ({ module_id }) => {
-          if (is_admin) {
-            send_admin_event(
-              { InitialResourcesLoaded: module_id },
-              communication_system,
-            );
-          } else {
-            send_module_event("GameSetupDone", communication_system);
-          }
-        },
-      );
+      resource_manager_map[module_id].resource_bundle_complete.sub(() => {
+        if (!is_admin) {
+          send_module_event("GameSetupDone", communication_system);
+        }
+      });
     }
 
     return resource_manager_map[module_id];
@@ -131,14 +124,6 @@ export function start_medium() {
             tilesets,
             gid_map,
           ]) => {
-            if (resource_manager_map[module_id]) {
-              send_admin_event(
-                { InitialResourcesLoaded: module_id },
-                communication_system,
-              );
-              return;
-            }
-
             const resource_manager = lazy_get_resource_manager(module_id);
             resource_manager.gid_map = gid_map;
             resource_manager.tilesets = tilesets;
@@ -166,6 +151,12 @@ export function start_medium() {
               );
             }
             window.medium_gui.editor.set_game_instances(instances);
+            if (is_admin) {
+              send_admin_event(
+                { WorldInitialized: [module_id, instance_id, w_id] },
+                communication_system,
+              );
+            }
           },
         )
         .with({ UnloadGame: P.select() }, ([_, instance_id, w_id]) => {

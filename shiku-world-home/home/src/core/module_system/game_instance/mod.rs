@@ -140,7 +140,7 @@ impl GameInstanceManager {
         instance_id: GameInstanceId,
         world_id: WorldId,
     ) -> Result<AdminEnterSuccessState, EnterFailedState> {
-        let admin_active_instances = self.active_admins.entry(admin.id).or_insert(HashSet::new());
+        let admin_active_instances = self.active_admins.entry(admin.id).or_default();
         let mut success_state = AdminEnterSuccessState::EnteredWorld;
         if !admin_active_instances.contains(&instance_id) {
             admin_active_instances.insert(instance_id.clone());
