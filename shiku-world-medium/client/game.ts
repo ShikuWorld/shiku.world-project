@@ -152,8 +152,15 @@ export function start_medium() {
             }
             window.medium_gui.editor.set_game_instances(instances);
             if (is_admin) {
+              const guaranteed_world_id_as_admin = w_id!;
               send_admin_event(
-                { WorldInitialized: [module_id, instance_id, w_id] },
+                {
+                  WorldInitialized: [
+                    module_id,
+                    instance_id,
+                    guaranteed_world_id_as_admin,
+                  ],
+                },
                 communication_system,
               );
             }

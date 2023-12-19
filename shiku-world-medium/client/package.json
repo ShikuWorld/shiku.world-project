@@ -10,26 +10,26 @@
     "material-icons": "^1.13.12",
     "pixi.js-legacy": "^7.3.2",
     "strongly-typed-events": "^3.0.11",
-    "ts-pattern": "5.0.5"
+    "ts-pattern": "5.0.6"
   },
   "devDependencies": {
     "@pixi/utils": "^7.3.2",
-    "@types/body-parser": "1.19.4",
-    "@types/browser-sync": "^2.27.3",
-    "@types/express": "4.17.20",
-    "@types/fs-extra": "^11.0.3",
-    "@types/node": "20.8.9",
-    "@types/twitch-ext": "^1.24.6",
-    "@types/ws": "8.5.8",
+    "@types/body-parser": "1.19.5",
+    "@types/browser-sync": "^2.29.0",
+    "@types/express": "4.17.21",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "20.10.5",
+    "@types/twitch-ext": "^1.24.9",
+    "@types/ws": "8.5.10",
     "browser-sync": "^2.29.3",
     "chokidar": "3.5.3",
     "dotenv": "16.3.1",
-    "esbuild": "^0.19.5",
-    "fs-extra": "^11.1.1",
+    "esbuild": "^0.19.10",
+    "fs-extra": "^11.2.0",
     "gl-bench": "1.0.42",
     "js-logger": "1.6.1",
-    "prettier": "^3.0.3",
+    "prettier": "^3.1.1",
     "stats.js": "0.17.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
   }
 }

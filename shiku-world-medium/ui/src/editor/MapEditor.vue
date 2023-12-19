@@ -52,20 +52,15 @@ function emit_tile_click($event: MouseEvent) {
   if (!editor_element.value) {
     return;
   }
-  let bounding_rect = editor_element.value.getBoundingClientRect();
   let tile_x = Math.round(
-    ($event.pageX -
-      bounding_rect.left -
-      (tile_width.value / 2) * camera.value.zoom) /
+    ($event.pageX - (tile_width.value / 2) * camera.value.zoom) /
       (tile_width.value * camera.value.zoom),
   );
   let tile_y = Math.round(
-    ($event.pageY -
-      bounding_rect.top -
-      (tile_height.value / 2) * camera.value.zoom) /
+    ($event.pageY - (tile_height.value / 2) * camera.value.zoom) /
       (tile_height.value * camera.value.zoom),
   );
-  emit("tile_click", layer.value, tile_x, tile_y);
+  emit("tile_click", layer.value, tile_x, tile_y + 1);
 }
 function move_selected_tile($event: MouseEvent) {
   if (!editor_element.value) {
@@ -76,7 +71,7 @@ function move_selected_tile($event: MouseEvent) {
     Math.round(
       ($event.pageX -
         bounding_rect.left -
-        (tile_width.value / 2) * camera.value.zoom) /
+        tile_width.value * camera.value.zoom) /
         (tile_width.value * camera.value.zoom),
     ) *
     tile_width.value *
@@ -103,14 +98,14 @@ function move_selected_tile($event: MouseEvent) {
 .map-editor {
   --tile-width: 8px;
   --tile-height: 8px;
-  --map-offset-x: 0px;
+  --map-offset-x: 8px;
   --map-offset-y: 0px;
   --selected-tile-pos-x: 0px;
   --selected-tile-pos-y: 0px;
 }
 .map-editor__selected-tile {
-  left: var(--selected-tile-pos-x);
-  top: var(--selected-tile-pos-y);
+  left: calc(var(--selected-tile-pos-x) + var(--map-offset-x));
+  top: calc(var(--selected-tile-pos-y) + var(--map-offset-y));
   width: var(--tile-width);
   height: var(--tile-height);
   border: 1px solid blue;
@@ -118,6 +113,7 @@ function move_selected_tile($event: MouseEvent) {
 }
 .map-editor--grid {
   background-size: var(--tile-width) var(--tile-height);
+  background-position: var(--map-offset-x) var(--map-offset-y);
   background-image: linear-gradient(
       to right,
       rgba(255, 255, 255, 0.33) 1px,
