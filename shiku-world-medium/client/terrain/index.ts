@@ -21,14 +21,10 @@ export class TerrainManager {
     this._chunk_map = new Map();
   }
 
-  show_grid(_size: [number, number], _offset: [number, number]) {}
-
-  hide_grid() {}
-
   remove_all_chunks_for_module(renderer: InstanceRendering) {
     for (const [layer, layer_chunks] of this._chunk_map.entries()) {
       for (const chunk of Object.values(layer_chunks)) {
-        renderer.layerMap[layer].removeChild(chunk.container);
+        renderer.layer_map[layer].removeChild(chunk.container);
       }
     }
   }
@@ -39,7 +35,6 @@ export class TerrainManager {
     layer_kind: LayerKind,
     chunk: Chunk,
   ) {
-    console.log("adding chunk", chunk);
     if (!this._chunk_map.has(layer_kind)) {
       this._chunk_map.set(layer_kind, new Map());
     }
@@ -60,8 +55,7 @@ export class TerrainManager {
         this.terrain_params.chunk_size *
         this.terrain_params.tile_height;
       chunk_map.set(chunk_key, chunk_map_entry);
-      console.log("Adding new container");
-      renderer.layerMap[layer_kind].addChild(chunk_map_entry.container);
+      renderer.layer_map[layer_kind].addChild(chunk_map_entry.container);
     }
 
     const chunk_map_entry = chunk_map.get(chunk_key)!;
@@ -83,7 +77,6 @@ export class TerrainManager {
         continue;
       }
 
-      console.log("Getting graphics");
       const graphics = resource_manager.get_graphics_data_by_gid(gid);
       let sprite: Sprite;
 

@@ -35,7 +35,8 @@ export class ResourceManager {
   tile_set_map: {
     [path: string]: Tileset;
   } = {};
-  dummy_texture: RenderTexture;
+  dummy_texture_tileset_missing: RenderTexture;
+  dummy_texture_loading: RenderTexture;
   resource_bundle_complete = new SimpleEventDispatcher<{
     module_id: string;
     instance_id: string;
@@ -48,9 +49,13 @@ export class ResourceManager {
     renderer: RenderSystem,
   ) {
     const obj = new PixijsGraphics();
-    obj.beginFill(0xff007f);
+    obj.beginFill(0xff00ff);
     obj.drawRect(0, 0, 100, 100);
-    this.dummy_texture = renderer.renderer.generateTexture(obj);
+    this.dummy_texture_tileset_missing = renderer.renderer.generateTexture(obj);
+    const obj2 = new PixijsGraphics();
+    obj2.beginFill(0xff00ff);
+    obj2.drawRect(0, 0, 100, 100);
+    this.dummy_texture_loading = renderer.renderer.generateTexture(obj2);
   }
 
   handle_resource_event(resource_event: ResourceEvent) {
@@ -91,7 +96,6 @@ export class ResourceManager {
   get_graphics_data_by_gid(gid: number): Graphics {
     if (!this.graphic_id_map[gid]) {
       const [tileset, start_gid] = this._get_tileset_by_gid(gid);
-      console.log("_get_tileset_by_gid", tileset, start_gid);
 
       const id_in_tileset = gid - start_gid;
 
@@ -129,7 +133,9 @@ export class ResourceManager {
       for (const [path, loaded_resource] of Object.entries(loaded)) {
         match(path_to_resource_map[path].kind)
           .with("Image", () => {
+            console.log("Resource loaded!", loaded_resource, path);
             this.image_texture_map[path] = loaded_resource as Texture;
+            console.log("this is the map now", this.image_texture_map);
           })
           .with("Unknown", () => {})
           .exhaustive();
@@ -147,7 +153,6 @@ export class ResourceManager {
   unload_resources() {}
 
   private _get_tileset_by_gid(gid: number): [Tileset | undefined, number] {
-    console.log(gid, this.tile_set_map, this.gid_map);
     for (let i = 0; i < this.gid_map.length; i++) {
       const [path, start_gid] = this.gid_map[i];
       if (start_gid <= gid) {
@@ -162,32 +167,30 @@ export class ResourceManager {
     tileset: Tileset | undefined,
   ): Graphics {
     const graphics: Graphics = { textures: [], frame_objects: [] };
-    console.log("_calculate_graphics", tileset);
     if (id < 0 || !tileset) {
-      graphics.textures.push(this.dummy_texture);
+      graphics.textures.push(this.dummy_texture_loading);
       return graphics;
     }
 
     ///const animation_frames = tileset.tile_animation_map[id];
 
     if (tileset.image) {
-      console.log("tileset.image");
       const base_texture: BaseTexture =
-        this.image_texture_map[tileset.image.path].baseTexture;
+        this.image_texture_map[tileset.image.path]?.baseTexture;
+      console.log(base_texture, this.image_texture_map);
       if (!base_texture) {
-        graphics.textures.push(this.dummy_texture);
+        graphics.textures.push(this.dummy_texture_loading);
         return graphics;
       }
       const x = (id % tileset.columns) * tileset.tile_width;
       const y = Math.floor(id / tileset.columns) * tileset.tile_height;
-      console.log(x, y);
       const texture = new Texture(
         base_texture,
         new Rectangle(x, y, tileset.tile_width, tileset.tile_height),
       );
       graphics.textures.push(texture);
     } else {
-      graphics.textures.push(this.dummy_texture);
+      graphics.textures.push(this.dummy_texture_loading);
     }
 
     return graphics;

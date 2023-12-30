@@ -1,42 +1,58 @@
-import { Container, DisplayObject, IRenderer } from "pixi.js-legacy";
+import {
+  Container,
+  DisplayObject,
+  FederatedMouseEvent,
+  Graphics,
+  IRenderer,
+  TilingSprite,
+} from "pixi.js-legacy";
 import { ParallaxContainer } from "./create_game_renderer";
 import { Camera } from "@/client/camera";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { TerrainParams } from "@/editor/blueprints/TerrainParams";
+import { SimpleEventDispatcher } from "strongly-typed-events";
 
 export interface Point {
   x: number;
   y: number;
 }
 
-export type LayerMap = { [keys in LayerKind]: Container };
+export type LayerMap = { [keys in LayerKind]: ParallaxContainer };
 
-export const createLayerMap: () => LayerMap = () => ({
-  BG00: new Container(),
-  BG01: new Container(),
-  BG02: new Container(),
-  BG03: new Container(),
-  BG04: new Container(),
-  BG05: new Container(),
-  BG06: new Container(),
-  BG07: new Container(),
-  BG08: new Container(),
-  BG09: new Container(),
-  BG10: new Container(),
-  ObjectsBelow: new Container(),
-  Terrain: new Container(),
-  ObjectsFront: new Container(),
-  FG00: new Container(),
-  FG01: new Container(),
-  FG02: new Container(),
-  FG03: new Container(),
-  FG04: new Container(),
-  FG05: new Container(),
-  FG06: new Container(),
-  FG07: new Container(),
-  FG08: new Container(),
-  FG09: new Container(),
-  FG10: new Container(),
-});
+export const createLayerMap: () => LayerMap = () => {
+  const map: LayerMap = {
+    BG00: new Container() as ParallaxContainer,
+    BG01: new Container() as ParallaxContainer,
+    BG02: new Container() as ParallaxContainer,
+    BG03: new Container() as ParallaxContainer,
+    BG04: new Container() as ParallaxContainer,
+    BG05: new Container() as ParallaxContainer,
+    BG06: new Container() as ParallaxContainer,
+    BG07: new Container() as ParallaxContainer,
+    BG08: new Container() as ParallaxContainer,
+    BG09: new Container() as ParallaxContainer,
+    BG10: new Container() as ParallaxContainer,
+    ObjectsBelow: new Container() as ParallaxContainer,
+    Terrain: new Container() as ParallaxContainer,
+    ObjectsFront: new Container() as ParallaxContainer,
+    FG00: new Container() as ParallaxContainer,
+    FG01: new Container() as ParallaxContainer,
+    FG02: new Container() as ParallaxContainer,
+    FG03: new Container() as ParallaxContainer,
+    FG04: new Container() as ParallaxContainer,
+    FG05: new Container() as ParallaxContainer,
+    FG06: new Container() as ParallaxContainer,
+    FG07: new Container() as ParallaxContainer,
+    FG08: new Container() as ParallaxContainer,
+    FG09: new Container() as ParallaxContainer,
+    FG10: new Container() as ParallaxContainer,
+  };
+  for (const key of Object.keys(map)) {
+    map[key as LayerKind].x_pscaling = 1;
+    map[key as LayerKind].y_pscaling = 1;
+  }
+  return map;
+};
 
 export const addLayerMapToContainer = (
   container: Container,
@@ -86,12 +102,21 @@ export interface RenderSystem {
   renderer: IRenderer;
   stage: Container;
   current_main_instance: { instance_id?: string; world_id?: string };
+  global_mouse_position: SimpleEventDispatcher<FederatedMouseEvent>;
   isDirty: boolean;
 }
 
 export interface InstanceRendering {
-  mainContainerWrapper: Container;
-  mainContainer: Container;
-  layerMap: LayerMap;
+  main_container_wrapper: Container;
+  main_container: Container;
+  grid?: {
+    sprite: TilingSprite;
+    selected_tile: Graphics;
+    grid_container: Container;
+    scaling: { x: number; y: number };
+    last_mouse_move_position: { x: number; y: number };
+  };
+  layer_map: LayerMap;
   camera: Camera;
+  terrain_params: TerrainParams;
 }

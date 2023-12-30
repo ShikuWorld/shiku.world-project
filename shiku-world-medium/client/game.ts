@@ -25,6 +25,7 @@ import { ResourceManagerMap } from "@/client/resources";
 import { create_resource_manager } from "@/client/resources/create_resource_manager";
 import { is_admin } from "@/client/is_admin";
 import { handle_editor_event } from "@/client/handle-editor-event";
+import { show_grid } from "@/client/renderer/grid";
 
 export function start_medium() {
   const signal_broadcast_channel = new BroadcastChannel(signal_channel_name);
@@ -133,6 +134,7 @@ export function start_medium() {
               module_id,
               instance_id,
               resource_bundle,
+              true,
             );
 
             if (!instances[instance_id]) {
@@ -145,9 +147,11 @@ export function start_medium() {
               world_id,
               terrain_params,
             );
+            show_grid(render_system, instances[instance_id][world_id].renderer);
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.addChild(
-                instances[instance_id][world_id].renderer.mainContainerWrapper,
+                instances[instance_id][world_id].renderer
+                  .main_container_wrapper,
               );
             }
             window.medium_gui.editor.set_game_instances(instances);
@@ -172,7 +176,8 @@ export function start_medium() {
           if (instances[instance_id] && instances[instance_id][world_id]) {
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.removeChild(
-                instances[instance_id][world_id].renderer.mainContainerWrapper,
+                instances[instance_id][world_id].renderer
+                  .main_container_wrapper,
               );
             }
             console.log(
@@ -186,7 +191,8 @@ export function start_medium() {
             ) {
               console.log("removing?");
               render_system.stage.removeChild(
-                instances[instance_id][world_id].renderer.mainContainerWrapper,
+                instances[instance_id][world_id].renderer
+                  .main_container_wrapper,
               );
             }
             instances[instance_id][world_id].destroy();

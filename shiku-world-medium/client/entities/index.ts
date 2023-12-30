@@ -102,14 +102,14 @@ export class EntityManager {
       if (parent) {
         parent.wrapper.addChild(container);
       } else {
-        renderer.layerMap[layer_name].addChild(container);
+        renderer.layer_map[layer_name].addChild(container);
       }
 
       setTimeout(() => {
         if (parent) {
           parent.wrapper.removeChild(container);
         } else {
-          renderer.layerMap[layer_name].removeChild(container);
+          renderer.layer_map[layer_name].removeChild(container);
         }
       }, animation_length);
     }
@@ -159,14 +159,14 @@ export class EntityManager {
         wrapper: container,
       });
     } else {
-      renderer.layerMap[layer_name].addChild(container);
+      renderer.layer_map[layer_name].addChild(container);
 
       this._entity_map.set(show_entity.id, {
         layer_name,
         id: show_entity.id,
         isometry,
         render: show_entity.render,
-        parent_container: renderer.layerMap[layer_name],
+        parent_container: renderer.layer_map[layer_name],
         wrapper: container,
       });
     }

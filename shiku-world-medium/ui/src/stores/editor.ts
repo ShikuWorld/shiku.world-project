@@ -9,7 +9,7 @@ import { GameMap } from "@/editor/blueprints/GameMap";
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
 import { GameInstance } from "@/client/game-instance";
-import { Camera } from "@/client/camera";
+import { Isometry } from "@/client/entities";
 
 export interface EditorStore {
   editor_open: boolean;
@@ -29,11 +29,11 @@ export interface EditorStore {
   open_resource_paths: string[];
   selected_tileset_path: string;
   selected_tile_id: number;
+  selected_tile_position: { x: number; y: number };
   current_main_instance: { instance_id?: string; world_id?: string };
   game_instances: {
     [instance_id: string]: { [world_id: string]: GameInstance };
   };
-  camera: Camera;
   side_bar_editor: "module" | "tile" | "map" | "nothing";
   current_file_browser_result: FileBrowserResult;
 }
@@ -44,7 +44,6 @@ export const use_editor_store = defineStore("editor", {
     module_instance_map: {},
     side_bar_editor: "nothing",
     main_door_status: false,
-    camera: new Camera(),
     tile_brush: [[1]],
     selected_module_id: "",
     selected_tileset_path: "",
@@ -58,13 +57,26 @@ export const use_editor_store = defineStore("editor", {
     tileset_map: {},
     current_main_instance: {},
     game_instances: {},
+    selected_tile_position: { x: 0, y: 0 },
     game_map_map: {},
     conductor: { module_connection_map: {}, resources: [], gid_map: [] },
     current_file_browser_result: { resources: [], dirs: [], dir: "", path: "" },
   }),
   actions: {
-    set_camera(camera: Camera) {
-      this.camera = camera;
+    select_tile_position(tile_position: { x: number; y: number }) {
+      this.selected_tile_position = tile_position;
+    },
+    set_camera_position(instance_id: string, world_id: string, iso: Isometry) {
+      window.medium.set_camera_iso(instance_id, world_id, iso);
+    },
+    set_camera_zoom(instance_id: string, world_id: string, zoom: number) {
+      window.medium.set_camera_zoom(instance_id, world_id, zoom);
+    },
+    get_camera_position(instance_id: string, world_id: string): Isometry {
+      return window.medium.get_camera_iso(instance_id, world_id);
+    },
+    get_camera_zoom(instance_id: string, world_id: string): number {
+      return window.medium.get_camera_zoom(instance_id, world_id);
     },
     set_game_instance_map(instance_data: [string, string[]][]) {
       const module_instance_map: EditorStore["module_instance_map"] = {};

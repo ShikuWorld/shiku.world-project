@@ -4,7 +4,11 @@ import {
   InstanceRendering,
   RenderSystem,
 } from "./index";
-import { autoDetectRenderer, Container } from "pixi.js-legacy";
+import {
+  autoDetectRenderer,
+  Container,
+  FederatedMouseEvent,
+} from "pixi.js-legacy";
 import { Config } from "../config";
 import {
   get_camera_zoom,
@@ -15,6 +19,8 @@ import {
   set_stage_width,
 } from "../config/config";
 import { create_camera } from "@/client/camera";
+import { TerrainParams } from "@/client/communication/api/blueprints/TerrainParams";
+import { SimpleEventDispatcher } from "strongly-typed-events";
 
 export interface ParallaxContainer extends Container {
   x_pscaling: number;
@@ -34,6 +40,14 @@ export function create_game_renderer(): RenderSystem {
     height,
   });
   const mainContainer = new Container();
+  const global_mouse_position =
+    new SimpleEventDispatcher<FederatedMouseEvent>();
+  mainContainer.interactive = true;
+
+  mainContainer.on("mousemove", (event) => {
+    global_mouse_position.dispatch(event);
+  });
+
   canvas_wrapper.appendChild(renderer.view as HTMLCanvasElement);
 
   //setup_resizing(renderingSystem);
@@ -59,21 +73,25 @@ export function create_game_renderer(): RenderSystem {
     renderer,
     isDirty: true,
     current_main_instance: {},
+    global_mouse_position,
     stage: mainContainer,
   };
 }
 
-export const create_instance_rendering = (): InstanceRendering => {
-  const mainContainer = new Container();
-  const mainContainerWrapper = new Container();
-  const layerMap = createLayerMap();
-  addLayerMapToContainer(mainContainer, layerMap);
-  mainContainerWrapper.addChild(mainContainer);
+export const create_instance_rendering = (
+  terrain_params: TerrainParams,
+): InstanceRendering => {
+  const main_container = new Container();
+  const main_container_wrapper = new Container();
+  const layer_map = createLayerMap();
+  addLayerMapToContainer(main_container, layer_map);
+  main_container_wrapper.addChild(main_container);
   return {
     camera: create_camera(),
-    layerMap,
-    mainContainer,
-    mainContainerWrapper,
+    layer_map,
+    main_container,
+    main_container_wrapper,
+    terrain_params,
   };
 };
 

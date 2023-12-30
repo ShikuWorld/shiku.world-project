@@ -14,29 +14,46 @@
 <script setup lang="ts">
 import { GameMap } from "@/editor/blueprints/GameMap";
 import { computed, onMounted, ref, toRefs } from "vue";
-import { use_editor_store } from "@/editor/stores/editor";
-import { storeToRefs } from "pinia";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { use_editor_store } from "@/editor/stores/editor";
+import { Isometry } from "@/client/entities";
 
-const props = defineProps<{ map: GameMap }>();
-const { map } = toRefs(props);
+const { set_camera_position, set_camera_zoom } = use_editor_store();
+const props = defineProps<{ instance_id: string; map: GameMap }>();
+const { instance_id, map } = toRefs(props);
 const editor_element = ref<HTMLElement>();
+const camera_zoom = ref(1);
+const camera_manual_pos = ref<Isometry>({ x: 0, y: 0, rotation: 0 });
 const layer = ref<LayerKind>("Terrain");
 onMounted(() => {
-  camera.value.set_camera_zoom(1.0);
+  set_camera_zoom(instance_id.value, map.value.world_id, 1.0);
+  camera_zoom.value = 1.0;
+  setInterval(() => {
+    set_camera_position(
+      instance_id.value,
+      map.value.world_id,
+      camera_manual_pos.value,
+    );
+    camera_manual_pos.value.x += 1;
+  }, 500);
 });
 
 const emit = defineEmits<{
   (e: "tile_click", layer: LayerKind, tile_x: number, tile_y: number): void;
 }>();
 
-const tile_width = computed(() => map.value.tile_width * camera.value.zoom);
-const tile_height = computed(() => map.value.tile_height * camera.value.zoom);
+const tile_width = computed(() => map.value.tile_width * camera_zoom.value);
+const tile_height = computed(() => map.value.tile_height * camera_zoom.value);
 
-// const { browse_folder, toggle_resource_on_module } = use_editor_store();
 const grid_vars = computed(() => ({
-  "--tile-width": `${tile_width.value * camera.value.zoom}px`,
-  "--tile-height": `${tile_height.value * camera.value.zoom}px`,
+  "--map-offset-x": `${
+    -(camera_manual_pos.value.x % tile_width.value) * camera_zoom.value
+  }px`,
+  "--map-offset-y": `${
+    -(camera_manual_pos.value.y % tile_height.value) * camera_zoom.value
+  }px`,
+  "--tile-width": `${tile_width.value * camera_zoom.value}px`,
+  "--tile-height": `${tile_height.value * camera_zoom.value}px`,
 }));
 const tile_position_vars = computed(() => ({
   "--selected-tile-pos-x": `${selected_tile_position.value.x}px`,
@@ -46,21 +63,18 @@ const selected_tile_position = ref({
   x: 0,
   y: 0,
 });
-const { camera } = storeToRefs(use_editor_store());
 
 function emit_tile_click($event: MouseEvent) {
   if (!editor_element.value) {
     return;
   }
   let tile_x = Math.round(
-    ($event.pageX - (tile_width.value / 2) * camera.value.zoom) /
-      (tile_width.value * camera.value.zoom),
+    ($event.pageX + camera_manual_pos.value.x) / tile_width.value,
   );
   let tile_y = Math.round(
-    ($event.pageY - (tile_height.value / 2) * camera.value.zoom) /
-      (tile_height.value * camera.value.zoom),
+    ($event.pageY + camera_manual_pos.value.x) / tile_height.value,
   );
-  emit("tile_click", layer.value, tile_x, tile_y + 1);
+  emit("tile_click", layer.value, tile_x, tile_y);
 }
 function move_selected_tile($event: MouseEvent) {
   if (!editor_element.value) {
@@ -69,22 +83,18 @@ function move_selected_tile($event: MouseEvent) {
   let bounding_rect = editor_element.value.getBoundingClientRect();
   let tile_x =
     Math.round(
-      ($event.pageX -
-        bounding_rect.left -
-        tile_width.value * camera.value.zoom) /
-        (tile_width.value * camera.value.zoom),
+      ($event.pageX - bounding_rect.left) /
+        (tile_width.value * camera_zoom.value),
     ) *
     tile_width.value *
-    camera.value.zoom;
+    camera_zoom.value;
   let tile_y =
     Math.round(
-      ($event.pageY -
-        bounding_rect.top -
-        (tile_height.value / 2) * camera.value.zoom) /
-        (tile_height.value * camera.value.zoom),
+      ($event.pageY - bounding_rect.top) /
+        (tile_height.value * camera_zoom.value),
     ) *
     tile_height.value *
-    camera.value.zoom;
+    camera_zoom.value;
   if (
     selected_tile_position.value.x != tile_x ||
     selected_tile_position.value.y != tile_y
@@ -98,7 +108,7 @@ function move_selected_tile($event: MouseEvent) {
 .map-editor {
   --tile-width: 8px;
   --tile-height: 8px;
-  --map-offset-x: 8px;
+  --map-offset-x: 0px;
   --map-offset-y: 0px;
   --selected-tile-pos-x: 0px;
   --selected-tile-pos-y: 0px;

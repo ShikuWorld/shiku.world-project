@@ -6,7 +6,7 @@ import { use_config_store } from "@/editor/stores/config";
 import { use_current_module_store } from "@/editor/stores/current-module";
 import { use_toast_store } from "@/editor/stores/toast";
 import { use_editor_store } from "@/editor/stores/editor";
-import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { Isometry } from "@/client/entities";
 
 declare global {
   interface Window {
@@ -14,6 +14,18 @@ declare global {
     medium: {
       twitch_login: typeof login;
       communication_state: CommunicationState;
+      set_camera_iso: (
+        instance_id: string,
+        world_id: string,
+        iso: Isometry,
+      ) => void;
+      set_camera_zoom: (
+        instance_id: string,
+        world_id: string,
+        zoom: number,
+      ) => void;
+      get_camera_iso: (instance_id: string, world_id: string) => Isometry;
+      get_camera_zoom: (instance_id: string, world_id: string) => number;
       swap_main_render_instance: (
         instance_id: string,
         world_id: string,

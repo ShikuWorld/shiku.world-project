@@ -11,6 +11,9 @@ import { new_shaker } from "@/client/renderer/shaker-factory";
 import { MenuSystem } from "@/client/menu";
 import { ResourceManager } from "@/client/resources";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
+import { set_container_to_viewport_coordinate } from "@/client/camera";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { update_grid } from "@/client/renderer/grid";
 
 export type GameInstanceMap = {
   [instance_id: string]: { [world_id: string]: GameInstance };
@@ -20,6 +23,7 @@ export class GameInstance {
   renderer: InstanceRendering;
   entity_manager: EntityManager;
   terrain_manager: TerrainManager;
+  layer_map_keys: LayerKind[];
 
   constructor(
     public id: string,
@@ -27,34 +31,23 @@ export class GameInstance {
     public world_id: string,
     terrain_params: TerrainParams,
   ) {
-    this.renderer = create_instance_rendering();
+    this.renderer = create_instance_rendering(terrain_params);
     this.entity_manager = create_entity_manager();
     this.terrain_manager = create_terrain_manager(terrain_params);
-  }
-
-  show_grid(size: [number, number], offset: [number, number]) {
-    this.terrain_manager.show_grid(size, offset);
-  }
-
-  hide_grid() {
-    this.terrain_manager.hide_grid();
+    this.layer_map_keys = Object.keys(this.renderer.layer_map) as LayerKind[];
   }
 
   update() {
-    this.renderer.camera.update_camera_position(this.entity_manager);
+    this.renderer.camera.update_camera_position_from_ref(this.entity_manager);
 
-    /*for (const key in this.renderer.layerContainer) {
-      const layerName = key as LayerName;
-      if (layerName === "Menu") {
-        continue;
-      }
-      const parallax_container = this.renderer.layerContainer[layerName];
-
+    for (const layerName of this.layer_map_keys) {
+      const parallax_container = this.renderer.layer_map[layerName];
       set_container_to_viewport_coordinate(
-        this.camera.camera_isometry,
+        this.renderer.camera.camera_isometry,
         parallax_container,
       );
-    }*/
+    }
+    update_grid(this.renderer.camera.camera_isometry, this.renderer);
   }
 
   handle_position_update(
@@ -152,7 +145,7 @@ export class GameInstance {
             })
             .with({ ShakeScreenEffect: P.select() }, (shake_screen_effect) => {
               new_shaker({
-                target: this.renderer.mainContainer,
+                target: this.renderer.main_container,
                 isBidirectional: shake_screen_effect.is_bidirectional,
                 shakeCountMax: shake_screen_effect.shake_count_max,
                 shakeDelay: shake_screen_effect.shake_delay,

@@ -37,14 +37,7 @@
     </div>
     <div class="editor-main-view">
       <v-window v-model="tab">
-        <v-window-item value="current">
-          <MapEditor
-            class="map-editor"
-            v-if="current_main_map"
-            :map="current_main_map"
-            @tile_click="on_tile_click"
-          ></MapEditor>
-        </v-window-item>
+        <v-window-item value="current"> </v-window-item>
         <v-window-item value="modules">
           <ModulesGraph class="modules-editor"></ModulesGraph>
         </v-window-item>
@@ -78,7 +71,7 @@
 
 <script lang="ts" setup>
 import ModulesGraph from "@/editor/editor/ModulesGraph.vue";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
 import { resource_key, use_editor_store } from "@/editor/stores/editor";
@@ -87,10 +80,10 @@ import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
 import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
 import TileEditor from "@/editor/editor/TileEditor.vue";
 import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
-import MapEditor from "@/editor/editor/MapEditor.vue";
 import { GameMap } from "@/editor/blueprints/GameMap";
 import TileSelector from "@/editor/editor/TileSelector.vue";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { onMounted } from "vue/dist/vue";
 
 const tab = ref<number>(0);
 const {
@@ -101,6 +94,7 @@ const {
   module_instance_map,
   current_main_instance,
   game_map_map,
+  selected_tile_position,
   tileset_map,
 } = storeToRefs(use_editor_store());
 const {
@@ -136,6 +130,14 @@ const current_main_map = computed<GameMap | undefined>(() => {
   }
   return undefined;
 });
+
+watch(selected_tile_position, () =>
+  on_tile_click(
+    "Terrain",
+    selected_tile_position.value.x,
+    selected_tile_position.value.y + 1,
+  ),
+);
 
 function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
   if (current_main_map.value) {

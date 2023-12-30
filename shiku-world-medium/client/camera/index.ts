@@ -1,4 +1,4 @@
-import { Entity, EntityManager, Isometry } from "../entities";
+import { EntityManager, Isometry } from "../entities";
 import {
   get_simulation_scale,
   get_stage_height,
@@ -6,27 +6,21 @@ import {
 } from "../config/config";
 import { ParallaxContainer } from "../renderer/create_game_renderer";
 import { CameraSettings } from "../communication/api/bindings/CameraSettings";
-
 export function create_camera(): Camera {
   return new Camera();
 }
 
 export class Camera {
-  private _isometry_ref: Isometry;
   private readonly _camera_isometry: Isometry;
-  private _entity_id_ref: { module_name: string; entity_id: string };
+  private _entity_id_ref: { module_name: string; entity_id: string } | null;
   private _camera_settings: CameraSettings = {
-    bounds: [
-      [0, 0],
-      [0, 0],
-    ],
+    bounds: null,
     zoom: 1,
   };
 
   constructor() {
     this._camera_isometry = { x: 0, y: 0, rotation: 0 };
-    this._isometry_ref = { x: 0, y: 0, rotation: 0 };
-    this._entity_id_ref = { entity_id: "", module_name: "" };
+    this._entity_id_ref = null;
   }
 
   get zoom(): number {
@@ -60,23 +54,30 @@ export class Camera {
     this._camera_settings.zoom = zoom;
   }
 
-  update_camera_position(entities: EntityManager) {
-    if (!this._entity_id_ref.module_name) {
-      return;
-    }
-
-    const iso = this._get_camera_iso(
-      entities.get_entity(this._entity_id_ref.entity_id),
-    );
-
+  update_camera_position(entity: { x: number; y: number; rotation: number }) {
+    const iso = this._get_camera_iso(entity);
     if (this._camera_isometry.x != iso.x || this._camera_isometry.y != iso.y) {
       this._camera_isometry.x = iso.x;
       this._camera_isometry.y = iso.y;
     }
   }
 
-  private _get_camera_iso(entity: Entity | undefined): Isometry {
-    const iso = entity?.wrapper || {
+  update_camera_position_from_ref(entities: EntityManager) {
+    if (!this._entity_id_ref) {
+      return;
+    }
+    const entity = entities.get_entity(this._entity_id_ref.entity_id)?.wrapper;
+    if (!entity) {
+      return;
+    }
+
+    this.update_camera_position(entity);
+  }
+
+  private _get_camera_iso(
+    position_object: { x: number; y: number; rotation: number } | undefined,
+  ): Isometry {
+    const iso = position_object || {
       x: 0,
       y: 0,
       rotation: 0,
@@ -113,11 +114,19 @@ export function set_container_to_viewport_coordinate(
   camera_isometry: Isometry,
   container: ParallaxContainer,
 ) {
-  container.x = -Math.round(
-    camera_isometry.x * container.x_pscaling - get_stage_width() / 2,
-  );
-  container.y = -Math.round(
-    camera_isometry.y * container.y_pscaling - get_stage_height() / 2,
-  );
-  container.rotation = camera_isometry.rotation;
+  const new_iso = camera_iso_to_scaled_viewport(camera_isometry, container);
+  container.x = new_iso.x;
+  container.y = new_iso.y;
+  container.rotation = new_iso.rotation;
+}
+
+export function camera_iso_to_scaled_viewport(
+  camera_isometry: Isometry,
+  { x_pscaling, y_pscaling }: { x_pscaling: number; y_pscaling: number },
+): Isometry {
+  return {
+    x: -Math.round(camera_isometry.x * x_pscaling - get_stage_width() / 2),
+    y: -Math.round(camera_isometry.y * y_pscaling - get_stage_height() / 2),
+    rotation: camera_isometry.rotation,
+  };
 }
