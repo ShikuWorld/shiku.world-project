@@ -7,10 +7,12 @@
           <div
             class="tileset-editor__tile"
             v-for="x of rows"
-            @click="select_tile(y, x)"
+            @mousedown="start_selection(y, x)"
+            @mouseenter="move_selection_end(y, x)"
+            @mouseup="end_selection(y, x)"
             :key="g_id(y, x)"
             :class="{
-              'tileset-editor__tile--active': selected_tile === g_id(y, x),
+              'tileset-editor__tile--active': selected_tiles.has(g_id(y, x)),
             }"
             :style="{
               width: `${tileset.tile_width}px`,
@@ -26,23 +28,82 @@
 import { computed, ref, toRefs } from "vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
 import { use_config_store } from "@/editor/stores/config";
-import { tileset_key, use_editor_store } from "@/editor/stores/editor";
-const { set_selected_tile, set_sidebar_editor } = use_editor_store();
+import { Point, tileset_key } from "@/editor/stores/editor";
+
 const { resource_base_url } = use_config_store();
-const props = defineProps<{ tileset: Tileset }>();
-const selected_tile = ref(0);
-const { tileset } = toRefs(props);
-function select_tile(y: number, x: number) {
-  selected_tile.value = g_id(y, x);
-  set_selected_tile(tileset_key(tileset.value), g_id(y, x));
-  set_sidebar_editor("tile");
+const props = defineProps<{
+  tileset: Tileset;
+  enable_multi_tile_selection?: boolean;
+}>();
+const sel_start = ref({ y: 0, x: 0 });
+const sel_end = ref({ y: 0, x: 0 });
+let sel_running = false;
+const selected_tiles = computed(() => {
+  let set = new Set();
+  if (sel_start.value) {
+    for (let y_i = sel_start.value.y; y_i <= sel_end.value.y; y_i++) {
+      for (let x_i = sel_start.value.x; x_i <= sel_end.value.x; x_i++) {
+        set.add(g_id(y_i, x_i));
+      }
+    }
+  }
+  return set;
+});
+const { tileset, enable_multi_tile_selection } = toRefs(props);
+const emit = defineEmits<{
+  (
+    e: "tile_selection",
+    start: Point,
+    end: Point,
+    g_ids: number[][],
+    tileset_key: string,
+  ): void;
+  (e: "tile_selected", g_id: number, tileset_key: string): void;
+}>();
+function start_selection(y: number, x: number) {
+  sel_start.value = { y, x };
+  sel_end.value = { y, x };
+  sel_running = true;
 }
+
+function move_selection_end(y: number, x: number) {
+  if (sel_running && enable_multi_tile_selection.value) {
+    sel_end.value = { y, x };
+  }
+}
+
+function end_selection(y: number, x: number) {
+  sel_end.value = { y, x };
+  if (!enable_multi_tile_selection.value) {
+    sel_start.value = { y, x };
+    emit("tile_selected", g_id(y, x), tileset_key(tileset.value));
+  } else {
+    const gid_selection = [];
+    for (let y_i = sel_start.value.y; y_i <= sel_end.value.y; y_i++) {
+      const gid_selection_columns = [];
+      for (let x_i = sel_start.value.x; x_i <= sel_end.value.x; x_i++) {
+        gid_selection_columns.push(g_id(y_i, x_i));
+      }
+      gid_selection.push(gid_selection_columns);
+    }
+    emit(
+      "tile_selection",
+      sel_start.value,
+      sel_end.value,
+      gid_selection,
+      tileset_key(tileset.value),
+    );
+  }
+  sel_running = false;
+}
+
 const img = computed(
   () =>
     `${resource_base_url}${
       tileset.value.image?.path ? tileset.value.image.path : ""
     }`,
 );
+
 const rows = computed(() => {
   if (tileset.value.image) {
     return tileset.value.image.width / tileset.value.tile_width;

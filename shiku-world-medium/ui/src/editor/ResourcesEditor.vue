@@ -62,6 +62,7 @@
             resource.kind === 'Tileset' && tileset_map[resource_key(resource)]
           "
           :tileset="tileset_map[resource_key(resource)]"
+          @tile_selected="on_tile_selected"
         ></TilesetEditor
       ></v-window-item>
     </v-window>
@@ -87,6 +88,8 @@ const {
   get_module,
   close_resource,
   get_resource_server,
+  set_selected_tile,
+  set_sidebar_editor,
 } = use_editor_store();
 const {
   open_resource_paths,
@@ -118,6 +121,11 @@ watch(open_resources, () => {
 onMounted(() => {
   ensure_resources_are_loaded();
 });
+
+const on_tile_selected = (g_id: number, tileset_key: string) => {
+  set_selected_tile(tileset_key, g_id);
+  set_sidebar_editor("tile");
+};
 
 function ensure_resources_are_loaded() {
   for (const resource of open_resources.value) {

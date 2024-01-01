@@ -56,7 +56,11 @@
         ></ModulesEditor>
       </div>
       <div v-if="side_bar_editor === 'map'">
-        <TileSelector :tilesets="tilesets_of_current_module"></TileSelector>
+        <TilesetEditor
+          :tileset="selected_tileset"
+          :enable_multi_tile_selection="true"
+          @tile_selection="on_tile_selection"
+        ></TilesetEditor>
       </div>
       <div v-if="side_bar_editor === 'tile'">
         <TileEditor
@@ -74,16 +78,15 @@ import ModulesGraph from "@/editor/editor/ModulesGraph.vue";
 import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
-import { resource_key, use_editor_store } from "@/editor/stores/editor";
+import { Point, resource_key, use_editor_store } from "@/editor/stores/editor";
 import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
 import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
 import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
 import TileEditor from "@/editor/editor/TileEditor.vue";
 import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 import { GameMap } from "@/editor/blueprints/GameMap";
-import TileSelector from "@/editor/editor/TileSelector.vue";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
-import { onMounted } from "vue/dist/vue";
+import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
 
 const tab = ref<number>(0);
 const {
@@ -130,6 +133,15 @@ const current_main_map = computed<GameMap | undefined>(() => {
   }
   return undefined;
 });
+
+function on_tile_selection(
+  start: Point,
+  end: Point,
+  g_ids: number[][],
+  tileset_key: string,
+) {
+  console.log(start, end, g_ids, tileset_key);
+}
 
 watch(selected_tile_position, () =>
   on_tile_click(

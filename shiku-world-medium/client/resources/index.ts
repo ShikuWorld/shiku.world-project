@@ -53,7 +53,7 @@ export class ResourceManager {
     obj.drawRect(0, 0, 100, 100);
     this.dummy_texture_tileset_missing = renderer.renderer.generateTexture(obj);
     const obj2 = new PixijsGraphics();
-    obj2.beginFill(0xff00ff);
+    obj2.beginFill(0xffff00);
     obj2.drawRect(0, 0, 100, 100);
     this.dummy_texture_loading = renderer.renderer.generateTexture(obj2);
   }
@@ -69,10 +69,14 @@ export class ResourceManager {
           })),
         );
         Assets.loadBundle(resource_bundle.name).then((r) => {
-          console.log(r);
-          for (const res of resource_bundle.assets) {
-            this.image_texture_map[res.path] = r;
+          for (const res of resource_bundle.assets.filter(
+            (a) => a.kind === "Image",
+          )) {
+            this.image_texture_map[res.path].baseTexture.setResource(
+              (r as Texture).baseTexture.resource,
+            );
           }
+          this._update_uv_maps();
         });
       })
       .with({ LoadTilesets: P.select() }, (tilesets) => {
@@ -119,7 +123,15 @@ export class ResourceManager {
       (acc, r) => ({ ...acc, [r.path]: r }),
       {} as { [path: string]: LoadResource },
     );
-    console.log("load bundle", resource_bundle);
+    for (const asset of resource_bundle.assets) {
+      match(asset.kind)
+        .with("Image", () => {
+          this.image_texture_map[asset.path] =
+            this.dummy_texture_loading.clone();
+        })
+        .with("Unknown", () => {})
+        .exhaustive();
+    }
     Assets.addBundle(
       bundle_id,
       resource_bundle.assets.map((asset) => ({
@@ -129,17 +141,17 @@ export class ResourceManager {
     );
     Assets.loadBundle(bundle_id).then((r) => {
       const loaded: { [path: string]: Texture | "other" } = r;
-      console.log("loaded bundle", loaded);
       for (const [path, loaded_resource] of Object.entries(loaded)) {
         match(path_to_resource_map[path].kind)
           .with("Image", () => {
-            console.log("Resource loaded!", loaded_resource, path);
-            this.image_texture_map[path] = loaded_resource as Texture;
-            console.log("this is the map now", this.image_texture_map);
+            this.image_texture_map[path].baseTexture.setResource(
+              (loaded_resource as Texture).baseTexture.resource,
+            );
           })
           .with("Unknown", () => {})
           .exhaustive();
       }
+      this._update_uv_maps();
       if (dispatch_resource_bundle_complete) {
         this.resource_bundle_complete.dispatch({
           module_id,
@@ -148,6 +160,14 @@ export class ResourceManager {
         });
       }
     });
+  }
+
+  private _update_uv_maps() {
+    for (const g of Object.values(this.graphic_id_map)) {
+      for (const t of g.textures) {
+        t.updateUvs();
+      }
+    }
   }
 
   unload_resources() {}
@@ -168,7 +188,7 @@ export class ResourceManager {
   ): Graphics {
     const graphics: Graphics = { textures: [], frame_objects: [] };
     if (id < 0 || !tileset) {
-      graphics.textures.push(this.dummy_texture_loading);
+      graphics.textures.push(this.dummy_texture_tileset_missing);
       return graphics;
     }
 
@@ -177,9 +197,11 @@ export class ResourceManager {
     if (tileset.image) {
       const base_texture: BaseTexture =
         this.image_texture_map[tileset.image.path]?.baseTexture;
-      console.log(base_texture, this.image_texture_map);
       if (!base_texture) {
         graphics.textures.push(this.dummy_texture_loading);
+        console.error(
+          "No base_texture even though there should be a dummy at the very least!",
+        );
         return graphics;
       }
       const x = (id % tileset.columns) * tileset.tile_width;

@@ -8,6 +8,7 @@ import {
 import { InstanceRendering, RenderSystem } from "@/client/renderer/index";
 import { Isometry } from "@/client/entities";
 import { camera_iso_to_scaled_viewport } from "@/client/camera";
+import { match } from "ts-pattern";
 
 export function show_grid(
   renderer_system: RenderSystem,
@@ -45,22 +46,53 @@ export function show_grid(
       last_mouse_move_position: { x: 0, y: 0 },
       selected_tile,
     };
-
+    let middle_click_start: {
+      click_start: { x: number; y: number };
+      camera_iso_start: Isometry;
+    } | null = null;
     grid.grid_container.addChild(grid.sprite);
-
     grid.grid_container.interactive = true;
-    grid.grid_container.on("pointerdown", () => {
-      const [x, y] = [
-        -(grid.sprite.tilePosition.x - grid.selected_tile.x) /
-          renderer.terrain_params.tile_width,
-        -(grid.sprite.tilePosition.y - grid.selected_tile.y) /
-          renderer.terrain_params.tile_height,
-      ];
-      window.medium_gui.editor.selected_tile_position = { x, y };
+    grid.grid_container.on("pointerdown", (mouse_event) => {
+      match(mouse_event.data.button)
+        .with(0, () => {
+          const [x, y] = [
+            -(grid.sprite.tilePosition.x - grid.selected_tile.x) /
+              renderer.terrain_params.tile_width,
+            -(grid.sprite.tilePosition.y - grid.selected_tile.y) /
+              renderer.terrain_params.tile_height,
+          ];
+          window.medium_gui.editor.select_tile_position({ x, y });
+        })
+        .with(1, () => {
+          middle_click_start = {
+            click_start: { x: mouse_event.x, y: mouse_event.y },
+            camera_iso_start: { ...renderer.camera.camera_isometry },
+          };
+        })
+        .run();
+    });
+
+    grid.grid_container.on("pointerup", (mouse_event) => {
+      match(mouse_event.data.button)
+        .with(1, () => {
+          middle_click_start = null;
+        })
+        .run();
     });
 
     grid.grid_container.addChild(selected_tile);
     renderer_system.global_mouse_position.sub((mouse_event) => {
+      if (middle_click_start) {
+        const diff = {
+          x: mouse_event.x - middle_click_start.click_start.x,
+          y: mouse_event.y - middle_click_start.click_start.y,
+        };
+        renderer.camera.update_camera_position({
+          x: middle_click_start.camera_iso_start.x - diff.x,
+          y: middle_click_start.camera_iso_start.y - diff.y,
+          rotation: middle_click_start.camera_iso_start.rotation,
+        });
+      }
       grid.last_mouse_move_position = mouse_event;
       update_tile_position(renderer);
     });

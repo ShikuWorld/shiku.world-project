@@ -11,6 +11,8 @@ import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToS
 import { GameInstance } from "@/client/game-instance";
 import { Isometry } from "@/client/entities";
 
+export type Point = { y: number; x: number };
+
 export interface EditorStore {
   editor_open: boolean;
   main_door_status: boolean;
@@ -29,7 +31,7 @@ export interface EditorStore {
   open_resource_paths: string[];
   selected_tileset_path: string;
   selected_tile_id: number;
-  selected_tile_position: { x: number; y: number };
+  selected_tile_position: Point;
   current_main_instance: { instance_id?: string; world_id?: string };
   game_instances: {
     [instance_id: string]: { [world_id: string]: GameInstance };
