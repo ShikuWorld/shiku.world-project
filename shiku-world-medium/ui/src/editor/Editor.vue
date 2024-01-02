@@ -57,6 +57,7 @@
       </div>
       <div v-if="side_bar_editor === 'map'">
         <TilesetEditor
+          v-if="selected_tileset"
           :tileset="selected_tileset"
           :enable_multi_tile_selection="true"
           @tile_selection="on_tile_selection"
@@ -99,6 +100,7 @@ const {
   game_map_map,
   selected_tile_position,
   tileset_map,
+  tile_brush,
 } = storeToRefs(use_editor_store());
 const {
   get_module,
@@ -110,6 +112,7 @@ const {
   set_current_main_instance,
   set_sidebar_editor,
   update_map_server,
+  set_tile_brush,
 } = use_editor_store();
 load_modules();
 
@@ -135,12 +138,12 @@ const current_main_map = computed<GameMap | undefined>(() => {
 });
 
 function on_tile_selection(
-  start: Point,
-  end: Point,
+  _start: Point,
+  _end: Point,
   g_ids: number[][],
-  tileset_key: string,
+  _tileset_key: string,
 ) {
-  console.log(start, end, g_ids, tileset_key);
+  set_tile_brush(g_ids);
 }
 
 watch(selected_tile_position, () =>
@@ -154,28 +157,52 @@ watch(selected_tile_position, () =>
 function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
   if (current_main_map.value) {
     let game_map = current_main_map.value;
-    let chunk_x = Math.floor(tile_x / game_map.chunk_size);
-    let chunk_y = Math.floor(tile_y / game_map.chunk_size);
-    if (!game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)]) {
-      game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)] = {
-        position: [chunk_x, chunk_y],
-        data: new Array(game_map.chunk_size * game_map.chunk_size).fill(0),
-      };
+
+    for (const chunk_id of fill_map(
+      game_map,
+      layer_kind,
+      tile_x,
+      tile_y,
+      tile_brush.value,
+    ).values()) {
+      const updated_chunk = game_map.terrain[layer_kind][chunk_id];
+      update_map_server({
+        name: game_map.name,
+        resource_path: game_map.resource_path,
+        chunk: [layer_kind, updated_chunk],
+      });
     }
-    const chunk = game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)];
-
-    // TODO: fill chunk(s)
-    let chunk_tile_x = tile_x - chunk_x * game_map.chunk_size;
-    let chunk_tile_y = tile_y - chunk_y * game_map.chunk_size;
-
-    chunk.data[chunk_tile_y * game_map.chunk_size + chunk_tile_x] = 1;
-
-    update_map_server({
-      name: game_map.name,
-      resource_path: game_map.resource_path,
-      chunk: [layer_kind, chunk],
-    });
   }
+}
+
+function fill_map(
+  game_map: GameMap,
+  layer_kind: LayerKind,
+  start_x: number,
+  start_y: number,
+  brush: number[][],
+): Set<number> {
+  const filled_chunks = new Set<number>();
+  for (let y = 0; y < brush.length; y++) {
+    for (let x = 0; x < brush[0].length; x++) {
+      let chunk_x = Math.floor((start_x + x) / game_map.chunk_size);
+      let chunk_y = Math.floor((start_y + y) / game_map.chunk_size);
+      if (!game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)]) {
+        game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)] = {
+          position: [chunk_x, chunk_y],
+          data: new Array(game_map.chunk_size * game_map.chunk_size).fill(0),
+        };
+      }
+      const chunk = game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)];
+      filled_chunks.add(cantorPair(chunk_x, chunk_y));
+      let chunk_tile_x = start_x + x - chunk_x * game_map.chunk_size;
+      let chunk_tile_y = start_y + y - chunk_y * game_map.chunk_size;
+
+      chunk.data[chunk_tile_y * game_map.chunk_size + chunk_tile_x] =
+        brush[y][x];
+    }
+  }
+  return filled_chunks;
 }
 
 function toNatural(num: number): number {

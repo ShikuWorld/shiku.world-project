@@ -59,7 +59,8 @@ export class TerrainManager {
     }
 
     const chunk_map_entry = chunk_map.get(chunk_key)!;
-
+    chunk_map_entry.data = chunk;
+    chunk_map_entry.container.removeChildren();
     /*const graphics = new Graphics();
 
     graphics.lineStyle(1, 0xff0000);

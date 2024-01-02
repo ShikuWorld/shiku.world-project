@@ -69,7 +69,7 @@ export function show_grid(
             camera_iso_start: { ...renderer.camera.camera_isometry },
           };
         })
-        .run();
+        .otherwise(() => {});
     });
 
     grid.grid_container.on("pointerup", (mouse_event) => {
@@ -77,7 +77,7 @@ export function show_grid(
         .with(1, () => {
           middle_click_start = null;
         })
-        .run();
+        .otherwise(() => {});
     });
 
     grid.grid_container.addChild(selected_tile);

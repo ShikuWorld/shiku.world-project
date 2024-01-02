@@ -46,7 +46,7 @@ export const use_editor_store = defineStore("editor", {
     module_instance_map: {},
     side_bar_editor: "nothing",
     main_door_status: false,
-    tile_brush: [[1]],
+    tile_brush: [[0]],
     selected_module_id: "",
     selected_tileset_path: "",
     selected_tile_id: 0,
@@ -65,6 +65,9 @@ export const use_editor_store = defineStore("editor", {
     current_file_browser_result: { resources: [], dirs: [], dir: "", path: "" },
   }),
   actions: {
+    set_tile_brush(brush: number[][]) {
+      this.tile_brush = brush;
+    },
     select_tile_position(tile_position: { x: number; y: number }) {
       this.selected_tile_position = tile_position;
     },
