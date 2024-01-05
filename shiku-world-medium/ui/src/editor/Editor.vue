@@ -32,7 +32,7 @@
             @world_click="select_as_main_instance"
           />
         </v-expansion-panel>
-        <v-btn @click="set_sidebar_editor('map')">Map editor</v-btn>
+        <v-btn @click="load_map_palette">Map palette</v-btn>
       </v-expansion-panels>
     </div>
     <div class="editor-main-view">
@@ -56,12 +56,7 @@
         ></ModulesEditor>
       </div>
       <div v-if="side_bar_editor === 'map'">
-        <TilesetEditor
-          v-if="selected_tileset"
-          :tileset="selected_tileset"
-          :enable_multi_tile_selection="true"
-          @tile_selection="on_tile_selection"
-        ></TilesetEditor>
+        <TileSelector :tilesets="tilesets_of_current_module"></TileSelector>
       </div>
       <div v-if="side_bar_editor === 'tile'">
         <TileEditor
@@ -79,7 +74,7 @@ import ModulesGraph from "@/editor/editor/ModulesGraph.vue";
 import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
-import { Point, resource_key, use_editor_store } from "@/editor/stores/editor";
+import { resource_key, use_editor_store } from "@/editor/stores/editor";
 import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
 import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
 import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
@@ -87,7 +82,7 @@ import TileEditor from "@/editor/editor/TileEditor.vue";
 import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 import { GameMap } from "@/editor/blueprints/GameMap";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
-import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
+import TileSelector from "@/editor/editor/TileSelector.vue";
 
 const tab = ref<number>(0);
 const {
@@ -112,7 +107,7 @@ const {
   set_current_main_instance,
   set_sidebar_editor,
   update_map_server,
-  set_tile_brush,
+  get_resource_server,
 } = use_editor_store();
 load_modules();
 
@@ -121,13 +116,30 @@ const selected_tileset = computed(() =>
   get_tileset(selected_tileset_path.value),
 );
 const tilesets_of_current_module = computed(() => {
+  console.log("recalc?");
   return selected_module.value.resources
-    .filter((r) => r.kind == "Tileset")
+    .filter((r) => r.kind === "Tileset")
     .map((r) => {
-      console.log(Object.values(tileset_map.value), r.path);
       return tileset_map.value[r.path];
     });
 });
+function load_map_palette() {
+  if (selected_module.value) {
+    const tilesets_to_load: BlueprintResource[] = [];
+    for (const r of selected_module.value.resources) {
+      if (r.kind === "Tileset" && !tileset_map.value[r.path]) {
+        tilesets_to_load.push(r);
+      }
+    }
+    if (tilesets_to_load.length > 0) {
+      for (const r of tilesets_to_load) {
+        console.log("loading", r);
+        get_resource_server(r.path);
+      }
+    }
+  }
+  set_sidebar_editor("map");
+}
 const current_main_map = computed<GameMap | undefined>(() => {
   if (current_main_instance.value?.world_id && game_map_map.value) {
     return Object.values(game_map_map.value).find(
@@ -136,15 +148,6 @@ const current_main_map = computed<GameMap | undefined>(() => {
   }
   return undefined;
 });
-
-function on_tile_selection(
-  _start: Point,
-  _end: Point,
-  g_ids: number[][],
-  _tileset_key: string,
-) {
-  set_tile_brush(g_ids);
-}
 
 watch(selected_tile_position, () =>
   on_tile_click(

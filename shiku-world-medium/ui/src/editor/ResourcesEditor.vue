@@ -136,9 +136,7 @@ function ensure_resources_are_loaded() {
         }
       })
       .with({ kind: "Map" }, (r) => {
-        if (!tileset_map.value[resource_key(r)]) {
-          get_resource_server(r.path);
-        }
+        console.log("hm map?", r);
       })
       .with({ kind: "Unknown" }, () => {})
       .exhaustive();
