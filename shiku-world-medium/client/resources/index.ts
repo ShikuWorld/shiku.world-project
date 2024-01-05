@@ -204,7 +204,7 @@ export class ResourceManager {
         );
         return graphics;
       }
-      const x = (id % tileset.columns) * tileset.tile_width;
+      const x = ((id - 1) % tileset.columns) * tileset.tile_width;
       const y = Math.floor(id / tileset.columns) * tileset.tile_height;
       const texture = new Texture(
         base_texture,

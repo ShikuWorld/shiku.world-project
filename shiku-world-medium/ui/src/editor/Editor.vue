@@ -116,7 +116,6 @@ const selected_tileset = computed(() =>
   get_tileset(selected_tileset_path.value),
 );
 const tilesets_of_current_module = computed(() => {
-  console.log("recalc?");
   return selected_module.value.resources
     .filter((r) => r.kind === "Tileset")
     .map((r) => {
@@ -160,7 +159,6 @@ watch(selected_tile_position, () =>
 function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
   if (current_main_map.value) {
     let game_map = current_main_map.value;
-
     for (const chunk_id of fill_map(
       game_map,
       layer_kind,
