@@ -20,6 +20,14 @@ function initializeDatabase() {
 
 initializeDatabase();
 
+fastify.setErrorHandler(function (error, request, reply) {
+  // Log error
+  this.log.error(error);
+  this.log.error(request);
+  // Send error response
+  reply.status(500).send({ ok: false });
+});
+
 async function verifyApiKey(request: FastifyRequest, reply: FastifyReply) {
   const apiKey = request.headers['x-api-key'];
   if (apiKey !== API_KEY) {
@@ -34,13 +42,7 @@ fastify.post('/session', async (request, reply) => {
   const sessionId = uuidv4();
   const initialText = request.body; // Assuming the body contains the initial text
   if (!initialText) {
-    return reply.status(401).send('Please provide plain text request body.');
-  }
-  try {
-    request.log.info(JSON.stringify(initialText));
-  } catch (e) {
-    console.log(initialText);
-    request.log.error(e);
+    return reply.status(400).send('Please provide plain text request body.');
   }
   const insert = db.prepare(
     'INSERT INTO sessions (id, text_data) VALUES (?, ?)'
@@ -75,4 +77,7 @@ fastify.patch('/session/:id', async (request, reply) => {
 fastify.listen({ host: '0.0.0.0', port: 3000 }, (err, _address) => {
   if (err) throw err;
   // Server is now listening on ${address}
+});
+process.on('SIGTERM', async function onSigterm() {
+  await fastify.close();
 });
