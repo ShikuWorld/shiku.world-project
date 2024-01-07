@@ -27,7 +27,7 @@ in
       ];
       extraOptions = [ "--pull=always" ];
     };
-    "shiku-world-status" = {
+    "gpt-memory" = {
       image = "build.shiku.world/gpt-memory:latest";
       login = credentials;
       ports = ["3334:3000"];
