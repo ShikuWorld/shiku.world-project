@@ -61,7 +61,7 @@ paths:
     patch:
       summary: Append to session data
       description: Appends additional text to the specified session.
-      operationId: addToStorySummary
+      operationId: updateSummary
       parameters:
         - in: path
           name: id
@@ -79,6 +79,13 @@ paths:
                   type: string
       responses:
         '200':
-          description: Successfully appended to session data
+          description: Successfully added to memory.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
         '404':
           description: Session not found

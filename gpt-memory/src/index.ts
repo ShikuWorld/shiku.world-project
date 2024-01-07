@@ -75,11 +75,17 @@ fastify.patch('/session/:id', async (request, reply) => {
   const update = db.prepare(
     'UPDATE sessions SET text_data = text_data || ? WHERE id = ?'
   );
-  const result = update.run(newText, id);
+  const result = update.run(`${newText}\n`, id);
   if (result.changes == 0) {
     return reply.status(404).send({ error: 'Session not found' });
   }
-  return reply.send({ message: 'Updated successfully' }); // Optionally return a confirmation message
+
+  const select = db.prepare('SELECT text_data FROM sessions WHERE id = ?');
+  const row = select.get(id);
+  if (!row || !row.text_data) {
+    return reply.status(404).send({ error: 'Session not found' });
+  }
+  return reply.send({ text: row.text_data });
 });
 
 fastify.listen({ host: '0.0.0.0', port: 3000 }, (err, _address) => {
