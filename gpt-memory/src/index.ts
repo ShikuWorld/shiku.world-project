@@ -5,7 +5,7 @@ import BetterSqlite3 from 'better-sqlite3';
 
 configDotenv();
 
-const fastify = Fastify();
+const fastify = Fastify({ logger: true });
 
 const db = new BetterSqlite3('./database.db');
 const API_KEY = 'rE@2#xA3GT&croWDPbtZhARE5KCnx@bQ2DnBB';
@@ -33,6 +33,9 @@ fastify.addHook('preHandler', verifyApiKey);
 fastify.post('/session', async (request, reply) => {
   const sessionId = uuidv4();
   const initialText = request.body; // Assuming the body contains the initial text
+  if (!initialText) {
+    return reply.status(401).send('Please provide plain text request body.');
+  }
   const insert = db.prepare(
     'INSERT INTO sessions (id, text_data) VALUES (?, ?)'
   );
