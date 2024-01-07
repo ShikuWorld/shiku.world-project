@@ -2,6 +2,8 @@ import Fastify, { FastifyReply, FastifyRequest } from 'fastify';
 import { configDotenv } from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
 import BetterSqlite3 from 'better-sqlite3';
+import path from 'path';
+import { fastifyStatic } from '@fastify/static';
 
 configDotenv();
 
@@ -37,9 +39,13 @@ async function verifyApiKey(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-// Register the hook
-fastify.addHook('preHandler', verifyApiKey);
+fastify.register(fastifyStatic, {
+  root: path.join(__dirname, 'public'),
+  prefix: '/public/'
+});
+
 fastify.post('/session', async (request, reply) => {
+  await verifyApiKey(request, reply);
   const sessionId = uuidv4();
   const initialText = request?.body?.text; // Extract 'text' from the JSON request body
   if (!initialText) {
@@ -55,6 +61,7 @@ fastify.post('/session', async (request, reply) => {
 });
 
 fastify.get('/session/:id', async (request, reply) => {
+  await verifyApiKey(request, reply);
   const { id } = request.params;
   const select = db.prepare('SELECT text_data FROM sessions WHERE id = ?');
   const row = select.get(id);
@@ -65,6 +72,7 @@ fastify.get('/session/:id', async (request, reply) => {
 });
 
 fastify.patch('/session/:id', async (request, reply) => {
+  await verifyApiKey(request, reply);
   const { id } = request.params;
   const newText = request?.body?.text; // Extract 'text' from the JSON request body
   if (!newText) {

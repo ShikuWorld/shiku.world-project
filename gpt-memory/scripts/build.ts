@@ -1,4 +1,5 @@
 import * as esbuild from 'esbuild';
+import * as fs from 'fs-extra';
 esbuild
   .build({
     entryPoints: ['src/index.ts'],
@@ -7,4 +8,6 @@ esbuild
     external: ['better-sqlite3'],
     outfile: 'build/index.js'
   })
-  .then(() => {});
+  .then(() => {
+    fs.copySync('./public', './build/public', { overwrite: true });
+  });
