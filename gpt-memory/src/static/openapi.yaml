@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: Story memory
+  version: 1.0.0
+  description: API for managing the summary of the current story
+
+servers:
+  - url: https://memory.shiku.world
+
+paths:
+  /session:
+    post:
+      summary: Create a new session
+      description: Creates a new session with initial text and returns a unique session ID.
+      operationId: initStory
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Successfully created a session
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: d290f1ee-6c54-4b01-90e6-d701748f0851
+
+  /session/{id}:
+    get:
+      summary: Retrieve session data
+      description: Retrieves the text data of a specified session.
+      operationId: getStorySummary
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully retrieved session data
+          content:
+            text/plain:
+              schema:
+                type: string
+        '404':
+          description: Session not found
+
+    patch:
+      summary: Append to session data
+      description: Appends additional text to the specified session.
+      operationId: addToStorySummary
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Successfully appended to session data
+        '404':
+          description: Session not found

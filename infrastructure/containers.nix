@@ -28,6 +28,12 @@ in
       extraOptions = [ "--pull=always" ];
     };
     "shiku-world-status" = {
+      image = "build.shiku.world/gpt-memory:latest";
+      login = credentials;
+      ports = ["3334:3000"];
+      extraOptions = [ "--pull=always" ];
+    };
+    "shiku-world-status" = {
       image = "build.shiku.world/shiku-world-status:latest";
       login = credentials;
       ports = ["3333:3000"];

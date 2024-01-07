@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'gpt-memory/**'
+
+env:
+  DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+  DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+jobs:
+  build-shiku-world-resources:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build and push Docker image
+        uses: BastianGanze/checkout-build-push-docker@v1
+        with:
+          image-name: gpt-memory
