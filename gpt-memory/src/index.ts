@@ -24,6 +24,7 @@ fastify.setErrorHandler(function (error, request, reply) {
   // Log error
   this.log.error(error);
   this.log.error(request);
+  console.error(request);
   // Send error response
   reply.status(500).send({ ok: false });
 });
@@ -40,15 +41,17 @@ async function verifyApiKey(request: FastifyRequest, reply: FastifyReply) {
 fastify.addHook('preHandler', verifyApiKey);
 fastify.post('/session', async (request, reply) => {
   const sessionId = uuidv4();
-  const initialText = request.body; // Assuming the body contains the initial text
+  const initialText = request?.body?.text; // Extract 'text' from the JSON request body
   if (!initialText) {
-    return reply.status(400).send('Please provide plain text request body.');
+    return reply
+      .status(400)
+      .send({ error: 'Please provide a text field in the JSON request body.' });
   }
   const insert = db.prepare(
     'INSERT INTO sessions (id, text_data) VALUES (?, ?)'
   );
   insert.run(sessionId, initialText);
-  return reply.send(sessionId);
+  return reply.send({ id: sessionId }); // Return JSON object with 'id'
 });
 
 fastify.get('/session/:id', async (request, reply) => {
@@ -56,22 +59,27 @@ fastify.get('/session/:id', async (request, reply) => {
   const select = db.prepare('SELECT text_data FROM sessions WHERE id = ?');
   const row = select.get(id);
   if (!row || !row.text_data) {
-    return reply.status(404).send();
+    return reply.status(404).send({ error: 'Session not found' });
   }
-  return reply.send(row.text_data);
+  return reply.send({ text: row.text_data }); // Return JSON object with 'text'
 });
 
 fastify.patch('/session/:id', async (request, reply) => {
   const { id } = request.params;
-  const newText = request.body; // Assuming the body contains the text to append
+  const newText = request?.body?.text; // Extract 'text' from the JSON request body
+  if (!newText) {
+    return reply
+      .status(400)
+      .send({ error: 'Please provide a text field in the JSON request body.' });
+  }
   const update = db.prepare(
     'UPDATE sessions SET text_data = text_data || ? WHERE id = ?'
   );
   const result = update.run(newText, id);
   if (result.changes == 0) {
-    return reply.status(404).send();
+    return reply.status(404).send({ error: 'Session not found' });
   }
-  return reply.send();
+  return reply.send({ message: 'Updated successfully' }); // Optionally return a confirmation message
 });
 
 fastify.listen({ host: '0.0.0.0', port: 3000 }, (err, _address) => {
