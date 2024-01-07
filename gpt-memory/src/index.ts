@@ -36,6 +36,12 @@ fastify.post('/session', async (request, reply) => {
   if (!initialText) {
     return reply.status(401).send('Please provide plain text request body.');
   }
+  try {
+    request.log.info(JSON.stringify(initialText));
+  } catch (e) {
+    console.log(initialText);
+    request.log.error(e);
+  }
   const insert = db.prepare(
     'INSERT INTO sessions (id, text_data) VALUES (?, ?)'
   );
