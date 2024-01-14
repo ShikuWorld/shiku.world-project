@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+    use std::collections::HashSet;
 use std::path::PathBuf;
 
 use flume::Sender;
@@ -139,9 +139,6 @@ pub async fn handle_admin_to_system_event(
                 Ok(mut map) => {
                     if let Some(entities) = map_update.entities.clone() {
                         map.entities = entities;
-                    }
-                    if let Some(joints) = map_update.joints.clone() {
-                        map.joints = joints;
                     }
                     if let Some((layer, chunk)) = map_update.chunk.clone() {
                         map.set_chunk(layer, chunk);

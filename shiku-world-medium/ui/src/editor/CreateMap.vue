@@ -45,7 +45,6 @@ const game_map = reactive<GameMap>({
   module_id: module.value.id,
   chunk_size: 8,
   entities: [],
-  joints: {},
   name: "",
   resource_path: "",
   terrain: {

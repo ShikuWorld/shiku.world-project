@@ -307,7 +307,6 @@ export const use_editor_store = defineStore("editor", {
       send_admin_event({
         UpdateMap: {
           chunk: null,
-          joints: null,
           entities: null,
           ...map_update,
         },
