@@ -47,7 +47,7 @@ fastify.register(fastifyStatic, {
 fastify.post('/session', async (request, reply) => {
   await verifyApiKey(request, reply);
   const sessionId = uuidv4();
-  const initialText = request?.body?.text; // Extract 'text' from the JSON request body
+  const initialText = (request?.body as { text?: string }).text;
   if (!initialText) {
     return reply
       .status(400)
@@ -62,9 +62,9 @@ fastify.post('/session', async (request, reply) => {
 
 fastify.get('/session/:id', async (request, reply) => {
   await verifyApiKey(request, reply);
-  const { id } = request.params;
+  const { id } = request.params as { id: string };
   const select = db.prepare('SELECT text_data FROM sessions WHERE id = ?');
-  const row = select.get(id);
+  const row = select.get(id) as { text_data?: string };
   if (!row || !row.text_data) {
     return reply.status(404).send({ error: 'Session not found' });
   }
@@ -73,8 +73,8 @@ fastify.get('/session/:id', async (request, reply) => {
 
 fastify.patch('/session/:id', async (request, reply) => {
   await verifyApiKey(request, reply);
-  const { id } = request.params;
-  const newText = request?.body?.text; // Extract 'text' from the JSON request body
+  const { id } = request.params as { id: string };
+  const newText = (request?.body as { text?: string }).text;
   if (!newText) {
     return reply
       .status(400)
@@ -89,7 +89,7 @@ fastify.patch('/session/:id', async (request, reply) => {
   }
 
   const select = db.prepare('SELECT text_data FROM sessions WHERE id = ?');
-  const row = select.get(id);
+  const row = select.get(id) as { text_data?: string };
   if (!row || !row.text_data) {
     return reply.status(404).send({ error: 'Session not found' });
   }

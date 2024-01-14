@@ -211,7 +211,6 @@ pub struct GameMap {
     pub name: String,
     pub resource_path: String,
     pub entities: Vec<Entity>,
-    pub joints: HashMap<JointId, Joint>,
     pub chunk_size: u32,
     pub tile_width: u32,
     pub tile_height: u32,
@@ -224,7 +223,6 @@ pub struct MapUpdate {
     pub name: String,
     pub resource_path: ResourcePath,
     pub entities: Option<Vec<Entity>>,
-    pub joints: Option<HashMap<JointId, Joint>>,
     pub chunk: Option<(LayerKind, Chunk)>,
 }
 
@@ -239,9 +237,16 @@ pub struct Layer {
 #[ts(export, export_to = "blueprints/")]
 pub struct Entity {
     pub id: EntityId,
+    pub children: Vec<Body>,
+    pub joints: HashMap<JointId, Joint>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Body {
     pub physicality: Physicality,
     pub render: Render,
-    pub children: Vec<EntityId>,
+    pub children: Vec<Body>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -310,7 +315,9 @@ pub enum LayerKind {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub enum RenderKind {}
+pub enum RenderKind {
+    None,
+}
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
