@@ -210,7 +210,6 @@ pub struct GameMap {
     pub world_id: String,
     pub name: String,
     pub resource_path: String,
-    pub entities: Vec<Entity>,
     pub chunk_size: u32,
     pub tile_width: u32,
     pub tile_height: u32,
@@ -222,7 +221,6 @@ pub struct GameMap {
 pub struct MapUpdate {
     pub name: String,
     pub resource_path: ResourcePath,
-    pub entities: Option<Vec<Entity>>,
     pub chunk: Option<(LayerKind, Chunk)>,
 }
 
@@ -233,20 +231,32 @@ pub struct Layer {
     pub kind: LayerKind,
 }
 
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct Entity {
-    pub id: EntityId,
-    pub children: Vec<Body>,
-    pub joints: HashMap<JointId, Joint>,
+pub enum GameComponentKind {
+    Scene(GameNode<String>),
+    Physics(GameNode<Physicality>),
+    Render(GameNode<Physicality>)
+}
+
+type GameNodeId = String;
+
+pub struct GameNodeInheritance {
+    pub parent_id: GameNodeId,
+    pub overrides: HashMap<GameNodeId, GameComponentKind>
+}
+
+pub struct GameNode<T> {
+    pub id: GameNodeId,
+    pub name: String,
+    pub inherits: Option<GameNodeId>,
+    pub data: T,
+    pub children: Vec<GameComponentKind>
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub struct Body {
+pub struct GameBody {
     pub physicality: Physicality,
-    pub render: Render,
-    pub children: Vec<Body>,
+    pub render: Render
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
