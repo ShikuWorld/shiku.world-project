@@ -111,6 +111,22 @@ impl Blueprint {
         Self::delete(&map.resource_path, &map.name, "map")
     }
 
+    pub fn create_scene(map: &GameMap) -> Result<(), BlueprintError> {
+        Self::create(map, &map.resource_path, &map.name, "scene")
+    }
+
+    pub fn load_map(path: PathBuf) -> Result<GameMap, BlueprintError> {
+        Self::load(path)
+    }
+
+    pub fn save_map(map: &GameMap) -> Result<(), BlueprintError> {
+        Self::save(map, &map.resource_path, &map.name, "map")
+    }
+
+    pub fn delete_map(map: &GameMap) -> Result<(), BlueprintError> {
+        Self::delete(&map.resource_path, &map.name, "map")
+    }
+
     pub fn io_points_to_hashset(points: &Vec<IOPoint>) -> HashSet<String> {
         points.clone().into_iter().map(|p| p.name).collect()
     }

@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::hash::Hash;
-
+use std::cell::OnceCell;
 use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use tokio::sync::RwLock;
 use ts_rs::TS;
 use walkdir::Error as WalkDirError;
 
@@ -13,6 +14,7 @@ use crate::core::module::ModuleName;
 
 pub type EntityId = usize;
 pub type JointId = usize;
+
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
@@ -36,12 +38,14 @@ impl Conductor {
 #[ts(export, export_to = "blueprints/")]
 pub enum ResourceKind {
     Tileset,
+    Scene,
     Map,
     Unknown,
 }
 
 pub enum ResourceLoaded {
     Tileset(Tileset),
+    Scene(GameNodeKind),
     Map(GameMap),
     Unknown,
 }
@@ -63,6 +67,7 @@ pub enum FileBrowserFileKind {
     Module,
     Map,
     Tileset,
+    Scene,
     Folder,
     Unknown,
 }
@@ -213,6 +218,7 @@ pub struct GameMap {
     pub chunk_size: u32,
     pub tile_width: u32,
     pub tile_height: u32,
+    pub main_scene: Scene,
     pub terrain: HashMap<LayerKind, HashMap<u32, Chunk>>,
 }
 
@@ -231,32 +237,41 @@ pub struct Layer {
     pub kind: LayerKind,
 }
 
-pub enum GameComponentKind {
-    Scene(GameNode<String>),
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Scene {
+    id: String,
+    name: String,
+    resource_path: String,
+    root_node: GameNodeKind
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum GameNodeKind {
+    Scene(ResourcePath),
+    Group(GameNode<String>),
     Physics(GameNode<Physicality>),
     Render(GameNode<Physicality>)
 }
 
 type GameNodeId = String;
 
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct GameNodeInheritance {
     pub parent_id: GameNodeId,
-    pub overrides: HashMap<GameNodeId, GameComponentKind>
+    pub overrides: HashMap<GameNodeId, GameNodeKind>
 }
 
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct GameNode<T> {
     pub id: GameNodeId,
     pub name: String,
     pub inherits: Option<GameNodeId>,
     pub data: T,
-    pub children: Vec<GameComponentKind>
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct GameBody {
-    pub physicality: Physicality,
-    pub render: Render
+    pub children: Vec<GameNodeKind>
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
