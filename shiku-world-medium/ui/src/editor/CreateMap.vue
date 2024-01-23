@@ -44,7 +44,17 @@ const game_map = reactive<GameMap>({
   world_id: "",
   module_id: module.value.id,
   chunk_size: 8,
-  entities: [],
+  main_scene: {
+    id: "root",
+    name: "Main",
+    resource_path: "",
+    root_node: {Group: {
+      name: "Main",
+      id: "",
+      inherits: null,
+      data: "",
+      children:[]}}
+  },
   name: "",
   resource_path: "",
   terrain: {

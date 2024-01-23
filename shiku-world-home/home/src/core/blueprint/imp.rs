@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, BlueprintService, Chunk, Conductor, FileBrowserFileKind,
     FileBrowserResult, GameMap, GidMap, LayerKind, Module, ResourceKind, ResourceLoaded,
-    ResourcePath, Tileset,
+    Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::{cantor_pair, get_out_dir, safe_unwrap};
@@ -158,7 +158,7 @@ impl BlueprintService {
         Ok(GidMap(gid_map))
     }
 
-    fn determine_file_type(file_name: &str) -> FileBrowserFileKind {
+    pub fn determine_file_type(file_name: &str) -> FileBrowserFileKind {
         let parts: Vec<&str> = file_name.split('.').collect();
 
         match parts.as_slice() {

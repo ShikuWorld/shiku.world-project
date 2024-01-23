@@ -266,6 +266,7 @@ impl GameInstanceManager {
                     }
                 }
             }
+            ResourceKind::Scene => Vec::new(),
             ResourceKind::Map => Vec::new(),
             ResourceKind::Unknown => Vec::new(),
         }
@@ -371,7 +372,7 @@ impl GameInstanceManager {
 
     pub fn get_terrain_params_for_admin(
         &self,
-        guest_id: &ActorId,
+        _guest_id: &ActorId,
         game_instance_id: &GameInstanceId,
         world_id: &WorldId,
     ) -> Option<TerrainParams> {

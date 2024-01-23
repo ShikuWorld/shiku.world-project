@@ -6,13 +6,14 @@ use std::io::Write;
 
 use dotenv::dotenv;
 use env_logger::Builder;
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use spin_sleep::LoopHelper;
 
 use crate::conductor_module::def::ConductorModule;
 use crate::core::blueprint::def::{BlueprintError, BlueprintService};
 use crate::core::module::SystemModule;
 use crate::core::{blueprint, TARGET_FPS};
+use crate::core::blueprint::resource_cache::init_resource_cache;
 use crate::resource_module::def::ResourceModule;
 use crate::websocket_module::WebsocketModule;
 
@@ -27,12 +28,16 @@ mod websocket_module;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
     let mut builder = Builder::from_default_env();
 
     builder
         .format(|buf, record| writeln!(buf, "{} - {}", record.level(), record.args()))
         .filter(None, LevelFilter::Debug)
         .init();
+
+    debug!("Uh okay?");
+    init_resource_cache().expect("Resource cache should initialize without problems.");
 
     let mut websocket_module = WebsocketModule::new();
     websocket_module.start();

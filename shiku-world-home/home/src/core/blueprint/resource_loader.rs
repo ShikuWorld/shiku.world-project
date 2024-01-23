@@ -1,4 +1,4 @@
-use crate::core::blueprint::def::{BlueprintError, GameMap, IOPoint, Tileset};
+use crate::core::blueprint::def::{BlueprintError, GameMap, IOPoint, Scene, Tileset};
 use crate::core::get_out_dir;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -111,20 +111,20 @@ impl Blueprint {
         Self::delete(&map.resource_path, &map.name, "map")
     }
 
-    pub fn create_scene(map: &GameMap) -> Result<(), BlueprintError> {
-        Self::create(map, &map.resource_path, &map.name, "scene")
+    pub fn create_scene(scene: &Scene) -> Result<(), BlueprintError> {
+        Self::create(scene, &scene.resource_path, &scene.name, "scene")
     }
 
-    pub fn load_map(path: PathBuf) -> Result<GameMap, BlueprintError> {
+    pub fn load_scene(path: PathBuf) -> Result<Scene, BlueprintError> {
         Self::load(path)
     }
 
-    pub fn save_map(map: &GameMap) -> Result<(), BlueprintError> {
-        Self::save(map, &map.resource_path, &map.name, "map")
+    pub fn save_scene(scene: &Scene) -> Result<(), BlueprintError> {
+        Self::save(scene, &scene.resource_path, &scene.name, "scene")
     }
 
-    pub fn delete_map(map: &GameMap) -> Result<(), BlueprintError> {
-        Self::delete(&map.resource_path, &map.name, "map")
+    pub fn delete_scene(scene: &Scene) -> Result<(), BlueprintError> {
+        Self::delete(&scene.resource_path, &scene.name, "scene")
     }
 
     pub fn io_points_to_hashset(points: &Vec<IOPoint>) -> HashSet<String> {

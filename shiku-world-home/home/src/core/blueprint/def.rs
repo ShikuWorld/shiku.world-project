@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::hash::Hash;
-use std::cell::OnceCell;
+
 use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use tokio::sync::RwLock;
 use ts_rs::TS;
 use walkdir::Error as WalkDirError;
 
@@ -240,10 +239,10 @@ pub struct Layer {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Scene {
-    id: String,
-    name: String,
-    resource_path: String,
-    root_node: GameNodeKind
+    pub id: String,
+    pub name: String,
+    pub resource_path: ResourcePath,
+    pub root_node: GameNodeKind
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -362,6 +361,10 @@ pub enum BlueprintError {
     FileAlreadyExists,
     #[error("Could not load blueprint due to IO error.")]
     IOError(#[from] std::io::Error),
+    #[error("Lock Poisoned while writing.")]
+    WritePoison,
+    #[error("Lock Poisoned while reading.")]
+    ReadPoison,
     #[error("Could not load blueprint due to malformed json.")]
     SerdeJSON(#[from] serde_json::error::Error),
     #[error("Impossible error")]

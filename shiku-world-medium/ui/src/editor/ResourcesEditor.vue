@@ -138,6 +138,9 @@ function ensure_resources_are_loaded() {
       .with({ kind: "Map" }, (r) => {
         console.log("hm map?", r);
       })
+        .with({ kind: "Scene" }, (r) => {
+          console.log("hm scene?", r);
+        })
       .with({ kind: "Unknown" }, () => {})
       .exhaustive();
   }

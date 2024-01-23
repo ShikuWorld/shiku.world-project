@@ -137,9 +137,6 @@ pub async fn handle_admin_to_system_event(
             let map_path = format!("{}/{}.map.json", map_update.resource_path, map_update.name);
             match Blueprint::load_map(PathBuf::from(map_path)) {
                 Ok(mut map) => {
-                    if let Some(entities) = map_update.entities.clone() {
-                        map.entities = entities;
-                    }
                     if let Some((layer, chunk)) = map_update.chunk.clone() {
                         map.set_chunk(layer, chunk);
                     }
@@ -230,6 +227,9 @@ pub async fn handle_admin_to_system_event(
             match BlueprintService::load_resource_by_path(&path) {
                 ResourceLoaded::Tileset(tileset) => {
                     send_editor_event(EditorEvent::SetTileset(tileset));
+                }
+                ResourceLoaded::Scene(_scene) => {
+                    debug!("Need to implement for scene");
                 }
                 ResourceLoaded::Map(map) => {
                     send_editor_event(EditorEvent::SetMap(map));
