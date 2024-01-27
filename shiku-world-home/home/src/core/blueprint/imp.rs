@@ -1,20 +1,18 @@
-use std::fs;
-use std::fs::{create_dir_all, remove_dir_all, rename, File};
+use std::fs::{create_dir_all, File};
 use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use log::{debug, error};
-use uuid::Uuid;
 use walkdir::WalkDir;
 
+use crate::core::{cantor_pair, get_out_dir, safe_unwrap};
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, BlueprintService, Chunk, Conductor, FileBrowserFileKind,
     FileBrowserResult, GameMap, GidMap, LayerKind, Module, ResourceKind, ResourceLoaded,
     Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::{cantor_pair, get_out_dir, safe_unwrap};
 
 impl Module {
     pub fn new(name: String, id: String) -> Module {
@@ -84,7 +82,7 @@ impl BlueprintService {
                 FileBrowserFileKind::Folder => {
                     file_browser_entry.dirs.push(file_name.into());
                 }
-                FileBrowserFileKind::Module => {}
+                FileBrowserFileKind::Module | FileBrowserFileKind::Conductor => {}
                 FileBrowserFileKind::Unknown => {
                     error!("Unknown file type: {}", file_name);
                 }
@@ -162,6 +160,7 @@ impl BlueprintService {
         let parts: Vec<&str> = file_name.split('.').collect();
 
         match parts.as_slice() {
+            ["conductor", "json"] => FileBrowserFileKind::Conductor,
             [_, "tileset", "json"] => FileBrowserFileKind::Tileset,
             [_, "map", "json"] => FileBrowserFileKind::Map,
             [_, "scene", "json"] => FileBrowserFileKind::Scene,
@@ -169,79 +168,6 @@ impl BlueprintService {
             [_] => FileBrowserFileKind::Folder,
             _ => FileBrowserFileKind::Unknown,
         }
-    }
-
-    pub fn module_exists(module_name: &String) -> bool {
-        let dir_path = get_out_dir().join("modules").join(module_name);
-        let file_path = dir_path.join(format!("{}.json", module_name));
-        file_path.exists()
-    }
-
-    pub fn change_module_name(module: &mut Module, new_name: String) -> Result<(), BlueprintError> {
-        if Self::module_exists(&new_name) {
-            return Err(BlueprintError::FileAlreadyExists);
-        }
-        let old_module_path = get_out_dir().join("modules").join(&module.name);
-        let new_module_path = get_out_dir().join("modules").join(&new_name);
-        rename(old_module_path, new_module_path)?;
-        let old_file_name = get_out_dir()
-            .join("modules")
-            .join(&new_name)
-            .join(format!("{}.json", &module.name));
-        let new_file_name = get_out_dir()
-            .join("modules")
-            .join(&new_name)
-            .join(format!("{}.json", &new_name));
-        rename(old_file_name, new_file_name)?;
-        module.name = new_name;
-        Ok(())
-    }
-
-    pub fn delete_module(module_name: &String) -> Result<(), BlueprintError> {
-        let module_path = get_out_dir().join("modules").join(module_name);
-        debug!("Removing {:?}", module_path.to_str());
-        remove_dir_all(module_path)?;
-        Ok(())
-    }
-
-    pub fn create_module(module_name: String) -> Result<Module, BlueprintError> {
-        let dir_path = get_out_dir().join("modules").join(&module_name);
-
-        create_dir_all(&dir_path)?;
-
-        let file_path = dir_path.join(format!("{}.json", &module_name));
-        if file_path.exists() {
-            return Err(BlueprintError::FileAlreadyExists);
-        }
-
-        let module = Module::new(module_name, Uuid::new_v4().to_string());
-        Self::save_module(&module)?;
-
-        Ok(module)
-    }
-
-    pub fn lazy_load_module(module_name: String) -> Result<Module, BlueprintError> {
-        let result = Self::create_module(module_name.clone());
-        if let Err(BlueprintError::FileAlreadyExists) = result {
-            Self::load_module(module_name)
-        } else {
-            result
-        }
-    }
-
-    pub fn get_all_modules() -> Result<Vec<Module>, BlueprintError> {
-        let dir_path = get_out_dir().join("modules");
-        let paths = fs::read_dir(dir_path)?;
-        let mut modules = Vec::new();
-        for path in paths {
-            let module_name = path?
-                .file_name()
-                .into_string()
-                .unwrap_or("MODULE_NAME_BROKEN".into());
-            modules.push(Self::load_module(module_name)?);
-        }
-
-        Ok(modules)
     }
 
     pub fn load_all_maps_for_module(module: &Module) -> Result<Vec<GameMap>, BlueprintError> {
@@ -256,28 +182,6 @@ impl BlueprintService {
         }
 
         Ok(maps)
-    }
-
-    pub fn load_module(module_name: String) -> Result<Module, BlueprintError> {
-        let dir_path = get_out_dir().join("modules").join(&module_name);
-        let file_path = dir_path.join(format!("{}.json", &module_name));
-        if !file_path.exists() {
-            return Err(BlueprintError::FileDoesNotExist(format!("{:?}", file_path)));
-        }
-
-        let file = File::open(file_path)?;
-        let reader = BufReader::new(file);
-        Ok(serde_json::from_reader(reader)?)
-    }
-
-    pub fn save_module(module: &Module) -> Result<(), BlueprintError> {
-        let file_path = get_out_dir()
-            .join("modules")
-            .join(&module.name)
-            .join(format!("{}.json", &module.name));
-        let file = File::create(file_path)?;
-        let writer = BufWriter::new(file);
-        Ok(serde_json::to_writer_pretty(writer, module)?)
     }
 
     pub fn load_conductor_blueprint() -> Result<Conductor, BlueprintError> {

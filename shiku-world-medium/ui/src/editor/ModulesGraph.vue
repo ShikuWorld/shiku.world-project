@@ -157,7 +157,7 @@ onMounted(async () => {
   AreaExtensions.simpleNodesOrder(area);
   AreaExtensions.zoomAt(area, editor.getNodes());
   area.signal.addPipe((context: { data: Connection<Node>; type: string }) => {
-    if (context.type.includes("connectioncreate")) {
+    if (context.type === "connectioncreate") {
       if (context.data.change_from_server) {
         context.data.change_from_server = false;
         connection_map[context.data.sourceOutput] = context.data;
@@ -176,7 +176,7 @@ onMounted(async () => {
       });
       return false;
     }
-    if (context.type.includes("connectionremove")) {
+    if (context.type === "connectionremove") {
       if (context.data.change_from_server) {
         delete connection_map[context.data.sourceOutput];
         context.data.change_from_server = false;
@@ -192,9 +192,9 @@ onMounted(async () => {
       save_conductor_server(new_conductor);
       return false;
     }
-    if (context.type.includes("nodepicked")) {
+
+    if (context.type === "nodepicked") {
       if (!node_to_module_map[context.data.id]) {
-        console.log(context, node_to_module_map);
         console.error(`No module for this id?!`);
         return;
       }

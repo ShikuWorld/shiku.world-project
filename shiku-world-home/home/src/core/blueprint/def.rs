@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::ffi::OsString;
 use std::hash::Hash;
 
 use rapier2d::math::Real;
@@ -63,6 +64,7 @@ pub struct FileBrowserResult {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum FileBrowserFileKind {
+    Conductor,
     Module,
     Map,
     Tileset,
@@ -362,13 +364,17 @@ pub enum BlueprintError {
     #[error("Could not load blueprint due to IO error.")]
     IOError(#[from] std::io::Error),
     #[error("Lock Poisoned while writing.")]
-    WritePoison,
+    WritePoison(&'static str),
     #[error("Lock Poisoned while reading.")]
-    ReadPoison,
+    ReadPoison(&'static str),
     #[error("Could not load blueprint due to malformed json.")]
     SerdeJSON(#[from] serde_json::error::Error),
     #[error("Impossible error")]
     Impossible(#[from] Infallible),
+    #[error("Failed to convert to String from OsString")]
+    ConversionToString(OsString),
+    #[error("Failed to convert to PathBuf to str")]
+    ConversionToStr,
     #[error("File Browsing error")]
     FileBrowsing(#[from] WalkDirError),
     #[error("OS String parsing error")]

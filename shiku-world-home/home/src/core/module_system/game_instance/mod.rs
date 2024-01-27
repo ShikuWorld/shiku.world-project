@@ -6,20 +6,20 @@ use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
+use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, Chunk, GameMap, LayerKind, ResourceKind, TerrainParams,
 };
-use crate::core::blueprint::def::{BlueprintService, Module};
+use crate::core::blueprint::def::Module;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
-    create_module_communication, AdminEnterSuccessState, AdminLeftSuccessState, EnterFailedState,
+    AdminEnterSuccessState, AdminLeftSuccessState, create_module_communication, EnterFailedState,
     EnterSuccessState, LeaveFailedState, LeaveSuccessState, ModuleInputReceiver, ModuleInputSender,
     ModuleOutputReceiver, ModuleOutputSender, ModuleToSystemEvent, SystemToModuleEvent,
 };
 use crate::core::module_system::def::{DynamicGameModule, WorldId};
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
-use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
 use crate::resource_module::def::{LoadResource, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 
@@ -54,7 +54,8 @@ impl GameInstanceManager {
         (GameInstanceManager, ModuleInputSender, ModuleOutputReceiver),
         CreateInstanceManagerError,
     > {
-        let module_blueprint = BlueprintService::lazy_load_module(module_name)?;
+        let module_blueprint = Blueprint::load_module(&module_name)?;
+        debug!("{:?}", module_blueprint);
         let (input_sender, input_receiver, output_sender, output_receiver) =
             create_module_communication();
         let manager = GameInstanceManager {

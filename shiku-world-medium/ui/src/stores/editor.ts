@@ -126,6 +126,7 @@ export const use_editor_store = defineStore("editor", {
       this.selected_tile_id = tile_id;
     },
     set_sidebar_editor(editor: EditorStore["side_bar_editor"]) {
+      console.log(editor);
       this.side_bar_editor = editor;
     },
     set_selected_resource_tab(index: number) {

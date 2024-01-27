@@ -1,4 +1,4 @@
-    use std::collections::HashSet;
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use flume::Sender;
@@ -10,13 +10,13 @@ use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap};
 use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
+use crate::core::{log_result_error, send_and_log_error};
 use crate::core::blueprint::def::{
     BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin};
 use crate::core::module::{AdminToSystemEvent, CommunicationEvent, EditorEvent};
-use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
 
@@ -169,7 +169,7 @@ pub async fn handle_admin_to_system_event(
                             .resources
                             .retain(|r| r.path != map_path);
 
-                        match BlueprintService::save_module(&module.module_blueprint) {
+                        match Blueprint::save_module(&module.module_blueprint) {
                             Ok(()) => {
                                 send_editor_event(EditorEvent::UpdatedModule(
                                     module_id,
@@ -199,7 +199,7 @@ pub async fn handle_admin_to_system_event(
                             path: format!("{}/{}.map.json", map.resource_path, map.name),
                             kind: ResourceKind::Map,
                         });
-                        match BlueprintService::save_module(&module.module_blueprint) {
+                        match Blueprint::save_module(&module.module_blueprint) {
                             Ok(()) => {
                                 module
                                     .create_world(&map)
@@ -271,7 +271,7 @@ pub async fn handle_admin_to_system_event(
                     error!("Could not load conductor! {:?}", err);
                 }
             }
-            match BlueprintService::get_all_modules() {
+            match Blueprint::get_all_modules() {
                 Ok(modules) => {
                     send_editor_event(EditorEvent::Modules(modules));
                 }
@@ -310,9 +310,11 @@ pub async fn handle_admin_to_system_event(
             Err(err) => error!("Could not delete tileset: {:?}", err),
         },
         AdminToSystemEvent::UpdateModule(module_id, module_update) => {
+            debug!("Module update {:?} {:?}", module_map.keys(), module_id);
             if let Some(module) = module_map.get_mut(&module_id) {
+                debug!("module found");
                 if let Some(new_name) = module_update.name {
-                    log_result_error(BlueprintService::change_module_name(
+                    log_result_error(Blueprint::change_module_name(
                         &mut module.module_blueprint,
                         new_name,
                     ));
@@ -332,7 +334,9 @@ pub async fn handle_admin_to_system_event(
                     }
                 }
                 if let Some(insert_points) = module_update.insert_points {
+                    debug!("Updating insert points");
                     if let Ok(mut conductor) = BlueprintService::load_conductor_blueprint() {
+                        debug!("Loaded da blueprint");
                         let current_insert_points =
                             Blueprint::io_points_to_hashset(&module.module_blueprint.insert_points);
                         let new_insert_points: HashSet<String> =
@@ -372,7 +376,7 @@ pub async fn handle_admin_to_system_event(
                     }
                     module.module_blueprint.exit_points = exit_points;
                 }
-                log_result_error(BlueprintService::save_module(&module.module_blueprint));
+                log_result_error(Blueprint::save_module(&module.module_blueprint));
                 send_editor_event(EditorEvent::UpdatedModule(
                     module_id,
                     module.module_blueprint.clone(),
@@ -380,7 +384,7 @@ pub async fn handle_admin_to_system_event(
             }
         }
         AdminToSystemEvent::CreateModule(module_name) => {
-            if BlueprintService::module_exists(&module_name) {
+            if Blueprint::module_exists(&module_name) {
                 error!("Module already existed!");
                 return;
             }

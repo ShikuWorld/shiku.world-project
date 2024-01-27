@@ -28,7 +28,7 @@
           <ModuleInstanceList
             :module="selected_module"
             :show_current_instance="true"
-            :module_instances="module_instance_map[selected_module.id]"
+            :module_instances="module_instance_map[selected_module.id] || []"
             @world_click="select_as_main_instance"
           />
         </v-expansion-panel>
@@ -52,7 +52,7 @@
         <ModulesEditor
           v-if="selected_module"
           :module="selected_module"
-          :module_instances="module_instance_map[selected_module.id]"
+          :module_instances="module_instance_map[selected_module.id] || []"
         ></ModulesEditor>
       </div>
       <div v-if="side_bar_editor === 'map'">

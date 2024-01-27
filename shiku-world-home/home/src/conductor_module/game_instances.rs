@@ -1,9 +1,11 @@
+use log::error;
+
 use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap};
-use crate::core::blueprint::def::{BlueprintError, BlueprintService, ModuleId};
+use crate::core::blueprint::def::{BlueprintError, ModuleId};
+use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::module::{ModuleIO, ModuleName};
 use crate::core::module_system::game_instance::GameInstanceManager;
 use crate::resource_module::def::ResourceModule;
-use log::error;
 
 pub fn create_game_instance_manager(
     module_name: ModuleName,
@@ -40,7 +42,7 @@ pub fn remove_game_instance_manager(
     if let Some(instance_manager) = module_map.remove(module_id) {
         module_communication_map.remove(module_id);
         resource_module.unregister_resources_for_module(module_id);
-        BlueprintService::delete_module(&instance_manager.module_blueprint.name)?;
+        Blueprint::delete_module(&instance_manager.module_blueprint.name)?;
     } else {
         return Err(BlueprintError::FileDoesNotExist(
             "Instance Manager not there".into(),

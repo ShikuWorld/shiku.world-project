@@ -6,14 +6,14 @@ use std::io::Write;
 
 use dotenv::dotenv;
 use env_logger::Builder;
-use log::{debug, LevelFilter};
+use log::LevelFilter;
 use spin_sleep::LoopHelper;
 
 use crate::conductor_module::def::ConductorModule;
-use crate::core::blueprint::def::{BlueprintError, BlueprintService};
-use crate::core::module::SystemModule;
 use crate::core::{blueprint, TARGET_FPS};
+use crate::core::blueprint::def::{BlueprintError, BlueprintService};
 use crate::core::blueprint::resource_cache::init_resource_cache;
+use crate::core::module::SystemModule;
 use crate::resource_module::def::ResourceModule;
 use crate::websocket_module::WebsocketModule;
 
@@ -36,7 +36,6 @@ async fn main() {
         .filter(None, LevelFilter::Debug)
         .init();
 
-    debug!("Uh okay?");
     init_resource_cache().expect("Resource cache should initialize without problems.");
 
     let mut websocket_module = WebsocketModule::new();

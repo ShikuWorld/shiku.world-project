@@ -18,6 +18,7 @@ use crate::conductor_module::game_instances::create_game_instance_manager;
 use crate::core::{blueprint, send_and_log_error, send_and_log_error_custom};
 use crate::core::{LOGGED_IN_TODAY_DELAY_IN_HOURS, safe_unwrap, Snowflake};
 use crate::core::blueprint::def::{BlueprintService, GidMap, ModuleId, TerrainParams, Tileset};
+use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{
     ActorId, Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId,
 };
@@ -162,7 +163,7 @@ impl ConductorModule {
         let (sender, receiver) = unbounded();
         let system_to_admin_communication = SystemCommunicationIO { receiver, sender };
 
-        let modules = BlueprintService::get_all_modules().unwrap();
+        let modules = Blueprint::get_all_modules().unwrap();
         for module in modules {
             create_game_instance_manager(
                 module.name.clone(),
