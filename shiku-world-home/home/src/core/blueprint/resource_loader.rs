@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::core::blueprint::def::{BlueprintError, GameMap, IOPoint, Module, ResourcePath, Scene, Tileset};
 use crate::core::blueprint::resource_cache::get_resource_cache;
 use crate::core::get_out_dir;
+use crate::core::module::ModuleName;
 
 pub struct Blueprint;
 
@@ -208,11 +209,11 @@ impl Blueprint {
         Self::create(module, &module_path, &module.name, "module", &resources.modules)
     }
 
-    pub fn lazy_load_module(module_name: String) -> Result<Module, BlueprintError> {
+    pub fn lazy_create_module(module_name: &ModuleName) -> Result<Module, BlueprintError> {
         let module = Module::new(module_name.clone(), Uuid::new_v4().to_string());
         let result = Self::create_module(&module);
         if let Err(BlueprintError::FileAlreadyExists) = result {
-            Self::load_module(&module_name)
+            Self::load_module(module_name)
         } else {
             Ok(module)
         }

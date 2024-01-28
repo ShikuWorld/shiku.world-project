@@ -166,7 +166,7 @@ impl ConductorModule {
         let modules = Blueprint::get_all_modules().unwrap();
         for module in modules {
             create_game_instance_manager(
-                module.name.clone(),
+                module.clone(),
                 &mut module_map,
                 &mut resource_module,
                 &mut module_communication_map,

@@ -384,21 +384,24 @@ pub async fn handle_admin_to_system_event(
             }
         }
         AdminToSystemEvent::CreateModule(module_name) => {
-            if Blueprint::module_exists(&module_name) {
-                error!("Module already existed!");
-                return;
-            }
-            if let Some(module_id) = create_game_instance_manager(
-                module_name,
-                module_map,
-                resource_module,
-                module_communication_map,
-            ) {
-                if let Some(module) = module_map.get(&module_id) {
-                    send_editor_event(EditorEvent::CreatedModule(
-                        module_id,
-                        module.module_blueprint.clone(),
-                    ));
+            match Blueprint::lazy_create_module(&module_name) {
+                Ok(module_blueprint) => {
+                    if let Some(module_id) = create_game_instance_manager(
+                        module_blueprint,
+                        module_map,
+                        resource_module,
+                        module_communication_map,
+                    ) {
+                        if let Some(module) = module_map.get(&module_id) {
+                            send_editor_event(EditorEvent::CreatedModule(
+                                module_id,
+                                module.module_blueprint.clone(),
+                            ));
+                        }
+                    }
+                }
+                Err(err) => {
+                    debug!("Could not create module: {:?}", err);
                 }
             }
         }

@@ -48,13 +48,12 @@ pub struct GameInstanceManager {
 
 impl GameInstanceManager {
     pub fn new(
-        module_name: String,
+        module_blueprint: Module,
         resource_module: &mut ResourceModule,
     ) -> Result<
         (GameInstanceManager, ModuleInputSender, ModuleOutputReceiver),
         CreateInstanceManagerError,
     > {
-        let module_blueprint = Blueprint::load_module(&module_name)?;
         debug!("{:?}", module_blueprint);
         let (input_sender, input_receiver, output_sender, output_receiver) =
             create_module_communication();
