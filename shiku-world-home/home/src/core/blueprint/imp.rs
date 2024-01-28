@@ -164,7 +164,7 @@ impl BlueprintService {
             [_, "tileset", "json"] => FileBrowserFileKind::Tileset,
             [_, "map", "json"] => FileBrowserFileKind::Map,
             [_, "scene", "json"] => FileBrowserFileKind::Scene,
-            [_, "json"] => FileBrowserFileKind::Module,
+            [_, "module", "json"] => FileBrowserFileKind::Module,
             [_] => FileBrowserFileKind::Folder,
             _ => FileBrowserFileKind::Unknown,
         }
