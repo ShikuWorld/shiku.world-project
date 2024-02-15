@@ -277,6 +277,7 @@ impl GameInstanceManager {
             Self::loading_resources_from_blueprint_resource(resource)
                 .into_iter()
                 .for_each(|resource| {
+                    debug!("Registering {:?}", resource);
                     resource_module
                         .register_resource_for_module(self.module_blueprint.id.clone(), resource)
                 });

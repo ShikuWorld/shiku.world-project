@@ -13,8 +13,8 @@
         variant="accordion"
         v-if="selected_module"
       >
-        <v-expansion-panel title="Maps">
-          <v-expansion-panel-text> </v-expansion-panel-text>
+        <v-expansion-panel title="Scene" v-if="current_main_map">
+          <v-expansion-panel-text><scene-list :scene="current_main_map.main_scene"></scene-list></v-expansion-panel-text>
         </v-expansion-panel>
         <v-expansion-panel title="Resources">
           <v-expansion-panel-text>
@@ -83,6 +83,7 @@ import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 import { GameMap } from "@/editor/blueprints/GameMap";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import TileSelector from "@/editor/editor/TileSelector.vue";
+import SceneList from "@/editor/editor/SceneList.vue";
 
 const tab = ref<number>(0);
 const {
