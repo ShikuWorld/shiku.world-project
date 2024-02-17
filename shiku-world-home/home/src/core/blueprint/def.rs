@@ -250,10 +250,10 @@ pub struct Scene {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum GameNodeKind {
-    Scene(ResourcePath),
-    Group(GameNode<String>),
+    Instance(ResourcePath),
+    Container(GameNode<String>),
     Physics(GameNode<Physicality>),
-    Render(GameNode<Physicality>)
+    Render(GameNode<Render>)
 }
 
 type GameNodeId = String;
@@ -270,8 +270,8 @@ pub struct GameNodeInheritance {
 pub struct GameNode<T> {
     pub id: GameNodeId,
     pub name: String,
-    pub inherits: Option<GameNodeId>,
     pub data: T,
+    pub script: Option<String>,
     pub children: Vec<GameNodeKind>
 }
 
@@ -287,6 +287,7 @@ pub struct Physicality {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum BodyType {
+    None,
     RigidBody(RigidBody),
 }
 
@@ -342,7 +343,8 @@ pub enum LayerKind {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum RenderKind {
-    None,
+    AnimatedSprite,
+    Sprite
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
