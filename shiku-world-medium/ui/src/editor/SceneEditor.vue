@@ -11,13 +11,17 @@
     <v-menu activator="#menu-activator">
       <v-list>
         <v-list-item v-for="node_type in node_type_options">
-          <v-list-item-title @click="add_node_type(node_type.value)">{{
-            node_type.label
-          }}</v-list-item-title>
+          <v-list-item-title
+            @click="add_node_type(selected_node, node_type.value)"
+            >{{ node_type.label }}</v-list-item-title
+          >
         </v-list-item>
       </v-list>
     </v-menu>
-    <scene-node-list :node="scene.root_node"></scene-node-list>
+    <scene-node-list
+      @node-selected="on_node_selected"
+      :node="scene.root_node"
+    ></scene-node-list>
   </div>
 </template>
 
@@ -28,57 +32,82 @@
 </style>
 
 <script lang="ts" setup>
-import { toRefs } from "vue";
+import { onMounted, Ref, ref, toRefs } from "vue";
 import type { Scene } from "@/editor/blueprints/Scene";
 import SceneNodeList from "@/editor/editor/SceneNodeList.vue";
 import { mdiPlus } from "@mdi/js";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { match } from "ts-pattern";
-import { GameNode } from "@/editor/blueprints/GameNode";
 import { v4 as uuidv4 } from "uuid";
-import { Physicality } from "@/editor/blueprints/Physicality";
-import { Render } from "@/editor/blueprints/Render";
-import { RenderKind } from "@/editor/blueprints/RenderKind";
 type KeysOfUnion<T> = T extends T ? keyof T : never;
 const node_type_options: { value: KeysOfUnion<GameNodeKind>; label: string }[] =
   [
     { value: "Instance", label: "Instance" },
     { value: "Render", label: "Render" },
-    { value: "Physics", label: "Physics" },
-    { value: "Container", label: "Container" },
+    { value: "Collider", label: "Collider" },
+    { value: "RigidBody", label: "RigidBody" },
   ];
 const props = defineProps<{ scene: Scene }>();
 const { scene } = toRefs(props);
-function add_node_type(
-  node: GameNode<unknown>,
-  value: KeysOfUnion<GameNodeKind>,
-) {
-  node.children.push(
+let selected_node: Ref<GameNodeKind>;
+
+onMounted(() => {
+  selected_node = ref(scene.value.root_node);
+});
+
+function on_node_selected(node: GameNodeKind) {
+  console.log(node);
+  selected_node.value = node;
+}
+
+function add_node_type(node: GameNodeKind, value: KeysOfUnion<GameNodeKind>) {
+  const game_node = Object.values(node)[0];
+  if (!node) {
+    console.error("Tried to add node to undefined node.");
+    return;
+  }
+  if (value === "Instance") {
+    console.error("Cannot add instances here");
+    return;
+  }
+  game_node.children.push(
     match(value)
       .with(
-        "Container",
+        "RigidBody",
         (): GameNodeKind => ({
-          Container: {
-            name: "Container",
+          RigidBody: {
+            name: "RigidBody",
             id: uuidv4(),
-            data: "",
+            data: {
+              position: [0, 0],
+              velocity: [0, 0],
+              rotation: 0,
+              body: "Dynamic",
+            },
             script: null,
             children: [],
           },
         }),
       )
       .with(
-        "Physics",
+        "Collider",
         (): GameNodeKind => ({
-          Physics: {
-            name: "Physics",
+          Collider: {
+            name: "Collider",
             id: uuidv4(),
-            data: {
-              position: [0, 0],
-              velocity: [0, 0],
-              rotation: 0,
-              body: "None",
-            },
+            data: { kind: "Solid", shape: { Ball: 0 } },
+            script: null,
+            children: [],
+          },
+        }),
+      )
+      .with(
+        "Node",
+        (): GameNodeKind => ({
+          Node: {
+            name: "Node",
+            id: uuidv4(),
+            data: "",
             script: null,
             children: [],
           },
@@ -96,7 +125,6 @@ function add_node_type(
           },
         }),
       )
-      .with("Instance", (): GameNodeKind => ({ Instance: "" }))
       .exhaustive(),
   );
 }

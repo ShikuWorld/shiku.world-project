@@ -5,9 +5,7 @@ use flume::Sender;
 use log::{debug, error};
 use tokio::time::Instant;
 
-use crate::core::blueprint::def::{
-    BlueprintService, Chunk, GameMap, LayerKind, Module, ModuleId, TerrainParams,
-};
+use crate::core::blueprint::def::{BlueprintService, Chunk, GameMap, LayerKind, Module, ModuleId, Scene, TerrainParams};
 use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
@@ -69,13 +67,14 @@ impl DynamicGameModule {
         self.world_map.insert(
             game_map.world_id.clone(),
             World {
-                apecs_world: ApecsWorld::default(),
                 terrain_params: TerrainParams {
                     chunk_size: game_map.chunk_size,
                     tile_height: game_map.tile_height,
                     tile_width: game_map.tile_width,
                 },
                 terrain_tmp: game_map.terrain.clone(),
+                world_scene: game_map.main_scene.clone(),
+                instance_resource_map: HashMap::new(),
             },
         );
         self.world_to_admin.init(game_map.world_id.clone());

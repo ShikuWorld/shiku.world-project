@@ -48,12 +48,15 @@ const game_map = reactive<GameMap>({
     id: "root",
     name: "Main",
     resource_path: "",
-    root_node: {Group: {
-      name: "Main",
-      id: "",
-      inherits: null,
-      data: "",
-      children:[]}}
+    root_node: {
+      Node: {
+        name: "Main",
+        id: "",
+        script: null,
+        data: "",
+        children: [],
+      },
+    },
   },
   name: "",
   resource_path: "",

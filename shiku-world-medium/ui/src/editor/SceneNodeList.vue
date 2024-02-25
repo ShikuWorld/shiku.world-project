@@ -1,45 +1,64 @@
 <template>
-  <div class="entities-list">
-    <div v-if="instance_node">{{ instance_node }}</div>
-    <div v-if="container_node">
-      <span>{{ container_node.name }}</span>
-      <div v-for="n in container_node.children">
-        <SceneNodeList :node="n"></SceneNodeList>
-      </div>
-    </div>
-    <div v-if="physics_node">
-      <span>{{ physics_node.name }}</span>
-      <div v-for="n in physics_node.children">
-        <SceneNodeList :node="n"></SceneNodeList>
-      </div>
-    </div>
-    <div v-if="render_node">
-      <span>{{ render_node.name }}</span>
-      <div v-for="n in render_node.children">
-        <SceneNodeList :node="n"></SceneNodeList>
-      </div>
+  <div
+    class="node-container"
+    :class="{ 'node-container--selected': node === selected_node }"
+    ref="root"
+    @click="on_node_click($event, node)"
+  >
+    <component :is="get_game_node_settings_component(node_type)"></component>
+    <div v-for="n in game_node.children">
+      <SceneNodeList
+        @node-selected="emit_node_selected(n)"
+        :node="n"
+      ></SceneNodeList>
     </div>
   </div>
 </template>
 
 <style>
-.entities-list {
+.node-container {
+  cursor: pointer;
+
   padding: 10px;
+}
+.node-container--selected {
+  background-color: red;
 }
 </style>
 
 <script lang="ts" setup>
-import {computed, toRefs} from "vue";
-import {GameNodeKind} from "@/editor/blueprints/GameNodeKind";
-import type {GameNode} from "@/editor/blueprints/GameNode";
-import type {Physicality} from "@/editor/blueprints/Physicality";
-import {Render} from "@/editor/blueprints/Render";
+import { computed, defineAsyncComponent, ref, Ref, toRefs } from "vue";
+import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
+import type { GameNode } from "@/editor/blueprints/GameNode";
 
 const props = defineProps<{ node: GameNodeKind }>();
 const { node } = toRefs(props);
+const emit = defineEmits<{
+  (e: "nodeSelected", value: GameNodeKind): void;
+}>();
 
-const instance_node = computed(() => "Instance" in node ? node.Instance as string : undefined);
-const container_node = computed(() => "Container" in node ? node.Container as GameNode<string>: undefined);
-const physics_node = computed(() => "Physics" in node ? node.Physics as GameNode<Physicality> : undefined);
-const render_node = computed(() => "Render" in node ? node.Render as GameNode<Render> : undefined);
+const selected_node: Ref<GameNodeKind | undefined> = ref();
+const root = ref(null);
+
+function on_node_click($event: MouseEvent, node: GameNodeKind) {
+  if ($event.target === root.value) {
+    selected_node.value = node;
+    emit("nodeSelected", node);
+  }
+}
+
+function emit_node_selected(node: GameNodeKind) {
+  selected_node.value = node;
+  emit("nodeSelected", node);
+}
+const node_type = computed(() => Object.keys(node.value)[0]);
+const game_node = computed(
+  () => Object.values(node.value)[0] as GameNode<unknown>,
+);
+
+function get_game_node_settings_component(component_name: string) {
+  return defineAsyncComponent(
+    () => import(/* @vite-ignore */ `./game_nodes/${component_name}.vue`),
+  );
+}
 </script>

@@ -1,13 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::blueprint::def::{Chunk, LayerKind, ModuleId, TerrainParams};
-use apecs::World as ApecsWorld;
 use tokio::time::Instant;
 
+use crate::core::blueprint::def::{Chunk, LayerKind, ModuleId, NodeInstanceId, ResourcePath, Scene, TerrainParams};
 use crate::core::guest::ActorId;
+use crate::core::LazyHashmapSet;
 use crate::core::module::{GuestInput, ModuleInputReceiver, ModuleOutputSender};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::core::LazyHashmapSet;
 
 pub struct GuestCommunication {
     pub resources_loaded: bool,
@@ -37,9 +36,10 @@ pub type AdminSet = HashSet<ActorId>;
 pub type WorldId = String;
 
 pub struct World {
-    pub apecs_world: ApecsWorld,
     pub terrain_tmp: HashMap<LayerKind, HashMap<u32, Chunk>>,
     pub terrain_params: TerrainParams,
+    pub world_scene: Scene,
+    pub instance_resource_map: HashMap<ResourcePath, HashSet<NodeInstanceId>>
 }
 
 pub struct DynamicGameModule {

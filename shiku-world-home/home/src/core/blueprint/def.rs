@@ -250,20 +250,15 @@ pub struct Scene {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum GameNodeKind {
-    Instance(ResourcePath),
-    Container(GameNode<String>),
-    Physics(GameNode<Physicality>),
+    Instance(GameNode<ResourcePath>),
+    Node(GameNode<String>),
+    RigidBody(GameNode<RigidBody>),
+    Collider(GameNode<Collider>),
     Render(GameNode<Render>)
 }
 
-type GameNodeId = String;
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct GameNodeInheritance {
-    pub parent_id: GameNodeId,
-    pub overrides: HashMap<GameNodeId, GameNodeKind>
-}
+pub type GameNodeId = String;
+pub type NodeInstanceId = usize;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
@@ -277,25 +272,42 @@ pub struct GameNode<T> {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub struct Physicality {
-    pub position: (Real, Real),
-    pub velocity: (Real, Real),
-    pub rotation: Real,
-    pub body: BodyType,
+pub struct Collider {
+    kind: ColliderKind,
+    shape: ColliderShape
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub enum BodyType {
-    None,
-    RigidBody(RigidBody),
+pub enum ColliderShape {
+    Ball(f32),
+    CapsuleX(f32, f32),
+    CapsuleY(f32, f32),
+    Cuboid(f32, f32)
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum ColliderKind {
+    Solid,
+    Sensor
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct RigidBody {
-    collision_shape: CollisionShape,
-    joints: Vec<JointId>,
+    pub position: (Real, Real),
+    pub velocity: (Real, Real),
+    pub rotation: Real,
+    pub body: RigidBodyType,
+}
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum RigidBodyType {
+    Dynamic,
+    Fixed,
+    KinematicPositionBased,
+    KinematicVelocityBased
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

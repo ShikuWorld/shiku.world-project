@@ -54,7 +54,6 @@ impl GameInstanceManager {
         (GameInstanceManager, ModuleInputSender, ModuleOutputReceiver),
         CreateInstanceManagerError,
     > {
-        debug!("{:?}", module_blueprint);
         let (input_sender, input_receiver, output_sender, output_receiver) =
             create_module_communication();
         let manager = GameInstanceManager {
