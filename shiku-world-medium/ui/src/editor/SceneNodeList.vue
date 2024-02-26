@@ -1,16 +1,18 @@
 <template>
-  <div
-    class="node-container"
-    :class="{ 'node-container--selected': node === selected_node }"
-    ref="root"
-    @click="on_node_click($event, node)"
-  >
-    <component :is="get_game_node_settings_component(node_type)"></component>
+  <div class="node-container">
+    <div
+      class="node-component"
+      :class="{ 'node-container--selected': node === selected_node }"
+      @click="on_node_click($event, node)"
+      ref="comp"
+    >
+      <component
+        :is="get_game_node_settings_component(node_type)"
+        :key="game_node.id"
+      ></component>
+    </div>
     <div v-for="n in game_node.children">
-      <SceneNodeList
-        @node-selected="emit_node_selected(n)"
-        :node="n"
-      ></SceneNodeList>
+      <SceneNodeList :node="n"></SceneNodeList>
     </div>
   </div>
 </template>
@@ -27,30 +29,28 @@
 </style>
 
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, ref, Ref, toRefs } from "vue";
+import { computed, defineAsyncComponent, ref, toRefs } from "vue";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import type { GameNode } from "@/editor/blueprints/GameNode";
+import { use_inspector_store } from "@/editor/stores/inspector";
+import { storeToRefs } from "pinia";
 
 const props = defineProps<{ node: GameNodeKind }>();
 const { node } = toRefs(props);
-const emit = defineEmits<{
-  (e: "nodeSelected", value: GameNodeKind): void;
-}>();
 
-const selected_node: Ref<GameNodeKind | undefined> = ref();
-const root = ref(null);
+const comp = ref<HTMLElement>();
+const { component_stores } = storeToRefs(use_inspector_store());
+const selected_node = computed(
+  () => component_stores.value.game_node.selected_game_node,
+);
 
+const { select_game_node } = use_inspector_store();
 function on_node_click($event: MouseEvent, node: GameNodeKind) {
-  if ($event.target === root.value) {
-    selected_node.value = node;
-    emit("nodeSelected", node);
+  if (comp.value && $event.target === comp.value.children[0]) {
+    select_game_node(node);
   }
 }
 
-function emit_node_selected(node: GameNodeKind) {
-  selected_node.value = node;
-  emit("nodeSelected", node);
-}
 const node_type = computed(() => Object.keys(node.value)[0]);
 const game_node = computed(
   () => Object.values(node.value)[0] as GameNode<unknown>,

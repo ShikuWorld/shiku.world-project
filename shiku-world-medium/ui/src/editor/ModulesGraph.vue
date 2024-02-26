@@ -64,6 +64,7 @@ import { use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
 import CustomNode from "@/editor/editor/CustomNode.vue";
 import { mdiPlus, mdiRefreshAuto } from "@mdi/js";
+import { use_inspector_store } from "@/editor/stores/inspector";
 
 class Node extends ClassicPreset.Node {
   width = 180;
@@ -102,13 +103,9 @@ let applier: ArrangeAppliers.TransitionApplier<Schemes, never> | undefined =
   undefined;
 const rete = ref<HTMLElement>();
 
-const {
-  set_selected_module_id,
-  set_sidebar_editor,
-  create_module_server,
-  save_conductor_server,
-} = use_editor_store();
-
+const { set_selected_module_id, create_module_server, save_conductor_server } =
+  use_editor_store();
+const { set_inspector_component } = use_inspector_store();
 const new_module_name = ref<string>("");
 
 function create_new_module(module_name: string) {
@@ -199,7 +196,7 @@ onMounted(async () => {
         return;
       }
       set_selected_module_id(node_to_module_map[context.data.id].id);
-      set_sidebar_editor("module");
+      set_inspector_component("module");
     }
     return context;
   });

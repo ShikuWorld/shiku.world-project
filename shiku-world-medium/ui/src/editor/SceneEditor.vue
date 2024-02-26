@@ -18,10 +18,7 @@
         </v-list-item>
       </v-list>
     </v-menu>
-    <scene-node-list
-      @node-selected="on_node_selected"
-      :node="scene.root_node"
-    ></scene-node-list>
+    <scene-node-list :node="scene.root_node"></scene-node-list>
   </div>
 </template>
 
@@ -32,14 +29,17 @@
 </style>
 
 <script lang="ts" setup>
-import { onMounted, Ref, ref, toRefs } from "vue";
+import { computed, toRefs } from "vue";
 import type { Scene } from "@/editor/blueprints/Scene";
 import SceneNodeList from "@/editor/editor/SceneNodeList.vue";
 import { mdiPlus } from "@mdi/js";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { match } from "ts-pattern";
 import { v4 as uuidv4 } from "uuid";
-type KeysOfUnion<T> = T extends T ? keyof T : never;
+import { KeysOfUnion } from "@/editor/utils";
+import { storeToRefs } from "pinia";
+import { use_inspector_store } from "@/editor/stores/inspector";
+
 const node_type_options: { value: KeysOfUnion<GameNodeKind>; label: string }[] =
   [
     { value: "Instance", label: "Instance" },
@@ -49,16 +49,11 @@ const node_type_options: { value: KeysOfUnion<GameNodeKind>; label: string }[] =
   ];
 const props = defineProps<{ scene: Scene }>();
 const { scene } = toRefs(props);
-let selected_node: Ref<GameNodeKind>;
 
-onMounted(() => {
-  selected_node = ref(scene.value.root_node);
-});
-
-function on_node_selected(node: GameNodeKind) {
-  console.log(node);
-  selected_node.value = node;
-}
+const { component_stores } = storeToRefs(use_inspector_store());
+const selected_node = computed(
+  () => component_stores.value.game_node.selected_game_node,
+);
 
 function add_node_type(node: GameNodeKind, value: KeysOfUnion<GameNodeKind>) {
   const game_node = Object.values(node)[0];

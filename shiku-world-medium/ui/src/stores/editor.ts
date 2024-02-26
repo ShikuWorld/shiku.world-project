@@ -36,7 +36,6 @@ export interface EditorStore {
   game_instances: {
     [instance_id: string]: { [world_id: string]: GameInstance };
   };
-  side_bar_editor: "module" | "tile" | "map" | "nothing";
   current_file_browser_result: FileBrowserResult;
 }
 export const use_editor_store = defineStore("editor", {
@@ -44,7 +43,6 @@ export const use_editor_store = defineStore("editor", {
     editor_open: false,
     modules: {},
     module_instance_map: {},
-    side_bar_editor: "nothing",
     main_door_status: false,
     tile_brush: [[0]],
     selected_module_id: "",
@@ -124,10 +122,6 @@ export const use_editor_store = defineStore("editor", {
     set_selected_tile(tileset_path: string, tile_id: number) {
       this.selected_tileset_path = tileset_path;
       this.selected_tile_id = tile_id;
-    },
-    set_sidebar_editor(editor: EditorStore["side_bar_editor"]) {
-      console.log(editor);
-      this.side_bar_editor = editor;
     },
     set_selected_resource_tab(index: number) {
       this.selected_resource_tab = index;

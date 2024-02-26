@@ -80,6 +80,7 @@ import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
 import { match } from "ts-pattern";
 import CreateMap from "@/editor/editor/CreateMap.vue";
 import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
+import { use_inspector_store } from "@/editor/stores/inspector";
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
 const {
@@ -89,8 +90,8 @@ const {
   close_resource,
   get_resource_server,
   set_selected_tile,
-  set_sidebar_editor,
 } = use_editor_store();
+const { set_inspector_component } = use_inspector_store();
 const {
   open_resource_paths,
   modules,
@@ -124,7 +125,7 @@ onMounted(() => {
 
 const on_tile_selected = (g_id: number, tileset_key: string) => {
   set_selected_tile(tileset_key, g_id);
-  set_sidebar_editor("tile");
+  set_inspector_component("tile");
 };
 
 function ensure_resources_are_loaded() {
@@ -138,9 +139,9 @@ function ensure_resources_are_loaded() {
       .with({ kind: "Map" }, (r) => {
         console.log("hm map?", r);
       })
-        .with({ kind: "Scene" }, (r) => {
-          console.log("hm scene?", r);
-        })
+      .with({ kind: "Scene" }, (r) => {
+        console.log("hm scene?", r);
+      })
       .with({ kind: "Unknown" }, () => {})
       .exhaustive();
   }

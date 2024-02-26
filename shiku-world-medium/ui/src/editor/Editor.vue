@@ -49,18 +49,18 @@
       </v-window>
     </div>
     <div class="editor-nav-right">
-      <div v-if="side_bar_editor === 'nothing'">Edit something</div>
-      <div v-if="side_bar_editor === 'module'">
+      <div v-if="active_component === 'nothing'">Edit something</div>
+      <div v-if="active_component === 'module'">
         <ModulesEditor
           v-if="selected_module"
           :module="selected_module"
           :module_instances="module_instance_map[selected_module.id] || []"
         ></ModulesEditor>
       </div>
-      <div v-if="side_bar_editor === 'map'">
+      <div v-if="active_component === 'map'">
         <TileSelector :tilesets="tilesets_of_current_module"></TileSelector>
       </div>
-      <div v-if="side_bar_editor === 'tile'">
+      <div v-if="active_component === 'tile'">
         <TileEditor
           v-if="selected_tileset && selected_tile_id"
           :tileset="selected_tileset"
@@ -86,13 +86,13 @@ import { GameMap } from "@/editor/blueprints/GameMap";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import TileSelector from "@/editor/editor/TileSelector.vue";
 import SceneEditor from "@/editor/editor/SceneEditor.vue";
+import { use_inspector_store } from "@/editor/stores/inspector";
 
 const tab = ref<number>(0);
 const {
   selected_module_id,
   selected_tileset_path,
   selected_tile_id,
-  side_bar_editor,
   module_instance_map,
   current_main_instance,
   game_map_map,
@@ -108,10 +108,11 @@ const {
   set_selected_resource_tab,
   game_instance_exists,
   set_current_main_instance,
-  set_sidebar_editor,
   update_map_server,
   get_resource_server,
 } = use_editor_store();
+const { active_component } = storeToRefs(use_inspector_store());
+const { set_inspector_component } = use_inspector_store();
 load_modules();
 
 const selected_module = computed(() => get_module(selected_module_id?.value));
@@ -140,7 +141,7 @@ function load_map_palette() {
       }
     }
   }
-  set_sidebar_editor("map");
+  set_inspector_component("map");
 }
 const current_main_map = computed<GameMap | undefined>(() => {
   if (current_main_instance.value?.world_id && game_map_map.value) {
