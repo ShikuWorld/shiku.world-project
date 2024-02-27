@@ -6,10 +6,7 @@
       @click="on_node_click($event, node)"
       ref="comp"
     >
-      <component
-        :is="get_game_node_settings_component(node_type)"
-        :key="game_node.id"
-      ></component>
+      {{ game_node.name }}
     </div>
     <div v-for="n in game_node.children">
       <SceneNodeList :node="n"></SceneNodeList>
@@ -29,7 +26,7 @@
 </style>
 
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, ref, toRefs } from "vue";
+import { computed, ref, toRefs } from "vue";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import type { GameNode } from "@/editor/blueprints/GameNode";
 import { use_inspector_store } from "@/editor/stores/inspector";
@@ -46,19 +43,16 @@ const selected_node = computed(
 
 const { select_game_node } = use_inspector_store();
 function on_node_click($event: MouseEvent, node: GameNodeKind) {
-  if (comp.value && $event.target === comp.value.children[0]) {
+  console.log(comp.value, $event.target);
+  if (
+    comp.value &&
+    (comp.value === $event.target || $event.target === comp.value.children[0])
+  ) {
     select_game_node(node);
   }
 }
 
-const node_type = computed(() => Object.keys(node.value)[0]);
 const game_node = computed(
   () => Object.values(node.value)[0] as GameNode<unknown>,
 );
-
-function get_game_node_settings_component(component_name: string) {
-  return defineAsyncComponent(
-    () => import(/* @vite-ignore */ `./game_nodes/${component_name}.vue`),
-  );
-}
 </script>

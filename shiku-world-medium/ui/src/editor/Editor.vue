@@ -50,6 +50,9 @@
     </div>
     <div class="editor-nav-right">
       <div v-if="active_component === 'nothing'">Edit something</div>
+      <div v-if="active_component === 'game_node' && selected_node">
+        <GameNodeInspector :node="selected_node"></GameNodeInspector>
+      </div>
       <div v-if="active_component === 'module'">
         <ModulesEditor
           v-if="selected_module"
@@ -87,6 +90,7 @@ import { LayerKind } from "@/editor/blueprints/LayerKind";
 import TileSelector from "@/editor/editor/TileSelector.vue";
 import SceneEditor from "@/editor/editor/SceneEditor.vue";
 import { use_inspector_store } from "@/editor/stores/inspector";
+import GameNodeInspector from "@/editor/editor/GameNodeInspector.vue";
 
 const tab = ref<number>(0);
 const {
@@ -111,8 +115,15 @@ const {
   update_map_server,
   get_resource_server,
 } = use_editor_store();
-const { active_component } = storeToRefs(use_inspector_store());
+
+const { active_component, component_stores } = storeToRefs(
+  use_inspector_store(),
+);
 const { set_inspector_component } = use_inspector_store();
+const selected_node = computed(
+  () => component_stores.value.game_node.selected_game_node,
+);
+
 load_modules();
 
 const selected_module = computed(() => get_module(selected_module_id?.value));

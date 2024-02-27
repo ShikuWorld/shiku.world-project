@@ -55,12 +55,15 @@ const selected_node = computed(
   () => component_stores.value.game_node.selected_game_node,
 );
 
-function add_node_type(node: GameNodeKind, value: KeysOfUnion<GameNodeKind>) {
-  const game_node = Object.values(node)[0];
+function add_node_type(
+  node: GameNodeKind | undefined,
+  value: KeysOfUnion<GameNodeKind>,
+) {
   if (!node) {
     console.error("Tried to add node to undefined node.");
     return;
   }
+  const game_node = Object.values(node)[0];
   if (value === "Instance") {
     console.error("Cannot add instances here");
     return;

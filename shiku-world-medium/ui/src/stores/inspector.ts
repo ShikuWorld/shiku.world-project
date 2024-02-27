@@ -36,6 +36,7 @@ export const use_inspector_store = defineStore("inspector", {
     },
     select_game_node(game_node: GameNodeKind) {
       this.component_stores.game_node.selected_game_node = game_node;
+      this.active_component = "game_node";
     },
   },
 });
