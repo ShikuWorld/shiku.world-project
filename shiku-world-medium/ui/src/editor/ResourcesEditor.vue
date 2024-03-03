@@ -37,6 +37,11 @@
                 >Map</v-list-item-title
               >
             </v-list-item>
+            <v-list-item>
+              <v-list-item-title @click="create_scene_dialog = true"
+                >Scene</v-list-item-title
+              >
+            </v-list-item>
           </v-list>
         </v-menu>
         <v-dialog v-model="create_tileset_dialog" width="800">
@@ -51,6 +56,12 @@
             @save="save_map"
             :module="selected_module"
           ></CreateMap>
+        </v-dialog>
+        <v-dialog v-model="create_scene_dialog" width="800">
+          <CreateScene
+            @close="create_scene_dialog = false"
+            @save="save_scene"
+          ></CreateScene>
         </v-dialog>
       </v-window-item>
       <v-window-item
@@ -81,24 +92,25 @@ import { match } from "ts-pattern";
 import CreateMap from "@/editor/editor/CreateMap.vue";
 import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
 import { use_inspector_store } from "@/editor/stores/inspector";
+import CreateScene from "@/editor/editor/CreateScene.vue";
+import { Scene } from "@/editor/blueprints/Scene";
+import { use_resources_store } from "@/editor/stores/resources";
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
+const create_scene_dialog = ref(false);
+const { close_resource, set_selected_tile } = use_editor_store();
+const { set_inspector_component } = use_inspector_store();
+const { open_resource_paths, selected_resource_tab, selected_module_id } =
+  storeToRefs(use_editor_store());
+
 const {
   create_tileset_server,
   create_map_server,
+  create_scene_server,
   get_module,
-  close_resource,
   get_resource_server,
-  set_selected_tile,
-} = use_editor_store();
-const { set_inspector_component } = use_inspector_store();
-const {
-  open_resource_paths,
-  modules,
-  selected_resource_tab,
-  selected_module_id,
-  tileset_map,
-} = storeToRefs(use_editor_store());
+} = use_resources_store();
+const { modules, tileset_map } = storeToRefs(use_resources_store());
 const available_resources = computed(
   () =>
     new Map(
@@ -155,6 +167,11 @@ function save_tileset(tileset: Tileset) {
 function save_map(game_map: GameMap) {
   create_map_dialog.value = false;
   create_map_server(game_map);
+}
+
+function save_scene(scene: Scene) {
+  create_scene_dialog.value = false;
+  create_scene_server(scene);
 }
 </script>
 <style></style>

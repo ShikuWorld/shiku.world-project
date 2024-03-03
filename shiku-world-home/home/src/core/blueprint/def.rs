@@ -219,7 +219,7 @@ pub struct GameMap {
     pub chunk_size: u32,
     pub tile_width: u32,
     pub tile_height: u32,
-    pub main_scene: Scene,
+    pub main_scene: ResourcePath,
     pub terrain: HashMap<LayerKind, HashMap<u32, Chunk>>,
 }
 
@@ -229,6 +229,7 @@ pub struct MapUpdate {
     pub name: String,
     pub resource_path: ResourcePath,
     pub chunk: Option<(LayerKind, Chunk)>,
+    pub scene: Option<ResourcePath>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

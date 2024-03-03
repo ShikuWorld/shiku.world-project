@@ -25,10 +25,12 @@ import { GameMap } from "@/editor/blueprints/GameMap";
 import { storeToRefs } from "pinia";
 import { use_editor_store } from "@/editor/stores/editor";
 import { mdiAccessPoint, mdiAccessPointOff, mdiCheckBold } from "@mdi/js";
+import { use_resources_store } from "@/editor/stores/resources";
 
-const { game_map_map, game_instances, current_main_instance } = storeToRefs(
-  use_editor_store(),
-);
+const { game_instances, current_main_instance } =
+  storeToRefs(use_editor_store());
+const { game_map_map } = storeToRefs(use_resources_store());
+
 const props = defineProps<{
   module: Module;
   module_instances: string[];

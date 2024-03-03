@@ -13,11 +13,11 @@
         variant="accordion"
         v-if="selected_module"
       >
-        <v-expansion-panel title="Scene" v-if="current_main_map">
+        <!--<v-expansion-panel title="Scene" v-if="current_main_map">
           <v-expansion-panel-text
             ><scene-editor :scene="current_main_map.main_scene"></scene-editor
           ></v-expansion-panel-text>
-        </v-expansion-panel>
+        </v-expansion-panel>-->
         <v-expansion-panel title="Resources">
           <v-expansion-panel-text>
             <ModuleResourceList
@@ -88,9 +88,9 @@ import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 import { GameMap } from "@/editor/blueprints/GameMap";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import TileSelector from "@/editor/editor/TileSelector.vue";
-import SceneEditor from "@/editor/editor/SceneEditor.vue";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import GameNodeInspector from "@/editor/editor/GameNodeInspector.vue";
+import { use_resources_store } from "@/editor/stores/resources";
 
 const tab = ref<number>(0);
 const {
@@ -99,22 +99,24 @@ const {
   selected_tile_id,
   module_instance_map,
   current_main_instance,
-  game_map_map,
   selected_tile_position,
-  tileset_map,
   tile_brush,
 } = storeToRefs(use_editor_store());
 const {
-  get_module,
-  get_tileset,
-  load_modules,
   add_open_resource_path,
   set_selected_resource_tab,
   game_instance_exists,
   set_current_main_instance,
+} = use_editor_store();
+
+const { game_map_map, tileset_map } = storeToRefs(use_resources_store());
+const {
+  get_module,
+  get_tileset,
+  load_modules,
   update_map_server,
   get_resource_server,
-} = use_editor_store();
+} = use_resources_store();
 
 const { active_component, component_stores } = storeToRefs(
   use_inspector_store(),
@@ -186,6 +188,7 @@ function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
         name: game_map.name,
         resource_path: game_map.resource_path,
         chunk: [layer_kind, updated_chunk],
+        scene: null,
       });
     }
   }

@@ -2,4 +2,4 @@
 import type { Chunk } from "./Chunk";
 import type { LayerKind } from "./LayerKind";
 
-export interface MapUpdate { name: string, resource_path: string, chunk: [LayerKind, Chunk] | null, }
+export interface MapUpdate { name: string, resource_path: string, chunk: [LayerKind, Chunk] | null, scene: string | null, }

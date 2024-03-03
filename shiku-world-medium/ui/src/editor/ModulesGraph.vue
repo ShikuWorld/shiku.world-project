@@ -65,6 +65,7 @@ import { storeToRefs } from "pinia";
 import CustomNode from "@/editor/editor/CustomNode.vue";
 import { mdiPlus, mdiRefreshAuto } from "@mdi/js";
 import { use_inspector_store } from "@/editor/stores/inspector";
+import { use_resources_store } from "@/editor/stores/resources";
 
 class Node extends ClassicPreset.Node {
   width = 180;
@@ -103,8 +104,8 @@ let applier: ArrangeAppliers.TransitionApplier<Schemes, never> | undefined =
   undefined;
 const rete = ref<HTMLElement>();
 
-const { set_selected_module_id, create_module_server, save_conductor_server } =
-  use_editor_store();
+const { set_selected_module_id, save_conductor_server } = use_editor_store();
+const { create_module_server } = use_resources_store();
 const { set_inspector_component } = use_inspector_store();
 const new_module_name = ref<string>("");
 
@@ -209,7 +210,8 @@ onUnmounted(() => {
   }
 });
 
-const { modules, conductor } = storeToRefs(use_editor_store());
+const { conductor } = storeToRefs(use_editor_store());
+const { modules } = storeToRefs(use_resources_store());
 
 function update_sockets(node: Node) {
   for (const key of Object.keys(node.inputs)) {

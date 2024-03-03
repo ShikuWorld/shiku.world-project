@@ -96,10 +96,10 @@
 <script lang="ts" setup>
 import { Module } from "@/editor/blueprints/Module";
 import { computed, ref, toRefs } from "vue";
-import { use_editor_store } from "@/editor/stores/editor";
 import { storeToRefs } from "pinia";
 import { mdiFolder, mdiPackageVariant } from "@mdi/js";
 import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
+import { use_resources_store } from "@/editor/stores/resources";
 
 const current_path = ref("");
 const props = defineProps<{ module: Module }>();
@@ -107,8 +107,8 @@ const { module } = toRefs(props);
 const active_resources_set = computed(() =>
   module.value ? new Set(module.value.resources.map((r) => r.path)) : new Set(),
 );
-const { browse_folder, toggle_resource_on_module } = use_editor_store();
-const { current_file_browser_result } = storeToRefs(use_editor_store());
+const { browse_folder, toggle_resource_on_module } = use_resources_store();
+const { current_file_browser_result } = storeToRefs(use_resources_store());
 
 function go_up() {
   if (current_path.value.includes("/")) {

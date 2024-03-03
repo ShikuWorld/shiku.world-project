@@ -8,42 +8,51 @@ export function handle_editor_event(event: EditorEvent) {
       window.medium_gui.editor.set_main_door_status(status);
     })
     .with({ Modules: P.select() }, (modules) => {
-      window.medium_gui.editor.set_modules(modules);
+      window.medium_gui.resources.set_modules(modules);
     })
     .with({ CreatedModule: P.select() }, (d) => {
-      window.medium_gui.editor.create_module(d[1]);
+      window.medium_gui.resources.create_module(d[1]);
     })
     .with({ UpdatedModule: P.select() }, (d) => {
-      window.medium_gui.editor.update_module(d[1]);
+      window.medium_gui.resources.update_module(d[1]);
     })
     .with({ DeletedModule: P.select() }, (d) => {
-      window.medium_gui.editor.delete_module(d);
+      window.medium_gui.resources.delete_module(d);
     })
     .with({ CreatedTileset: P.select() }, (d) => {
-      window.medium_gui.editor.set_tileset(d);
+      window.medium_gui.resources.set_tileset(d);
     })
     .with({ DirectoryInfo: P.select() }, (d) => {
-      window.medium_gui.editor.set_current_file_browser_result(d);
+      window.medium_gui.resources.set_current_file_browser_result(d);
     })
     .with({ SetTileset: P.select() }, (d) => {
-      window.medium_gui.editor.set_tileset(d);
+      window.medium_gui.resources.set_tileset(d);
     })
     .with({ DeletedTileset: P.select() }, (d) => {
-      window.medium_gui.editor.delete_tileset(d);
+      window.medium_gui.resources.delete_tileset(d);
+    })
+    .with({ CreatedScene: P.select() }, (d) => {
+      window.medium_gui.resources.set_scene(d);
+    })
+    .with({ SetScene: P.select() }, (d) => {
+      window.medium_gui.resources.set_scene(d);
+    })
+    .with({ DeletedScene: P.select() }, (d) => {
+      window.medium_gui.resources.delete_scene(d);
     })
     .with({ CreatedMap: P.select() }, (d) => {
-      window.medium_gui.editor.set_map(d);
+      window.medium_gui.resources.set_map(d);
     })
     .with({ SetMap: P.select() }, (d) => {
-      window.medium_gui.editor.set_map(d);
+      window.medium_gui.resources.set_map(d);
     })
     .with({ UpdatedMap: P.select() }, (d) => {
-      window.medium_gui.editor.update_map(
+      window.medium_gui.resources.update_map(
         d as Partial<GameMap> & { resource_path: string; name: string },
       );
     })
     .with({ DeletedMap: P.select() }, (d) => {
-      window.medium_gui.editor.delete_map(d);
+      window.medium_gui.resources.delete_map(d);
     })
     .with({ UpdatedConductor: P.select() }, (d) => {
       window.medium_gui.editor.set_conductor(d);

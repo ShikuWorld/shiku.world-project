@@ -7,6 +7,7 @@ import { use_current_module_store } from "@/editor/stores/current-module";
 import { use_toast_store } from "@/editor/stores/toast";
 import { use_editor_store } from "@/editor/stores/editor";
 import { Isometry } from "@/client/entities";
+import { use_resources_store } from "@/editor/stores/resources";
 
 declare global {
   interface Window {
@@ -34,6 +35,7 @@ declare global {
     medium_gui: {
       ui: ReturnType<typeof use_ui_store>;
       editor: ReturnType<typeof use_editor_store>;
+      resources: ReturnType<typeof use_resources_store>;
       config: ReturnType<typeof use_config_store>;
       toast: ReturnType<typeof use_toast_store>;
       current_module: ReturnType<typeof use_current_module_store>;

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use tokio::time::Instant;
 
-use crate::core::blueprint::def::{Chunk, LayerKind, ModuleId, NodeInstanceId, ResourcePath, Scene, TerrainParams};
+use crate::core::blueprint::def::{Chunk, LayerKind, ModuleId, NodeInstanceId, ResourcePath, TerrainParams};
 use crate::core::guest::ActorId;
 use crate::core::LazyHashmapSet;
 use crate::core::module::{GuestInput, ModuleInputReceiver, ModuleOutputSender};
@@ -38,7 +38,7 @@ pub type WorldId = String;
 pub struct World {
     pub terrain_tmp: HashMap<LayerKind, HashMap<u32, Chunk>>,
     pub terrain_params: TerrainParams,
-    pub world_scene: Scene,
+    pub world_scene: ResourcePath,
     pub instance_resource_map: HashMap<ResourcePath, HashSet<NodeInstanceId>>
 }
 

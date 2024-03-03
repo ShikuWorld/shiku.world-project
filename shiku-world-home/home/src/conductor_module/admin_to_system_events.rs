@@ -309,6 +309,24 @@ pub async fn handle_admin_to_system_event(
             }
             Err(err) => error!("Could not delete tileset: {:?}", err),
         },
+        AdminToSystemEvent::CreateScene(scene) => match Blueprint::create_scene(&scene) {
+            Ok(()) => {
+                send_editor_event(EditorEvent::CreatedScene(scene));
+            }
+            Err(err) => error!("Could not create scene: {:?}", err),
+        },
+        AdminToSystemEvent::UpdateScene(scene) => match Blueprint::save_scene(&scene) {
+            Ok(()) => {
+                send_editor_event(EditorEvent::SetScene(scene));
+            }
+            Err(err) => error!("Could not update scene: {:?}", err),
+        },
+        AdminToSystemEvent::DeleteScene(scene) => match Blueprint::delete_scene(&scene) {
+            Ok(()) => {
+                send_editor_event(EditorEvent::DeletedScene(scene));
+            }
+            Err(err) => error!("Could not delete scene: {:?}", err),
+        },
         AdminToSystemEvent::UpdateModule(module_id, module_update) => {
             debug!("Module update {:?} {:?}", module_map.keys(), module_id);
             if let Some(module) = module_map.get_mut(&module_id) {

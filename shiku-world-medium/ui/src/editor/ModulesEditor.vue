@@ -96,19 +96,21 @@ import ModuleSlots from "@/editor/editor/ModuleSlots.vue";
 import AddResourcesModal from "@/editor/editor/AddResourcesModal.vue";
 import { storeToRefs } from "pinia";
 import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
+import { use_resources_store } from "@/editor/stores/resources";
 
 const props = defineProps<{ module: Module; module_instances: string[] }>();
 const { module, module_instances } = toRefs(props);
 
 const {
-  save_module_server,
-  delete_module_server,
   open_game_instance_server,
-  get_resource_server,
   start_inspecting_world,
   stop_inspecting_world,
 } = use_editor_store();
-const { game_map_map, game_instances } = storeToRefs(use_editor_store());
+const { game_instances } = storeToRefs(use_editor_store());
+
+const { save_module_server, delete_module_server, get_resource_server } =
+  use_resources_store();
+const { game_map_map } = storeToRefs(use_resources_store());
 function toggle_inspect_world(
   module_id: string,
   instance_id: string,

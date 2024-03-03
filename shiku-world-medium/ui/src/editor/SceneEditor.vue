@@ -34,11 +34,10 @@ import type { Scene } from "@/editor/blueprints/Scene";
 import SceneNodeList from "@/editor/editor/SceneNodeList.vue";
 import { mdiPlus } from "@mdi/js";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
-import { match } from "ts-pattern";
-import { v4 as uuidv4 } from "uuid";
 import { KeysOfUnion } from "@/editor/utils";
 import { storeToRefs } from "pinia";
 import { use_inspector_store } from "@/editor/stores/inspector";
+import { create_game_node } from "@/editor/stores/editor";
 
 const node_type_options: { value: KeysOfUnion<GameNodeKind>; label: string }[] =
   [
@@ -57,73 +56,17 @@ const selected_node = computed(
 
 function add_node_type(
   node: GameNodeKind | undefined,
-  value: KeysOfUnion<GameNodeKind>,
+  node_type: KeysOfUnion<GameNodeKind>,
 ) {
   if (!node) {
     console.error("Tried to add node to undefined node.");
     return;
   }
   const game_node = Object.values(node)[0];
-  if (value === "Instance") {
+  if (node_type === "Instance") {
     console.error("Cannot add instances here");
     return;
   }
-  game_node.children.push(
-    match(value)
-      .with(
-        "RigidBody",
-        (): GameNodeKind => ({
-          RigidBody: {
-            name: "RigidBody",
-            id: uuidv4(),
-            data: {
-              position: [0, 0],
-              velocity: [0, 0],
-              rotation: 0,
-              body: "Dynamic",
-            },
-            script: null,
-            children: [],
-          },
-        }),
-      )
-      .with(
-        "Collider",
-        (): GameNodeKind => ({
-          Collider: {
-            name: "Collider",
-            id: uuidv4(),
-            data: { kind: "Solid", shape: { Ball: 0 } },
-            script: null,
-            children: [],
-          },
-        }),
-      )
-      .with(
-        "Node",
-        (): GameNodeKind => ({
-          Node: {
-            name: "Node",
-            id: uuidv4(),
-            data: "",
-            script: null,
-            children: [],
-          },
-        }),
-      )
-      .with(
-        "Render",
-        (): GameNodeKind => ({
-          Render: {
-            name: "Render",
-            id: uuidv4(),
-            data: { offset: [0, 0], layer: "BG00", kind: "Sprite" },
-            script: null,
-            children: [],
-          },
-        }),
-      )
-      .exhaustive(),
-  );
+  game_node.children.push(create_game_node(node_type));
 }
 </script>

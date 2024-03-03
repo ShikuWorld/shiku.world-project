@@ -1,4 +1,4 @@
-use flume::{unbounded, Receiver, Sender};
+use flume::{Receiver, Sender, unbounded};
 use rapier2d::prelude::Real;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -14,7 +14,7 @@ use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
 use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::resource_module::def::{ResourceBundle, ResourceEvent};
-use crate::resource_module::map::def::{LayerName, TerrainChunk};
+use crate::resource_module::map::def::LayerName;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
@@ -71,6 +71,9 @@ pub enum EditorEvent {
     SetMap(blueprint::def::GameMap),
     UpdatedMap(blueprint::def::MapUpdate),
     DeletedMap(blueprint::def::GameMap),
+    CreatedScene(blueprint::def::Scene),
+    SetScene(blueprint::def::Scene),
+    DeletedScene(blueprint::def::Scene),
     CreatedTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
     DeletedTileset(blueprint::def::Tileset),
@@ -97,6 +100,9 @@ pub enum AdminToSystemEvent {
     CreateTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
     DeleteTileset(blueprint::def::Tileset),
+    CreateScene(blueprint::def::Scene),
+    UpdateScene(blueprint::def::Scene),
+    DeleteScene(blueprint::def::Scene),
     CreateMap(ModuleId, blueprint::def::GameMap),
     UpdateMap(blueprint::def::MapUpdate),
     DeleteMap(ModuleId, blueprint::def::GameMap),
