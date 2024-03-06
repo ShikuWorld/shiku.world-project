@@ -25,6 +25,11 @@
       type="number"
       v-model="game_map.chunk_size"
     ></v-text-field>
+    <v-select
+      label="Root node"
+      v-model="root_node_selection"
+      :items="root_node_options"
+    ></v-select>
     <v-card-actions>
       <v-spacer></v-spacer>
 
@@ -35,11 +40,15 @@
 </template>
 <script lang="ts" setup>
 import { GameMap } from "@/client/communication/api/blueprints/GameMap";
-import { reactive, toRefs } from "vue";
+import { reactive, toRefs, ref, computed } from "vue";
 import { Module } from "@/editor/blueprints/Module";
 
 const props = defineProps<{ module: Module }>();
 const { module } = toRefs(props);
+const root_node_selection = ref("");
+const root_node_options = computed(() =>
+  module.value.resources.filter((r) => r.kind === "Scene").map((r) => r.path),
+);
 const game_map = reactive<GameMap>({
   world_id: "",
   module_id: module.value.id,
@@ -84,6 +93,7 @@ const emit = defineEmits<{
 }>();
 function save_map() {
   game_map.resource_path = `modules/${module.value.name}`;
+  game_map.main_scene = root_node_selection.value;
   emit("save", game_map);
 }
 </script>

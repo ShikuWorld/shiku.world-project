@@ -31716,31 +31716,37 @@ void main(void)\r
     N2(event).with({ MainDoorStatus: _.select() }, (status) => {
       window.medium_gui.editor.set_main_door_status(status);
     }).with({ Modules: _.select() }, (modules) => {
-      window.medium_gui.editor.set_modules(modules);
+      window.medium_gui.resources.set_modules(modules);
     }).with({ CreatedModule: _.select() }, (d3) => {
-      window.medium_gui.editor.create_module(d3[1]);
+      window.medium_gui.resources.create_module(d3[1]);
     }).with({ UpdatedModule: _.select() }, (d3) => {
-      window.medium_gui.editor.update_module(d3[1]);
+      window.medium_gui.resources.update_module(d3[1]);
     }).with({ DeletedModule: _.select() }, (d3) => {
-      window.medium_gui.editor.delete_module(d3);
+      window.medium_gui.resources.delete_module(d3);
     }).with({ CreatedTileset: _.select() }, (d3) => {
-      window.medium_gui.editor.set_tileset(d3);
+      window.medium_gui.resources.set_tileset(d3);
     }).with({ DirectoryInfo: _.select() }, (d3) => {
-      window.medium_gui.editor.set_current_file_browser_result(d3);
+      window.medium_gui.resources.set_current_file_browser_result(d3);
     }).with({ SetTileset: _.select() }, (d3) => {
-      window.medium_gui.editor.set_tileset(d3);
+      window.medium_gui.resources.set_tileset(d3);
     }).with({ DeletedTileset: _.select() }, (d3) => {
-      window.medium_gui.editor.delete_tileset(d3);
+      window.medium_gui.resources.delete_tileset(d3);
+    }).with({ CreatedScene: _.select() }, (d3) => {
+      window.medium_gui.resources.set_scene(d3);
+    }).with({ SetScene: _.select() }, (d3) => {
+      window.medium_gui.resources.set_scene(d3);
+    }).with({ DeletedScene: _.select() }, (d3) => {
+      window.medium_gui.resources.delete_scene(d3);
     }).with({ CreatedMap: _.select() }, (d3) => {
-      window.medium_gui.editor.set_map(d3);
+      window.medium_gui.resources.set_map(d3);
     }).with({ SetMap: _.select() }, (d3) => {
-      window.medium_gui.editor.set_map(d3);
+      window.medium_gui.resources.set_map(d3);
     }).with({ UpdatedMap: _.select() }, (d3) => {
-      window.medium_gui.editor.update_map(
+      window.medium_gui.resources.update_map(
         d3
       );
     }).with({ DeletedMap: _.select() }, (d3) => {
-      window.medium_gui.editor.delete_map(d3);
+      window.medium_gui.resources.delete_map(d3);
     }).with({ UpdatedConductor: _.select() }, (d3) => {
       window.medium_gui.editor.set_conductor(d3);
     }).with({ ModuleInstances: _.select() }, (d3) => {

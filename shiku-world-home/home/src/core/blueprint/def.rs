@@ -45,7 +45,7 @@ pub enum ResourceKind {
 
 pub enum ResourceLoaded {
     Tileset(Tileset),
-    Scene(GameNodeKind),
+    Scene(Scene),
     Map(GameMap),
     Unknown,
 }

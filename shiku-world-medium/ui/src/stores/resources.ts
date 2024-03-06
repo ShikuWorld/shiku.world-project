@@ -113,6 +113,12 @@ export const use_resources_store = defineStore("resources", {
         [scene_key(scene)]: scene,
       };
     },
+    get_scene(resource_path: string) {
+      if (!this.scene_map[resource_path]) {
+        this.get_resource_server(resource_path);
+      }
+      return this.scene_map[resource_path];
+    },
     delete_scene(scene: Scene) {
       const scene_map = { ...this.scene_map };
       delete scene_map[scene_key(scene)];

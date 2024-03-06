@@ -13,11 +13,11 @@
         variant="accordion"
         v-if="selected_module"
       >
-        <!--<v-expansion-panel title="Scene" v-if="current_main_map">
+        <v-expansion-panel title="Scene" v-if="current_main_scene">
           <v-expansion-panel-text
-            ><scene-editor :scene="current_main_map.main_scene"></scene-editor
+            ><scene-editor :scene="current_main_scene"></scene-editor
           ></v-expansion-panel-text>
-        </v-expansion-panel>-->
+        </v-expansion-panel>
         <v-expansion-panel title="Resources">
           <v-expansion-panel-text>
             <ModuleResourceList
@@ -91,6 +91,8 @@ import TileSelector from "@/editor/editor/TileSelector.vue";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import GameNodeInspector from "@/editor/editor/GameNodeInspector.vue";
 import { use_resources_store } from "@/editor/stores/resources";
+import SceneEditor from "@/editor/editor/SceneEditor.vue";
+import { Scene } from "@/editor/blueprints/Scene";
 
 const tab = ref<number>(0);
 const {
@@ -116,6 +118,7 @@ const {
   load_modules,
   update_map_server,
   get_resource_server,
+  get_scene,
 } = use_resources_store();
 
 const { active_component, component_stores } = storeToRefs(
@@ -161,6 +164,13 @@ const current_main_map = computed<GameMap | undefined>(() => {
     return Object.values(game_map_map.value).find(
       (m) => m.world_id === current_main_instance.value.world_id,
     );
+  }
+  return undefined;
+});
+
+const current_main_scene = computed<Scene | undefined>(() => {
+  if (current_main_map.value && current_main_map.value.main_scene) {
+    return get_scene(current_main_map.value.main_scene);
   }
   return undefined;
 });

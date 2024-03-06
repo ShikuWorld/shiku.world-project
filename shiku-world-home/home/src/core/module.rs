@@ -17,6 +17,8 @@ use crate::resource_module::def::{ResourceBundle, ResourceEvent};
 use crate::resource_module::map::def::LayerName;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
+
+
 #[ts(export)]
 pub struct GuestInput {
     pub jump: bool,

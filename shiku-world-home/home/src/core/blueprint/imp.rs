@@ -61,7 +61,12 @@ impl BlueprintService {
             let file_name = safe_unwrap(entry.file_name().to_str(), BlueprintError::OsParsing)?;
             match Self::determine_file_type(file_name) {
                 FileBrowserFileKind::Scene => {
-
+                    file_browser_entry.resources.push(BlueprintResource {
+                        file_name: file_name.to_string(),
+                        dir: directory.clone(),
+                        path: format!("{}/{}", directory, file_name),
+                        kind: ResourceKind::Scene,
+                    });
                 }
                 FileBrowserFileKind::Tileset => {
                     file_browser_entry.resources.push(BlueprintResource {
@@ -96,7 +101,13 @@ impl BlueprintService {
             if let Some(file_name_os) = path_buf.as_path().file_name() {
                 if let Some(file_name) = file_name_os.to_str() {
                     return match BlueprintService::determine_resource_type(file_name) {
-                        ResourceKind::Scene => ResourceLoaded::Unknown,
+                        ResourceKind::Scene =>  match Blueprint::load_scene(path_buf) {
+                            Ok(scene) => ResourceLoaded::Scene(scene),
+                            Err(err) => {
+                                error!("Could not load Resource: {:?}", err);
+                                ResourceLoaded::Unknown
+                            }
+                        },
                         ResourceKind::Tileset => match Blueprint::load_tileset(path_buf) {
                             Ok(tileset) => ResourceLoaded::Tileset(tileset),
                             Err(err) => {
@@ -125,6 +136,7 @@ impl BlueprintService {
 
         match parts.as_slice() {
             [_, "tileset", "json"] => ResourceKind::Tileset,
+            [_, "scene", "json"] => ResourceKind::Scene,
             [_, "map", "json"] => ResourceKind::Map,
             _ => ResourceKind::Unknown,
         }

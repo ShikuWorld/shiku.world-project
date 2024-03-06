@@ -228,8 +228,8 @@ pub async fn handle_admin_to_system_event(
                 ResourceLoaded::Tileset(tileset) => {
                     send_editor_event(EditorEvent::SetTileset(tileset));
                 }
-                ResourceLoaded::Scene(_scene) => {
-                    debug!("Need to implement for scene");
+                ResourceLoaded::Scene(scene) => {
+                    send_editor_event(EditorEvent::SetScene(scene));
                 }
                 ResourceLoaded::Map(map) => {
                     send_editor_event(EditorEvent::SetMap(map));
