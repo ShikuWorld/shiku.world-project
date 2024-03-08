@@ -13,7 +13,11 @@ export interface InspectorStore {
     module: string;
     tile: string;
     map: string;
-    game_node: { selected_game_node_id?: string; path: number[] };
+    game_node: {
+      scene_resource_path?: string;
+      selected_game_node_id?: string;
+      selection_path?: number[];
+    };
     nothing: undefined;
   };
 }
@@ -22,7 +26,7 @@ export const use_inspector_store = defineStore("inspector", {
   state: (): InspectorStore => ({
     active_component: "nothing",
     component_stores: {
-      game_node: { path: [] },
+      game_node: {},
       map: "",
       module: "",
       nothing: undefined,
@@ -33,9 +37,21 @@ export const use_inspector_store = defineStore("inspector", {
     set_inspector_component(component: InspectorComponent) {
       this.active_component = component;
     },
-    select_game_node(game_node_id: string, path: number[]) {
-      this.component_stores.game_node.selected_game_node_id = game_node_id;
-      this.component_stores.game_node.path = path;
+    select_game_node(
+      scene_resource_path: string,
+      game_node_id: string,
+      path: number[],
+    ) {
+      this.component_stores = {
+        ...this.component_stores,
+        ...{
+          game_node: {
+            scene_resource_path: scene_resource_path,
+            selected_game_node_id: game_node_id,
+            selection_path: path,
+          },
+        },
+      };
       this.active_component = "game_node";
     },
   },

@@ -90,7 +90,10 @@ import { LayerKind } from "@/editor/blueprints/LayerKind";
 import TileSelector from "@/editor/editor/TileSelector.vue";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import GameNodeInspector from "@/editor/editor/GameNodeInspector.vue";
-import { use_resources_store } from "@/editor/stores/resources";
+import {
+  get_node_by_path,
+  use_resources_store,
+} from "@/editor/stores/resources";
 import SceneEditor from "@/editor/editor/SceneEditor.vue";
 import { Scene } from "@/editor/blueprints/Scene";
 
@@ -125,9 +128,6 @@ const { active_component, component_stores } = storeToRefs(
   use_inspector_store(),
 );
 const { set_inspector_component } = use_inspector_store();
-const selected_node = computed(
-  () => component_stores.value.game_node.selected_game_node,
-);
 
 load_modules();
 
@@ -163,6 +163,25 @@ const current_main_map = computed<GameMap | undefined>(() => {
   if (current_main_instance.value?.world_id && game_map_map.value) {
     return Object.values(game_map_map.value).find(
       (m) => m.world_id === current_main_instance.value.world_id,
+    );
+  }
+  return undefined;
+});
+
+const selected_scene = computed(() => {
+  if (component_stores.value.game_node.scene_resource_path) {
+    return get_scene(component_stores.value.game_node.scene_resource_path);
+  }
+  return undefined;
+});
+const selected_node = computed(() => {
+  if (
+    component_stores.value.game_node.selection_path &&
+    selected_scene.value?.root_node
+  ) {
+    return get_node_by_path(
+      selected_scene.value.root_node,
+      component_stores.value.game_node.selection_path,
     );
   }
   return undefined;

@@ -12,13 +12,20 @@
       <v-list>
         <v-list-item v-for="node_type in node_type_options">
           <v-list-item-title
-            @click="add_node_type(selected_node.path, node_type.value)"
+            v-if="selected_node.selection_path"
+            @click="
+              add_node_type(selected_node.selection_path, node_type.value)
+            "
             >{{ node_type.label }}</v-list-item-title
           >
         </v-list-item>
       </v-list>
     </v-menu>
-    <scene-node-list :node="scene.root_node" :path="[]"></scene-node-list>
+    <scene-node-list
+      :scene_resource_path="scene_key(scene)"
+      :node="scene.root_node"
+      :path="[]"
+    ></scene-node-list>
   </div>
 </template>
 
@@ -37,8 +44,13 @@ import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { KeysOfUnion } from "@/editor/utils";
 import { storeToRefs } from "pinia";
 import { use_inspector_store } from "@/editor/stores/inspector";
-import { create_game_node } from "@/editor/stores/editor";
-import { use_resources_store } from "@/editor/stores/resources";
+import {
+  create_game_node,
+  children_of,
+  get_node_by_path,
+  use_resources_store,
+  scene_key,
+} from "@/editor/stores/resources";
 
 const node_type_options: { value: KeysOfUnion<GameNodeKind>; label: string }[] =
   [
@@ -60,21 +72,8 @@ function add_node_type(path: number[], node_type: KeysOfUnion<GameNodeKind>) {
     return;
   }
   const scene_copy = structuredClone(toRaw(scene.value));
-  add_to_node(scene_copy.root_node, [...path], create_game_node(node_type));
+  const n = get_node_by_path(scene_copy.root_node, [...path]);
+  children_of(n).push(create_game_node(node_type));
   update_scene_server(scene_copy);
-}
-
-function add_to_node(
-  node: GameNodeKind,
-  path: number[],
-  new_child: GameNodeKind,
-) {
-  const n = Object.values(node)[0];
-  if (path.length === 0) {
-    n.children.push(new_child);
-    return;
-  }
-  let p = path.splice(-1);
-  add_to_node(n.children[p[0]], path, new_child);
 }
 </script>

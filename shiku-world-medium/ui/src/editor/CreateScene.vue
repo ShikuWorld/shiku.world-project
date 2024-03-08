@@ -25,7 +25,7 @@ import { Scene } from "@/editor/blueprints/Scene";
 import { v4 as uuidv4 } from "uuid";
 import { KeysOfUnion } from "@/editor/utils";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
-import { create_game_node } from "@/editor/stores/editor";
+import { create_game_node } from "@/editor/stores/resources";
 
 const partial_scene = reactive<Partial<Scene>>({
   id: uuidv4(),

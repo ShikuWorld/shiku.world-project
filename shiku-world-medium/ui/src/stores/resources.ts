@@ -13,6 +13,7 @@ import { match } from "ts-pattern";
 import { v4 as uuidv4 } from "uuid";
 import { Scene } from "@/editor/blueprints/Scene";
 import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
+import { GameNode } from "@/editor/blueprints/GameNode";
 
 export type Point = { y: number; x: number };
 
@@ -237,6 +238,35 @@ export function resource_key(resource: BlueprintResource) {
 
 export function map_key(game_map: { resource_path: string; name: string }) {
   return `${game_map.resource_path}/${game_map.name}.map.json`;
+}
+
+export function get_node_by_path(
+  node: GameNodeKind,
+  path: number[],
+): GameNodeKind {
+  const n = get_generic_game_node(node);
+  if (path.length === 0) {
+    return node;
+  }
+  if (path.length === 1) {
+    return n.children[path[0]];
+  }
+  const p = path.splice(-1);
+  return get_node_by_path(n.children[p[0]], path);
+}
+
+export function get_generic_game_node(node: GameNodeKind): GameNode<unknown> {
+  return Object.values(node)[0] as GameNode<unknown>;
+}
+
+export function get_game_node_type(
+  node: GameNodeKind,
+): KeysOfUnion<GameNodeKind> {
+  return Object.keys(node)[0] as KeysOfUnion<GameNodeKind>;
+}
+
+export function children_of(node: GameNodeKind): Array<GameNodeKind> {
+  return get_generic_game_node(node).children;
 }
 
 export function create_game_node(

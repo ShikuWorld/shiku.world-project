@@ -5,10 +5,6 @@ import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
 import { GameInstance } from "@/client/game-instance";
 import { Isometry } from "@/client/entities";
-import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
-import { KeysOfUnion } from "@/editor/utils";
-import { match } from "ts-pattern";
-import { v4 as uuidv4 } from "uuid";
 
 export type Point = { y: number; x: number };
 
@@ -190,76 +186,4 @@ export function resource_key(resource: BlueprintResource) {
 
 export function map_key(game_map: { resource_path: string; name: string }) {
   return `${game_map.resource_path}/${game_map.name}.map.json`;
-}
-
-export function create_game_node(
-  game_node_type: KeysOfUnion<GameNodeKind>,
-): GameNodeKind {
-  return match(game_node_type)
-    .with(
-      "RigidBody",
-      (): GameNodeKind => ({
-        RigidBody: {
-          name: "RigidBody",
-          id: uuidv4(),
-          data: {
-            position: [0, 0],
-            velocity: [0, 0],
-            rotation: 0,
-            body: "Dynamic",
-          },
-          script: null,
-          children: [],
-        },
-      }),
-    )
-    .with(
-      "Collider",
-      (): GameNodeKind => ({
-        Collider: {
-          name: "Collider",
-          id: uuidv4(),
-          data: { kind: "Solid", shape: { Ball: 0 } },
-          script: null,
-          children: [],
-        },
-      }),
-    )
-    .with(
-      "Node",
-      (): GameNodeKind => ({
-        Node: {
-          name: "Node",
-          id: uuidv4(),
-          data: "",
-          script: null,
-          children: [],
-        },
-      }),
-    )
-    .with(
-      "Render",
-      (): GameNodeKind => ({
-        Render: {
-          name: "Render",
-          id: uuidv4(),
-          data: { offset: [0, 0], layer: "BG00", kind: "Sprite" },
-          script: null,
-          children: [],
-        },
-      }),
-    )
-    .with(
-      "Instance",
-      (): GameNodeKind => ({
-        Instance: {
-          name: "Render",
-          id: uuidv4(),
-          data: "",
-          script: null,
-          children: [],
-        },
-      }),
-    )
-    .exhaustive();
 }
