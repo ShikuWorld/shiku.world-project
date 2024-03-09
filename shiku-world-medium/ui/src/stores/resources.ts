@@ -177,8 +177,12 @@ export const use_resources_store = defineStore("resources", {
     create_scene_server(scene: Scene) {
       send_admin_event({ CreateScene: scene });
     },
-    update_scene_server(scene: Scene) {
-      send_admin_event({ UpdateScene: scene });
+    update_data_in_scene_node_on_server(
+      resource_path: string,
+      path: number[],
+      data: GameNodeKind,
+    ) {
+      send_admin_event({ UpdateSceneNode: [resource_path, path, data] });
     },
     delete_scene_server(scene: Scene) {
       send_admin_event({ DeleteScene: scene });

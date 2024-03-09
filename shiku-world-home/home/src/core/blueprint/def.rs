@@ -161,6 +161,7 @@ pub struct IOPoint {
 }
 
 pub type ModuleId = String;
+pub type SceneId = String;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
@@ -242,7 +243,7 @@ pub struct Layer {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Scene {
-    pub id: String,
+    pub id: SceneId,
     pub name: String,
     pub resource_path: ResourcePath,
     pub root_node: GameNodeKind
@@ -256,6 +257,28 @@ pub enum GameNodeKind {
     RigidBody(GameNode<RigidBody>),
     Collider(GameNode<Collider>),
     Render(GameNode<Render>)
+}
+
+impl GameNodeKind {
+    pub fn borrow_children(&mut self) -> &mut Vec<GameNodeKind> {
+        match self {
+            GameNodeKind::Node(node) => &mut node.children,
+            GameNodeKind::Collider(node) => &mut node.children,
+            GameNodeKind::Instance(node) => &mut node.children,
+            GameNodeKind::Render(node) => &mut node.children,
+            GameNodeKind::RigidBody(node) => &mut node.children,
+        }
+    }
+
+    pub fn set_data(&mut self, data: GameNodeKind) {
+        match self {
+            GameNodeKind::Node(node) =>  if let GameNodeKind::Node(n) = data { node.data = n.data },
+            GameNodeKind::Collider(node) => if let GameNodeKind::Collider(n) = data { node.data = n.data },
+            GameNodeKind::Instance(node) => if let GameNodeKind::Instance(n) = data { node.data = n.data },
+            GameNodeKind::Render(node) => if let GameNodeKind::Render(n) = data { node.data = n.data },
+            GameNodeKind::RigidBody(node) => if let GameNodeKind::RigidBody(n) = data { node.data = n.data },
+        }
+    }
 }
 
 pub type GameNodeId = String;
@@ -386,6 +409,8 @@ pub enum BlueprintError {
     SerdeJSON(#[from] serde_json::error::Error),
     #[error("Impossible error")]
     Impossible(#[from] Infallible),
+    #[error("Not able to access nested object")]
+    AccessNested(&'static str),
     #[error("Failed to convert to String from OsString")]
     ConversionToString(OsString),
     #[error("Failed to convert to PathBuf to str")]

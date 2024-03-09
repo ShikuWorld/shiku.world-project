@@ -315,11 +315,18 @@ pub async fn handle_admin_to_system_event(
             }
             Err(err) => error!("Could not create scene: {:?}", err),
         },
-        AdminToSystemEvent::UpdateScene(scene) => match Blueprint::save_scene(&scene) {
-            Ok(()) => {
-                send_editor_event(EditorEvent::SetScene(scene));
+        AdminToSystemEvent::UpdateSceneNode(resource_path, path, node) => {
+            match Blueprint::load_scene(resource_path.into()) {
+                Ok(mut scene) => {
+                    match Blueprint::update_node_in_scene(&mut scene, path, node) {
+                        Ok(()) => {
+                            send_editor_event(EditorEvent::SetScene(scene));
+                        }
+                        Err(err) => error!("Could not update scene: {:?}", err),
+                    }
+                }
+                Err(err) => error!("Could not load scene to update it: {:?}", err),
             }
-            Err(err) => error!("Could not update scene: {:?}", err),
         },
         AdminToSystemEvent::DeleteScene(scene) => match Blueprint::delete_scene(&scene) {
             Ok(()) => {

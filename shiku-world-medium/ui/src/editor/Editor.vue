@@ -50,8 +50,21 @@
     </div>
     <div class="editor-nav-right">
       <div v-if="active_component === 'nothing'">Edit something</div>
-      <div v-if="active_component === 'game_node' && selected_node">
-        <GameNodeInspector :node="selected_node"></GameNodeInspector>
+      <div
+        v-if="
+          active_component === 'game_node' &&
+          selected_scene &&
+          selected_node &&
+          selected_game_node &&
+          selected_game_node_path
+        "
+      >
+        <GameNodeInspector
+          :node="selected_node"
+          :scene_resource_path="scene_key(selected_scene)"
+          :path="selected_game_node_path"
+          :key="selected_game_node.id"
+        ></GameNodeInspector>
       </div>
       <div v-if="active_component === 'module'">
         <ModulesEditor
@@ -91,7 +104,9 @@ import TileSelector from "@/editor/editor/TileSelector.vue";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import GameNodeInspector from "@/editor/editor/GameNodeInspector.vue";
 import {
+  get_generic_game_node,
   get_node_by_path,
+  scene_key,
   use_resources_store,
 } from "@/editor/stores/resources";
 import SceneEditor from "@/editor/editor/SceneEditor.vue";
@@ -183,6 +198,21 @@ const selected_node = computed(() => {
       selected_scene.value.root_node,
       component_stores.value.game_node.selection_path,
     );
+  }
+  return undefined;
+});
+const selected_game_node = computed(() => {
+  if (selected_node.value) {
+    return get_generic_game_node(selected_node.value);
+  }
+  return undefined;
+});
+const selected_game_node_path = computed(() => {
+  if (
+    component_stores.value.game_node.selection_path &&
+    selected_scene.value?.root_node
+  ) {
+    return component_stores.value.game_node.selection_path;
   }
   return undefined;
 });

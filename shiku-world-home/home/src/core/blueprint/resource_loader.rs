@@ -10,7 +10,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::core::blueprint::def::{BlueprintError, GameMap, IOPoint, Module, ResourcePath, Scene, Tileset};
+use crate::core::blueprint::def::{BlueprintError, GameMap, GameNode, GameNodeKind, IOPoint, Module, ResourcePath, Scene, Tileset};
 use crate::core::blueprint::resource_cache::get_resource_cache;
 use crate::core::get_out_dir;
 use crate::core::module::ModuleName;
@@ -151,6 +151,25 @@ impl Blueprint {
     pub fn load_scene(path: PathBuf) -> Result<Scene, BlueprintError> {
         let resources = get_resource_cache();
         Self::load(path, &resources.scenes)
+    }
+
+    pub fn update_node_in_scene(scene: &mut Scene, path: Vec<usize>, game_node: GameNodeKind) -> Result<(), BlueprintError> {
+        Self::set_node_rec(&mut scene.root_node, &path[..], game_node)?;
+        Blueprint::save_scene(scene)
+    }
+
+    fn set_node_rec(current_game_node: &mut GameNodeKind, path: &[usize], game_node_to_insert: GameNodeKind) -> Result<(), BlueprintError> {
+        let children = current_game_node.borrow_children();
+        if children.is_empty() || path.is_empty() {
+            return Err(BlueprintError::AccessNested("Unable to access node recursively, children empty or path 0!"));
+        }
+        if path.len() == 1 {
+            children[path[0]].set_data(game_node_to_insert);
+            return Ok(());
+        }
+        
+        let child = children.get_mut(path[0]).ok_or(BlueprintError::AccessNested("Unable to access node recursively, child not accessible at this position!"))?;
+        Self::set_node_rec(child, &path[1..], game_node_to_insert)
     }
 
     pub fn save_scene(scene: &Scene) -> Result<(), BlueprintError> {

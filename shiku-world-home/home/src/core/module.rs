@@ -5,9 +5,7 @@ use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
-use crate::core::blueprint::def::{
-    Chunk, Conductor, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
-};
+use crate::core::blueprint::def::{Chunk, Conductor, GameNodeKind, GidMap, LayerKind, ModuleId, ResourcePath, SceneId, TerrainParams, Tileset};
 use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
 use crate::core::entity::render::{CameraSettings, ShowEffect};
 use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
@@ -103,7 +101,7 @@ pub enum AdminToSystemEvent {
     SetTileset(blueprint::def::Tileset),
     DeleteTileset(blueprint::def::Tileset),
     CreateScene(blueprint::def::Scene),
-    UpdateScene(blueprint::def::Scene),
+    UpdateSceneNode(SceneId, Vec<usize>, GameNodeKind),
     DeleteScene(blueprint::def::Scene),
     CreateMap(ModuleId, blueprint::def::GameMap),
     UpdateMap(blueprint::def::MapUpdate),
