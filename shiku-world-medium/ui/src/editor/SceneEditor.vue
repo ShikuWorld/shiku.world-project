@@ -45,10 +45,9 @@ import { KeysOfUnion } from "@/editor/utils";
 import { storeToRefs } from "pinia";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import {
-  create_game_node,
   children_of,
+  create_game_node,
   get_node_by_path,
-  use_resources_store,
   scene_key,
 } from "@/editor/stores/resources";
 
@@ -63,7 +62,7 @@ const props = defineProps<{ scene: Scene }>();
 const { scene } = toRefs(props);
 
 const { component_stores } = storeToRefs(use_inspector_store());
-const { update_scene_server } = use_resources_store();
+//const { update_scene_server } = use_resources_store();
 const selected_node = computed(() => component_stores.value.game_node);
 
 function add_node_type(path: number[], node_type: KeysOfUnion<GameNodeKind>) {
@@ -74,6 +73,6 @@ function add_node_type(path: number[], node_type: KeysOfUnion<GameNodeKind>) {
   const scene_copy = structuredClone(toRaw(scene.value));
   const n = get_node_by_path(scene_copy.root_node, [...path]);
   children_of(n).push(create_game_node(node_type));
-  update_scene_server(scene_copy);
+  //update_scene_server(scene_copy);
 }
 </script>

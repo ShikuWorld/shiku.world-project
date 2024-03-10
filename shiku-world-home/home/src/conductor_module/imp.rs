@@ -29,8 +29,8 @@ use crate::core::module::{
     ModuleIO, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent,
     SignalToMedium, SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
 };
-use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
+use crate::core::module_system::world::WorldId;
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};

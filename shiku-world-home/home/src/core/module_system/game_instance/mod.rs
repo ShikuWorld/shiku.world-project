@@ -18,8 +18,9 @@ use crate::core::module::{
     EnterSuccessState, LeaveFailedState, LeaveSuccessState, ModuleInputReceiver, ModuleInputSender,
     ModuleOutputReceiver, ModuleOutputSender, ModuleToSystemEvent, SystemToModuleEvent,
 };
-use crate::core::module_system::def::{DynamicGameModule, WorldId};
+use crate::core::module_system::def::{DynamicGameModule};
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
+use crate::core::module_system::world::WorldId;
 use crate::resource_module::def::{LoadResource, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 
@@ -104,9 +105,7 @@ impl GameInstanceManager {
     }
 
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
-        debug!("Updating world!");
         for game_instance in self.game_instances.values_mut() {
-            debug!("Updating world for instance!");
             game_instance
                 .dynamic_module
                 .update_world_map(world_id, layer_kind, chunk);

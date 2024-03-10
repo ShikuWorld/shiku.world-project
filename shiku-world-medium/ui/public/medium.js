@@ -31249,80 +31249,6 @@ void main(void)\r
     }
   };
 
-  // client/renderer/shaker-factory.ts
-  var new_shaker = (defaults) => {
-    const defaultState = defaults ? defaults : {
-      target: null,
-      isBidirectional: true,
-      shakeCountMax: 10,
-      shakeAmount: 6,
-      shakeDelay: 25
-    };
-    const state = {
-      ...defaultState,
-      isShaking: false,
-      shakeCount: 0
-    };
-    const setTarget = (shakeTarget) => {
-      state.target = shakeTarget;
-    };
-    const reposition = (target, pos) => {
-      target.x = pos.x ? pos.x : target.x;
-      target.y = pos.y ? pos.y : target.y;
-    };
-    const shake = (shakeProps) => {
-      if (!state.target) {
-        console.error("No target in state?!");
-        return;
-      }
-      if (shakeProps) {
-        state.shakeCountMax = shakeProps.shakeCountMax;
-        state.shakeAmount = shakeProps.shakeAmount;
-        state.shakeDelay = shakeProps.shakeDelay;
-      }
-      if (!state.isShaking) {
-        state.isShaking = true;
-        state.shakeCount = 0;
-      }
-      state.shakeCount++;
-      if (state.shakeCount > state.shakeCountMax) {
-        if (Array.isArray(state.target)) {
-          state.target.forEach((element) => {
-            reposition(element, { x: 0, y: 0 });
-          });
-        } else {
-          reposition(state.target, { x: 0, y: 0 });
-        }
-        state.shakeCount = 0;
-        state.isShaking = false;
-      } else {
-        if (Array.isArray(state.target)) {
-          state.target.forEach((element) => {
-            reposition(element, {
-              x: Math.floor(Math.random() * state.shakeAmount) - state.shakeAmount / 2
-            });
-            if (state.isBidirectional) {
-              reposition(element, {
-                y: Math.floor(Math.random() * state.shakeAmount) - state.shakeAmount / 2
-              });
-            }
-          });
-        } else {
-          reposition(state.target, {
-            x: Math.floor(Math.random() * state.shakeAmount) - state.shakeAmount / 2
-          });
-          if (state.isBidirectional) {
-            reposition(state.target, {
-              y: Math.floor(Math.random() * state.shakeAmount) - state.shakeAmount / 2
-            });
-          }
-        }
-        setTimeout(() => shake(), state.shakeDelay);
-      }
-    };
-    return { shake, setTarget };
-  };
-
   // client/renderer/grid.ts
   function show_grid(renderer_system, renderer) {
     if (!renderer.grid) {
@@ -31469,32 +31395,12 @@ void main(void)\r
         menu_system.activate(menuName);
       }).with({ CloseMenu: _.select() }, (menuName) => {
         menu_system.deactivate(menuName);
-      }).with({ ShowEntities: _.select() }, (show_entities) => {
-        for (const show_entity of show_entities.filter(
-          (s3) => !s3.parent_entity
-        )) {
-          this.entity_manager.add_entity(
-            show_entity,
-            this.renderer,
-            resource_manager
-          );
-        }
-        for (const show_entity of show_entities.filter(
-          (s3) => s3.parent_entity
-        )) {
-          this.entity_manager.add_entity(
-            show_entity,
-            this.renderer,
-            resource_manager
-          );
-        }
-      }).with("RemoveAllEntities", () => {
-        this.entity_manager.remove_all_entities_from_module();
-        this.terrain_manager.remove_all_chunks_for_module(this.renderer);
-      }).with({ RemoveEntities: _.select() }, (remove_entities) => {
-        for (const remove_entity of remove_entities) {
-          this.entity_manager.remove_entity(remove_entity);
-        }
+      }).with({ ShowScene: _.select() }, (scene) => {
+        console.log(scene);
+      }).with({ UpdateSceneNodes: _.select() }, (nodes) => {
+        console.log(nodes);
+      }).with({ RemoveSceneNodes: _.select() }, (node_ids) => {
+        console.log(node_ids);
       }).with({ ChangeEntity: _.select() }, ([update_entities, _moduleName]) => {
         console.log(update_entities);
       }).with({ ShowTerrain: _.select() }, (layers) => {
@@ -31520,33 +31426,7 @@ void main(void)\r
         if (mouse_plugin) {
           mouse_plugin.plugin_options.mouse_mode = mouse_mode;
         }
-      }).with({ ShowEffects: _.select() }, (show_effects) => {
-        for (const show_effect of show_effects) {
-          N2(show_effect).with({ SimpleImageEffect: _.select() }, (simple_image_effect) => {
-            this.entity_manager.add_simple_image_effect(
-              simple_image_effect,
-              this.renderer,
-              resource_manager
-            );
-          }).with({ ShakeScreenEffect: _.select() }, (shake_screen_effect) => {
-            new_shaker({
-              target: this.renderer.main_container,
-              isBidirectional: shake_screen_effect.is_bidirectional,
-              shakeCountMax: shake_screen_effect.shake_count_max,
-              shakeDelay: shake_screen_effect.shake_delay,
-              shakeAmount: shake_screen_effect.shake_amount
-            }).shake();
-          }).exhaustive();
-        }
       }).with({ SetParallax: _.select() }, (_layer_parallax) => {
-      }).with({ UpdateEntities: _.select() }, (updated_entities) => {
-        for (const update_entity of updated_entities) {
-          this.entity_manager.update_entity(
-            update_entity,
-            resource_manager,
-            this.renderer
-          );
-        }
       }).exhaustive();
     }
     destroy() {

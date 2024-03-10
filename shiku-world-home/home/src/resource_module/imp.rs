@@ -12,7 +12,6 @@ use url::Url;
 
 use crate::core::blueprint::def::{ModuleId, ResourcePath};
 use crate::core::guest::ActorId;
-use crate::core::module_system::def::{World, WorldId};
 use crate::core::{safe_unwrap, send_and_log_error_consume};
 use crate::resource_module::def::{
     LoadResource, PicUpdateEvent, ResourceBundle, ResourceEvent, ResourceModule,

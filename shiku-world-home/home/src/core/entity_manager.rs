@@ -19,19 +19,19 @@ pub trait EntityVisibility {
 impl EntityVisibility for HideEntityMap {
     fn hide_entity(&mut self, guest_id: &ActorId, entity_id: &EntityId) {
         self.entry(*guest_id)
-            .or_insert_with(HashSet::new)
+            .or_default()
             .insert(entity_id.clone());
     }
 
     fn show_entity(&mut self, guest_id: &ActorId, entity_id: &EntityId) {
         self.entry(*guest_id)
-            .or_insert_with(HashSet::new)
+            .or_default()
             .remove(entity_id);
     }
 
     fn entity_hidden(&mut self, guest_id: &ActorId, entity_id: &EntityId) -> bool {
         self.entry(*guest_id)
-            .or_insert_with(HashSet::new)
+            .or_default()
             .contains(entity_id)
     }
 }

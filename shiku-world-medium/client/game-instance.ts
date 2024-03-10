@@ -7,7 +7,6 @@ import { match, P } from "ts-pattern";
 import { MediumDataStorage } from "@/client/communication/api/bindings/MediumDataStorage";
 import { get_plugin } from "@/client/plugins";
 import { MousePluginType } from "../plugins/mouse-input";
-import { new_shaker } from "@/client/renderer/shaker-factory";
 import { MenuSystem } from "@/client/menu";
 import { ResourceManager } from "@/client/resources";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
@@ -74,35 +73,19 @@ export class GameInstance {
       .with({ CloseMenu: P.select() }, (menuName) => {
         menu_system.deactivate(menuName);
       })
-      .with({ ShowEntities: P.select() }, (show_entities) => {
-        for (const show_entity of show_entities.filter(
-          (s) => !s.parent_entity,
-        )) {
-          this.entity_manager.add_entity(
-            show_entity,
-            this.renderer,
-            resource_manager,
-          );
-        }
-
-        for (const show_entity of show_entities.filter(
-          (s) => s.parent_entity,
-        )) {
-          this.entity_manager.add_entity(
-            show_entity,
-            this.renderer,
-            resource_manager,
-          );
-        }
+      .with({ ShowScene: P.select() }, (scene) => {
+        console.log(scene);
+        /*this.entity_manager.add_entity(
+          show_entity,
+          this.renderer,
+          resource_manager,
+        );*/
       })
-      .with("RemoveAllEntities", () => {
-        this.entity_manager.remove_all_entities_from_module();
-        this.terrain_manager.remove_all_chunks_for_module(this.renderer);
+      .with({ UpdateSceneNodes: P.select() }, (nodes) => {
+        console.log(nodes);
       })
-      .with({ RemoveEntities: P.select() }, (remove_entities) => {
-        for (const remove_entity of remove_entities) {
-          this.entity_manager.remove_entity(remove_entity);
-        }
+      .with({ RemoveSceneNodes: P.select() }, (node_ids) => {
+        console.log(node_ids);
       })
       .with({ ChangeEntity: P.select() }, ([update_entities, _moduleName]) => {
         console.log(update_entities);
@@ -133,7 +116,7 @@ export class GameInstance {
           mouse_plugin.plugin_options.mouse_mode = mouse_mode;
         }
       })
-      .with({ ShowEffects: P.select() }, (show_effects) => {
+      /*.with({ ShowEffects: P.select() }, (show_effects) => {
         for (const show_effect of show_effects) {
           match(show_effect)
             .with({ SimpleImageEffect: P.select() }, (simple_image_effect) => {
@@ -154,7 +137,7 @@ export class GameInstance {
             })
             .exhaustive();
         }
-      })
+      })*/
       .with({ SetParallax: P.select() }, (_layer_parallax) => {
         /*for (const key in this.renderer.mainContainer) {
           const parallax_container =
@@ -169,15 +152,6 @@ export class GameInstance {
           this.renderer.layerContainer[layer_name].x_pscaling = parallax[0];
           this.renderer.layerContainer[layer_name].y_pscaling = parallax[1];
         }*/
-      })
-      .with({ UpdateEntities: P.select() }, (updated_entities) => {
-        for (const update_entity of updated_entities) {
-          this.entity_manager.update_entity(
-            update_entity,
-            resource_manager,
-            this.renderer,
-          );
-        }
       })
       .exhaustive();
   }

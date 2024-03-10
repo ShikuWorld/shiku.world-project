@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use apecs::World as ApecsWorld;
 use flume::Sender;
@@ -16,11 +17,12 @@ use crate::core::module::{
 use crate::core::module::{GuestInput, GuestToModuleEvent};
 use crate::core::module_system::def::{
     DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication, ModuleGuest,
-    World, WorldId,
 };
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::{cantor_pair, send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
+use crate::core::blueprint::resource_loader::Blueprint;
+use crate::core::module_system::world::{World, WorldId};
 
 impl DynamicGameModule {
     pub fn create(
@@ -44,13 +46,10 @@ impl DynamicGameModule {
             module_id: module.id.clone(),
             instance_id,
         };
-        let game_maps = match BlueprintService::load_all_maps_for_module(module) {
-            Ok(maps) => maps,
-            Err(err) => {
-                error!("Could not load maps for module to create worlds {:?}", err);
-                Vec::new()
-            }
-        };
+        let game_maps = BlueprintService::load_all_maps_for_module(module).unwrap_or_else(|err| {
+            error!("Could not load maps for module to create worlds {:?}", err);
+            Vec::new()
+        });
         for game_map in game_maps {
             if let Err(err) = dynamic_module.create_world(&game_map) {
                 error!("Could not create world '{}': {:?}", game_map.name, err);
@@ -64,18 +63,10 @@ impl DynamicGameModule {
         if self.world_map.contains_key(&game_map.world_id) {
             return Err(CreateWorldError::DidAlreadyExist);
         }
+
         self.world_map.insert(
             game_map.world_id.clone(),
-            World {
-                terrain_params: TerrainParams {
-                    chunk_size: game_map.chunk_size,
-                    tile_height: game_map.tile_height,
-                    tile_width: game_map.tile_width,
-                },
-                terrain_tmp: game_map.terrain.clone(),
-                world_scene: game_map.main_scene.clone(),
-                instance_resource_map: HashMap::new(),
-            },
+            World::new(&game_map)?,
         );
         self.world_to_admin.init(game_map.world_id.clone());
         self.world_to_guest.init(game_map.world_id.clone());
@@ -135,7 +126,7 @@ impl DynamicGameModule {
 
         self.world_map
             .get_mut(world_id)
-            .and_then(|world| world.terrain_tmp.get_mut(layer_kind))
+            .and_then(|world| world.terrain.get_mut(layer_kind))
             .and_then(|chunks| {
                 chunks.insert(
                     cantor_pair(chunk.position.0, chunk.position.1),
@@ -259,7 +250,7 @@ impl DynamicGameModule {
         if let Some(initial_terrain_event) = Self::get_initial_terrain_event(
             world_map,
             module_id.clone(),
-            instance_id,
+            instance_id.clone(),
             world_id,
             set_world,
         ) {
@@ -270,6 +261,22 @@ impl DynamicGameModule {
                     event_type: initial_terrain_event,
                 },
             );
+        }
+        if let Some(world) = world_map.get(world_id) {
+            send_and_log_error(
+                sender,
+                GuestEvent {
+                    guest_id: actor_id,
+                    event_type: ModuleInstanceEvent {
+                        module_id,
+                        instance_id,
+                        world_id: if set_world {
+                            Some(world_id.clone())
+                        } else {
+                            None
+                        },
+                        event_type: GameSystemToGuestEvent::ShowScene(world.world_scene.clone()),
+                    }});
         }
     }
 
@@ -355,7 +362,7 @@ impl DynamicGameModule {
     ) -> Option<Vec<(LayerKind, Vec<Chunk>)>> {
         world_map.get(world_id).map(|world| {
             world
-                .terrain_tmp
+                .terrain
                 .iter()
                 .map(|(a, b)| (a.clone(), b.values().cloned().collect()))
                 .collect()

@@ -5,12 +5,12 @@ use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
-use crate::core::blueprint::def::{Chunk, Conductor, GameNodeKind, GidMap, LayerKind, ModuleId, ResourcePath, SceneId, TerrainParams, Tileset};
-use crate::core::entity::def::{EntityId, RemoveEntity, ShowEntity, UpdateEntity};
-use crate::core::entity::render::{CameraSettings, ShowEffect};
+use crate::core::blueprint::def::{Chunk, Conductor, GameNodeId, GameNodeKind, GidMap, LayerKind, ModuleId, ResourcePath, Scene, SceneId, TerrainParams, Tileset};
+use crate::core::entity::def::{EntityId, ShowEntity};
+use crate::core::entity::render::CameraSettings;
 use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
-use crate::core::module_system::def::WorldId;
 use crate::core::module_system::game_instance::GameInstanceId;
+use crate::core::module_system::world::WorldId;
 use crate::resource_module::def::{ResourceBundle, ResourceEvent};
 use crate::resource_module::map::def::LayerName;
 
@@ -289,11 +289,9 @@ pub enum GameSystemToGuestEvent {
     UpdateDataStore(String),
     ShowTerrain(Vec<(LayerKind, Vec<Chunk>)>),
     SetParallax(Vec<(LayerName, (Real, Real))>),
-    ShowEntities(Vec<ShowEntity>),
-    ShowEffects(Vec<ShowEffect>),
-    UpdateEntities(Vec<UpdateEntity>),
-    RemoveEntities(Vec<RemoveEntity>),
-    RemoveAllEntities,
+    ShowScene(Scene),
+    UpdateSceneNodes(Vec<GameNodeKind>),
+    RemoveSceneNodes(Vec<GameNodeId>),
     SetMouseInputSchema(MouseInputSchema),
     ChangeEntity(Vec<ShowEntity>),
     SetCamera(EntityId, CameraSettings),
