@@ -1,5 +1,10 @@
 import { InstanceRendering } from "@/client/renderer";
-import { create_entity_manager, EntityManager } from "@/client/entities";
+import {
+  create_entity_manager,
+  create_render_graph,
+  EntityManager,
+  RenderGraph,
+} from "@/client/entities";
 import { create_terrain_manager, TerrainManager } from "@/client/terrain";
 import { create_instance_rendering } from "@/client/renderer/create_game_renderer";
 import { GameSystemToGuestEvent } from "@/client/communication/api/bindings/GameSystemToGuestEvent";
@@ -21,6 +26,7 @@ export type GameInstanceMap = {
 export class GameInstance {
   renderer: InstanceRendering;
   entity_manager: EntityManager;
+  render_graph: RenderGraph;
   terrain_manager: TerrainManager;
   layer_map_keys: LayerKind[];
 
@@ -30,6 +36,7 @@ export class GameInstance {
     public world_id: string,
     terrain_params: TerrainParams,
   ) {
+    this.render_graph = create_render_graph();
     this.renderer = create_instance_rendering(terrain_params);
     this.entity_manager = create_entity_manager();
     this.terrain_manager = create_terrain_manager(terrain_params);
@@ -74,12 +81,7 @@ export class GameInstance {
         menu_system.deactivate(menuName);
       })
       .with({ ShowScene: P.select() }, (scene) => {
-        console.log(scene);
-        /*this.entity_manager.add_entity(
-          show_entity,
-          this.renderer,
-          resource_manager,
-        );*/
+        this.render_graph.render_graph_from_scene(scene);
       })
       .with({ UpdateSceneNodes: P.select() }, (nodes) => {
         console.log(nodes);

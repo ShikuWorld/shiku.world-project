@@ -243,7 +243,7 @@ pub enum CommunicationEvent {
         ResourceBundle,
         TerrainParams,
         Vec<Tileset>,
-        GidMap,
+        GidMap
     ),
     UnloadGame(ModuleId, GameInstanceId, Option<WorldId>),
     GameSystemEvent(
