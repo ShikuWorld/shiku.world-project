@@ -18,9 +18,7 @@ import { RemoveEntity } from "../communication/api/bindings/RemoveEntity";
 import { StaticImage } from "../communication/api/bindings/StaticImage";
 import { SimpleImageEffect } from "../communication/api/bindings/SimpleImageEffect";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
-import { Scene } from "@/editor/blueprints/Scene";
-import { get_generic_game_node } from "@/editor/stores/resources";
-import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
+import { RenderGraph } from "@/client/render-graph";
 
 export function create_entity_manager(): EntityManager {
   return new EntityManager();
@@ -28,59 +26,6 @@ export function create_entity_manager(): EntityManager {
 
 export function create_render_graph(): RenderGraph {
   return new RenderGraph();
-}
-
-export class RenderGraph {
-  render_root: Node;
-  scene_node_to_render_node_map: Map<string, Node> = new Map();
-
-  constructor() {
-    this.render_root = {
-      node_id: "",
-      children: [],
-      display_object: new Container(),
-      parent: null,
-    };
-  }
-
-  render_graph_from_scene(scene: Scene) {
-    const game_node_root = get_generic_game_node(scene.root_node);
-    this.render_root = {
-      node_id: game_node_root.id,
-      children: [],
-      display_object: this.get_display_object(scene.root_node),
-      parent: null,
-    };
-    this.scene_node_to_render_node_map.set(game_node_root.id, this.render_root);
-    this.generate_render_graph(this.render_root, scene.root_node);
-  }
-
-  generate_render_graph(node: Node, game_node: GameNodeKind) {
-    const generic_game_node = get_generic_game_node(game_node);
-    for (const game_node_child of generic_game_node.children) {
-      const generic_game_node_child = get_generic_game_node(game_node_child);
-      const new_node = {
-        children: [],
-        parent: node,
-        display_object: this.get_display_object(game_node_child),
-        node_id: generic_game_node_child.id,
-      };
-      node.children.push(new_node);
-      this.scene_node_to_render_node_map.set(new_node.node_id, new_node);
-      this.generate_render_graph(new_node, game_node_child);
-    }
-  }
-
-  get_display_object(_node: GameNodeKind): DisplayObject {
-    return new Container();
-  }
-}
-
-export interface Node {
-  node_id: string;
-  parent: Node | null;
-  children: Node[];
-  display_object: DisplayObject;
 }
 
 export class EntityManager {

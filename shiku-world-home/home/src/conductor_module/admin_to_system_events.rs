@@ -47,7 +47,7 @@ pub async fn handle_admin_to_system_event(
                     module_admin.resources_loaded = true;
                 }
                 instance.dynamic_module.send_initial_world_events_admin(
-                    admin.id.clone(),
+                    admin.id,
                     &world_id,
                     module_id.clone(),
                 );

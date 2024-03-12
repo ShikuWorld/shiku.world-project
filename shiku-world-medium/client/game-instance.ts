@@ -3,7 +3,6 @@ import {
   create_entity_manager,
   create_render_graph,
   EntityManager,
-  RenderGraph,
 } from "@/client/entities";
 import { create_terrain_manager, TerrainManager } from "@/client/terrain";
 import { create_instance_rendering } from "@/client/renderer/create_game_renderer";
@@ -18,6 +17,7 @@ import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { set_container_to_viewport_coordinate } from "@/client/camera";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { update_grid } from "@/client/renderer/grid";
+import { RenderGraph } from "@/client/render-graph";
 
 export type GameInstanceMap = {
   [instance_id: string]: { [world_id: string]: GameInstance };
@@ -82,6 +82,9 @@ export class GameInstance {
       })
       .with({ ShowScene: P.select() }, (scene) => {
         this.render_graph.render_graph_from_scene(scene);
+        this.renderer.layer_map.FG10.addChild(
+          this.render_graph.render_root.container,
+        );
       })
       .with({ UpdateSceneNodes: P.select() }, (nodes) => {
         console.log(nodes);
