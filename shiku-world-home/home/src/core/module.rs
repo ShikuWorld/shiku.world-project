@@ -101,7 +101,7 @@ pub enum AdminToSystemEvent {
     SetTileset(blueprint::def::Tileset),
     DeleteTileset(blueprint::def::Tileset),
     CreateScene(blueprint::def::Scene),
-    UpdateSceneNode(SceneId, Vec<usize>, GameNodeKind),
+    UpdateSceneNode(SceneNodeUpdate),
     DeleteScene(blueprint::def::Scene),
     CreateMap(ModuleId, blueprint::def::GameMap),
     UpdateMap(blueprint::def::MapUpdate),
@@ -111,6 +111,14 @@ pub enum AdminToSystemEvent {
     SetBackDoorStatus(bool),
     LoadEditorData,
     Ping,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
+pub enum SceneNodeUpdate {
+    UpdateData(SceneId, Vec<usize>, GameNodeKind),
+    AddChild(SceneId, Vec<usize>, GameNodeKind),
+    RemoveChild(SceneId, Vec<usize>, GameNodeKind),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

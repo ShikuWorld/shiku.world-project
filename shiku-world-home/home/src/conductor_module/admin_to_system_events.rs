@@ -10,13 +10,13 @@ use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap};
 use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
-use crate::core::{log_result_error, send_and_log_error};
 use crate::core::blueprint::def::{
     BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin};
-use crate::core::module::{AdminToSystemEvent, CommunicationEvent, EditorEvent};
+use crate::core::module::{AdminToSystemEvent, CommunicationEvent, EditorEvent, SceneNodeUpdate};
+use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
 
@@ -99,6 +99,11 @@ pub async fn handle_admin_to_system_event(
                                             error!("Could not load tilesets for module! {:?}", err)
                                         }
                                     }
+                                } else {
+                                    error!(
+                                        "Could not get terrain params to inspect! {:?} {:?} {:?}",
+                                        module_id, game_instance_id, world_id
+                                    );
                                 }
                             }
                             Err(err) => {
@@ -108,6 +113,11 @@ pub async fn handle_admin_to_system_event(
                     }
                     Err(err) => error!("Could not get admin into instance/map {:?}", err),
                 }
+            } else {
+                error!(
+                    "module not found to inspect...? {:?} {:?} {:?}",
+                    module_id, game_instance_id, world_id
+                );
             }
         }
         AdminToSystemEvent::StopInspectingWorld(module_id, game_instance_id, world_id) => {
@@ -315,18 +325,32 @@ pub async fn handle_admin_to_system_event(
             }
             Err(err) => error!("Could not create scene: {:?}", err),
         },
-        AdminToSystemEvent::UpdateSceneNode(resource_path, path, node) => {
-            match Blueprint::load_scene(resource_path.into()) {
-                Ok(mut scene) => {
-                    match Blueprint::update_node_in_scene(&mut scene, path, node) {
+        AdminToSystemEvent::UpdateSceneNode(scene_node_update) => match scene_node_update {
+            SceneNodeUpdate::UpdateData(resource_path, path, node) => {
+                match Blueprint::load_scene(resource_path.into()) {
+                    Ok(mut scene) => {
+                        match Blueprint::update_node_in_scene(&mut scene, path, node) {
+                            Ok(()) => {
+                                send_editor_event(EditorEvent::SetScene(scene));
+                            }
+                            Err(err) => error!("Could not update scene: {:?}", err),
+                        }
+                    }
+                    Err(err) => error!("Could not load scene to update it: {:?}", err),
+                }
+            }
+            SceneNodeUpdate::AddChild(resource_path, path, node) => {
+                match Blueprint::load_scene(resource_path.into()) {
+                    Ok(mut scene) => match Blueprint::add_child_in_scene(&mut scene, path, node) {
                         Ok(()) => {
                             send_editor_event(EditorEvent::SetScene(scene));
                         }
                         Err(err) => error!("Could not update scene: {:?}", err),
-                    }
+                    },
+                    Err(err) => error!("Could not load scene to update it: {:?}", err),
                 }
-                Err(err) => error!("Could not load scene to update it: {:?}", err),
             }
+            SceneNodeUpdate::RemoveChild(resource_path, path, node) => {}
         },
         AdminToSystemEvent::DeleteScene(scene) => match Blueprint::delete_scene(&scene) {
             Ok(()) => {

@@ -15,7 +15,6 @@ use crate::core::module::ModuleName;
 pub type EntityId = usize;
 pub type JointId = usize;
 
-
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Conductor {
@@ -118,13 +117,7 @@ impl Tileset {
         } else {
             self.tiles
                 .values()
-                .filter_map(|t| {
-                    if let Some(image) = &t.image {
-                        Some(image.path.clone())
-                    } else {
-                        None
-                    }
-                })
+                .filter_map(|t| t.image.as_ref().map(|image| image.path.clone()))
                 .collect()
         }
     }
@@ -163,9 +156,11 @@ pub struct IOPoint {
 pub type ModuleId = String;
 pub type SceneId = String;
 
+pub type Gid = u32;
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub struct GidMap(pub Vec<(ResourcePath, u32)>);
+pub struct GidMap(pub Vec<(ResourcePath, Gid)>);
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
@@ -246,37 +241,43 @@ pub struct Scene {
     pub id: SceneId,
     pub name: String,
     pub resource_path: ResourcePath,
-    pub root_node: GameNodeKind
+    pub root_node: GameNodeKind,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum GameNodeKind {
     Instance(GameNode<ResourcePath>),
-    Node(GameNode<String>),
-    RigidBody(GameNode<RigidBody>),
-    Collider(GameNode<Collider>),
-    Render(GameNode<Render>)
+    Node2D(GameNode<Node2D>),
 }
 
 impl GameNodeKind {
     pub fn borrow_children(&mut self) -> &mut Vec<GameNodeKind> {
         match self {
-            GameNodeKind::Node(node) => &mut node.children,
-            GameNodeKind::Collider(node) => &mut node.children,
             GameNodeKind::Instance(node) => &mut node.children,
-            GameNodeKind::Render(node) => &mut node.children,
-            GameNodeKind::RigidBody(node) => &mut node.children,
+            GameNodeKind::Node2D(node) => &mut node.children,
+        }
+    }
+
+    pub fn add_child(&mut self, other_game_node: GameNodeKind) {
+        match self {
+            GameNodeKind::Instance(node) => node.children.push(other_game_node),
+            GameNodeKind::Node2D(node) => node.children.push(other_game_node),
         }
     }
 
     pub fn set_data(&mut self, data: GameNodeKind) {
         match self {
-            GameNodeKind::Node(node) =>  if let GameNodeKind::Node(n) = data { node.data = n.data },
-            GameNodeKind::Collider(node) => if let GameNodeKind::Collider(n) = data { node.data = n.data },
-            GameNodeKind::Instance(node) => if let GameNodeKind::Instance(n) = data { node.data = n.data },
-            GameNodeKind::Render(node) => if let GameNodeKind::Render(n) = data { node.data = n.data },
-            GameNodeKind::RigidBody(node) => if let GameNodeKind::RigidBody(n) = data { node.data = n.data },
+            GameNodeKind::Instance(node) => {
+                if let GameNodeKind::Instance(n) = data {
+                    node.data = n.data
+                }
+            }
+            GameNodeKind::Node2D(node) => {
+                if let GameNodeKind::Node2D(n) = data {
+                    node.data = n.data
+                }
+            }
         }
     }
 }
@@ -291,14 +292,14 @@ pub struct GameNode<T> {
     pub name: String,
     pub data: T,
     pub script: Option<String>,
-    pub children: Vec<GameNodeKind>
+    pub children: Vec<GameNodeKind>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Collider {
     kind: ColliderKind,
-    shape: ColliderShape
+    shape: ColliderShape,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -307,22 +308,45 @@ pub enum ColliderShape {
     Ball(f32),
     CapsuleX(f32, f32),
     CapsuleY(f32, f32),
-    Cuboid(f32, f32)
+    Cuboid(f32, f32),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum ColliderKind {
     Solid,
-    Sensor
+    Sensor,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Transform {
+    pub position: (Real, Real),
+    pub scale: (Real, Real),
+    pub velocity: (Real, Real),
+    pub rotation: Real,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Node2D {
+    pub transform: Transform,
+    pub kind: Node2DKind,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum Node2DKind {
+    Node2D,
+    RigidBody(RigidBody),
+    Collider(Collider),
+    Render(Render),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct RigidBody {
-    pub position: (Real, Real),
     pub velocity: (Real, Real),
-    pub rotation: Real,
     pub body: RigidBodyType,
 }
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -331,7 +355,7 @@ pub enum RigidBodyType {
     Dynamic,
     Fixed,
     KinematicPositionBased,
-    KinematicVelocityBased
+    KinematicVelocityBased,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -379,8 +403,8 @@ pub enum LayerKind {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum RenderKind {
-    AnimatedSprite,
-    Sprite
+    AnimatedSprite(Gid),
+    Sprite(Gid),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

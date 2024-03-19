@@ -25,7 +25,7 @@ import { Scene } from "@/editor/blueprints/Scene";
 import { v4 as uuidv4 } from "uuid";
 import { KeysOfUnion } from "@/editor/utils";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
-import { create_game_node } from "@/editor/stores/resources";
+import { create_game_node, GameNodeTypeKeys } from "@/editor/stores/resources";
 
 const partial_scene = reactive<Partial<Scene>>({
   id: uuidv4(),
@@ -33,11 +33,13 @@ const partial_scene = reactive<Partial<Scene>>({
   resource_path: "",
 });
 
-const selected_root_node_type = ref<KeysOfUnion<GameNodeKind>>("Node");
-const root_node_types: KeysOfUnion<GameNodeKind>[] = [
-  "Node",
-  "RigidBody",
-  "Render",
+const selected_root_node_type = ref<KeysOfUnion<GameNodeKind>>("Node2D");
+
+const root_node_types: GameNodeTypeKeys[] = [
+  "Node2D",
+  "Node2D-Collider",
+  "Node2D-Render",
+  "Node2D-RigidBody",
 ];
 
 const emit = defineEmits<{

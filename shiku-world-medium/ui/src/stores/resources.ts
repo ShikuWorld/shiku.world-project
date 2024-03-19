@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Scene } from "@/editor/blueprints/Scene";
 import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
 import { GameNode } from "@/editor/blueprints/GameNode";
+import { Node2DKind } from "@/editor/blueprints/Node2DKind";
 
 export type Point = { y: number; x: number };
 
@@ -24,6 +25,7 @@ export interface ResourcesStore {
   scene_map: { [scene_path: string]: Scene };
   current_file_browser_result: FileBrowserResult;
 }
+
 export const use_resources_store = defineStore("resources", {
   state: (): ResourcesStore => ({
     modules: {},
@@ -182,7 +184,18 @@ export const use_resources_store = defineStore("resources", {
       path: number[],
       data: GameNodeKind,
     ) {
-      send_admin_event({ UpdateSceneNode: [resource_path, path, data] });
+      send_admin_event({
+        UpdateSceneNode: { UpdateData: [resource_path, path, data] },
+      });
+    },
+    add_child_to_scene_on_server(
+      resource_path: string,
+      path: number[],
+      data: GameNodeKind,
+    ) {
+      send_admin_event({
+        UpdateSceneNode: { AddChild: [resource_path, path, data] },
+      });
     },
     delete_scene_server(scene: Scene) {
       send_admin_event({ DeleteScene: scene });
@@ -236,10 +249,6 @@ export function scene_key(scene: Scene) {
   return `${scene.resource_path}/${scene.name}.scene.json`;
 }
 
-export function resource_key(resource: BlueprintResource) {
-  return `${resource.dir}/${resource.file_name}`;
-}
-
 export function map_key(game_map: { resource_path: string; name: string }) {
   return `${game_map.resource_path}/${game_map.name}.map.json`;
 }
@@ -273,73 +282,70 @@ export function children_of(node: GameNodeKind): Array<GameNodeKind> {
   return get_generic_game_node(node).children;
 }
 
+type Node2DKindKeys = KeysOfUnion<Exclude<Node2DKind, "Node2D">>;
+export type Node2DTypeKeys = `Node2D-${Node2DKindKeys}`;
+export type GameNodeTypeKeys = KeysOfUnion<GameNodeKind> | Node2DTypeKeys;
+
 export function create_game_node(
-  game_node_type: KeysOfUnion<GameNodeKind>,
+  game_node_type: GameNodeTypeKeys,
 ): GameNodeKind {
-  return match(game_node_type)
-    .with(
-      "RigidBody",
-      (): GameNodeKind => ({
-        RigidBody: {
-          name: "RigidBody",
-          id: uuidv4(),
-          data: {
+  if (game_node_type.startsWith("Node2D")) {
+    return {
+      Node2D: {
+        name: game_node_type,
+        id: uuidv4(),
+        data: {
+          transform: {
             position: [0, 0],
+            scale: [0, 0],
             velocity: [0, 0],
             rotation: 0,
-            body: "Dynamic",
           },
-          script: null,
-          children: [],
+          kind:
+            game_node_type === "Node2D"
+              ? "Node2D"
+              : create_2d_game_node(game_node_type as Node2DTypeKeys),
+        },
+        script: null,
+        children: [],
+      },
+    };
+  } else {
+    return {
+      Instance: {
+        name: "Render",
+        id: uuidv4(),
+        data: "",
+        script: null,
+        children: [],
+      },
+    };
+  }
+}
+
+export function create_2d_game_node(
+  game_node_type: Node2DTypeKeys,
+): Node2DKind {
+  return match(game_node_type)
+    .with(
+      "Node2D-RigidBody",
+      (): Node2DKind => ({
+        RigidBody: {
+          velocity: [0, 0],
+          body: "Dynamic",
         },
       }),
     )
     .with(
-      "Collider",
-      (): GameNodeKind => ({
-        Collider: {
-          name: "Collider",
-          id: uuidv4(),
-          data: { kind: "Solid", shape: { Ball: 0 } },
-          script: null,
-          children: [],
-        },
+      "Node2D-Collider",
+      (): Node2DKind => ({
+        Collider: { kind: "Solid", shape: { Ball: 0 } },
       }),
     )
     .with(
-      "Node",
-      (): GameNodeKind => ({
-        Node: {
-          name: "Node",
-          id: uuidv4(),
-          data: "",
-          script: null,
-          children: [],
-        },
-      }),
-    )
-    .with(
-      "Render",
-      (): GameNodeKind => ({
-        Render: {
-          name: "Render",
-          id: uuidv4(),
-          data: { offset: [0, 0], layer: "BG00", kind: "Sprite" },
-          script: null,
-          children: [],
-        },
-      }),
-    )
-    .with(
-      "Instance",
-      (): GameNodeKind => ({
-        Instance: {
-          name: "Render",
-          id: uuidv4(),
-          data: "",
-          script: null,
-          children: [],
-        },
+      "Node2D-Render",
+      (): Node2DKind => ({
+        Render: { offset: [0, 0], layer: "BG00", kind: { Sprite: 0 } },
       }),
     )
     .exhaustive();

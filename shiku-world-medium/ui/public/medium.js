@@ -34292,7 +34292,14 @@ This will fail in production.`);
         send_admin_event2({ CreateScene: scene });
       },
       update_data_in_scene_node_on_server(resource_path, path2, data) {
-        send_admin_event2({ UpdateSceneNode: [resource_path, path2, data] });
+        send_admin_event2({
+          UpdateSceneNode: { UpdateData: [resource_path, path2, data] }
+        });
+      },
+      add_child_to_scene_on_server(resource_path, path2, data) {
+        send_admin_event2({
+          UpdateSceneNode: { AddChild: [resource_path, path2, data] }
+        });
       },
       delete_scene_server(scene) {
         send_admin_event2({ DeleteScene: scene });

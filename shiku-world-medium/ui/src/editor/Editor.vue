@@ -167,7 +167,6 @@ function load_map_palette() {
     }
     if (tilesets_to_load.length > 0) {
       for (const r of tilesets_to_load) {
-        console.log("loading", r);
         get_resource_server(r.path);
       }
     }
@@ -348,7 +347,7 @@ function open_resource_editor(resource: BlueprintResource) {
 .editor-nav-left,
 .editor-nav-right {
   width: 200px;
-  height: 100vh;
+  height: calc(100vh - 48px);
   background-color: rgb(var(--v-theme-primary));
 }
 

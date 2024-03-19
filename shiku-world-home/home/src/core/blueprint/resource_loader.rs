@@ -1,16 +1,18 @@
+use log::debug;
 use std::collections::{HashMap, HashSet};
-use std::fs::{create_dir_all, File, remove_dir_all, remove_file, rename};
+use std::fs::{create_dir_all, remove_dir_all, remove_file, rename, File};
 use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::RwLock;
-use log::debug;
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::core::blueprint::def::{BlueprintError, GameMap, GameNode, GameNodeKind, IOPoint, Module, ResourcePath, Scene, Tileset};
+use crate::core::blueprint::def::{
+    BlueprintError, GameMap, GameNode, GameNodeKind, IOPoint, Module, ResourcePath, Scene, Tileset,
+};
 use crate::core::blueprint::resource_cache::get_resource_cache;
 use crate::core::get_out_dir;
 use crate::core::module::ModuleName;
@@ -23,7 +25,7 @@ impl Blueprint {
         resource_path: &str,
         resource_name: &str,
         file_extension: &str,
-        resource_map: &RwLock<HashMap<ResourcePath, T>>
+        resource_map: &RwLock<HashMap<ResourcePath, T>>,
     ) -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
         let resource_path = PathBuf::from_str(resource_path)?;
@@ -37,14 +39,27 @@ impl Blueprint {
         let writer = BufWriter::new(file);
         serde_json::to_writer_pretty(writer, resource)?;
         let file_path_as_string = Self::path_buf_to_string(file_path)?;
-        resource_map.write().map_err(|_| BlueprintError::WritePoison("Could not add resource to cache due to poison."))?.insert(file_path_as_string, resource.clone());
+        resource_map
+            .write()
+            .map_err(|_| {
+                BlueprintError::WritePoison("Could not add resource to cache due to poison.")
+            })?
+            .insert(file_path_as_string, resource.clone());
         Ok(())
     }
 
-    pub fn load<T: DeserializeOwned + Clone>(path: PathBuf, resource_map: &RwLock<HashMap<ResourcePath, T>>) -> Result<T, BlueprintError> {
+    pub fn load<T: DeserializeOwned + Clone>(
+        path: PathBuf,
+        resource_map: &RwLock<HashMap<ResourcePath, T>>,
+    ) -> Result<T, BlueprintError> {
         let actual_path_buf = get_out_dir().join(path);
         let actual_path = Self::path_buf_to_string(actual_path_buf)?;
-        resource_map.read().map_err(|_| BlueprintError::ReadPoison("Could not load resource due to poison."))?.get(&actual_path).cloned().ok_or(BlueprintError::FileDoesNotExist(actual_path.to_string()))
+        resource_map
+            .read()
+            .map_err(|_| BlueprintError::ReadPoison("Could not load resource due to poison."))?
+            .get(&actual_path)
+            .cloned()
+            .ok_or(BlueprintError::FileDoesNotExist(actual_path.to_string()))
     }
     pub fn load_from_file<T: DeserializeOwned>(path: PathBuf) -> Result<T, BlueprintError> {
         debug!("Loading {:?}", path.display());
@@ -65,7 +80,7 @@ impl Blueprint {
         resource_path: &str,
         resource_name: &str,
         file_extension: &str,
-        resource_map: &RwLock<HashMap<ResourcePath, T>>
+        resource_map: &RwLock<HashMap<ResourcePath, T>>,
     ) -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
         let resource_path = PathBuf::from_str(resource_path)?;
@@ -78,7 +93,12 @@ impl Blueprint {
         let writer = BufWriter::new(file);
         serde_json::to_writer(writer, resource)?;
         let file_path_as_string = Self::path_buf_to_string(file_path)?;
-        resource_map.write().map_err(|_| BlueprintError::WritePoison("Could not add resource to cache due to poison."))?.insert(file_path_as_string, resource.clone());
+        resource_map
+            .write()
+            .map_err(|_| {
+                BlueprintError::WritePoison("Could not add resource to cache due to poison.")
+            })?
+            .insert(file_path_as_string, resource.clone());
         Ok(())
     }
 
@@ -86,7 +106,7 @@ impl Blueprint {
         resource_path: &str,
         resource_name: &str,
         file_extension: &str,
-        resource_map: &RwLock<HashMap<ResourcePath, T>>
+        resource_map: &RwLock<HashMap<ResourcePath, T>>,
     ) -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
         let resource_path = PathBuf::from_str(resource_path)?;
@@ -97,13 +117,24 @@ impl Blueprint {
         }
         remove_file(file_path.clone())?;
         let file_path_as_string = Self::path_buf_to_string(file_path)?;
-        resource_map.write().map_err(|_| BlueprintError::WritePoison("Could not add resource to cache due to poison."))?.remove(&file_path_as_string);
+        resource_map
+            .write()
+            .map_err(|_| {
+                BlueprintError::WritePoison("Could not add resource to cache due to poison.")
+            })?
+            .remove(&file_path_as_string);
         Ok(())
     }
 
     pub fn create_tileset(tileset: &Tileset) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::create(tileset, &tileset.resource_path, &tileset.name, "tileset", &resources.tilesets)
+        Self::create(
+            tileset,
+            &tileset.resource_path,
+            &tileset.name,
+            "tileset",
+            &resources.tilesets,
+        )
     }
 
     pub fn load_tileset(path: PathBuf) -> Result<Tileset, BlueprintError> {
@@ -115,12 +146,23 @@ impl Blueprint {
 
     pub fn save_tileset(tileset: &Tileset) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::save(tileset, &tileset.resource_path, &tileset.name, "tileset", &resources.tilesets)
+        Self::save(
+            tileset,
+            &tileset.resource_path,
+            &tileset.name,
+            "tileset",
+            &resources.tilesets,
+        )
     }
 
     pub fn delete_tileset(tileset: &Tileset) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::delete(&tileset.resource_path, &tileset.name, "tileset", &resources.tilesets)
+        Self::delete(
+            &tileset.resource_path,
+            &tileset.name,
+            "tileset",
+            &resources.tilesets,
+        )
     }
 
     pub fn create_map(map: &GameMap) -> Result<(), BlueprintError> {
@@ -145,7 +187,13 @@ impl Blueprint {
 
     pub fn create_scene(scene: &Scene) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::create(scene, &scene.resource_path, &scene.name, "scene", &resources.scenes)
+        Self::create(
+            scene,
+            &scene.resource_path,
+            &scene.name,
+            "scene",
+            &resources.scenes,
+        )
     }
 
     pub fn load_scene(path: PathBuf) -> Result<Scene, BlueprintError> {
@@ -153,39 +201,109 @@ impl Blueprint {
         Self::load(path, &resources.scenes)
     }
 
-    pub fn update_node_in_scene(scene: &mut Scene, path: Vec<usize>, game_node: GameNodeKind) -> Result<(), BlueprintError> {
-        Self::set_node_rec(&mut scene.root_node, &path[..], game_node)?;
+    pub fn update_node_in_scene(
+        scene: &mut Scene,
+        path: Vec<usize>,
+        game_node: GameNodeKind,
+    ) -> Result<(), BlueprintError> {
+        if path.is_empty() {
+            scene.root_node.set_data(game_node);
+        } else {
+            Self::modify_node_rec(
+                &mut scene.root_node,
+                &path[..],
+                game_node,
+                |node_to_update, data_update| node_to_update.set_data(data_update),
+            )?;
+        }
         Blueprint::save_scene(scene)
     }
 
-    fn set_node_rec(current_game_node: &mut GameNodeKind, path: &[usize], game_node_to_insert: GameNodeKind) -> Result<(), BlueprintError> {
+    pub fn add_child_in_scene(
+        scene: &mut Scene,
+        path: Vec<usize>,
+        game_node: GameNodeKind,
+    ) -> Result<(), BlueprintError> {
+        if path.is_empty() {
+            scene.root_node.add_child(game_node);
+        } else {
+            Self::modify_node_rec(
+                &mut scene.root_node,
+                &path[..],
+                game_node,
+                |node_for_insertion, new_child| node_for_insertion.add_child(new_child),
+            )?;
+        }
+        Blueprint::save_scene(scene)
+    }
+
+    fn modify_node_rec<F>(
+        current_game_node: &mut GameNodeKind,
+        path: &[usize],
+        game_node_to_insert: GameNodeKind,
+        operation: F,
+    ) -> Result<(), BlueprintError>
+    where
+        F: FnOnce(&mut GameNodeKind, GameNodeKind) -> (),
+    {
         let children = current_game_node.borrow_children();
         if children.is_empty() || path.is_empty() {
-            return Err(BlueprintError::AccessNested("Unable to access node recursively, children empty or path 0!"));
+            return Err(BlueprintError::AccessNested(
+                "Unable to access node recursively, children empty or path 0!",
+            ));
         }
         if path.len() == 1 {
-            children[path[0]].set_data(game_node_to_insert);
+            let child = children.get_mut(path[0]).ok_or_else(|| {
+                BlueprintError::AccessNested(
+                    "Unable to access node recursively, child not accessible at this position!",
+                )
+            })?;
+            operation(child, game_node_to_insert);
             return Ok(());
         }
-        
-        let child = children.get_mut(path[0]).ok_or(BlueprintError::AccessNested("Unable to access node recursively, child not accessible at this position!"))?;
-        Self::set_node_rec(child, &path[1..], game_node_to_insert)
+
+        let child = children.get_mut(path[0]).ok_or_else(|| {
+            BlueprintError::AccessNested(
+                "Unable to access node recursively, child not accessible at this position!",
+            )
+        })?;
+        Self::modify_node_rec(child, &path[1..], game_node_to_insert, operation)
     }
 
     pub fn save_scene(scene: &Scene) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::save(scene, &scene.resource_path, &scene.name, "scene", &resources.scenes)
+        Self::save(
+            scene,
+            &scene.resource_path,
+            &scene.name,
+            "scene",
+            &resources.scenes,
+        )
     }
 
     pub fn delete_scene(scene: &Scene) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::delete(&scene.resource_path, &scene.name, "scene", &resources.scenes)
+        Self::delete(
+            &scene.resource_path,
+            &scene.name,
+            "scene",
+            &resources.scenes,
+        )
     }
 
     pub fn module_exists(module_name: &String) -> bool {
         let resources = get_resource_cache();
-        if let Ok(file_path) = Self::path_buf_to_string(get_out_dir().join("modules").join(module_name).join(format!("{}.module.json", &module_name))) {
-            if let Ok(modules) = resources.modules.read().map_err(|_| BlueprintError::ReadPoison("Could not load resource due to poison.")) {
+        if let Ok(file_path) = Self::path_buf_to_string(
+            get_out_dir()
+                .join("modules")
+                .join(module_name)
+                .join(format!("{}.module.json", &module_name)),
+        ) {
+            if let Ok(modules) = resources
+                .modules
+                .read()
+                .map_err(|_| BlueprintError::ReadPoison("Could not load resource due to poison."))
+            {
                 return modules.contains_key(&file_path);
             }
         }
@@ -219,13 +337,23 @@ impl Blueprint {
     }
 
     pub fn path_buf_to_string(path_buf: PathBuf) -> Result<String, BlueprintError> {
-        path_buf.into_os_string().into_string().map_err(BlueprintError::ConversionToString)
+        path_buf
+            .into_os_string()
+            .into_string()
+            .map_err(BlueprintError::ConversionToString)
     }
 
     pub fn create_module(module: &Module) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        let module_path = Self::path_buf_to_string(get_out_dir().join("modules").join(&module.name))?;
-        Self::create(module, &module_path, &module.name, "module", &resources.modules)
+        let module_path =
+            Self::path_buf_to_string(get_out_dir().join("modules").join(&module.name))?;
+        Self::create(
+            module,
+            &module_path,
+            &module.name,
+            "module",
+            &resources.modules,
+        )
     }
 
     pub fn lazy_create_module(module_name: &ModuleName) -> Result<Module, BlueprintError> {
@@ -247,13 +375,29 @@ impl Blueprint {
     pub fn save_module(module: &Module) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
         let file_path_buf = get_out_dir().join("modules").join(&module.name);
-        let file_path = file_path_buf.to_str().ok_or(BlueprintError::ConversionToStr)?;
-        Self::save(module, file_path, &module.name, "module", &resources.modules)
+        let file_path = file_path_buf
+            .to_str()
+            .ok_or(BlueprintError::ConversionToStr)?;
+        Self::save(
+            module,
+            file_path,
+            &module.name,
+            "module",
+            &resources.modules,
+        )
     }
 
     pub fn get_all_modules() -> Result<Vec<Module>, BlueprintError> {
         let resources = get_resource_cache();
-        Ok(resources.modules.read().map_err(|_| BlueprintError::ReadPoison("Was not able to get all modules due to poison."))?.values().cloned().collect())
+        Ok(resources
+            .modules
+            .read()
+            .map_err(|_| {
+                BlueprintError::ReadPoison("Was not able to get all modules due to poison.")
+            })?
+            .values()
+            .cloned()
+            .collect())
     }
 
     pub fn io_points_to_hashset(points: &[IOPoint]) -> HashSet<String> {

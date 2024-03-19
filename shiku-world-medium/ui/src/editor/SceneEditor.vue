@@ -16,8 +16,8 @@
             @click="
               add_node_type(selected_node.selection_path, node_type.value)
             "
-            >{{ node_type.label }}</v-list-item-title
-          >
+            >{{ node_type.label }}
+          </v-list-item-title>
         </v-list-item>
       </v-list>
     </v-menu>
@@ -36,43 +36,42 @@
 </style>
 
 <script lang="ts" setup>
-import { computed, toRaw, toRefs } from "vue";
+import { computed, toRefs } from "vue";
 import type { Scene } from "@/editor/blueprints/Scene";
 import SceneNodeList from "@/editor/editor/SceneNodeList.vue";
 import { mdiPlus } from "@mdi/js";
-import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
-import { KeysOfUnion } from "@/editor/utils";
 import { storeToRefs } from "pinia";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import {
-  children_of,
   create_game_node,
-  get_node_by_path,
+  GameNodeTypeKeys,
   scene_key,
+  use_resources_store,
 } from "@/editor/stores/resources";
 
-const node_type_options: { value: KeysOfUnion<GameNodeKind>; label: string }[] =
-  [
-    { value: "Instance", label: "Instance" },
-    { value: "Render", label: "Render" },
-    { value: "Collider", label: "Collider" },
-    { value: "RigidBody", label: "RigidBody" },
-  ];
+const node_type_options: { value: GameNodeTypeKeys; label: string }[] = [
+  { value: "Instance", label: "Instance" },
+  { value: "Node2D", label: "Node 2D" },
+  { value: "Node2D-RigidBody", label: "Node 2D RigidBody" },
+  { value: "Node2D-Render", label: "Node 2D Render" },
+  { value: "Node2D-Collider", label: "Node 2D Collider" },
+];
 const props = defineProps<{ scene: Scene }>();
 const { scene } = toRefs(props);
 
 const { component_stores } = storeToRefs(use_inspector_store());
-//const { update_scene_server } = use_resources_store();
+const { add_child_to_scene_on_server } = use_resources_store();
 const selected_node = computed(() => component_stores.value.game_node);
 
-function add_node_type(path: number[], node_type: KeysOfUnion<GameNodeKind>) {
+function add_node_type(path: number[], node_type: GameNodeTypeKeys) {
   if (!path) {
     console.error("Tried to add node to undefined node.");
     return;
   }
-  const scene_copy = structuredClone(toRaw(scene.value));
-  const n = get_node_by_path(scene_copy.root_node, [...path]);
-  children_of(n).push(create_game_node(node_type));
-  //update_scene_server(scene_copy);
+  add_child_to_scene_on_server(
+    scene_key(scene.value),
+    path,
+    create_game_node(node_type),
+  );
 }
 </script>

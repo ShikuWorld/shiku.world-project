@@ -4,6 +4,7 @@
       class="node-component"
       :class="{ 'node-container--selected': game_node.id === selected_node_id }"
       @click="on_node_click($event, game_node)"
+      @contextmenu="on_context_menu($event)"
       ref="comp"
     >
       {{ game_node.name }}
@@ -24,6 +25,7 @@
 
   padding: 10px;
 }
+
 .node-container--selected {
   background-color: red;
 }
@@ -36,6 +38,7 @@ import type { GameNode } from "@/editor/blueprints/GameNode";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import { storeToRefs } from "pinia";
 import { get_generic_game_node } from "@/editor/stores/resources";
+import ContextMenu from "@imengyu/vue3-context-menu";
 
 const props = defineProps<{
   node: GameNodeKind;
@@ -51,6 +54,30 @@ const selected_node_id = computed(() => {
 });
 
 const { select_game_node } = use_inspector_store();
+
+const on_context_menu = (e: MouseEvent) => {
+  //prevent the browser's default menu
+  e.preventDefault();
+  //show your menu
+  ContextMenu.showContextMenu({
+    theme: "dark",
+    x: e.x,
+    y: e.y,
+    items: [
+      {
+        label: "A menu item",
+        onClick: () => {
+          alert("You click a menu item");
+        },
+      },
+      {
+        label: "A submenu",
+        children: [{ label: "Item1" }, { label: "Item2" }, { label: "Item3" }],
+      },
+    ],
+  });
+};
+
 function on_node_click($event: MouseEvent, game_node: GameNode<unknown>) {
   if (
     comp.value &&

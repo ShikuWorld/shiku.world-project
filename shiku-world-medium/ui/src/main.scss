@@ -9,6 +9,14 @@
   color-scheme: shiku !important;
 }
 
+html {
+  overflow: hidden;
+}
+
+.mx-menu-ghost-host {
+  z-index: 2000 !important;
+}
+
 .v-theme--dark {
   --v-theme-background: transparent !important;
 }

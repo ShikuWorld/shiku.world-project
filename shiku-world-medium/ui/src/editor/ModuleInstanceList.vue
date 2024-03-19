@@ -53,7 +53,10 @@ function get_icon(instance_id: string, world_id: string) {
       ? mdiCheckBold
       : "";
   }
-  return game_instances.value[instance_id] ? mdiAccessPoint : mdiAccessPointOff;
+  return game_instances.value[instance_id] &&
+    game_instances.value[instance_id][world_id]
+    ? mdiAccessPoint
+    : mdiAccessPointOff;
 }
 
 const game_maps = computed<GameMap[]>(() =>

@@ -1,6 +1,5 @@
 <template>
   <div class="node-container">
-    <div>{{ game_node.id }}</div>
     <component
       :is="node_component"
       v-bind="{ game_node }"
