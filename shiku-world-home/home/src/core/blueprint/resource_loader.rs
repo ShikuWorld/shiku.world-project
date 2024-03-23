@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, error};
 use std::collections::{HashMap, HashSet};
 use std::fs::{create_dir_all, remove_dir_all, remove_file, rename, File};
 use std::io::{BufReader, BufWriter};
@@ -232,6 +232,28 @@ impl Blueprint {
                 &path[..],
                 game_node,
                 |node_for_insertion, new_child| node_for_insertion.add_child(new_child),
+            )?;
+        }
+        Blueprint::save_scene(scene)
+    }
+
+    pub fn remove_child_in_scene(
+        scene: &mut Scene,
+        path: Vec<usize>,
+        game_node: GameNodeKind,
+    ) -> Result<(), BlueprintError> {
+        if path.is_empty() {
+            error!("Removing root node not supported!");
+        } else if path.len() == 1 {
+            scene.root_node.remove_child(path[0]);
+        } else {
+            let path_len = path.len();
+            let index_to_remove = path[path_len - 1];
+            Self::modify_node_rec(
+                &mut scene.root_node,
+                &path[..path_len - 1],
+                game_node,
+                |node_for_insertion, _| node_for_insertion.remove_child(index_to_remove),
             )?;
         }
         Blueprint::save_scene(scene)

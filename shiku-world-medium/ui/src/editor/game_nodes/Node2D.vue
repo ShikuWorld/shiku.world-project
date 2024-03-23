@@ -1,5 +1,6 @@
 <template>
   <div>
+    <div>{{ node_2d_type }}</div>
     <v-label class="form-label">Transform</v-label>
     <v-label class="form-label">Position</v-label>
     <v-text-field

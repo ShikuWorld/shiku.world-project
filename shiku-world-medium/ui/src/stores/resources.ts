@@ -197,6 +197,15 @@ export const use_resources_store = defineStore("resources", {
         UpdateSceneNode: { AddChild: [resource_path, path, data] },
       });
     },
+    remove_child_from_scene_on_server(
+      resource_path: string,
+      path: number[],
+      data: GameNodeKind,
+    ) {
+      send_admin_event({
+        UpdateSceneNode: { RemoveChild: [resource_path, path, data] },
+      });
+    },
     delete_scene_server(scene: Scene) {
       send_admin_event({ DeleteScene: scene });
     },

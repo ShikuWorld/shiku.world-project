@@ -37,7 +37,10 @@ import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import type { GameNode } from "@/editor/blueprints/GameNode";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import { storeToRefs } from "pinia";
-import { get_generic_game_node } from "@/editor/stores/resources";
+import {
+  get_generic_game_node,
+  use_resources_store,
+} from "@/editor/stores/resources";
 import ContextMenu from "@imengyu/vue3-context-menu";
 
 const props = defineProps<{
@@ -46,7 +49,7 @@ const props = defineProps<{
   path: number[];
 }>();
 const { node, path, scene_resource_path } = toRefs(props);
-
+const game_node = computed(() => get_generic_game_node(node.value));
 const comp = ref<HTMLElement>();
 const { component_stores } = storeToRefs(use_inspector_store());
 const selected_node_id = computed(() => {
@@ -54,29 +57,35 @@ const selected_node_id = computed(() => {
 });
 
 const { select_game_node } = use_inspector_store();
+const { remove_child_from_scene_on_server } = use_resources_store();
 
 const on_context_menu = (e: MouseEvent) => {
-  //prevent the browser's default menu
-  e.preventDefault();
-  //show your menu
+  prevent_browser_default(e);
+
   ContextMenu.showContextMenu({
     theme: "dark",
     x: e.x,
     y: e.y,
     items: [
       {
-        label: "A menu item",
+        label: "Delete",
+        disabled: path.value.length === 0,
         onClick: () => {
-          alert("You click a menu item");
+          console.log(scene_resource_path.value, path.value, node.value);
+          remove_child_from_scene_on_server(
+            scene_resource_path.value,
+            path.value,
+            node.value,
+          );
         },
-      },
-      {
-        label: "A submenu",
-        children: [{ label: "Item1" }, { label: "Item2" }, { label: "Item3" }],
       },
     ],
   });
 };
+
+function prevent_browser_default(e: MouseEvent) {
+  e.preventDefault();
+}
 
 function on_node_click($event: MouseEvent, game_node: GameNode<unknown>) {
   if (
@@ -87,6 +96,4 @@ function on_node_click($event: MouseEvent, game_node: GameNode<unknown>) {
     select_game_node(scene_resource_path.value, game_node.id, path.value);
   }
 }
-
-const game_node = computed(() => get_generic_game_node(node.value));
 </script>

@@ -1,3 +1,4 @@
+use log::{debug, error};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::ffi::OsString;
@@ -260,9 +261,19 @@ impl GameNodeKind {
     }
 
     pub fn add_child(&mut self, other_game_node: GameNodeKind) {
-        match self {
-            GameNodeKind::Instance(node) => node.children.push(other_game_node),
-            GameNodeKind::Node2D(node) => node.children.push(other_game_node),
+        self.borrow_children().push(other_game_node)
+    }
+
+    pub fn remove_child(&mut self, index: usize) {
+        let children = self.borrow_children();
+        if index < children.len() {
+            children.remove(index);
+        } else {
+            error!(
+                "Tried to remove a child that was not there, this could have paniced! len: {:?} | index: {:?}",
+                children.len(),
+                index
+            );
         }
     }
 

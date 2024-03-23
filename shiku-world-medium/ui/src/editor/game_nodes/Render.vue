@@ -1,4 +1,5 @@
 <template>
+  <v-label class="form-label">Render</v-label>
   <v-select
     label="Render type"
     :hide-details="true"
