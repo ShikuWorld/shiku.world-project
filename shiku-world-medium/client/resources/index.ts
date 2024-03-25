@@ -1,9 +1,11 @@
 import {
+  AnimatedSprite,
   Assets,
   BaseTexture,
   Graphics as PixijsGraphics,
   Rectangle,
   RenderTexture,
+  Sprite,
   Texture,
 } from "pixi.js-legacy";
 import { SimpleEventDispatcher } from "strongly-typed-events";
@@ -95,6 +97,21 @@ export class ResourceManager {
         `${tileset.resource_path}/${tileset.name}.tileset.json`
       ] = tileset;
     }
+  }
+
+  get_sprite_from_graphics(graphics: Graphics): Sprite {
+    let sprite: Sprite;
+
+    if (graphics.frame_objects.length > 0) {
+      const animated_sprite = new AnimatedSprite(graphics.frame_objects);
+
+      animated_sprite.play();
+      sprite = animated_sprite;
+    } else {
+      sprite = new Sprite(graphics.textures[0]);
+    }
+    sprite.anchor.set(0, 1);
+    return sprite;
   }
 
   get_graphics_data_by_gid(gid: number): Graphics {

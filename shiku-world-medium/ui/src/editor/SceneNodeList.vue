@@ -71,7 +71,6 @@ const on_context_menu = (e: MouseEvent) => {
         label: "Delete",
         disabled: path.value.length === 0,
         onClick: () => {
-          console.log(scene_resource_path.value, path.value, node.value);
           remove_child_from_scene_on_server(
             scene_resource_path.value,
             path.value,

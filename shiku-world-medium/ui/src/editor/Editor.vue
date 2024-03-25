@@ -14,9 +14,9 @@
         v-if="selected_module"
       >
         <v-expansion-panel title="Scene" v-if="current_main_scene">
-          <v-expansion-panel-text
-            ><scene-editor :scene="current_main_scene"></scene-editor
-          ></v-expansion-panel-text>
+          <v-expansion-panel-text>
+            <scene-editor :scene="current_main_scene"></scene-editor>
+          </v-expansion-panel-text>
         </v-expansion-panel>
         <v-expansion-panel title="Resources">
           <v-expansion-panel-text>
@@ -39,7 +39,7 @@
     </div>
     <div class="editor-main-view">
       <v-window v-model="tab">
-        <v-window-item value="current"> </v-window-item>
+        <v-window-item value="current"></v-window-item>
         <v-window-item value="modules">
           <ModulesGraph class="modules-editor"></ModulesGraph>
         </v-window-item>
@@ -157,6 +157,7 @@ const tilesets_of_current_module = computed(() => {
       return tileset_map.value[r.path];
     });
 });
+
 function load_map_palette() {
   if (selected_module.value) {
     const tilesets_to_load: BlueprintResource[] = [];
@@ -173,6 +174,7 @@ function load_map_palette() {
   }
   set_inspector_component("map");
 }
+
 const current_main_map = computed<GameMap | undefined>(() => {
   if (current_main_instance.value?.world_id && game_map_map.value) {
     return Object.values(game_map_map.value).find(
@@ -193,10 +195,9 @@ const selected_node = computed(() => {
     component_stores.value.game_node.selection_path &&
     selected_scene.value?.root_node
   ) {
-    return get_node_by_path(
-      selected_scene.value.root_node,
-      component_stores.value.game_node.selection_path,
-    );
+    return get_node_by_path(selected_scene.value.root_node, [
+      ...component_stores.value.game_node.selection_path,
+    ]);
   }
   return undefined;
 });
@@ -295,6 +296,7 @@ function cantorPair(x: number, y: number): number {
   const yy = toNatural(y);
   return ((xx + yy) * (xx + yy + 1)) / 2 + yy;
 }
+
 function select_as_main_instance(
   _module_id: string,
   instance_id: string,
@@ -304,6 +306,7 @@ function select_as_main_instance(
     set_current_main_instance(instance_id, world_id);
   }
 }
+
 function open_resource_editor(resource: BlueprintResource) {
   tab.value = 2;
   let path_index = add_open_resource_path(resource_key(resource));

@@ -273,8 +273,8 @@ export function get_node_by_path(
   if (path.length === 1) {
     return n.children[path[0]];
   }
-  const p = path.splice(-1);
-  return get_node_by_path(n.children[p[0]], path);
+  const p = path.splice(1);
+  return get_node_by_path(n.children[path[0]], p);
 }
 
 export function get_generic_game_node(node: GameNodeKind): GameNode<unknown> {

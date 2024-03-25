@@ -44,12 +44,10 @@ export const use_inspector_store = defineStore("inspector", {
     ) {
       this.component_stores = {
         ...this.component_stores,
-        ...{
-          game_node: {
-            scene_resource_path: scene_resource_path,
-            selected_game_node_id: game_node_id,
-            selection_path: path,
-          },
+        game_node: {
+          scene_resource_path: scene_resource_path,
+          selected_game_node_id: game_node_id,
+          selection_path: path,
         },
       };
       this.active_component = "game_node";

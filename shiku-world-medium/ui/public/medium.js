@@ -34301,6 +34301,11 @@ This will fail in production.`);
           UpdateSceneNode: { AddChild: [resource_path, path2, data] }
         });
       },
+      remove_child_from_scene_on_server(resource_path, path2, data) {
+        send_admin_event2({
+          UpdateSceneNode: { RemoveChild: [resource_path, path2, data] }
+        });
+      },
       delete_scene_server(scene) {
         send_admin_event2({ DeleteScene: scene });
       },
@@ -34365,37 +34370,67 @@ This will fail in production.`);
         parent: null
       };
     }
-    render_graph_from_scene(scene) {
+    render_graph_from_scene(scene, resource_manager) {
       const game_node_root = get_generic_game_node(scene.root_node);
       this.render_root = {
         node_id: game_node_root.id,
         children: [],
-        container: this.create_display_object(scene.root_node),
+        container: this.create_display_object(scene.root_node, resource_manager),
         parent: null
       };
       this.scene_node_to_render_node_map.set(game_node_root.id, this.render_root);
-      this.generate_render_graph(this.render_root, scene.root_node);
+      this.generate_render_graph(
+        this.render_root,
+        scene.root_node,
+        resource_manager
+      );
     }
-    generate_render_graph(parent, game_node) {
+    generate_render_graph(parent, game_node, resource_manager) {
       const generic_game_node = get_generic_game_node(game_node);
       for (const game_node_child of generic_game_node.children) {
         const generic_game_node_child = get_generic_game_node(game_node_child);
         const new_node = {
           children: [],
           parent,
-          container: this.create_display_object(game_node_child),
+          container: this.create_display_object(
+            game_node_child,
+            resource_manager
+          ),
           node_id: generic_game_node_child.id
         };
         parent.children.push(new_node);
         parent.container.addChild(new_node.container);
         this.scene_node_to_render_node_map.set(new_node.node_id, new_node);
-        this.generate_render_graph(new_node, game_node_child);
+        this.generate_render_graph(new_node, game_node_child, resource_manager);
       }
     }
-    create_display_object(node) {
+    create_display_object(node, resource_manager) {
       const container = new Container();
-      const game_node = get_generic_game_node(node);
-      container.addChild(new Text(game_node.name, { fill: "white" }));
+      N2(node).with({ Instance: _.select() }, () => {
+        console.error("No instances can be displayed!");
+      }).with({ Node2D: _.select() }, (game_node) => {
+        container.x = game_node.data.transform.position[0];
+        container.y = game_node.data.transform.position[1];
+        container.rotation = game_node.data.transform.rotation;
+        console.log(game_node);
+        N2(game_node.data.kind).with("Node2D", () => {
+        }).with({ Render: _.select() }, (render2) => {
+          const display_object = N2(render2.kind).with({ Sprite: _.select() }, (gid) => {
+            const graphics = resource_manager.get_graphics_data_by_gid(gid);
+            return resource_manager.get_sprite_from_graphics(graphics);
+          }).with(
+            { AnimatedSprite: _.select() },
+            (gid) => new Text(`Animated Sprite not implemented. gid: ${gid}`, {
+              fill: "red"
+            })
+          ).exhaustive();
+          container.addChild(display_object);
+        }).with({ RigidBody: _.select() }, (rigid_body) => {
+          console.log("rb", rigid_body);
+        }).with({ Collider: _.select() }, (collider) => {
+          console.log("coll", collider);
+        }).exhaustive();
+      }).exhaustive();
       return container;
     }
   };
@@ -34704,15 +34739,7 @@ This will fail in production.`);
           continue;
         }
         const graphics = resource_manager.get_graphics_data_by_gid(gid);
-        let sprite;
-        if (graphics.frame_objects.length > 0) {
-          const animated_sprite = new AnimatedSprite(graphics.frame_objects);
-          animated_sprite.play();
-          sprite = animated_sprite;
-        } else {
-          sprite = new Sprite(graphics.textures[0]);
-        }
-        sprite.anchor.set(0, 1);
+        const sprite = resource_manager.get_sprite_from_graphics(graphics);
         sprite.x = i3 % this.terrain_params.chunk_size * this.terrain_params.tile_width;
         sprite.y = Math.floor(i3 / this.terrain_params.chunk_size) * this.terrain_params.tile_height;
         sprite.rotation = 0;
@@ -34882,7 +34909,7 @@ This will fail in production.`);
       }).with({ CloseMenu: _.select() }, (menuName) => {
         menu_system.deactivate(menuName);
       }).with({ ShowScene: _.select() }, (scene) => {
-        this.render_graph.render_graph_from_scene(scene);
+        this.render_graph.render_graph_from_scene(scene, resource_manager);
         this.renderer.layer_map.FG10.addChild(
           this.render_graph.render_root.container
         );
@@ -34977,6 +35004,18 @@ This will fail in production.`);
       for (const tileset of tilesets) {
         this.tile_set_map[`${tileset.resource_path}/${tileset.name}.tileset.json`] = tileset;
       }
+    }
+    get_sprite_from_graphics(graphics) {
+      let sprite;
+      if (graphics.frame_objects.length > 0) {
+        const animated_sprite = new AnimatedSprite(graphics.frame_objects);
+        animated_sprite.play();
+        sprite = animated_sprite;
+      } else {
+        sprite = new Sprite(graphics.textures[0]);
+      }
+      sprite.anchor.set(0, 1);
+      return sprite;
     }
     get_graphics_data_by_gid(gid) {
       if (!this.graphic_id_map[gid]) {

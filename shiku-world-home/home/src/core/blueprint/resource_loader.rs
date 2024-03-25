@@ -120,7 +120,7 @@ impl Blueprint {
         resource_map
             .write()
             .map_err(|_| {
-                BlueprintError::WritePoison("Could not add resource to cache due to poison.")
+                BlueprintError::WritePoison("Could not remove resource from cache due to poison.")
             })?
             .remove(&file_path_as_string);
         Ok(())
