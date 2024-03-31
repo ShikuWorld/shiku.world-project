@@ -64,17 +64,9 @@ const props = defineProps<{
 }>();
 const { game_node } = toRefs(props);
 
-const node_2d_type = computed(() =>
-  game_node.value.data.kind === "Node2D"
-    ? "Node2D"
-    : Object.keys(game_node.value.data.kind)[0],
-);
+const node_2d_type = computed(() => Object.keys(game_node.value.data.kind)[0]);
 
-const data = computed(() =>
-  game_node.value.data.kind === "Node2D"
-    ? {}
-    : Object.values(game_node.value.data.kind)[0],
-);
+const data = computed(() => Object.values(game_node.value.data.kind)[0]);
 
 const node_2d_component = computed(() => {
   return defineAsyncComponent(

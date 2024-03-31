@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use apecs::World as ApecsWorld;
@@ -6,7 +6,13 @@ use flume::Sender;
 use log::{debug, error};
 use tokio::time::Instant;
 
-use crate::core::blueprint::def::{BlueprintService, Chunk, GameMap, LayerKind, Module, ModuleId, Scene, TerrainParams};
+use crate::core::blueprint::def::{
+    BlueprintService, Chunk, GameMap, LayerKind, Module, ModuleId, TerrainParams,
+};
+use crate::core::blueprint::ecs::def::EntityUpdate;
+use crate::core::blueprint::resource_loader::Blueprint;
+use crate::core::blueprint::scene::def::Scene;
+use crate::core::blueprint::scene::imp::build_scene_from_ecs;
 use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
@@ -20,9 +26,8 @@ use crate::core::module_system::def::{
 };
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::GameInstanceId;
-use crate::core::{cantor_pair, send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
-use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::module_system::world::{World, WorldId};
+use crate::core::{cantor_pair, send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
 
 impl DynamicGameModule {
     pub fn create(
@@ -64,10 +69,8 @@ impl DynamicGameModule {
             return Err(CreateWorldError::DidAlreadyExist);
         }
 
-        self.world_map.insert(
-            game_map.world_id.clone(),
-            World::new(&game_map)?,
-        );
+        let new_world = World::new(game_map)?;
+        self.world_map.insert(game_map.world_id.clone(), new_world);
         self.world_to_admin.init(game_map.world_id.clone());
         self.world_to_guest.init(game_map.world_id.clone());
         Ok(game_map.world_id.clone())
@@ -121,6 +124,27 @@ impl DynamicGameModule {
         }
     }
 
+    pub fn apply_admin_entity_update(&mut self, world_id: &WorldId, entity_update: EntityUpdate) {
+        if let Some(world) = self.world_map.get_mut(world_id) {
+            world.apply_admin_entity_update(entity_update.clone());
+
+            let entity_update_event = ModuleInstanceEvent {
+                world_id: None,
+                module_id: self.module_id.clone(),
+                instance_id: self.instance_id.clone(),
+                event_type: GameSystemToGuestEvent::UpdateEntity(entity_update),
+            };
+            Self::send_event_to_actors(
+                world_id,
+                &mut self.module_communication,
+                &self.world_to_guest,
+                &self.world_to_admin,
+                entity_update_event,
+                "Could not send entity update",
+            );
+        }
+    }
+
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
         //TODO: Update terrain if layer is terrain
 
@@ -133,7 +157,7 @@ impl DynamicGameModule {
                     chunk.clone(),
                 )
             });
-        let mut terrain_update = ModuleInstanceEvent {
+        let terrain_update = ModuleInstanceEvent {
             world_id: None,
             module_id: self.module_id.clone(),
             instance_id: self.instance_id.clone(),
@@ -142,30 +166,48 @@ impl DynamicGameModule {
                 vec![chunk.clone()],
             )]),
         };
+        Self::send_event_to_actors(
+            world_id,
+            &mut self.module_communication,
+            &self.world_to_guest,
+            &self.world_to_admin,
+            terrain_update,
+            "Could not send terrain update",
+        );
+    }
+
+    fn send_event_to_actors(
+        world_id: &WorldId,
+        module_communication: &mut ModuleCommunication,
+        world_to_guest: &LazyHashmapSet<WorldId, ActorId>,
+        world_to_admin: &LazyHashmapSet<WorldId, ActorId>,
+        event: ModuleInstanceEvent<GameSystemToGuestEvent>,
+        custom_error_msg: &str,
+    ) {
         if let (Some(guest_ids), Some(admin_ids)) = (
-            self.world_to_guest.hashset(world_id),
-            self.world_to_admin.hashset(world_id),
+            world_to_guest.hashset(world_id),
+            world_to_admin.hashset(world_id),
         ) {
-            let send_terrain_update =
+            let send_event_update =
                 &mut |actor_id: ActorId, update: ModuleInstanceEvent<GameSystemToGuestEvent>| {
                     send_and_log_error_custom(
-                        &mut self
-                            .module_communication
+                        &mut module_communication
                             .output_sender
                             .game_system_to_guest_sender,
                         GuestEvent {
                             guest_id: actor_id,
                             event_type: update,
                         },
-                        "Could not send show Terrain!",
+                        custom_error_msg,
                     );
                 };
             for guest_id in guest_ids {
-                send_terrain_update(*guest_id, terrain_update.clone());
+                send_event_update(*guest_id, event.clone());
             }
-            terrain_update.world_id = Some(world_id.clone());
+            let mut admin_event = event;
+            admin_event.world_id = Some(world_id.clone());
             for admin_id in admin_ids {
-                send_terrain_update(*admin_id, terrain_update.clone());
+                send_event_update(*admin_id, admin_event.clone());
             }
         }
     }
@@ -263,20 +305,29 @@ impl DynamicGameModule {
             );
         }
         if let Some(world) = world_map.get(world_id) {
-            send_and_log_error(
-                sender,
-                GuestEvent {
-                    guest_id: actor_id,
-                    event_type: ModuleInstanceEvent {
-                        module_id,
-                        instance_id,
-                        world_id: if set_world {
-                            Some(world_id.clone())
-                        } else {
-                            None
+            if let Some(scene) = build_scene_from_ecs(&world.ecs) {
+                send_and_log_error(
+                    sender,
+                    GuestEvent {
+                        guest_id: actor_id,
+                        event_type: ModuleInstanceEvent {
+                            module_id,
+                            instance_id,
+                            world_id: if set_world {
+                                Some(world_id.clone())
+                            } else {
+                                None
+                            },
+                            event_type: GameSystemToGuestEvent::ShowScene(scene),
                         },
-                        event_type: GameSystemToGuestEvent::ShowScene(world.world_scene.clone()),
-                    }});
+                    },
+                );
+            } else {
+                error!(
+                    "Was not able to get scene from world! world-id: {:?}",
+                    world_id
+                );
+            }
         }
     }
 

@@ -484,5 +484,19 @@ pub async fn handle_admin_to_system_event(
                 }
             }
         }
+        AdminToSystemEvent::UpdateInstancedNode(
+            module_id,
+            game_instance_id,
+            world_id,
+            entity_update,
+        ) => {
+            if let Some(module) = module_map.get_mut(&module_id) {
+                if let Some(instance) = module.game_instances.get_mut(&game_instance_id) {
+                    instance
+                        .dynamic_module
+                        .apply_admin_entity_update(&world_id, entity_update);
+                }
+            }
+        }
     }
 }

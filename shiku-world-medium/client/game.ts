@@ -61,15 +61,15 @@ export function start_medium() {
   menu_system.create_menu_from_config(loginMenuConfig, "login-menu");
 
   /*renderer.onStageResize.sub((_resize) => {
-    // TODO: Resize
-    entity_manager.iterate_entities((e) => {
-      if (e.layer_name === "Menu" && e.isometry.x < 0) {
-        e.wrapper.x =
-          resize.stage_width +
-          Math.round(e.isometry.x * Config.get_simulation_scale());
-      }
-    });
-  });*/
+      // TODO: Resize
+      entity_manager.iterate_entities((e) => {
+        if (e.layer_name === "Menu" && e.isometry.x < 0) {
+          e.wrapper.x =
+            resize.stage_width +
+            Math.round(e.isometry.x * Config.get_simulation_scale());
+        }
+      });
+    });*/
 
   if (door && canvas) {
     door.addEventListener("click", () => {

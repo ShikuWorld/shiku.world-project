@@ -34361,16 +34361,19 @@ This will fail in production.`);
   // client/render-graph.ts
   var RenderGraph = class {
     render_root;
-    scene_node_to_render_node_map = /* @__PURE__ */ new Map();
+    entity_node_to_render_node_map = /* @__PURE__ */ new Map();
+    entity_node_map = /* @__PURE__ */ new Map();
+    scene = null;
     constructor() {
       this.render_root = {
-        node_id: "",
+        node_id: 0,
         children: [],
         container: new Container(),
         parent: null
       };
     }
     render_graph_from_scene(scene, resource_manager) {
+      this.scene = scene;
       const game_node_root = get_generic_game_node(scene.root_node);
       this.render_root = {
         node_id: game_node_root.id,
@@ -34378,12 +34381,48 @@ This will fail in production.`);
         container: this.create_display_object(scene.root_node, resource_manager),
         parent: null
       };
-      this.scene_node_to_render_node_map.set(game_node_root.id, this.render_root);
+      this.entity_node_to_render_node_map.set(
+        game_node_root.entity_id || game_node_root.id,
+        this.render_root
+      );
+      this.entity_node_map.set(
+        game_node_root.entity_id || game_node_root.id,
+        scene.root_node
+      );
       this.generate_render_graph(
         this.render_root,
         scene.root_node,
         resource_manager
       );
+    }
+    apply_node_update(update, resource_manager) {
+      const node = this.entity_node_map.get(update.id);
+      const render_node = this.entity_node_to_render_node_map.get(update.id);
+      if (!node || !render_node) {
+        console.error("Could not update game node!");
+        return;
+      }
+      const game_node = Object.values(node)[0];
+      N2(update.kind).with({ UpdateTransform: _.select() }, (transform) => {
+        if (!game_node.data.transform) {
+          console.error("Tried to update Node without transform, wtf?");
+          return;
+        }
+        game_node.data.transform = transform;
+        render_node.container.position.x = transform.position[0];
+        render_node.container.position.y = transform.position[1];
+        render_node.container.rotation = transform.rotation;
+      }).with({ UpdateGid: _.select() }, (gid) => {
+        if (this.get_gid(game_node) === gid) {
+          return;
+        }
+        const graphics = resource_manager.get_graphics_data_by_gid(gid);
+        render_node.container.removeChildAt(0);
+        render_node.container.addChildAt(
+          resource_manager.get_sprite_from_graphics(graphics),
+          0
+        );
+      }).exhaustive();
     }
     generate_render_graph(parent, game_node, resource_manager) {
       const generic_game_node = get_generic_game_node(game_node);
@@ -34396,13 +34435,63 @@ This will fail in production.`);
             game_node_child,
             resource_manager
           ),
-          node_id: generic_game_node_child.id
+          scene_node: game_node,
+          node_id: generic_game_node_child.entity_id || generic_game_node_child.id
         };
         parent.children.push(new_node);
         parent.container.addChild(new_node.container);
-        this.scene_node_to_render_node_map.set(new_node.node_id, new_node);
+        this.entity_node_to_render_node_map.set(new_node.node_id, new_node);
+        this.entity_node_map.set(new_node.node_id, game_node_child);
         this.generate_render_graph(new_node, game_node_child, resource_manager);
       }
+    }
+    update_node(entity_id, node, resource_manager) {
+      const render_node = this.entity_node_to_render_node_map.get(entity_id);
+      const prev_node = this.entity_node_map.get(entity_id);
+      if (!render_node || !prev_node) {
+        console.error(`Could not update ${entity_id}, was not present in graph!`);
+        return;
+      }
+      const container = render_node.container;
+      N2(node).with({ Instance: _.select() }, () => {
+        console.error("No instances can be updated!");
+      }).with({ Node2D: _.select() }, (game_node) => {
+        container.x = game_node.data.transform.position[0];
+        container.y = game_node.data.transform.position[1];
+        container.rotation = game_node.data.transform.rotation;
+        N2(game_node.data.kind).with({ Node2D: _.select() }, () => {
+        }).with({ Render: _.select() }, (render2) => {
+          N2(render2.kind).with({ Sprite: _.select() }, (gid) => {
+            if (this.get_gid(prev_node) === gid) {
+              return;
+            }
+            const graphics = resource_manager.get_graphics_data_by_gid(gid);
+            container.removeChildAt(0);
+            container.addChildAt(
+              resource_manager.get_sprite_from_graphics(graphics),
+              0
+            );
+          }).with(
+            { AnimatedSprite: _.select() },
+            (gid) => console.log(
+              `AnimatedSprite update not implemented, gid: ${gid}`
+            )
+          ).exhaustive();
+        }).with({ RigidBody: _.select() }, (rigid_body) => {
+          console.log("rb", rigid_body);
+        }).with({ Collider: _.select() }, (collider) => {
+          console.log("coll", collider);
+        }).exhaustive();
+      }).exhaustive();
+    }
+    get_gid(game_node) {
+      if ("Node2D" in game_node) {
+        const node_2d = game_node.Node2D;
+        if ("Render" in node_2d.data.kind) {
+          return N2(node_2d.data.kind.Render.kind).with({ Sprite: _.select() }, (gid) => gid).with({ AnimatedSprite: _.select() }, (gid) => gid).exhaustive();
+        }
+      }
+      return void 0;
     }
     create_display_object(node, resource_manager) {
       const container = new Container();
@@ -34413,7 +34502,7 @@ This will fail in production.`);
         container.y = game_node.data.transform.position[1];
         container.rotation = game_node.data.transform.rotation;
         console.log(game_node);
-        N2(game_node.data.kind).with("Node2D", () => {
+        N2(game_node.data.kind).with({ Node2D: _.select() }, () => {
         }).with({ Render: _.select() }, (render2) => {
           const display_object = N2(render2.kind).with({ Sprite: _.select() }, (gid) => {
             const graphics = resource_manager.get_graphics_data_by_gid(gid);
@@ -34913,8 +35002,8 @@ This will fail in production.`);
         this.renderer.layer_map.FG10.addChild(
           this.render_graph.render_root.container
         );
-      }).with({ UpdateSceneNodes: _.select() }, (nodes) => {
-        console.log(nodes);
+      }).with({ UpdateEntity: _.select() }, (node) => {
+        this.render_graph.apply_node_update(node, resource_manager);
       }).with({ RemoveSceneNodes: _.select() }, (node_ids) => {
         console.log(node_ids);
       }).with({ ChangeEntity: _.select() }, ([update_entities, _moduleName]) => {

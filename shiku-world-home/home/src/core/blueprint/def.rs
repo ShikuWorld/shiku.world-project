@@ -1,15 +1,15 @@
-use log::{debug, error};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::ffi::OsString;
 use std::hash::Hash;
 
-use rapier2d::math::Real;
+use log::error;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use ts_rs::TS;
 use walkdir::Error as WalkDirError;
 
+use crate::core::blueprint::scene::def::{CollisionShape, Scene};
 use crate::core::guest::{ModuleEnterSlot, ModuleExitSlot};
 use crate::core::module::ModuleName;
 
@@ -155,7 +155,6 @@ pub struct IOPoint {
 }
 
 pub type ModuleId = String;
-pub type SceneId = String;
 
 pub type Gid = u32;
 
@@ -236,151 +235,6 @@ pub struct Layer {
     pub kind: LayerKind,
 }
 
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct Scene {
-    pub id: SceneId,
-    pub name: String,
-    pub resource_path: ResourcePath,
-    pub root_node: GameNodeKind,
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum GameNodeKind {
-    Instance(GameNode<ResourcePath>),
-    Node2D(GameNode<Node2D>),
-}
-
-impl GameNodeKind {
-    pub fn borrow_children(&mut self) -> &mut Vec<GameNodeKind> {
-        match self {
-            GameNodeKind::Instance(node) => &mut node.children,
-            GameNodeKind::Node2D(node) => &mut node.children,
-        }
-    }
-
-    pub fn add_child(&mut self, other_game_node: GameNodeKind) {
-        self.borrow_children().push(other_game_node)
-    }
-
-    pub fn remove_child(&mut self, index: usize) {
-        let children = self.borrow_children();
-        if index < children.len() {
-            children.remove(index);
-        } else {
-            error!(
-                "Tried to remove a child that was not there, this could have paniced! len: {:?} | index: {:?}",
-                children.len(),
-                index
-            );
-        }
-    }
-
-    pub fn set_data(&mut self, data: GameNodeKind) {
-        match self {
-            GameNodeKind::Instance(node) => {
-                if let GameNodeKind::Instance(n) = data {
-                    node.data = n.data
-                }
-            }
-            GameNodeKind::Node2D(node) => {
-                if let GameNodeKind::Node2D(n) = data {
-                    node.data = n.data
-                }
-            }
-        }
-    }
-}
-
-pub type GameNodeId = String;
-pub type NodeInstanceId = usize;
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct GameNode<T> {
-    pub id: GameNodeId,
-    pub name: String,
-    pub data: T,
-    pub script: Option<String>,
-    pub children: Vec<GameNodeKind>,
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct Collider {
-    kind: ColliderKind,
-    shape: ColliderShape,
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum ColliderShape {
-    Ball(f32),
-    CapsuleX(f32, f32),
-    CapsuleY(f32, f32),
-    Cuboid(f32, f32),
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum ColliderKind {
-    Solid,
-    Sensor,
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct Transform {
-    pub position: (Real, Real),
-    pub scale: (Real, Real),
-    pub velocity: (Real, Real),
-    pub rotation: Real,
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct Node2D {
-    pub transform: Transform,
-    pub kind: Node2DKind,
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum Node2DKind {
-    Node2D,
-    RigidBody(RigidBody),
-    Collider(Collider),
-    Render(Render),
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct RigidBody {
-    pub velocity: (Real, Real),
-    pub body: RigidBodyType,
-}
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum RigidBodyType {
-    Dynamic,
-    Fixed,
-    KinematicPositionBased,
-    KinematicVelocityBased,
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum CollisionShape {}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub struct Render {
-    offset: (Real, Real),
-    layer: LayerKind,
-    kind: RenderKind,
-}
-
 #[derive(TS, Debug, Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
 #[ts(export, export_to = "blueprints/")]
 pub enum LayerKind {
@@ -409,13 +263,6 @@ pub enum LayerKind {
     FG08,
     FG09,
     FG10,
-}
-
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum RenderKind {
-    AnimatedSprite(Gid),
-    Sprite(Gid),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

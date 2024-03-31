@@ -47,7 +47,7 @@ impl<K: Eq + Hash, T: Eq + Hash> LazyHashmapSet<K, T> {
         }
     }
 
-    pub fn hashset(&mut self, key: &K) -> Option<&HashSet<T>> {
+    pub fn hashset(&self, key: &K) -> Option<&HashSet<T>> {
         self.data.get(key)
     }
     pub fn init(&mut self, key: K) {

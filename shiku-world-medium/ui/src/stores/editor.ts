@@ -29,6 +29,7 @@ export interface EditorStore {
     [instance_id: string]: { [world_id: string]: GameInstance };
   };
 }
+
 export const use_editor_store = defineStore("editor", {
   state: (): EditorStore => ({
     editor_open: false,

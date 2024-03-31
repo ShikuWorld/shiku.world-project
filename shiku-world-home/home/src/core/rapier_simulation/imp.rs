@@ -241,57 +241,72 @@ impl RapierSimulation {
         (body_handle, collider_handle)
     }
 
-    pub fn add_static_collision_area(
+    pub fn create_cuboid_collider(
         &mut self,
         half_x: Real,
         half_y: Real,
-        pos_x: Real,
-        pos_y: Real,
+        body_handle: RigidBodyHandle,
+        is_sensor: bool,
     ) -> ColliderHandle {
         let collider = ColliderBuilder::cuboid(
             half_x / self.simulation_scaling_factor,
             half_y / self.simulation_scaling_factor,
         )
-        .translation(Vector::new(
-            pos_x / self.simulation_scaling_factor,
-            pos_y / self.simulation_scaling_factor,
-        ))
-        .sensor(true)
-        .collision_groups(COL_GROUP_A)
-        .active_collision_types(ActiveCollisionTypes::default() | ActiveCollisionTypes::FIXED_FIXED)
+        .sensor(is_sensor)
         .build();
 
-        self.colliders.insert(collider)
+        self.colliders
+            .insert_with_parent(collider, body_handle, &mut self.bodies)
     }
 
-    pub fn add_static_body_cuboid(
+    pub fn create_ball_collider(
         &mut self,
-        half_x: Real,
-        half_y: Real,
-        pos_x: Real,
-        pos_y: Real,
-    ) -> (RigidBodyHandle, ColliderHandle) {
-        let collider = ColliderBuilder::cuboid(
-            half_x / self.simulation_scaling_factor,
-            half_y / self.simulation_scaling_factor,
-        )
-        .collision_groups(COL_GROUP_A)
-        .build();
-
-        let rigid_body = RigidBodyBuilder::fixed()
-            .translation(Vector::new(
-                pos_x / self.simulation_scaling_factor,
-                pos_y / self.simulation_scaling_factor,
-            ))
+        radius: Real,
+        body_handle: RigidBodyHandle,
+        is_sensor: bool,
+    ) -> ColliderHandle {
+        let collider = ColliderBuilder::ball(radius / self.simulation_scaling_factor)
+            .sensor(is_sensor)
             .build();
 
-        let body_handle = self.bodies.insert(rigid_body);
+        self.colliders
+            .insert_with_parent(collider, body_handle, &mut self.bodies)
+    }
 
-        let collider_handle =
-            self.colliders
-                .insert_with_parent(collider, body_handle, &mut self.bodies);
+    pub fn create_capsule_x_collider(
+        &mut self,
+        half_y: Real,
+        radius: Real,
+        body_handle: RigidBodyHandle,
+        is_sensor: bool,
+    ) -> ColliderHandle {
+        let collider = ColliderBuilder::capsule_x(
+            half_y / self.simulation_scaling_factor,
+            radius / self.simulation_scaling_factor,
+        )
+        .sensor(is_sensor)
+        .build();
 
-        (body_handle, collider_handle)
+        self.colliders
+            .insert_with_parent(collider, body_handle, &mut self.bodies)
+    }
+
+    pub fn create_capsule_y_collider(
+        &mut self,
+        half_x: Real,
+        radius: Real,
+        body_handle: RigidBodyHandle,
+        is_sensor: bool,
+    ) -> ColliderHandle {
+        let collider = ColliderBuilder::capsule_y(
+            half_x / self.simulation_scaling_factor,
+            radius / self.simulation_scaling_factor,
+        )
+        .sensor(is_sensor)
+        .build();
+
+        self.colliders
+            .insert_with_parent(collider, body_handle, &mut self.bodies)
     }
 
     pub fn get_isometry_from_world_coordinates(&self, pos_x: Real, pos_y: Real) -> Isometry<Real> {
@@ -304,41 +319,56 @@ impl RapierSimulation {
         )
     }
 
-    pub fn add_dynamic_body_cuboid(
-        &mut self,
-        half_x: Real,
-        half_y: Real,
-        pos_x: Real,
-        pos_y: Real,
-        dampening: Real,
-    ) -> (RigidBodyHandle, ColliderHandle) {
-        let collider = ColliderBuilder::round_cuboid(
-            (half_x - 1.0) / self.simulation_scaling_factor,
-            (half_y - 1.0) / self.simulation_scaling_factor,
-            0.1 / self.simulation_scaling_factor,
-        )
-        .active_events(ActiveEvents::CONTACT_FORCE_EVENTS)
-        .density(2.0)
-        .collision_groups(COL_GROUP_A)
-        .build();
-
+    pub fn add_dynamic_rigid_body(&mut self, pos_x: Real, pos_y: Real) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::dynamic()
             .translation(Vector::new(
                 pos_x / self.simulation_scaling_factor,
                 pos_y / self.simulation_scaling_factor,
             ))
-            .linear_damping(dampening)
-            .lock_rotations()
-            .ccd_enabled(true)
             .build();
 
-        let body_handle = self.bodies.insert(rigid_body);
+        self.bodies.insert(rigid_body)
+    }
 
-        let collider_handle =
-            self.colliders
-                .insert_with_parent(collider, body_handle, &mut self.bodies);
+    pub fn add_fixed_rigid_body(&mut self, pos_x: Real, pos_y: Real) -> RigidBodyHandle {
+        let rigid_body = RigidBodyBuilder::fixed()
+            .translation(Vector::new(
+                pos_x / self.simulation_scaling_factor,
+                pos_y / self.simulation_scaling_factor,
+            ))
+            .build();
 
-        (body_handle, collider_handle)
+        self.bodies.insert(rigid_body)
+    }
+
+    pub fn add_kinematic_position_based_rigid_body(
+        &mut self,
+        pos_x: Real,
+        pos_y: Real,
+    ) -> RigidBodyHandle {
+        let rigid_body = RigidBodyBuilder::kinematic_position_based()
+            .translation(Vector::new(
+                pos_x / self.simulation_scaling_factor,
+                pos_y / self.simulation_scaling_factor,
+            ))
+            .build();
+
+        self.bodies.insert(rigid_body)
+    }
+
+    pub fn add_kinematic_velocity_based_rigid_body(
+        &mut self,
+        pos_x: Real,
+        pos_y: Real,
+    ) -> RigidBodyHandle {
+        let rigid_body = RigidBodyBuilder::kinematic_velocity_based()
+            .translation(Vector::new(
+                pos_x / self.simulation_scaling_factor,
+                pos_y / self.simulation_scaling_factor,
+            ))
+            .build();
+
+        self.bodies.insert(rigid_body)
     }
 
     pub fn remove_collider(&mut self, collider_handle: ColliderHandle) {
@@ -355,6 +385,40 @@ impl RapierSimulation {
             &mut self.multibody_joints,
             true,
         );
+    }
+
+    pub fn add_static_body_cuboid(
+        &mut self,
+        _half_x: Real,
+        _half_y: Real,
+        _pos_x: Real,
+        _pos_y: Real,
+    ) -> (RigidBodyHandle, ColliderHandle) {
+        //TODO: Remove
+        todo!()
+    }
+
+    pub fn add_dynamic_body_cuboid(
+        &mut self,
+        _half_x: Real,
+        _half_y: Real,
+        _pos_x: Real,
+        _pos_y: Real,
+        _damb: Real,
+    ) -> (RigidBodyHandle, ColliderHandle) {
+        //TODO: Remove
+        todo!()
+    }
+
+    pub fn add_static_collision_area(
+        &mut self,
+        _half_x: Real,
+        _half_y: Real,
+        _pos_x: Real,
+        _pos_y: Real,
+    ) -> ColliderHandle {
+        //TODO: Remove
+        todo!()
     }
 
     pub fn new() -> RapierSimulation {

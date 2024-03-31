@@ -86,8 +86,8 @@ export class GameInstance {
           this.render_graph.render_root.container,
         );
       })
-      .with({ UpdateSceneNodes: P.select() }, (nodes) => {
-        console.log(nodes);
+      .with({ UpdateEntity: P.select() }, (node) => {
+        this.render_graph.apply_node_update(node, resource_manager);
       })
       .with({ RemoveSceneNodes: P.select() }, (node_ids) => {
         console.log(node_ids);
@@ -122,41 +122,41 @@ export class GameInstance {
         }
       })
       /*.with({ ShowEffects: P.select() }, (show_effects) => {
-              for (const show_effect of show_effects) {
-                match(show_effect)
-                  .with({ SimpleImageEffect: P.select() }, (simple_image_effect) => {
-                    this.entity_manager.add_simple_image_effect(
-                      simple_image_effect,
-                      this.renderer,
-                      resource_manager,
-                    );
-                  })
-                  .with({ ShakeScreenEffect: P.select() }, (shake_screen_effect) => {
-                    new_shaker({
-                      target: this.renderer.main_container,
-                      isBidirectional: shake_screen_effect.is_bidirectional,
-                      shakeCountMax: shake_screen_effect.shake_count_max,
-                      shakeDelay: shake_screen_effect.shake_delay,
-                      shakeAmount: shake_screen_effect.shake_amount,
-                    }).shake();
-                  })
-                  .exhaustive();
-              }
-            })*/
+                          for (const show_effect of show_effects) {
+                            match(show_effect)
+                              .with({ SimpleImageEffect: P.select() }, (simple_image_effect) => {
+                                this.entity_manager.add_simple_image_effect(
+                                  simple_image_effect,
+                                  this.renderer,
+                                  resource_manager,
+                                );
+                              })
+                              .with({ ShakeScreenEffect: P.select() }, (shake_screen_effect) => {
+                                new_shaker({
+                                  target: this.renderer.main_container,
+                                  isBidirectional: shake_screen_effect.is_bidirectional,
+                                  shakeCountMax: shake_screen_effect.shake_count_max,
+                                  shakeDelay: shake_screen_effect.shake_delay,
+                                  shakeAmount: shake_screen_effect.shake_amount,
+                                }).shake();
+                              })
+                              .exhaustive();
+                          }
+                        })*/
       .with({ SetParallax: P.select() }, (_layer_parallax) => {
         /*for (const key in this.renderer.mainContainer) {
-                  const parallax_container =
-                    this.renderer.layerContainer[key as LayerName];
-                  parallax_container.y_pscaling = 1.0;
-                  parallax_container.x_pscaling = 1.0;
-                }
-                for (const [layer_name, parallax] of layer_parallax) {
-                  if (layer_name === "Menu") {
-                    continue;
-                  }
-                  this.renderer.layerContainer[layer_name].x_pscaling = parallax[0];
-                  this.renderer.layerContainer[layer_name].y_pscaling = parallax[1];
-                }*/
+                                  const parallax_container =
+                                    this.renderer.layerContainer[key as LayerName];
+                                  parallax_container.y_pscaling = 1.0;
+                                  parallax_container.x_pscaling = 1.0;
+                                }
+                                for (const [layer_name, parallax] of layer_parallax) {
+                                  if (layer_name === "Menu") {
+                                    continue;
+                                  }
+                                  this.renderer.layerContainer[layer_name].x_pscaling = parallax[0];
+                                  this.renderer.layerContainer[layer_name].y_pscaling = parallax[1];
+                                }*/
       })
       .exhaustive();
   }

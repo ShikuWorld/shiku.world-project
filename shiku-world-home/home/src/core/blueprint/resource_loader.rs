@@ -11,9 +11,10 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::core::blueprint::def::{
-    BlueprintError, GameMap, GameNode, GameNodeKind, IOPoint, Module, ResourcePath, Scene, Tileset,
+    BlueprintError, GameMap, IOPoint, Module, ResourcePath, Tileset,
 };
 use crate::core::blueprint::resource_cache::get_resource_cache;
+use crate::core::blueprint::scene::def::{GameNodeKind, Scene};
 use crate::core::get_out_dir;
 use crate::core::module::ModuleName;
 

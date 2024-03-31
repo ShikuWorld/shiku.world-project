@@ -291,7 +291,7 @@ export function children_of(node: GameNodeKind): Array<GameNodeKind> {
   return get_generic_game_node(node).children;
 }
 
-type Node2DKindKeys = KeysOfUnion<Exclude<Node2DKind, "Node2D">>;
+type Node2DKindKeys = KeysOfUnion<Node2DKind>;
 export type Node2DTypeKeys = `Node2D-${Node2DKindKeys}`;
 export type GameNodeTypeKeys = KeysOfUnion<GameNodeKind> | Node2DTypeKeys;
 
@@ -303,6 +303,7 @@ export function create_game_node(
       Node2D: {
         name: game_node_type,
         id: uuidv4(),
+        entity_id: null,
         data: {
           transform: {
             position: [0, 0],
@@ -310,10 +311,7 @@ export function create_game_node(
             velocity: [0, 0],
             rotation: 0,
           },
-          kind:
-            game_node_type === "Node2D"
-              ? "Node2D"
-              : create_2d_game_node(game_node_type as Node2DTypeKeys),
+          kind: create_2d_game_node(game_node_type as Node2DTypeKeys),
         },
         script: null,
         children: [],
@@ -325,6 +323,7 @@ export function create_game_node(
         name: "Render",
         id: uuidv4(),
         data: "",
+        entity_id: null,
         script: null,
         children: [],
       },
@@ -336,6 +335,7 @@ export function create_2d_game_node(
   game_node_type: Node2DTypeKeys,
 ): Node2DKind {
   return match(game_node_type)
+    .with("Node2D-Node2D", (): Node2DKind => ({ Node2D: 0 }))
     .with(
       "Node2D-RigidBody",
       (): Node2DKind => ({

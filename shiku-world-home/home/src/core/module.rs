@@ -1,11 +1,15 @@
-use flume::{Receiver, Sender, unbounded};
+use flume::{unbounded, Receiver, Sender};
 use rapier2d::prelude::Real;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
-use crate::core::blueprint::def::{Chunk, Conductor, GameNodeId, GameNodeKind, GidMap, LayerKind, ModuleId, ResourcePath, Scene, SceneId, TerrainParams, Tileset};
+use crate::core::blueprint::def::{
+    Chunk, Conductor, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
+};
+use crate::core::blueprint::ecs::def::EntityUpdate;
+use crate::core::blueprint::scene::def::{GameNodeId, GameNodeKind, Scene, SceneId};
 use crate::core::entity::def::{EntityId, ShowEntity};
 use crate::core::entity::render::CameraSettings;
 use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
@@ -15,8 +19,6 @@ use crate::resource_module::def::{ResourceBundle, ResourceEvent};
 use crate::resource_module::map::def::LayerName;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
-
-
 #[ts(export)]
 pub struct GuestInput {
     pub jump: bool,
@@ -71,9 +73,9 @@ pub enum EditorEvent {
     SetMap(blueprint::def::GameMap),
     UpdatedMap(blueprint::def::MapUpdate),
     DeletedMap(blueprint::def::GameMap),
-    CreatedScene(blueprint::def::Scene),
-    SetScene(blueprint::def::Scene),
-    DeletedScene(blueprint::def::Scene),
+    CreatedScene(blueprint::scene::def::Scene),
+    SetScene(blueprint::scene::def::Scene),
+    DeletedScene(blueprint::scene::def::Scene),
     CreatedTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
     DeletedTileset(blueprint::def::Tileset),
@@ -100,9 +102,10 @@ pub enum AdminToSystemEvent {
     CreateTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
     DeleteTileset(blueprint::def::Tileset),
-    CreateScene(blueprint::def::Scene),
+    CreateScene(blueprint::scene::def::Scene),
     UpdateSceneNode(SceneNodeUpdate),
-    DeleteScene(blueprint::def::Scene),
+    UpdateInstancedNode(ModuleId, GameInstanceId, WorldId, EntityUpdate),
+    DeleteScene(blueprint::scene::def::Scene),
     CreateMap(ModuleId, blueprint::def::GameMap),
     UpdateMap(blueprint::def::MapUpdate),
     DeleteMap(ModuleId, blueprint::def::GameMap),
@@ -251,7 +254,7 @@ pub enum CommunicationEvent {
         ResourceBundle,
         TerrainParams,
         Vec<Tileset>,
-        GidMap
+        GidMap,
     ),
     UnloadGame(ModuleId, GameInstanceId, Option<WorldId>),
     GameSystemEvent(
@@ -298,7 +301,7 @@ pub enum GameSystemToGuestEvent {
     ShowTerrain(Vec<(LayerKind, Vec<Chunk>)>),
     SetParallax(Vec<(LayerName, (Real, Real))>),
     ShowScene(Scene),
-    UpdateSceneNodes(Vec<GameNodeKind>),
+    UpdateEntity(EntityUpdate),
     RemoveSceneNodes(Vec<GameNodeId>),
     SetMouseInputSchema(MouseInputSchema),
     ChangeEntity(Vec<ShowEntity>),

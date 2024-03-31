@@ -42,6 +42,7 @@ function dataUpdated(data: unknown) {
   const game_node_update: GameNode<unknown> = {
     id: game_node.value.id,
     name: game_node.value.name,
+    entity_id: game_node.value.entity_id,
     script: game_node.value.script,
     children: [],
     data,
