@@ -1,4 +1,4 @@
-import { Container } from "pixi.js-legacy";
+import { Container } from "pixi.js";
 import { ResourceManager } from "../resources";
 import { InstanceRendering } from "../renderer";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
@@ -62,16 +62,16 @@ export class TerrainManager {
     chunk_map_entry.data = chunk;
     chunk_map_entry.container.removeChildren();
     /*const graphics = new Graphics();
-        
-            graphics.lineStyle(1, 0xff0000);
-            graphics.drawRect(
-              chunk_map_entry.x,
-              chunk_map_entry.y,
-              chunk.width * chunk.width,
-              chunk.height * chunk.height
-            );
-        
-            renderer.debugContainer.addChild(graphics);*/
+                    
+                        graphics.lineStyle(1, 0xff0000);
+                        graphics.drawRect(
+                          chunk_map_entry.x,
+                          chunk_map_entry.y,
+                          chunk.width * chunk.width,
+                          chunk.height * chunk.height
+                        );
+                    
+                        renderer.debugContainer.addChild(graphics);*/
 
     for (const [i, gid] of chunk.data.entries()) {
       if (gid === 0) {
@@ -80,6 +80,7 @@ export class TerrainManager {
 
       const graphics = resource_manager.get_graphics_data_by_gid(gid);
       const sprite = resource_manager.get_sprite_from_graphics(graphics);
+
       sprite.x =
         (i % this.terrain_params.chunk_size) * this.terrain_params.tile_width;
       sprite.y =

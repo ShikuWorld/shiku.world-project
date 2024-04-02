@@ -1,4 +1,4 @@
-import { Container, Text } from "pixi.js-legacy";
+import { Container, Text } from "pixi.js";
 import { Scene } from "@/editor/blueprints/Scene";
 import { get_generic_game_node } from "@/editor/stores/resources";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";

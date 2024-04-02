@@ -1,10 +1,10 @@
 import {
-  BaseRenderTexture,
+  TextureSource,
   Container,
   Graphics,
   RenderTexture,
   TilingSprite,
-} from "pixi.js-legacy";
+} from "pixi.js";
 import { InstanceRendering, RenderSystem } from "@/client/renderer/index";
 import { Isometry } from "@/client/entities";
 import { camera_iso_to_scaled_viewport } from "@/client/camera";
@@ -15,32 +15,39 @@ export function show_grid(
   renderer: InstanceRendering,
 ) {
   if (!renderer.grid) {
-    const baseRenderTexture = new BaseRenderTexture({
+    const textureSource = new TextureSource({
       width: renderer.terrain_params.tile_width,
       height: renderer.terrain_params.tile_height,
     });
-    const renderTexture = new RenderTexture(baseRenderTexture);
-    const graphics = new Graphics();
-    graphics.beginFill([1.0, 1.0, 1.0, 0.5]);
-    graphics.drawRect(0, 0, 1, renderer.terrain_params.tile_height);
-    graphics.drawRect(0, 0, renderer.terrain_params.tile_width, 1);
-    graphics.endFill();
-    renderer_system.renderer.render(graphics, { renderTexture });
-    const selected_tile = new Graphics();
-    selected_tile.beginFill([0.7, 0.7, 1.0, 0.5]);
-    selected_tile.drawRect(
-      0,
-      0,
-      renderer.terrain_params.tile_width,
-      renderer.terrain_params.tile_height,
-    );
-    selected_tile.endFill();
+    const renderTexture = new RenderTexture({ source: textureSource });
+    const graphics = new Graphics()
+      .rect(0, 0, 1, renderer.terrain_params.tile_height)
+      .rect(0, 0, renderer.terrain_params.tile_width, 1)
+      .fill({
+        color: "#ffffff",
+        alpha: 0.5,
+      });
+    renderer_system.renderer.render({
+      target: renderTexture,
+      container: graphics,
+    });
+    const selected_tile = new Graphics()
+      .rect(
+        0,
+        0,
+        renderer.terrain_params.tile_width,
+        renderer.terrain_params.tile_height,
+      )
+      .fill({
+        color: "#9999ff",
+        alpha: 0.5,
+      });
     const grid = {
-      sprite: new TilingSprite(
-        renderTexture,
-        renderer.terrain_params.tile_height * 100,
-        renderer.terrain_params.tile_width * 100,
-      ),
+      sprite: new TilingSprite({
+        texture: renderTexture,
+        height: renderer.terrain_params.tile_height * 100,
+        width: renderer.terrain_params.tile_width * 100,
+      }),
       grid_container: new Container(),
       scaling: { x: 1, y: 1 },
       last_mouse_move_position: { x: 0, y: 0 },
@@ -53,7 +60,7 @@ export function show_grid(
     grid.grid_container.addChild(grid.sprite);
     grid.grid_container.interactive = true;
     grid.grid_container.on("pointerdown", (mouse_event) => {
-      match(mouse_event.data.button)
+      match(mouse_event.button)
         .with(0, () => {
           const [x, y] = [
             -(grid.sprite.tilePosition.x - grid.selected_tile.x) /
@@ -73,7 +80,7 @@ export function show_grid(
     });
 
     grid.grid_container.on("pointerup", (mouse_event) => {
-      match(mouse_event.data.button)
+      match(mouse_event.button)
         .with(1, () => {
           middle_click_start = null;
         })
@@ -142,6 +149,7 @@ export function update_grid(
     update_tile_position(renderer);
   }
 }
+
 export function hide_grid(renderer: InstanceRendering) {
   if (renderer.grid) {
     renderer.main_container.removeChild(renderer.grid.sprite);

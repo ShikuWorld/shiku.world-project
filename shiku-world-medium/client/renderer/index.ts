@@ -1,16 +1,16 @@
 import {
   Container,
-  DisplayObject,
   FederatedMouseEvent,
   Graphics,
-  IRenderer,
+  Renderer,
   TilingSprite,
-} from "pixi.js-legacy";
+} from "pixi.js";
 import { ParallaxContainer } from "./create_game_renderer";
 import { Camera } from "@/client/camera";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { SimpleEventDispatcher } from "strongly-typed-events";
+import { Texture } from "pixi.js";
 
 export interface Point {
   x: number;
@@ -90,7 +90,7 @@ export const addLayerMapToContainer = (
 export interface RenderingObject {
   handle: number;
   rotation: number;
-  displayObject: DisplayObject;
+  displayObject: Container;
   pinToCamera: boolean;
 }
 
@@ -99,8 +99,10 @@ export type LayerContainer = {
 };
 
 export interface RenderSystem {
-  renderer: IRenderer;
+  renderer: Renderer;
   stage: Container;
+  dummy_texture_tileset_missing: Texture;
+  dummy_texture_loading: Texture;
   current_main_instance: { instance_id?: string; world_id?: string };
   global_mouse_position: SimpleEventDispatcher<FederatedMouseEvent>;
   isDirty: boolean;

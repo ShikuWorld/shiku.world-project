@@ -1,15 +1,13 @@
 import {
   AnimatedSprite,
   Assets,
-  BaseTexture,
-  Graphics as PixijsGraphics,
+  TextureSource,
   Rectangle,
-  RenderTexture,
   Sprite,
   Texture,
-} from "pixi.js-legacy";
+  FrameObject,
+} from "pixi.js";
 import { SimpleEventDispatcher } from "strongly-typed-events";
-import { FrameObject } from "@pixi/sprite-animated";
 import { RenderSystem } from "@/client/renderer";
 import { ResourceEvent } from "@/client/communication/api/bindings/ResourceEvent";
 import { match, P } from "ts-pattern";
@@ -37,8 +35,8 @@ export class ResourceManager {
   tile_set_map: {
     [path: string]: Tileset;
   } = {};
-  dummy_texture_tileset_missing: RenderTexture;
-  dummy_texture_loading: RenderTexture;
+  dummy_texture_tileset_missing: Texture;
+  dummy_texture_loading: Texture;
   resource_bundle_complete = new SimpleEventDispatcher<{
     module_id: string;
     instance_id: string;
@@ -50,14 +48,8 @@ export class ResourceManager {
     private _base_url: string,
     renderer: RenderSystem,
   ) {
-    const obj = new PixijsGraphics();
-    obj.beginFill(0xff00ff);
-    obj.drawRect(0, 0, 100, 100);
-    this.dummy_texture_tileset_missing = renderer.renderer.generateTexture(obj);
-    const obj2 = new PixijsGraphics();
-    obj2.beginFill(0xffff00);
-    obj2.drawRect(0, 0, 100, 100);
-    this.dummy_texture_loading = renderer.renderer.generateTexture(obj2);
+    this.dummy_texture_tileset_missing = renderer.dummy_texture_tileset_missing;
+    this.dummy_texture_loading = renderer.dummy_texture_loading;
   }
 
   handle_resource_event(resource_event: ResourceEvent) {
@@ -74,9 +66,10 @@ export class ResourceManager {
           for (const res of resource_bundle.assets.filter(
             (a) => a.kind === "Image",
           )) {
-            this.image_texture_map[res.path].baseTexture.setResource(
-              (r as Texture).baseTexture.resource,
-            );
+            this.image_texture_map[res.path].source.resource = (
+              r[res.path] as Texture
+            ).source.resource;
+            this.image_texture_map[res.path].source.update();
           }
           this._update_uv_maps();
         });
@@ -108,7 +101,7 @@ export class ResourceManager {
       animated_sprite.play();
       sprite = animated_sprite;
     } else {
-      sprite = new Sprite(graphics.textures[0]);
+      sprite = Sprite.from(graphics.textures[0]);
     }
     sprite.anchor.set(0, 1);
     return sprite;
@@ -143,8 +136,10 @@ export class ResourceManager {
     for (const asset of resource_bundle.assets) {
       match(asset.kind)
         .with("Image", () => {
-          this.image_texture_map[asset.path] =
-            this.dummy_texture_loading.clone();
+          this.image_texture_map[asset.path] = Texture.from(
+            this.dummy_texture_loading.source,
+          );
+          this.image_texture_map[asset.path].source.update();
         })
         .with("Unknown", () => {})
         .exhaustive();
@@ -157,31 +152,40 @@ export class ResourceManager {
       })),
     );
     Assets.loadBundle(bundle_id).then((r) => {
-      const loaded: { [path: string]: Texture | "other" } = r;
-      for (const [path, loaded_resource] of Object.entries(loaded)) {
-        match(path_to_resource_map[path].kind)
-          .with("Image", () => {
-            this.image_texture_map[path].baseTexture.setResource(
-              (loaded_resource as Texture).baseTexture.resource,
-            );
-          })
-          .with("Unknown", () => {})
-          .exhaustive();
-      }
-      this._update_uv_maps();
-      if (dispatch_resource_bundle_complete) {
-        this.resource_bundle_complete.dispatch({
-          module_id,
-          instance_id,
-          bundle_name: resource_bundle.name,
-        });
-      }
+      setTimeout(() => {
+        for (const load_resource of resource_bundle.assets) {
+          const path = load_resource.path;
+          const loaded_resource = r[path];
+          if (!loaded_resource) {
+            console.error(`${path} did not load?!`);
+            continue;
+          }
+          match(path_to_resource_map[path].kind)
+            .with("Image", () => {
+              this.image_texture_map[path].source.resource = (
+                loaded_resource as Texture
+              ).source.resource;
+              this.image_texture_map[path].source.update();
+              this._update_uv_maps();
+            })
+            .with("Unknown", () => {})
+            .exhaustive();
+        }
+        if (dispatch_resource_bundle_complete) {
+          this.resource_bundle_complete.dispatch({
+            module_id,
+            instance_id,
+            bundle_name: resource_bundle.name,
+          });
+        }
+      }, 2000);
     });
   }
 
   private _update_uv_maps() {
     for (const g of Object.values(this.graphic_id_map)) {
       for (const t of g.textures) {
+        t.update();
         t.updateUvs();
       }
     }
@@ -212,9 +216,9 @@ export class ResourceManager {
     ///const animation_frames = tileset.tile_animation_map[id];
 
     if (tileset.image) {
-      const base_texture: BaseTexture =
-        this.image_texture_map[tileset.image.path]?.baseTexture;
-      if (!base_texture) {
+      const texture_source: TextureSource =
+        this.image_texture_map[tileset.image.path]?.source;
+      if (!texture_source) {
         graphics.textures.push(this.dummy_texture_loading);
         console.error(
           "No base_texture even though there should be a dummy at the very least!",
@@ -223,10 +227,10 @@ export class ResourceManager {
       }
       const x = ((id - 1) % tileset.columns) * tileset.tile_width;
       const y = Math.floor(id / tileset.columns) * tileset.tile_height;
-      const texture = new Texture(
-        base_texture,
-        new Rectangle(x, y, tileset.tile_width, tileset.tile_height),
-      );
+      const texture = new Texture({
+        source: texture_source,
+        frame: new Rectangle(x, y, tileset.tile_width, tileset.tile_height),
+      });
       graphics.textures.push(texture);
     } else {
       graphics.textures.push(this.dummy_texture_loading);

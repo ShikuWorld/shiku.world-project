@@ -1,4 +1,4 @@
-import { Container } from "pixi.js-legacy";
+import { Container } from "pixi.js";
 
 // Type alias for PIXI Container or array of containers
 type Target = Container[] | Container;

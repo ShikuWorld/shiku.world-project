@@ -8,7 +8,8 @@ import {
   autoDetectRenderer,
   Container,
   FederatedMouseEvent,
-} from "pixi.js-legacy";
+  Texture,
+} from "pixi.js";
 import { Config } from "../config";
 import {
   get_camera_zoom,
@@ -27,14 +28,14 @@ export interface ParallaxContainer extends Container {
   y_pscaling: number;
 }
 
-export function create_game_renderer(): RenderSystem {
+export async function create_game_renderer(): Promise<RenderSystem> {
   const canvas_wrapper = document.getElementById("canvas");
   if (!canvas_wrapper) {
     throw new Error("Could not find canvas!");
   }
   const width = canvas_wrapper.offsetWidth;
   const height = canvas_wrapper.offsetHeight;
-  const renderer = autoDetectRenderer({
+  const renderer = await autoDetectRenderer({
     backgroundColor: Config.get_bg_color(),
     width,
     height,
@@ -48,35 +49,61 @@ export function create_game_renderer(): RenderSystem {
     global_mouse_position.dispatch(event);
   });
 
-  canvas_wrapper.appendChild(renderer.view as HTMLCanvasElement);
+  canvas_wrapper.appendChild(renderer.view.canvas as HTMLCanvasElement);
+
+  const dummy_texture_tileset_missing = Texture.from(
+    await create_dummy_pic("#ff00ff"),
+  );
+  const dummy_texture_loading = Texture.from(await create_dummy_pic("#ffff00"));
 
   //setup_resizing(renderingSystem);
 
   /*renderer.on("prerender", () => {
-    renderingSystem.layerContainer.GameObjects.children.sort((a, b) => {
-      if (a.y > b.y) {
-        return 1;
-      } else if (a.y < b.y) {
-        return -1;
-      }
-
-      return 0;
-    });
-
-    if (renderingSystem.isDirty) {
-      cull.cull(renderer.screen);
-      renderingSystem.isDirty = false;
-    }
-  });*/
+                                            renderingSystem.layerContainer.GameObjects.children.sort((a, b) => {
+                                              if (a.y > b.y) {
+                                                return 1;
+                                              } else if (a.y < b.y) {
+                                                return -1;
+                                              }
+                                        
+                                              return 0;
+                                            });
+                                        
+                                            if (renderingSystem.isDirty) {
+                                              cull.cull(renderer.screen);
+                                              renderingSystem.isDirty = false;
+                                            }
+                                          });*/
 
   return {
     renderer,
     isDirty: true,
+    dummy_texture_tileset_missing,
+    dummy_texture_loading,
     current_main_instance: {},
     global_mouse_position,
     stage: mainContainer,
   };
 }
+
+const create_dummy_pic = async (color: string): Promise<ImageBitmap> => {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    console.error("Could not get 2d context...?", canvas);
+    return new ImageBitmap();
+  }
+
+  canvas.width = 100;
+  canvas.height = 100;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  try {
+    return await createImageBitmap(canvas);
+  } catch (e) {
+    return new ImageBitmap();
+  }
+};
 
 export const create_instance_rendering = (
   terrain_params: TerrainParams,
@@ -101,7 +128,7 @@ export const viewPortResize = (
   renderer: RenderSystem,
 ) => {
   /*renderer.renderer.view.style.width = `${width}px`;
-  renderer.renderer.view.style.height = `${height}px`;*/
+                                          renderer.renderer.view.style.height = `${height}px`;*/
 
   if (get_enable_zoom()) {
     set_stage_width(width * get_camera_zoom());
@@ -116,9 +143,9 @@ export const viewPortResize = (
     renderer.isDirty = true;
   }, 50);
   /*renderer.onStageResize.dispatch({
-    stage_width: Config.get_stage_width(),
-    stage_height: Config.get_stage_height(),
-  });*/
+                                            stage_width: Config.get_stage_width(),
+                                            stage_height: Config.get_stage_height(),
+                                          });*/
 };
 
 /*

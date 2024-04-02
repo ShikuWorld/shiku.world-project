@@ -5,7 +5,7 @@ import {
   BackgroundSystem,
   CanvasRenderer,
   Container,
-} from "pixi.js-legacy";
+} from "pixi.js";
 import { Config } from "../config";
 import {
   get_camera_zoom,

@@ -1,11 +1,11 @@
 import {
   AnimatedSprite,
   BitmapText,
+  BLEND_MODES,
   Container,
-  DisplayObject,
   Sprite,
   WRAP_MODES,
-} from "pixi.js-legacy";
+} from "pixi.js";
 import { InstanceRendering } from "../renderer";
 import { ShowEntity } from "../communication/api/bindings/ShowEntity";
 import { Graphics, ResourceManager } from "../resources";
@@ -30,6 +30,7 @@ export function create_render_graph(): RenderGraph {
 
 export class EntityManager {
   private _entity_map: Map<string, Entity>;
+
   constructor() {
     this._entity_map = new Map();
   }
@@ -309,7 +310,7 @@ function set_sprite_props_from_static_image_data(
 function get_sprite_from_render(
   staticImageData: StaticImage,
   graphics: Graphics,
-): DisplayObject {
+): Container {
   let sprite: Sprite | AnimatedSprite;
 
   if (graphics.frame_objects.length > 0) {
@@ -325,7 +326,7 @@ function get_sprite_from_render(
   sprite.anchor.set(0.5);
 
   if (staticImageData.blending_mode) {
-    sprite.blendMode = staticImageData.blending_mode;
+    sprite.blendMode = staticImageData.blending_mode as BLEND_MODES;
   }
 
   return sprite;
@@ -355,10 +356,13 @@ function get_display_obj_from_render(
       })
       .with({ RenderTypeText: P.select() }, (data) => {
         layer_name = data.layer as LayerKind;
-        const text = new BitmapText(data.text, { fontName: data.font_family });
+        const text = new BitmapText({
+          text: data.text,
+          style: { fontFamily: data.font_family },
+        });
 
         if (data.center_x) {
-          text.position.x = Math.round(-text.textWidth / 2);
+          text.position.x = Math.round(-text.width / 2);
         }
         return text;
       })
