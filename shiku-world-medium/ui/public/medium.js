@@ -44342,57 +44342,10 @@ This will fail in production.`);
     dummy_texture_loading;
     resource_bundle_complete = new import_strongly_typed_events4.SimpleEventDispatcher();
     resources_unload = new import_strongly_typed_events4.SimpleEventDispatcher();
-    handle_resource_event(resource_event) {
-      N2(resource_event).with({ LoadResource: _.select() }, (resource_bundle) => {
-        Assets.addBundle(
-          resource_bundle.name,
-          resource_bundle.assets.map((asset) => ({
-            alias: asset.path,
-            src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`
-          }))
-        );
-        Assets.loadBundle(resource_bundle.name).then((r3) => {
-          for (const res of resource_bundle.assets.filter(
-            (a3) => a3.kind === "Image"
-          )) {
-            this.image_texture_map[res.path].source.resource = r3[res.path].source.resource;
-            this.image_texture_map[res.path].source.update();
-          }
-          this._update_uv_maps();
-        });
-      }).with({ LoadTilesets: _.select() }, (tilesets) => {
-        this.set_tileset_map(tilesets);
-      }).with({ UpdateGidMap: _.select() }, (gid_map) => {
-        this.gid_map = gid_map;
-      }).with("UnLoadResources", () => console.log("unload")).exhaustive();
-    }
     set_tileset_map(tilesets) {
       for (const tileset of tilesets) {
         this.tile_set_map[`${tileset.resource_path}/${tileset.name}.tileset.json`] = tileset;
       }
-    }
-    get_sprite_from_graphics(graphics) {
-      let sprite;
-      if (graphics.frame_objects.length > 0) {
-        const animated_sprite = new AnimatedSprite(graphics.frame_objects);
-        animated_sprite.play();
-        sprite = animated_sprite;
-      } else {
-        sprite = Sprite.from(graphics.textures[0]);
-      }
-      sprite.anchor.set(0, 1);
-      return sprite;
-    }
-    get_graphics_data_by_gid(gid) {
-      if (!this.graphic_id_map[gid]) {
-        const [tileset, start_gid] = this._get_tileset_by_gid(gid);
-        const id_in_tileset = gid - start_gid;
-        this.graphic_id_map[gid] = this._calculate_graphics(
-          id_in_tileset,
-          tileset
-        );
-      }
-      return this.graphic_id_map[gid];
     }
     load_resource_bundle(module_id, instance_id, resource_bundle, dispatch_resource_bundle_complete = false) {
       const bundle_id = `${module_id}-${resource_bundle.name}`;
@@ -44417,40 +44370,83 @@ This will fail in production.`);
         }))
       );
       Assets.loadBundle(bundle_id).then((r3) => {
-        setTimeout(() => {
-          for (const load_resource of resource_bundle.assets) {
-            const path2 = load_resource.path;
-            const loaded_resource = r3[path2];
-            if (!loaded_resource) {
-              console.error(`${path2} did not load?!`);
-              continue;
-            }
-            N2(path_to_resource_map[path2].kind).with("Image", () => {
-              this.image_texture_map[path2].source.resource = loaded_resource.source.resource;
-              this.image_texture_map[path2].source.update();
-              this._update_uv_maps();
-            }).with("Unknown", () => {
-            }).exhaustive();
+        for (const load_resource of resource_bundle.assets) {
+          const path2 = load_resource.path;
+          const loaded_resource = r3[path2];
+          if (!loaded_resource) {
+            console.error(`${path2} did not load?!`);
+            continue;
           }
-          if (dispatch_resource_bundle_complete) {
-            this.resource_bundle_complete.dispatch({
-              module_id,
-              instance_id,
-              bundle_name: resource_bundle.name
-            });
-          }
-        }, 2e3);
+          N2(path_to_resource_map[path2].kind).with("Image", () => {
+            this.image_texture_map[path2].source.resource = loaded_resource.source.resource;
+            this.image_texture_map[path2].source.update();
+          }).with("Unknown", () => {
+          }).exhaustive();
+        }
+        if (dispatch_resource_bundle_complete) {
+          this.resource_bundle_complete.dispatch({
+            module_id,
+            instance_id,
+            bundle_name: resource_bundle.name
+          });
+        }
       });
     }
     _update_uv_maps() {
       for (const g3 of Object.values(this.graphic_id_map)) {
         for (const t3 of g3.textures) {
-          t3.update();
           t3.updateUvs();
         }
       }
     }
+    handle_resource_event(resource_event) {
+      N2(resource_event).with({ LoadResource: _.select() }, (resource_bundle) => {
+        Assets.addBundle(
+          resource_bundle.name,
+          resource_bundle.assets.map((asset) => ({
+            alias: asset.path,
+            src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`
+          }))
+        );
+        Assets.loadBundle(resource_bundle.name).then((r3) => {
+          for (const res of resource_bundle.assets.filter(
+            (a3) => a3.kind === "Image"
+          )) {
+            this.image_texture_map[res.path].source.resource = r3[res.path].source.resource;
+            this.image_texture_map[res.path].source.update();
+          }
+          this._update_uv_maps();
+        });
+      }).with({ LoadTilesets: _.select() }, (tilesets) => {
+        this.set_tileset_map(tilesets);
+      }).with({ UpdateGidMap: _.select() }, (gid_map) => {
+        this.gid_map = gid_map;
+      }).with("UnLoadResources", () => console.log("unload")).exhaustive();
+    }
     unload_resources() {
+    }
+    get_sprite_from_graphics(graphics) {
+      let sprite;
+      if (graphics.frame_objects.length > 0) {
+        const animated_sprite = new AnimatedSprite(graphics.frame_objects);
+        animated_sprite.play();
+        sprite = animated_sprite;
+      } else {
+        sprite = Sprite.from(graphics.textures[0]);
+      }
+      sprite.anchor.set(0, 1);
+      return sprite;
+    }
+    get_graphics_data_by_gid(gid) {
+      if (!this.graphic_id_map[gid]) {
+        const [tileset, start_gid] = this._get_tileset_by_gid(gid);
+        const id_in_tileset = gid - start_gid;
+        this.graphic_id_map[gid] = this._calculate_graphics(
+          id_in_tileset,
+          tileset
+        );
+      }
+      return this.graphic_id_map[gid];
     }
     _get_tileset_by_gid(gid) {
       for (let i3 = 0; i3 < this.gid_map.length; i3++) {

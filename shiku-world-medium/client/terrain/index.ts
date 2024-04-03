@@ -62,16 +62,16 @@ export class TerrainManager {
     chunk_map_entry.data = chunk;
     chunk_map_entry.container.removeChildren();
     /*const graphics = new Graphics();
-                    
-                        graphics.lineStyle(1, 0xff0000);
-                        graphics.drawRect(
-                          chunk_map_entry.x,
-                          chunk_map_entry.y,
-                          chunk.width * chunk.width,
-                          chunk.height * chunk.height
-                        );
-                    
-                        renderer.debugContainer.addChild(graphics);*/
+                        
+                            graphics.lineStyle(1, 0xff0000);
+                            graphics.drawRect(
+                              chunk_map_entry.x,
+                              chunk_map_entry.y,
+                              chunk.width * chunk.width,
+                              chunk.height * chunk.height
+                            );
+                        
+                            renderer.debugContainer.addChild(graphics);*/
 
     for (const [i, gid] of chunk.data.entries()) {
       if (gid === 0) {

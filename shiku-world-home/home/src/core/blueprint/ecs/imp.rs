@@ -1,8 +1,10 @@
 use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind, ECS};
 use crate::core::blueprint::scene::def::{
-    GameNodeKind, Node2DKind, NodeInstanceId, RenderKind, Scene, SceneId,
+    GameNodeKind, GameNodeKindClean, Node2DKind, Node2DKindClean, NodeInstanceId, RenderKind,
+    Scene, SceneId,
 };
+use log::{debug, error};
 use std::collections::HashMap;
 
 impl From<&Scene> for ECS {
@@ -10,8 +12,6 @@ impl From<&Scene> for ECS {
         let mut new_ecs = ECS::new();
         let mut node_id_counter = 0;
         new_ecs.scene_root = Entity(node_id_counter);
-        node_id_counter += 1;
-
         new_ecs.scene_name = scene.name.clone();
         new_ecs.scene_resource_path = scene.resource_path.clone();
         new_ecs.scene_id = scene.id.clone();
@@ -28,19 +28,29 @@ fn add_node_to_ecs(node_kind: &GameNodeKind, ecs: &mut ECS, node_id_counter: &mu
 
     match node_kind {
         GameNodeKind::Node2D(node_2d) => {
+            ecs.game_node_kind.insert(entity, GameNodeKindClean::Node2D);
+            ecs.game_node_id.insert(entity, node_2d.id.clone());
+            ecs.game_node_script.insert(entity, node_2d.script.clone());
+            ecs.game_node_children.insert(entity, Vec::new());
+            ecs.game_node_name.insert(entity, node_2d.name.clone());
             ecs.transforms
                 .insert(entity, node_2d.data.transform.clone());
 
             match &node_2d.data.kind {
-                Node2DKind::Node2D(_) => {}
+                Node2DKind::Node2D(_) => {
+                    ecs.node_2d_kind.insert(entity, Node2DKindClean::Node2D);
+                }
                 Node2DKind::RigidBody(rigid_body) => {
+                    ecs.node_2d_kind.insert(entity, Node2DKindClean::RigidBody);
                     ecs.rigid_body_type.insert(entity, rigid_body.body.clone());
                     ecs.rigid_body_velocity.insert(entity, rigid_body.velocity);
                 }
                 Node2DKind::Collider(collider) => {
+                    ecs.node_2d_kind.insert(entity, Node2DKindClean::Collider);
                     ecs.collider.insert(entity, collider.clone());
                 }
                 Node2DKind::Render(render) => {
+                    ecs.node_2d_kind.insert(entity, Node2DKindClean::Render);
                     ecs.render_layer.insert(entity, render.layer.clone());
                     ecs.render_offset.insert(entity, render.offset);
                     match render.kind {
@@ -55,7 +65,7 @@ fn add_node_to_ecs(node_kind: &GameNodeKind, ecs: &mut ECS, node_id_counter: &mu
             }
         }
         GameNodeKind::Instance(_node) => {
-            todo!()
+            error!("Instance not implemented!");
         }
     }
     for child in node_kind.get_children() {

@@ -1,5 +1,5 @@
 <template>
-  <v-card class="create-tileset" title="Create new Map">
+  <v-card class="create-tileset" title="Create new Scene">
     <v-text-field label="Name" v-model="partial_scene.name"></v-text-field>
     <v-text-field
       label="Path to file"
@@ -23,8 +23,6 @@
 import { reactive, ref } from "vue";
 import { Scene } from "@/editor/blueprints/Scene";
 import { v4 as uuidv4 } from "uuid";
-import { KeysOfUnion } from "@/editor/utils";
-import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { create_game_node, GameNodeTypeKeys } from "@/editor/stores/resources";
 
 const partial_scene = reactive<Partial<Scene>>({
@@ -33,10 +31,10 @@ const partial_scene = reactive<Partial<Scene>>({
   resource_path: "",
 });
 
-const selected_root_node_type = ref<KeysOfUnion<GameNodeKind>>("Node2D");
+const selected_root_node_type = ref<GameNodeTypeKeys>("Node2D-Node2D");
 
 const root_node_types: GameNodeTypeKeys[] = [
-  "Node2D",
+  "Node2D-Node2D",
   "Node2D-Collider",
   "Node2D-Render",
   "Node2D-RigidBody",
@@ -55,11 +53,16 @@ function save_scene() {
     console.error("All scene params need to be set!");
     return;
   }
+  const root_node = create_game_node(selected_root_node_type.value);
+  if (!root_node) {
+    console.error("Could not create root node for scene?!");
+    return;
+  }
   emit("save", {
     id: partial_scene.id,
     name: partial_scene.name,
     resource_path: partial_scene.resource_path,
-    root_node: create_game_node(selected_root_node_type.value),
+    root_node,
   });
 }
 </script>

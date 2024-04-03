@@ -52,74 +52,12 @@ export class ResourceManager {
     this.dummy_texture_loading = renderer.dummy_texture_loading;
   }
 
-  handle_resource_event(resource_event: ResourceEvent) {
-    match(resource_event)
-      .with({ LoadResource: P.select() }, (resource_bundle) => {
-        Assets.addBundle(
-          resource_bundle.name,
-          resource_bundle.assets.map((asset) => ({
-            alias: asset.path,
-            src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`,
-          })),
-        );
-        Assets.loadBundle(resource_bundle.name).then((r) => {
-          for (const res of resource_bundle.assets.filter(
-            (a) => a.kind === "Image",
-          )) {
-            this.image_texture_map[res.path].source.resource = (
-              r[res.path] as Texture
-            ).source.resource;
-            this.image_texture_map[res.path].source.update();
-          }
-          this._update_uv_maps();
-        });
-      })
-      .with({ LoadTilesets: P.select() }, (tilesets) => {
-        this.set_tileset_map(tilesets);
-      })
-      .with({ UpdateGidMap: P.select() }, (gid_map) => {
-        this.gid_map = gid_map;
-      })
-      .with("UnLoadResources", () => console.log("unload"))
-      .exhaustive();
-  }
-
   set_tileset_map(tilesets: Tileset[]) {
     for (const tileset of tilesets) {
       this.tile_set_map[
         `${tileset.resource_path}/${tileset.name}.tileset.json`
       ] = tileset;
     }
-  }
-
-  get_sprite_from_graphics(graphics: Graphics): Sprite {
-    let sprite: Sprite;
-
-    if (graphics.frame_objects.length > 0) {
-      const animated_sprite = new AnimatedSprite(graphics.frame_objects);
-
-      animated_sprite.play();
-      sprite = animated_sprite;
-    } else {
-      sprite = Sprite.from(graphics.textures[0]);
-    }
-    sprite.anchor.set(0, 1);
-    return sprite;
-  }
-
-  get_graphics_data_by_gid(gid: number): Graphics {
-    if (!this.graphic_id_map[gid]) {
-      const [tileset, start_gid] = this._get_tileset_by_gid(gid);
-
-      const id_in_tileset = gid - start_gid;
-
-      this.graphic_id_map[gid] = this._calculate_graphics(
-        id_in_tileset,
-        tileset,
-      );
-    }
-
-    return this.graphic_id_map[gid];
   }
 
   load_resource_bundle(
@@ -152,46 +90,104 @@ export class ResourceManager {
       })),
     );
     Assets.loadBundle(bundle_id).then((r) => {
-      setTimeout(() => {
-        for (const load_resource of resource_bundle.assets) {
-          const path = load_resource.path;
-          const loaded_resource = r[path];
-          if (!loaded_resource) {
-            console.error(`${path} did not load?!`);
-            continue;
-          }
-          match(path_to_resource_map[path].kind)
-            .with("Image", () => {
-              this.image_texture_map[path].source.resource = (
-                loaded_resource as Texture
-              ).source.resource;
-              this.image_texture_map[path].source.update();
-              this._update_uv_maps();
-            })
-            .with("Unknown", () => {})
-            .exhaustive();
+      for (const load_resource of resource_bundle.assets) {
+        const path = load_resource.path;
+        const loaded_resource = r[path];
+        if (!loaded_resource) {
+          console.error(`${path} did not load?!`);
+          continue;
         }
-        if (dispatch_resource_bundle_complete) {
-          this.resource_bundle_complete.dispatch({
-            module_id,
-            instance_id,
-            bundle_name: resource_bundle.name,
-          });
-        }
-      }, 2000);
+        match(path_to_resource_map[path].kind)
+          .with("Image", () => {
+            this.image_texture_map[path].source.resource = (
+              loaded_resource as Texture
+            ).source.resource;
+            this.image_texture_map[path].source.update();
+          })
+          .with("Unknown", () => {})
+          .exhaustive();
+      }
+      if (dispatch_resource_bundle_complete) {
+        this.resource_bundle_complete.dispatch({
+          module_id,
+          instance_id,
+          bundle_name: resource_bundle.name,
+        });
+      }
     });
   }
 
   private _update_uv_maps() {
     for (const g of Object.values(this.graphic_id_map)) {
       for (const t of g.textures) {
-        t.update();
         t.updateUvs();
       }
     }
   }
 
+  handle_resource_event(resource_event: ResourceEvent) {
+    match(resource_event)
+      .with({ LoadResource: P.select() }, (resource_bundle) => {
+        Assets.addBundle(
+          resource_bundle.name,
+          resource_bundle.assets.map((asset) => ({
+            alias: asset.path,
+            src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`,
+          })),
+        );
+        Assets.loadBundle(resource_bundle.name).then((r) => {
+          for (const res of resource_bundle.assets.filter(
+            (a) => a.kind === "Image",
+          )) {
+            this.image_texture_map[res.path].source.resource = (
+              r[res.path] as Texture
+            ).source.resource;
+            this.image_texture_map[res.path].source.update();
+          }
+          this._update_uv_maps();
+        });
+      })
+      .with({ LoadTilesets: P.select() }, (tilesets) => {
+        this.set_tileset_map(tilesets);
+      })
+      .with({ UpdateGidMap: P.select() }, (gid_map) => {
+        this.gid_map = gid_map;
+      })
+      .with("UnLoadResources", () => console.log("unload"))
+      .exhaustive();
+  }
+
   unload_resources() {}
+
+  get_sprite_from_graphics(graphics: Graphics): Sprite {
+    let sprite: Sprite;
+
+    if (graphics.frame_objects.length > 0) {
+      const animated_sprite = new AnimatedSprite(graphics.frame_objects);
+
+      animated_sprite.play();
+      sprite = animated_sprite;
+    } else {
+      sprite = Sprite.from(graphics.textures[0]);
+    }
+    sprite.anchor.set(0, 1);
+    return sprite;
+  }
+
+  get_graphics_data_by_gid(gid: number): Graphics {
+    if (!this.graphic_id_map[gid]) {
+      const [tileset, start_gid] = this._get_tileset_by_gid(gid);
+
+      const id_in_tileset = gid - start_gid;
+
+      this.graphic_id_map[gid] = this._calculate_graphics(
+        id_in_tileset,
+        tileset,
+      );
+    }
+
+    return this.graphic_id_map[gid];
+  }
 
   private _get_tileset_by_gid(gid: number): [Tileset | undefined, number] {
     for (let i = 0; i < this.gid_map.length; i++) {

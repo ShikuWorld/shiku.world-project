@@ -55,26 +55,24 @@ export async function create_game_renderer(): Promise<RenderSystem> {
     await create_dummy_pic("#ff00ff"),
   );
   const dummy_texture_loading = Texture.from(await create_dummy_pic("#ffff00"));
-
   //setup_resizing(renderingSystem);
 
   /*renderer.on("prerender", () => {
-                                            renderingSystem.layerContainer.GameObjects.children.sort((a, b) => {
-                                              if (a.y > b.y) {
-                                                return 1;
-                                              } else if (a.y < b.y) {
-                                                return -1;
-                                              }
-                                        
-                                              return 0;
-                                            });
-                                        
-                                            if (renderingSystem.isDirty) {
-                                              cull.cull(renderer.screen);
-                                              renderingSystem.isDirty = false;
-                                            }
-                                          });*/
-
+                                                  renderingSystem.layerContainer.GameObjects.children.sort((a, b) => {
+                                                    if (a.y > b.y) {
+                                                      return 1;
+                                                    } else if (a.y < b.y) {
+                                                      return -1;
+                                                    }
+  
+                                                    return 0;
+                                                  });
+  
+                                                  if (renderingSystem.isDirty) {
+                                                    cull.cull(renderer.screen);
+                                                    renderingSystem.isDirty = false;
+                                                  }
+                                                });*/
   return {
     renderer,
     isDirty: true,
@@ -128,7 +126,7 @@ export const viewPortResize = (
   renderer: RenderSystem,
 ) => {
   /*renderer.renderer.view.style.width = `${width}px`;
-                                          renderer.renderer.view.style.height = `${height}px`;*/
+                                                renderer.renderer.view.style.height = `${height}px`;*/
 
   if (get_enable_zoom()) {
     set_stage_width(width * get_camera_zoom());
@@ -143,9 +141,9 @@ export const viewPortResize = (
     renderer.isDirty = true;
   }, 50);
   /*renderer.onStageResize.dispatch({
-                                            stage_width: Config.get_stage_width(),
-                                            stage_height: Config.get_stage_height(),
-                                          });*/
+                                                  stage_width: Config.get_stage_width(),
+                                                  stage_height: Config.get_stage_height(),
+                                                });*/
 };
 
 /*

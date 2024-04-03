@@ -3,7 +3,7 @@ use crate::core::blueprint::scene::def::{
     GameNode, GameNodeKind, GameNodeKindClean, Node2D, Node2DDud, Node2DKind, Node2DKindClean,
     Render, RenderKind, RenderKindClean, RigidBody, Scene,
 };
-use log::error;
+use log::{debug, error};
 
 pub fn build_scene_from_ecs(ecs: &ECS) -> Option<Scene> {
     let root_entity = &ecs.scene_root;
@@ -36,7 +36,7 @@ fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKin
         ecs.game_node_children.get(entity),
     ) {
         let children: Vec<GameNodeKind> = node_children
-            .into_iter()
+            .iter()
             .filter_map(|child_entity| get_game_node_kind_from_ecs(child_entity, ecs))
             .collect();
         match node_kind {
@@ -44,7 +44,7 @@ fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKin
                 return Some(GameNodeKind::Instance(GameNode {
                     id: node_id.clone(),
                     name: node_name.clone(),
-                    script: Some(node_script.clone()),
+                    script: node_script.clone(),
                     entity_id: Some(*entity),
                     children,
                     data: "".into(),
@@ -58,7 +58,7 @@ fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKin
                     return Some(GameNodeKind::Node2D(GameNode {
                         id: node_id.clone(),
                         name: node_name.clone(),
-                        script: Some(node_script.clone()),
+                        script: node_script.clone(),
                         entity_id: Some(*entity),
                         children,
                         data: Node2D {

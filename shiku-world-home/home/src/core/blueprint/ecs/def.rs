@@ -15,12 +15,13 @@ use crate::core::blueprint::scene::def::{
 #[ts(export, export_to = "blueprints/")]
 pub struct Entity(pub NodeInstanceId);
 
+#[derive(Debug)]
 pub struct ECS {
     pub scene_root: Entity,
     pub scene_name: String,
     pub scene_resource_path: ResourcePath,
     pub scene_id: SceneId,
-    pub game_node_script: HashMap<Entity, String>,
+    pub game_node_script: HashMap<Entity, Option<String>>,
     pub game_node_id: HashMap<Entity, GameNodeId>,
     pub game_node_name: HashMap<Entity, String>,
     pub game_node_children: HashMap<Entity, Vec<Entity>>,

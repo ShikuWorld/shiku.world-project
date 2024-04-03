@@ -51,7 +51,7 @@ import {
 
 const node_type_options: { value: GameNodeTypeKeys; label: string }[] = [
   { value: "Instance", label: "Instance" },
-  { value: "Node2D", label: "Node 2D" },
+  { value: "Node2D-Node2D", label: "Node 2D" },
   { value: "Node2D-RigidBody", label: "Node 2D RigidBody" },
   { value: "Node2D-Render", label: "Node 2D Render" },
   { value: "Node2D-Collider", label: "Node 2D Collider" },
@@ -68,10 +68,11 @@ function add_node_type(path: number[], node_type: GameNodeTypeKeys) {
     console.error("Tried to add node to undefined node.");
     return;
   }
-  add_child_to_scene_on_server(
-    scene_key(scene.value),
-    path,
-    create_game_node(node_type),
-  );
+  let game_node = create_game_node(node_type);
+  if (!game_node) {
+    console.error("Could not create game node to add to scene on server!");
+    return;
+  }
+  add_child_to_scene_on_server(scene_key(scene.value), path, game_node);
 }
 </script>

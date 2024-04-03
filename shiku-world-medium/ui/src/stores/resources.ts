@@ -297,8 +297,8 @@ export type GameNodeTypeKeys = KeysOfUnion<GameNodeKind> | Node2DTypeKeys;
 
 export function create_game_node(
   game_node_type: GameNodeTypeKeys,
-): GameNodeKind {
-  if (game_node_type.startsWith("Node2D")) {
+): GameNodeKind | null {
+  if (game_node_type.startsWith("Node2D-")) {
     return {
       Node2D: {
         name: game_node_type,
@@ -317,18 +317,9 @@ export function create_game_node(
         children: [],
       },
     };
-  } else {
-    return {
-      Instance: {
-        name: "Render",
-        id: uuidv4(),
-        data: "",
-        entity_id: null,
-        script: null,
-        children: [],
-      },
-    };
   }
+
+  return null;
 }
 
 export function create_2d_game_node(

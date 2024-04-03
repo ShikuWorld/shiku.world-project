@@ -6,13 +6,12 @@ use std::str::FromStr;
 use log::{debug, error};
 use walkdir::WalkDir;
 
-use crate::core::{cantor_pair, get_out_dir, safe_unwrap};
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, BlueprintService, Chunk, Conductor, FileBrowserFileKind,
-    FileBrowserResult, GameMap, GidMap, LayerKind, Module, ResourceKind, ResourceLoaded,
-    Tileset,
+    FileBrowserResult, GameMap, GidMap, LayerKind, Module, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
+use crate::core::{cantor_pair, get_out_dir, safe_unwrap};
 
 impl Module {
     pub fn new(name: String, id: String) -> Module {
@@ -101,7 +100,7 @@ impl BlueprintService {
             if let Some(file_name_os) = path_buf.as_path().file_name() {
                 if let Some(file_name) = file_name_os.to_str() {
                     return match BlueprintService::determine_resource_type(file_name) {
-                        ResourceKind::Scene =>  match Blueprint::load_scene(path_buf) {
+                        ResourceKind::Scene => match Blueprint::load_scene(path_buf) {
                             Ok(scene) => ResourceLoaded::Scene(scene),
                             Err(err) => {
                                 error!("Could not load Resource: {:?}", err);
@@ -155,8 +154,8 @@ impl BlueprintService {
     pub fn generate_gid_map(resources: &[BlueprintResource]) -> Result<GidMap, BlueprintError> {
         let mut gid_map = Vec::new();
         let mut current_count = 0;
-        debug!("tileset path {:?}", resources);
         for resource in resources.iter().filter(|r| ResourceKind::Tileset == r.kind) {
+            debug!("tileset path {:?}", resources);
             let tileset = Blueprint::load_tileset(resource.path.clone().into())?;
             gid_map.push((resource.path.clone(), current_count));
             if tileset.image.is_some() {

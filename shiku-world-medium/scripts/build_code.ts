@@ -1,5 +1,6 @@
 import * as esbuild from "esbuild";
 import { getLogger } from "./log";
+
 const log = getLogger("");
 import { ESLint } from "eslint";
 import * as fs from "fs-extra";
@@ -30,16 +31,14 @@ export const build_code = async () => {
     const formatter = await eslint.loadFormatter("stylish");
 
     let errorCount = 0;
-    let warnCount = 0;
     for (const result of results) {
       errorCount += result.errorCount + result.fatalErrorCount;
-      warnCount += result.warningCount;
       if (result.errorCount + result.warningCount > 0) {
         console.log(formatter.format([result]));
       }
     }
 
-    if (errorCount + warnCount > 0) {
+    if (errorCount > 0) {
       return;
     }
 

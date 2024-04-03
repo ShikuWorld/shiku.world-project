@@ -125,6 +125,10 @@ impl ResourceModule {
         }
     }
 
+    pub fn init_resources_for_module(&mut self, module_id: ModuleId) {
+        self.book_keeping.resources.entry(module_id).or_default();
+    }
+
     pub fn register_resource_for_module(&mut self, module_id: ModuleId, resource: LoadResource) {
         Self::register_resource_for_module_static(
             &mut self.book_keeping,

@@ -6,21 +6,21 @@ use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
-use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
+use crate::core::blueprint::def::Module;
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, Chunk, GameMap, LayerKind, ResourceKind, TerrainParams,
 };
-use crate::core::blueprint::def::Module;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
-    AdminEnterSuccessState, AdminLeftSuccessState, create_module_communication, EnterFailedState,
+    create_module_communication, AdminEnterSuccessState, AdminLeftSuccessState, EnterFailedState,
     EnterSuccessState, LeaveFailedState, LeaveSuccessState, ModuleInputReceiver, ModuleInputSender,
     ModuleOutputReceiver, ModuleOutputSender, ModuleToSystemEvent, SystemToModuleEvent,
 };
-use crate::core::module_system::def::{DynamicGameModule};
+use crate::core::module_system::def::DynamicGameModule;
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::world::WorldId;
+use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
 use crate::resource_module::def::{LoadResource, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 
@@ -271,6 +271,7 @@ impl GameInstanceManager {
     }
 
     pub fn register_resources(&self, resource_module: &mut ResourceModule) {
+        resource_module.init_resources_for_module(self.module_blueprint.id.clone());
         for resource in &self.module_blueprint.resources {
             Self::loading_resources_from_blueprint_resource(resource)
                 .into_iter()
