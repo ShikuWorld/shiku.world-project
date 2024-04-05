@@ -52,5 +52,3 @@ window.onload = function () {
 
   door.addEventListener("click", door_enter_click_handler);
 };
-export { RenderGraph } from "@/client/render-graph";
-export { Node } from "@/client/render-graph";

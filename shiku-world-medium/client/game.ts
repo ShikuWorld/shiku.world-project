@@ -154,7 +154,6 @@ export async function start_medium() {
                   .main_container_wrapper,
               );
             }
-            window.medium_gui.editor.set_game_instances(instances);
             if (is_admin) {
               const guaranteed_world_id_as_admin = w_id!;
               send_admin_event(
@@ -200,7 +199,6 @@ export async function start_medium() {
             if (Object.keys(instances[instance_id]).length === 0) {
               delete instances[instance_id];
             }
-            window.medium_gui.editor.set_game_instances(instances);
           }
         })
         .with(

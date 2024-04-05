@@ -26,9 +26,10 @@ import { storeToRefs } from "pinia";
 import { use_editor_store } from "@/editor/stores/editor";
 import { mdiAccessPoint, mdiAccessPointOff, mdiCheckBold } from "@mdi/js";
 import { use_resources_store } from "@/editor/stores/resources";
+import { use_game_instances_store } from "@/editor/stores/game-instances";
 
-const { game_instances, current_main_instance } =
-  storeToRefs(use_editor_store());
+const { current_main_instance } = storeToRefs(use_editor_store());
+const { game_instance_exists } = use_game_instances_store();
 const { game_map_map } = storeToRefs(use_resources_store());
 
 const props = defineProps<{
@@ -53,8 +54,7 @@ function get_icon(instance_id: string, world_id: string) {
       ? mdiCheckBold
       : "";
   }
-  return game_instances.value[instance_id] &&
-    game_instances.value[instance_id][world_id]
+  return game_instance_exists(instance_id, world_id)
     ? mdiAccessPoint
     : mdiAccessPointOff;
 }

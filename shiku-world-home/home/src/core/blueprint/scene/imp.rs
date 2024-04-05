@@ -1,4 +1,4 @@
-use crate::core::blueprint::ecs::def::{Entity, ECS};
+use crate::core::blueprint::ecs::def::{Entity, EntityUpdateKind, ECS};
 use crate::core::blueprint::scene::def::{
     GameNode, GameNodeKind, GameNodeKindClean, Node2D, Node2DDud, Node2DKind, Node2DKindClean,
     Render, RenderKind, RenderKindClean, RigidBody, Scene,
@@ -171,6 +171,30 @@ impl GameNodeKind {
             GameNodeKind::Node2D(node) => {
                 if let GameNodeKind::Node2D(n) = data {
                     node.data = n.data
+                }
+            }
+        }
+    }
+
+    pub fn update_with_entity_update(&mut self, update: EntityUpdateKind) {
+        match update {
+            EntityUpdateKind::UpdateTransform(transform) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    n.data.transform = transform;
+                }
+            }
+            EntityUpdateKind::UpdateGid(gid) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    if let Node2DKind::Render(r) = &mut n.data.kind {
+                        match r.kind {
+                            RenderKind::AnimatedSprite(ref mut g) => {
+                                *g = gid;
+                            }
+                            RenderKind::Sprite(ref mut g) => {
+                                *g = gid;
+                            }
+                        }
+                    }
                 }
             }
         }

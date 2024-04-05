@@ -13,9 +13,9 @@
         variant="accordion"
         v-if="selected_module"
       >
-        <v-expansion-panel title="Scene" v-if="current_main_scene">
+        <v-expansion-panel title="I Scene" v-if="current_main_instance_scene">
           <v-expansion-panel-text>
-            <scene-editor :scene="current_main_scene"></scene-editor>
+            <scene-editor :scene="current_main_instance_scene"></scene-editor>
           </v-expansion-panel-text>
         </v-expansion-panel>
         <v-expansion-panel title="Resources">
@@ -53,7 +53,7 @@
       <div
         v-if="
           active_component === 'game_node' &&
-          selected_scene &&
+          current_main_instance_scene &&
           selected_node &&
           selected_game_node &&
           selected_game_node_path
@@ -61,7 +61,7 @@
       >
         <GameNodeInspector
           :node="selected_node"
-          :scene_resource_path="scene_key(selected_scene)"
+          :scene_resource_path="scene_key(current_main_instance_scene)"
           :path="selected_game_node_path"
           :key="selected_game_node.id"
         ></GameNodeInspector>
@@ -111,6 +111,7 @@ import {
 } from "@/editor/stores/resources";
 import SceneEditor from "@/editor/editor/SceneEditor.vue";
 import { Scene } from "@/editor/blueprints/Scene";
+import { use_game_instances_store } from "@/editor/stores/game-instances";
 
 const tab = ref<number>(0);
 const {
@@ -125,9 +126,12 @@ const {
 const {
   add_open_resource_path,
   set_selected_resource_tab,
-  game_instance_exists,
   set_current_main_instance,
 } = use_editor_store();
+
+const { game_instance_exists } = use_game_instances_store();
+
+const { game_instance_data_map } = storeToRefs(use_game_instances_store());
 
 const { game_map_map, tileset_map } = storeToRefs(use_resources_store());
 const {
@@ -136,7 +140,6 @@ const {
   load_modules,
   update_map_server,
   get_resource_server,
-  get_scene,
 } = use_resources_store();
 
 const { active_component, component_stores } = storeToRefs(
@@ -174,7 +177,25 @@ function load_map_palette() {
   }
   set_inspector_component("map");
 }
+const current_main_instance_scene = computed(() => {
+  console.log("Checking for changes in game instances...");
+  const { instance_id, world_id } = current_main_instance.value;
 
+  if (
+    instance_id &&
+    world_id &&
+    game_instance_data_map.value[instance_id] &&
+    game_instance_data_map.value[instance_id][world_id]
+  ) {
+    const game_instance_data =
+      game_instance_data_map.value[instance_id][world_id];
+    if (game_instance_data) {
+      return game_instance_data.render_graph_data.scene;
+    }
+  }
+
+  return null;
+});
 const current_main_map = computed<GameMap | undefined>(() => {
   if (current_main_instance.value?.world_id && game_map_map.value) {
     return Object.values(game_map_map.value).find(
@@ -184,18 +205,12 @@ const current_main_map = computed<GameMap | undefined>(() => {
   return undefined;
 });
 
-const selected_scene = computed(() => {
-  if (component_stores.value.game_node.scene_resource_path) {
-    return get_scene(component_stores.value.game_node.scene_resource_path);
-  }
-  return undefined;
-});
 const selected_node = computed(() => {
   if (
     component_stores.value.game_node.selection_path &&
-    selected_scene.value?.root_node
+    current_main_instance_scene.value?.root_node
   ) {
-    return get_node_by_path(selected_scene.value.root_node, [
+    return get_node_by_path(current_main_instance_scene.value.root_node, [
       ...component_stores.value.game_node.selection_path,
     ]);
   }
@@ -210,16 +225,9 @@ const selected_game_node = computed(() => {
 const selected_game_node_path = computed(() => {
   if (
     component_stores.value.game_node.selection_path &&
-    selected_scene.value?.root_node
+    current_main_instance_scene.value?.root_node
   ) {
     return component_stores.value.game_node.selection_path;
-  }
-  return undefined;
-});
-
-const current_main_scene = computed<Scene | undefined>(() => {
-  if (current_main_map.value && current_main_map.value.main_scene) {
-    return get_scene(current_main_map.value.main_scene);
   }
   return undefined;
 });

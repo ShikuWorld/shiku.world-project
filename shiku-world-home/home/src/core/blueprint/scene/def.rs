@@ -1,5 +1,5 @@
 use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
-use crate::core::blueprint::ecs::def::Entity;
+use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -7,6 +7,7 @@ use ts_rs::TS;
 pub type SceneId = String;
 pub type GameNodeId = String;
 pub type NodeInstanceId = u32;
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Scene {

@@ -8,6 +8,7 @@ import { use_toast_store } from "@/editor/stores/toast";
 import { use_editor_store } from "@/editor/stores/editor";
 import { Isometry } from "@/client/entities";
 import { use_resources_store } from "@/editor/stores/resources";
+import { use_game_instances_store } from "@/editor/stores/game-instances";
 
 declare global {
   interface Window {
@@ -36,6 +37,7 @@ declare global {
       ui: ReturnType<typeof use_ui_store>;
       editor: ReturnType<typeof use_editor_store>;
       resources: ReturnType<typeof use_resources_store>;
+      game_instances: ReturnType<typeof use_game_instances_store>;
       config: ReturnType<typeof use_config_store>;
       toast: ReturnType<typeof use_toast_store>;
       current_module: ReturnType<typeof use_current_module_store>;

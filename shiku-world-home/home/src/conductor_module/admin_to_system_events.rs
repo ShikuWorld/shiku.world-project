@@ -326,10 +326,10 @@ pub async fn handle_admin_to_system_event(
             Err(err) => error!("Could not create scene: {:?}", err),
         },
         AdminToSystemEvent::UpdateSceneNode(scene_node_update) => match scene_node_update {
-            SceneNodeUpdate::UpdateData(resource_path, path, node) => {
+            SceneNodeUpdate::UpdateData(resource_path, path, entity_update) => {
                 match Blueprint::load_scene(resource_path.into()) {
                     Ok(mut scene) => {
-                        match Blueprint::update_node_in_scene(&mut scene, path, node) {
+                        match Blueprint::update_node_in_scene(&mut scene, path, entity_update) {
                             Ok(()) => {
                                 send_editor_event(EditorEvent::SetScene(scene));
                             }

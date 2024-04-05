@@ -5,7 +5,7 @@
     :hide-details="true"
     :items="render_options"
     :model-value="render_kind"
-    @update:model-value="(newValue) => update_body('kind', { [newValue]: gid })"
+    @update:model-value="(new_value) => update_render_type(new_value)"
   ></v-select>
   <v-label class="form-label">GID</v-label>
   <v-text-field
@@ -13,9 +13,7 @@
     :hide-details="true"
     density="compact"
     :model-value="gid"
-    @update:model-value="
-      (newValue) => update_body('kind', { [render_kind]: Number(newValue) })
-    "
+    @update:model-value="(new_value) => update_gid(new_value)"
   ></v-text-field>
 </template>
 <script lang="ts" setup>
@@ -24,7 +22,7 @@ import { RenderKind } from "@/editor/blueprints/RenderKind";
 import { KeysOfUnion } from "@/editor/utils";
 import { Render } from "@/editor/blueprints/Render";
 import { match, P } from "ts-pattern";
-import { Node2DKind } from "@/editor/blueprints/Node2DKind";
+import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 
 const props = defineProps<{ data: Render }>();
 const { data } = toRefs(props);
@@ -33,7 +31,7 @@ const render_options: Array<KeysOfUnion<RenderKind>> = [
   "Sprite",
 ];
 const emit = defineEmits<{
-  (e: "dataUpdate", data: Node2DKind): void;
+  (e: "entityUpdate", data: EntityUpdateKind): void;
 }>();
 
 const render_kind = computed(
@@ -47,16 +45,12 @@ const gid = computed(() => {
     .exhaustive();
 });
 
-function update_body(key: keyof Render, newValue: unknown) {
-  const update = {
-    ...{
-      offset: data.value.offset,
-      layer: data.value.layer,
-      kind: data.value.kind,
-    },
-    [key]: newValue,
-  };
-  emit("dataUpdate", { Render: update });
+function update_render_type(kind: KeysOfUnion<RenderKind>) {
+  console.log("TODO", kind);
+}
+
+function update_gid(gid: string) {
+  emit("entityUpdate", { UpdateGid: Number(gid) });
 }
 </script>
 <style></style>

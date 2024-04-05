@@ -3,7 +3,7 @@
     <component
       :is="node_component"
       v-bind="{ game_node }"
-      @dataUpdate="dataUpdated"
+      @entityUpdate="entity_update"
       :key="game_node.id"
     ></component>
   </div>
@@ -25,7 +25,9 @@ import {
   get_generic_game_node,
   use_resources_store,
 } from "@/editor/stores/resources";
-import { GameNode } from "@/editor/blueprints/GameNode";
+import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
+import { storeToRefs } from "pinia";
+import { use_editor_store } from "@/editor/stores/editor";
 
 const props = defineProps<{
   scene_resource_path: string;
@@ -36,20 +38,33 @@ const { node, path, scene_resource_path } = toRefs(props);
 
 const node_type = computed(() => get_game_node_type(node.value));
 const game_node = computed(() => get_generic_game_node(node.value));
-const { update_data_in_scene_node_on_server } = use_resources_store();
+const { update_instance_node } = use_resources_store();
 
-function dataUpdated(data: unknown) {
-  const game_node_update: GameNode<unknown> = {
-    id: game_node.value.id,
-    name: game_node.value.name,
-    entity_id: game_node.value.entity_id,
-    script: game_node.value.script,
-    children: [],
-    data,
-  };
-  update_data_in_scene_node_on_server(scene_resource_path.value, path.value, {
-    [node_type.value]: game_node_update,
-  } as unknown as GameNodeKind);
+const { selected_module_id, current_main_instance } =
+  storeToRefs(use_editor_store());
+
+function entity_update(entity_update: EntityUpdateKind) {
+  console.log(
+    selected_module_id.value,
+    current_main_instance.value,
+    game_node.value,
+  );
+  if (
+    selected_module_id.value &&
+    current_main_instance.value &&
+    current_main_instance.value.instance_id !== undefined &&
+    current_main_instance.value.world_id !== undefined &&
+    game_node.value &&
+    game_node.value.entity_id !== null
+  ) {
+    console.log(path.value, scene_resource_path.value);
+    update_instance_node(
+      selected_module_id.value,
+      current_main_instance.value.instance_id,
+      current_main_instance.value.world_id,
+      { id: game_node.value.entity_id, kind: entity_update },
+    );
+  }
 }
 
 const node_component = computed(() => {

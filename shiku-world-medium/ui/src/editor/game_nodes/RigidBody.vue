@@ -37,6 +37,7 @@ import { RigidBody } from "@/editor/blueprints/RigidBody";
 import { RigidBodyType } from "@/editor/blueprints/RigidBodyType";
 import { mdiAlphaXBox, mdiAlphaYBox } from "@mdi/js";
 import { Node2DKind } from "@/editor/blueprints/Node2DKind";
+import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 
 const props = defineProps<{ data: RigidBody }>();
 const { data } = toRefs(props);
@@ -47,18 +48,18 @@ const body_options: Array<RigidBodyType> = [
   "KinematicVelocityBased",
 ];
 const emit = defineEmits<{
-  (e: "dataUpdate", data: Node2DKind): void;
+  (e: "entityUpdate", data: EntityUpdateKind): void;
 }>();
 
-function update_body(key: keyof RigidBody, newValue: unknown) {
-  const update = {
+function update_body(_key: keyof RigidBody, _newValue: unknown) {
+  /*const update = {
     ...{
       body: data.value.body,
       velocity: toRaw(data.value.velocity),
     },
     [key]: newValue,
-  };
-  emit("dataUpdate", { RigidBody: update });
+  };*/
+  //TODO: Update rigid body
 }
 </script>
 <style>

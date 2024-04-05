@@ -15,6 +15,8 @@ import { Scene } from "@/editor/blueprints/Scene";
 import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
 import { GameNode } from "@/editor/blueprints/GameNode";
 import { Node2DKind } from "@/editor/blueprints/Node2DKind";
+import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
+import { EntityUpdate } from "@/editor/blueprints/EntityUpdate";
 
 export type Point = { y: number; x: number };
 
@@ -179,10 +181,25 @@ export const use_resources_store = defineStore("resources", {
     create_scene_server(scene: Scene) {
       send_admin_event({ CreateScene: scene });
     },
+    update_instance_node(
+      module_id: string,
+      game_instance_id: string,
+      world_id: string,
+      entity_update: EntityUpdate,
+    ) {
+      send_admin_event({
+        UpdateInstancedNode: [
+          module_id,
+          game_instance_id,
+          world_id,
+          entity_update,
+        ],
+      });
+    },
     update_data_in_scene_node_on_server(
       resource_path: string,
       path: number[],
-      data: GameNodeKind,
+      data: EntityUpdateKind,
     ) {
       send_admin_event({
         UpdateSceneNode: { UpdateData: [resource_path, path, data] },

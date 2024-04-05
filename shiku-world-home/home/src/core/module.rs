@@ -8,7 +8,7 @@ use crate::core::blueprint;
 use crate::core::blueprint::def::{
     Chunk, Conductor, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
 };
-use crate::core::blueprint::ecs::def::EntityUpdate;
+use crate::core::blueprint::ecs::def::{EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{GameNodeId, GameNodeKind, Scene, SceneId};
 use crate::core::entity::def::{EntityId, ShowEntity};
 use crate::core::entity::render::CameraSettings;
@@ -119,7 +119,7 @@ pub enum AdminToSystemEvent {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub enum SceneNodeUpdate {
-    UpdateData(SceneId, Vec<usize>, GameNodeKind),
+    UpdateData(SceneId, Vec<usize>, EntityUpdateKind),
     AddChild(SceneId, Vec<usize>, GameNodeKind),
     RemoveChild(SceneId, Vec<usize>, GameNodeKind),
 }

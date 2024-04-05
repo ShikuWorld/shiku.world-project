@@ -18,14 +18,9 @@ import { RemoveEntity } from "../communication/api/bindings/RemoveEntity";
 import { StaticImage } from "../communication/api/bindings/StaticImage";
 import { SimpleImageEffect } from "../communication/api/bindings/SimpleImageEffect";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
-import { RenderGraph } from "@/client/render-graph";
 
 export function create_entity_manager(): EntityManager {
   return new EntityManager();
-}
-
-export function create_render_graph(): RenderGraph {
-  return new RenderGraph();
 }
 
 export class EntityManager {

@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::core::blueprint::def::{
     BlueprintError, GameMap, IOPoint, Module, ResourcePath, Tileset,
 };
+use crate::core::blueprint::ecs::def::{EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::resource_cache::get_resource_cache;
 use crate::core::blueprint::scene::def::{GameNodeKind, Scene};
 use crate::core::get_out_dir;
@@ -205,17 +206,14 @@ impl Blueprint {
     pub fn update_node_in_scene(
         scene: &mut Scene,
         path: Vec<usize>,
-        game_node: GameNodeKind,
+        entity_update: EntityUpdateKind,
     ) -> Result<(), BlueprintError> {
         if path.is_empty() {
-            scene.root_node.set_data(game_node);
+            scene.root_node.update_with_entity_update(entity_update);
         } else {
-            Self::modify_node_rec(
-                &mut scene.root_node,
-                &path[..],
-                game_node,
-                |node_to_update, data_update| node_to_update.set_data(data_update),
-            )?;
+            Self::modify_node(&mut scene.root_node, &path[..], |node_to_update| {
+                node_to_update.update_with_entity_update(entity_update)
+            })?;
         }
         Blueprint::save_scene(scene)
     }
@@ -258,6 +256,38 @@ impl Blueprint {
             )?;
         }
         Blueprint::save_scene(scene)
+    }
+
+    fn modify_node<F>(
+        current_game_node: &mut GameNodeKind,
+        path: &[usize],
+        operation: F,
+    ) -> Result<(), BlueprintError>
+    where
+        F: FnOnce(&mut GameNodeKind),
+    {
+        let children = current_game_node.borrow_children();
+        if children.is_empty() || path.is_empty() {
+            return Err(BlueprintError::AccessNested(
+                "Unable to access node recursively, children empty or path 0!",
+            ));
+        }
+        if path.len() == 1 {
+            let child = children.get_mut(path[0]).ok_or_else(|| {
+                BlueprintError::AccessNested(
+                    "Unable to access node recursively, child not accessible at this position!",
+                )
+            })?;
+            operation(child);
+            return Ok(());
+        }
+
+        let child = children.get_mut(path[0]).ok_or_else(|| {
+            BlueprintError::AccessNested(
+                "Unable to access node recursively, child not accessible at this position!",
+            )
+        })?;
+        Self::modify_node(child, &path[1..], operation)
     }
 
     fn modify_node_rec<F>(

@@ -1,9 +1,5 @@
 import { InstanceRendering } from "@/client/renderer";
-import {
-  create_entity_manager,
-  create_render_graph,
-  EntityManager,
-} from "@/client/entities";
+import { create_entity_manager, EntityManager } from "@/client/entities";
 import { create_terrain_manager, TerrainManager } from "@/client/terrain";
 import { create_instance_rendering } from "@/client/renderer/create_game_renderer";
 import { GameSystemToGuestEvent } from "@/client/communication/api/bindings/GameSystemToGuestEvent";
@@ -17,7 +13,8 @@ import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { set_container_to_viewport_coordinate } from "@/client/camera";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { update_grid } from "@/client/renderer/grid";
-import { RenderGraph } from "@/client/render-graph";
+import { Container, Text } from "pixi.js";
+import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 
 export type GameInstanceMap = {
   [instance_id: string]: { [world_id: string]: GameInstance };
@@ -26,7 +23,6 @@ export type GameInstanceMap = {
 export class GameInstance {
   renderer: InstanceRendering;
   entity_manager: EntityManager;
-  render_graph: RenderGraph;
   terrain_manager: TerrainManager;
   layer_map_keys: LayerKind[];
 
@@ -36,7 +32,11 @@ export class GameInstance {
     public world_id: string,
     terrain_params: TerrainParams,
   ) {
-    this.render_graph = create_render_graph();
+    window.medium_gui.game_instances.add_game_instance_data(
+      id,
+      world_id,
+      () => new Container(),
+    );
     this.renderer = create_instance_rendering(terrain_params);
     this.entity_manager = create_entity_manager();
     this.terrain_manager = create_terrain_manager(terrain_params);
@@ -81,13 +81,33 @@ export class GameInstance {
         menu_system.deactivate(menuName);
       })
       .with({ ShowScene: P.select() }, (scene) => {
-        this.render_graph.render_graph_from_scene(scene, resource_manager);
-        this.renderer.layer_map.FG10.addChild(
-          this.render_graph.render_root.container,
+        window.medium_gui.game_instances.render_graph_from_scene(
+          this.id,
+          this.world_id,
+          scene,
+          resource_manager,
+          create_display_object,
         );
+        const root_container =
+          window.medium_gui.game_instances.get_raw_root_container(
+            this.id,
+            this.world_id,
+          );
+        if (!root_container) {
+          console.error(
+            "Could not get render graph root node, not instantiating game instance!",
+          );
+          return;
+        }
+        this.renderer.layer_map.ObjectsBelow.addChild(root_container);
       })
       .with({ UpdateEntity: P.select() }, (node) => {
-        this.render_graph.apply_node_update(node, resource_manager);
+        window.medium_gui.game_instances.apply_entity_update(
+          this.id,
+          this.world_id,
+          node,
+          resource_manager,
+        );
       })
       .with({ RemoveSceneNodes: P.select() }, (node_ids) => {
         console.log(node_ids);
@@ -162,6 +182,51 @@ export class GameInstance {
   }
 
   destroy() {}
+}
+
+function create_display_object(
+  node: GameNodeKind,
+  resource_manager: ResourceManager,
+): Container {
+  const container = new Container();
+  match(node)
+    .with({ Instance: P.select() }, () => {
+      console.error("No instances can be displayed!");
+    })
+    .with({ Node2D: P.select() }, (game_node) => {
+      container.x = game_node.data.transform.position[0];
+      container.y = game_node.data.transform.position[1];
+      container.rotation = game_node.data.transform.rotation;
+      match(game_node.data.kind)
+        .with({ Node2D: P.select() }, () => {
+          //container.addChild(new Text(game_node.name, { fill: "white" }));
+        })
+        .with({ Render: P.select() }, (render) => {
+          const display_object = match(render.kind)
+            .with({ Sprite: P.select() }, (gid) => {
+              const graphics = resource_manager.get_graphics_data_by_gid(gid);
+              return resource_manager.get_sprite_from_graphics(graphics);
+            })
+            .with(
+              { AnimatedSprite: P.select() },
+              (gid) =>
+                new Text(`Animated Sprite not implemented. gid: ${gid}`, {
+                  fill: "red",
+                }),
+            )
+            .exhaustive();
+          container.addChild(display_object);
+        })
+        .with({ RigidBody: P.select() }, (rigid_body) => {
+          console.log("rb", rigid_body);
+        })
+        .with({ Collider: P.select() }, (collider) => {
+          console.log("coll", collider);
+        })
+        .exhaustive();
+    })
+    .exhaustive();
+  return container;
 }
 
 export function create_new_game_instance(

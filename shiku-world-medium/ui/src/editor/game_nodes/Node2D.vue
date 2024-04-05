@@ -55,9 +55,9 @@
 import { computed, defineAsyncComponent, toRefs } from "vue";
 import { Node2D } from "@/editor/blueprints/Node2D";
 import { GameNode } from "@/editor/blueprints/GameNode";
-import { Node2DKind } from "@/editor/blueprints/Node2DKind";
 import { mdiAlphaXBox, mdiAlphaYBox } from "@mdi/js";
 import { Transform } from "@/editor/blueprints/Transform";
+import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 
 const props = defineProps<{
   game_node: GameNode<Node2D>;
@@ -75,7 +75,7 @@ const node_2d_component = computed(() => {
 });
 
 const emit = defineEmits<{
-  (e: "dataUpdate", data: Node2D): void;
+  (e: "entityUpdate", data: EntityUpdateKind): void;
 }>();
 
 function update_transform(key: keyof Transform, newValue: unknown) {
@@ -83,11 +83,11 @@ function update_transform(key: keyof Transform, newValue: unknown) {
     ...game_node.value.data.transform,
     [key]: newValue,
   };
-  emit("dataUpdate", { transform, kind: game_node.value.data.kind });
+  emit("entityUpdate", { UpdateTransform: transform });
 }
 
-function data_updated(kind: Node2DKind) {
-  emit("dataUpdate", { transform: game_node.value.data.transform, kind });
+function data_updated(entity_update: EntityUpdateKind) {
+  emit("entityUpdate", entity_update);
 }
 </script>
 <style></style>

@@ -18,7 +18,7 @@ pub enum EntityRenderData {
 pub struct SimpleImageEffect {
     pub initial_isometrics_2d: (Real, Real, Real),
     pub graphic_id: String,
-    pub blending_mode: Option<u32>,
+    pub blending_mode: Option<String>,
     pub transparency: f32,
     pub layer: LayerName,
     pub parent_entity: Option<EntityId>,
@@ -80,7 +80,7 @@ pub struct StaticImage {
     pub width: Option<u32>,
     pub height: Option<u32>,
     pub tiled: bool,
-    pub blending_mode: Option<u32>,
+    pub blending_mode: Option<String>,
 }
 
 impl Renderable for StaticImage {
