@@ -1,9 +1,10 @@
+use log::{debug, error};
+
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdateKind, ECS};
 use crate::core::blueprint::scene::def::{
     GameNode, GameNodeKind, GameNodeKindClean, Node2D, Node2DDud, Node2DKind, Node2DKindClean,
     Render, RenderKind, RenderKindClean, RigidBody, Scene,
 };
-use log::{debug, error};
 
 pub fn build_scene_from_ecs(ecs: &ECS) -> Option<Scene> {
     let root_entity = &ecs.scene_root;
@@ -70,7 +71,13 @@ fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKin
             }
         }
     }
-    error!("Was not able to get game_node...?");
+    error!("Was not able to get game_node. entity: {:?}, kind: {:?}, id: {:?}, name: {:?}, script: {:?}, children: {:?}",
+        entity,
+        ecs.game_node_kind.get(entity),
+        ecs.game_node_id.get(entity),
+        ecs.game_node_name.get(entity),
+        ecs.game_node_script.get(entity),
+        ecs.game_node_children.get(entity).is_some());
     None
 }
 
@@ -101,6 +108,11 @@ fn get_render_node_2d_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<Node2D
             }
         }
     }
+    error!(
+        "Was not able to get node_2d_kind. entity: {:?}, node_2d_kind: {:?}",
+        entity,
+        ecs.node_2d_kind.get(entity)
+    );
     None
 }
 
@@ -121,12 +133,17 @@ fn get_render_from_ecs(entity: &Entity, ecs: &ECS) -> Option<Render> {
                 .map(|gid| RenderKind::Sprite(*gid)),
         } {
             return Some(Render {
-                offset: render_offset.clone(),
+                offset: *render_offset,
                 layer: render_layer.clone(),
                 kind,
             });
         }
     }
+    error!("Was not able to get render_node. entity: {:?}, render_kind: {:?}, layer: {:?}, offset: {:?}",
+        entity,
+        ecs.render_kind.get(entity),
+        ecs.render_layer.get(entity),
+        ecs.render_offset.get(entity));
     None
 }
 impl GameNodeKind {

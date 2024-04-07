@@ -46,7 +46,7 @@
     <component
       :is="node_2d_component"
       v-bind="{ data }"
-      @dataUpdate="data_updated"
+      @entityUpdate="entity_updated"
       :key="game_node.id"
     ></component>
   </div>
@@ -86,7 +86,7 @@ function update_transform(key: keyof Transform, newValue: unknown) {
   emit("entityUpdate", { UpdateTransform: transform });
 }
 
-function data_updated(entity_update: EntityUpdateKind) {
+function entity_updated(entity_update: EntityUpdateKind) {
   emit("entityUpdate", entity_update);
 }
 </script>

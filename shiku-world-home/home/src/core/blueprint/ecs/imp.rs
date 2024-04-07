@@ -1,11 +1,13 @@
+use std::collections::HashMap;
+
+use log::error;
+
 use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind, ECS};
 use crate::core::blueprint::scene::def::{
     GameNodeKind, GameNodeKindClean, Node2DKind, Node2DKindClean, NodeInstanceId, RenderKind,
-    Scene, SceneId,
+    RenderKindClean, Scene, SceneId,
 };
-use log::{debug, error};
-use std::collections::HashMap;
 
 impl From<&Scene> for ECS {
     fn from(scene: &Scene) -> Self {
@@ -55,9 +57,12 @@ fn add_node_to_ecs(node_kind: &GameNodeKind, ecs: &mut ECS, node_id_counter: &mu
                     ecs.render_offset.insert(entity, render.offset);
                     match render.kind {
                         RenderKind::AnimatedSprite(gid) => {
+                            ecs.render_kind
+                                .insert(entity, RenderKindClean::AnimatedSprite);
                             ecs.render_gid.insert(entity, gid);
                         }
                         RenderKind::Sprite(gid) => {
+                            ecs.render_kind.insert(entity, RenderKindClean::Sprite);
                             ecs.render_gid.insert(entity, gid);
                         }
                     }
