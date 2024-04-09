@@ -33,23 +33,26 @@ const props = defineProps<{
   scene_resource_path: string;
   node: GameNodeKind;
   path: number[];
+  is_instance: boolean;
 }>();
-const { node, path, scene_resource_path } = toRefs(props);
+const { node, path, scene_resource_path, is_instance } = toRefs(props);
 
 const node_type = computed(() => get_game_node_type(node.value));
 const game_node = computed(() => get_generic_game_node(node.value));
-const { update_instance_node } = use_resources_store();
+const { update_instance_node, update_data_in_scene_node_on_server } =
+  use_resources_store();
 
 const { selected_module_id, current_main_instance } =
   storeToRefs(use_editor_store());
 
 function entity_update(entity_update: EntityUpdateKind) {
-  console.log(
-    selected_module_id.value,
-    current_main_instance.value,
-    game_node.value,
-  );
-  if (
+  if (!is_instance.value && path.value && scene_resource_path.value) {
+    update_data_in_scene_node_on_server(
+      scene_resource_path.value,
+      path.value,
+      entity_update,
+    );
+  } else if (
     selected_module_id.value &&
     current_main_instance.value &&
     current_main_instance.value.instance_id !== undefined &&
@@ -57,7 +60,6 @@ function entity_update(entity_update: EntityUpdateKind) {
     game_node.value &&
     game_node.value.entity_id !== null
   ) {
-    console.log(path.value, scene_resource_path.value);
     update_instance_node(
       selected_module_id.value,
       current_main_instance.value.instance_id,

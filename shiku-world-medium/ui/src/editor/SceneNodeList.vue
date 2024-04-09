@@ -2,7 +2,11 @@
   <div class="node-container">
     <div
       class="node-component"
-      :class="{ 'node-container--selected': game_node.id === selected_node_id }"
+      :class="{
+        'node-container--selected':
+          game_node.id === selected_node_id &&
+          node_is_instance === scene_is_instance,
+      }"
       @click="on_node_click($event, game_node)"
       @contextmenu="on_context_menu($event)"
       ref="comp"
@@ -10,11 +14,13 @@
       {{ game_node.name }}
     </div>
     <div v-for="(n, index) in game_node.children">
-      <scene-node-list
+      <SceneNodeList
         :scene_resource_path="scene_resource_path"
         :node="n"
         :path="[...path, index]"
-      ></scene-node-list>
+        :node_is_instance="node_is_instance"
+        :scene_is_instance="scene_is_instance"
+      ></SceneNodeList>
     </div>
   </div>
 </template>
@@ -47,8 +53,11 @@ const props = defineProps<{
   node: GameNodeKind;
   scene_resource_path: string;
   path: number[];
+  scene_is_instance: boolean;
+  node_is_instance: boolean;
 }>();
-const { node, path, scene_resource_path } = toRefs(props);
+const { node, path, scene_resource_path, scene_is_instance, node_is_instance } =
+  toRefs(props);
 const game_node = computed(() => get_generic_game_node(node.value));
 const comp = ref<HTMLElement>();
 const { component_stores } = storeToRefs(use_inspector_store());
@@ -92,7 +101,12 @@ function on_node_click($event: MouseEvent, game_node: GameNode<unknown>) {
     (comp.value === ($event.target as HTMLElement) ||
       $event.target === comp.value.children[0])
   ) {
-    select_game_node(scene_resource_path.value, game_node.id, path.value);
+    select_game_node(
+      scene_resource_path.value,
+      game_node.id,
+      path.value,
+      scene_is_instance.value,
+    );
   }
 }
 </script>

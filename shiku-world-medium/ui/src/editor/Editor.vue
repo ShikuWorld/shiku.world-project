@@ -13,9 +13,25 @@
         variant="accordion"
         v-if="selected_module"
       >
-        <v-expansion-panel title="I Scene" v-if="current_main_instance_scene">
+        <v-expansion-panel v-if="selected_scene">
+          <v-expansion-panel-title
+            @contextmenu="on_selected_scene_context_menu($event)"
+          >
+            {{ selected_scene.name }}
+          </v-expansion-panel-title>
           <v-expansion-panel-text>
-            <scene-editor :scene="current_main_instance_scene"></scene-editor>
+            <SceneEditor
+              :scene="selected_scene"
+              :is_scene_instance="false"
+            ></SceneEditor>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+        <v-expansion-panel title="World" v-if="current_main_instance_scene">
+          <v-expansion-panel-text>
+            <SceneEditor
+              :scene="current_main_instance_scene"
+              :is_scene_instance="true"
+            ></SceneEditor>
           </v-expansion-panel-text>
         </v-expansion-panel>
         <v-expansion-panel title="Resources">
@@ -53,7 +69,7 @@
       <div
         v-if="
           active_component === 'game_node' &&
-          current_main_instance_scene &&
+          selected_node_resource_path &&
           selected_node &&
           selected_game_node &&
           selected_game_node_path
@@ -61,9 +77,10 @@
       >
         <GameNodeInspector
           :node="selected_node"
-          :scene_resource_path="scene_key(current_main_instance_scene)"
+          :scene_resource_path="selected_node_resource_path"
           :path="selected_game_node_path"
           :key="selected_game_node.id"
+          :is_instance="selected_node_is_instance"
         ></GameNodeInspector>
       </div>
       <div v-if="active_component === 'module'">
@@ -110,8 +127,8 @@ import {
   use_resources_store,
 } from "@/editor/stores/resources";
 import SceneEditor from "@/editor/editor/SceneEditor.vue";
-import { Scene } from "@/editor/blueprints/Scene";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
+import ContextMenu from "@imengyu/vue3-context-menu";
 
 const tab = ref<number>(0);
 const {
@@ -122,18 +139,22 @@ const {
   current_main_instance,
   selected_tile_position,
   tile_brush,
+  selected_scene_props,
 } = storeToRefs(use_editor_store());
 const {
   add_open_resource_path,
   set_selected_resource_tab,
   set_current_main_instance,
+  set_selected_scene,
 } = use_editor_store();
 
 const { game_instance_exists } = use_game_instances_store();
 
 const { game_instance_data_map } = storeToRefs(use_game_instances_store());
 
-const { game_map_map, tileset_map } = storeToRefs(use_resources_store());
+const { game_map_map, tileset_map, scene_map } = storeToRefs(
+  use_resources_store(),
+);
 const {
   get_module,
   get_tileset,
@@ -161,6 +182,36 @@ const tilesets_of_current_module = computed(() => {
     });
 });
 
+const scenes_in_module = computed(() => {
+  return selected_module.value.resources
+    .filter((r) => r.kind === "Scene")
+    .map((r) => scene_map.value[r.path])
+    .filter((r) => r);
+});
+
+const on_selected_scene_context_menu = (e: MouseEvent) => {
+  prevent_browser_default(e);
+  console.log(scenes_in_module.value);
+  if (scenes_in_module.value?.length > 0) {
+    ContextMenu.showContextMenu({
+      theme: "dark",
+      x: e.x,
+      y: e.y,
+      items: scenes_in_module.value.map((s) => ({
+        label: s.name,
+        onClick(e) {
+          console.log(e);
+          set_selected_scene(scene_key(s));
+        },
+      })),
+    });
+  }
+};
+
+function prevent_browser_default(e: MouseEvent) {
+  e.preventDefault();
+}
+
 function load_map_palette() {
   if (selected_module.value) {
     const tilesets_to_load: BlueprintResource[] = [];
@@ -177,6 +228,19 @@ function load_map_palette() {
   }
   set_inspector_component("map");
 }
+const selected_scene = computed(() => {
+  if (component_stores.value.game_node.is_instance) {
+    return current_main_instance_scene.value;
+  } else if (selected_scene_props.value.scene_path !== null) {
+    if (scene_map.value[selected_scene_props.value.scene_path]) {
+      return scene_map.value[selected_scene_props.value.scene_path];
+    } else {
+      get_resource_server(selected_scene_props.value.scene_path);
+    }
+  }
+
+  return null;
+});
 const current_main_instance_scene = computed(() => {
   console.log("Checking for changes in game instances...");
   const { instance_id, world_id } = current_main_instance.value;
@@ -208,14 +272,23 @@ const current_main_map = computed<GameMap | undefined>(() => {
 const selected_node = computed(() => {
   if (
     component_stores.value.game_node.selection_path &&
-    current_main_instance_scene.value?.root_node
+    selected_scene.value?.root_node
   ) {
-    return get_node_by_path(current_main_instance_scene.value.root_node, [
+    return get_node_by_path(selected_scene.value.root_node, [
       ...component_stores.value.game_node.selection_path,
     ]);
   }
   return undefined;
 });
+
+const selected_node_resource_path = computed(() => {
+  return component_stores.value.game_node.scene_resource_path;
+});
+
+const selected_node_is_instance = computed(() => {
+  return component_stores.value.game_node.is_instance === true;
+});
+
 const selected_game_node = computed(() => {
   if (selected_node.value) {
     return get_generic_game_node(selected_node.value);
@@ -312,6 +385,9 @@ function select_as_main_instance(
 ) {
   if (game_instance_exists(instance_id, world_id)) {
     set_current_main_instance(instance_id, world_id);
+    if (current_main_map.value?.main_scene) {
+      set_selected_scene(current_main_map.value?.main_scene);
+    }
   }
 }
 

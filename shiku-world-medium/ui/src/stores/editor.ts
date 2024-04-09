@@ -23,6 +23,7 @@ export interface EditorStore {
   selected_tileset_path: string;
   selected_tile_id: number;
   selected_tile_position: Point;
+  selected_scene_props: { scene_path: string | null; transparency: number };
   current_main_instance: { instance_id?: string; world_id?: string };
 }
 
@@ -44,6 +45,7 @@ export const use_editor_store = defineStore("editor", {
     current_main_instance: {},
     selected_tile_position: { x: 0, y: 0 },
     conductor: { module_connection_map: {}, resources: [], gid_map: [] },
+    selected_scene_props: { scene_path: null, transparency: 0.5 },
   }),
   actions: {
     set_tile_brush(brush: number[][]) {
@@ -73,7 +75,11 @@ export const use_editor_store = defineStore("editor", {
     },
     set_current_main_instance(instance_id: string, world_id: string) {
       this.current_main_instance = { instance_id, world_id };
+
       window.medium.swap_main_render_instance(instance_id, world_id);
+    },
+    set_selected_scene(scene_path: string) {
+      this.selected_scene_props.scene_path = scene_path;
     },
     add_module_instance(module_id: string, game_instance_id: string) {
       this.module_instance_map = {

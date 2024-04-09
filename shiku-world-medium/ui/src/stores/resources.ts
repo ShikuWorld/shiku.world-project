@@ -199,10 +199,10 @@ export const use_resources_store = defineStore("resources", {
     update_data_in_scene_node_on_server(
       resource_path: string,
       path: number[],
-      data: EntityUpdateKind,
+      entity_update: EntityUpdateKind,
     ) {
       send_admin_event({
-        UpdateSceneNode: { UpdateData: [resource_path, path, data] },
+        UpdateSceneNode: { UpdateData: [resource_path, path, entity_update] },
       });
     },
     add_child_to_scene_on_server(

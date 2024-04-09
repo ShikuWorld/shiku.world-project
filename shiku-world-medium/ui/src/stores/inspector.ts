@@ -17,6 +17,7 @@ export interface InspectorStore {
       scene_resource_path?: string;
       selected_game_node_id?: string;
       selection_path?: number[];
+      is_instance?: boolean;
     };
     nothing: undefined;
   };
@@ -41,6 +42,7 @@ export const use_inspector_store = defineStore("inspector", {
       scene_resource_path: string,
       game_node_id: string,
       path: number[],
+      is_instance: boolean,
     ) {
       this.component_stores = {
         ...this.component_stores,
@@ -48,6 +50,7 @@ export const use_inspector_store = defineStore("inspector", {
           scene_resource_path: scene_resource_path,
           selected_game_node_id: game_node_id,
           selection_path: path,
+          is_instance,
         },
       };
       this.active_component = "game_node";
