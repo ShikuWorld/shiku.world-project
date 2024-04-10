@@ -5,6 +5,7 @@ import type { GameMap } from "../blueprints/GameMap";
 import type { MapUpdate } from "../blueprints/MapUpdate";
 import type { Module } from "../blueprints/Module";
 import type { Scene } from "../blueprints/Scene";
+import type { SceneNodeUpdate } from "./SceneNodeUpdate";
 import type { Tileset } from "../blueprints/Tileset";
 
-export type EditorEvent = { Modules: Array<Module> } | { ModuleInstances: Array<[string, Array<string>]> } | { CreatedModule: [string, Module] } | { DeletedModule: string } | { UpdatedModule: [string, Module] } | { CreatedMap: GameMap } | { SetMap: GameMap } | { UpdatedMap: MapUpdate } | { DeletedMap: GameMap } | { CreatedScene: Scene } | { SetScene: Scene } | { DeletedScene: Scene } | { CreatedTileset: Tileset } | { SetTileset: Tileset } | { DeletedTileset: Tileset } | { DirectoryInfo: FileBrowserResult } | { UpdatedConductor: Conductor } | { ModuleInstanceOpened: [string, string] } | { ModuleInstanceClosed: [string, string] } | { MainDoorStatus: boolean };
+export type EditorEvent = { Modules: Array<Module> } | { ModuleInstances: Array<[string, Array<string>]> } | { CreatedModule: [string, Module] } | { DeletedModule: string } | { UpdatedModule: [string, Module] } | { CreatedMap: GameMap } | { SetMap: GameMap } | { UpdatedMap: MapUpdate } | { DeletedMap: GameMap } | { CreatedScene: Scene } | { SetScene: Scene } | { UpdateScene: SceneNodeUpdate } | { DeletedScene: Scene } | { CreatedTileset: Tileset } | { SetTileset: Tileset } | { DeletedTileset: Tileset } | { DirectoryInfo: FileBrowserResult } | { UpdatedConductor: Conductor } | { ModuleInstanceOpened: [string, string] } | { ModuleInstanceClosed: [string, string] } | { MainDoorStatus: boolean };

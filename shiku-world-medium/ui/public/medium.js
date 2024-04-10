@@ -40978,6 +40978,8 @@ ${e3}`);
       window.medium_gui.resources.set_scene(d3);
     }).with({ SetScene: _.select() }, (d3) => {
       window.medium_gui.resources.set_scene(d3);
+    }).with({ UpdateScene: _.select() }, (d3) => {
+      window.medium_gui.resources.update_scene(d3);
     }).with({ DeletedScene: _.select() }, (d3) => {
       window.medium_gui.resources.delete_scene(d3);
     }).with({ CreatedMap: _.select() }, (d3) => {

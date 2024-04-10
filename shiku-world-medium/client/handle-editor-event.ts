@@ -37,6 +37,9 @@ export function handle_editor_event(event: EditorEvent) {
     .with({ SetScene: P.select() }, (d) => {
       window.medium_gui.resources.set_scene(d);
     })
+    .with({ UpdateScene: P.select() }, (d) => {
+      window.medium_gui.resources.update_scene(d);
+    })
     .with({ DeletedScene: P.select() }, (d) => {
       window.medium_gui.resources.delete_scene(d);
     })

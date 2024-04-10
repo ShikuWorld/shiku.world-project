@@ -326,12 +326,23 @@ pub async fn handle_admin_to_system_event(
             Err(err) => error!("Could not create scene: {:?}", err),
         },
         AdminToSystemEvent::UpdateSceneNode(scene_node_update) => match scene_node_update {
-            SceneNodeUpdate::UpdateData(resource_path, path, entity_update) => {
-                match Blueprint::load_scene(resource_path.into()) {
+            SceneNodeUpdate::UpdateData(resource_path, path, game_node_id, entity_update) => {
+                match Blueprint::load_scene(resource_path.clone().into()) {
                     Ok(mut scene) => {
-                        match Blueprint::update_node_in_scene(&mut scene, path, entity_update) {
+                        match Blueprint::update_node_in_scene(
+                            &mut scene,
+                            path.clone(),
+                            entity_update.clone(),
+                        ) {
                             Ok(()) => {
-                                send_editor_event(EditorEvent::SetScene(scene));
+                                send_editor_event(EditorEvent::UpdateScene(
+                                    SceneNodeUpdate::UpdateData(
+                                        resource_path,
+                                        path,
+                                        game_node_id,
+                                        entity_update,
+                                    ),
+                                ));
                             }
                             Err(err) => error!("Could not update scene: {:?}", err),
                         }
@@ -339,23 +350,43 @@ pub async fn handle_admin_to_system_event(
                     Err(err) => error!("Could not load scene to update it: {:?}", err),
                 }
             }
-            SceneNodeUpdate::AddChild(resource_path, path, node) => {
-                match Blueprint::load_scene(resource_path.into()) {
-                    Ok(mut scene) => match Blueprint::add_child_in_scene(&mut scene, path, node) {
-                        Ok(()) => {
-                            send_editor_event(EditorEvent::SetScene(scene));
+            SceneNodeUpdate::AddChild(resource_path, path, game_node_id, node) => {
+                match Blueprint::load_scene(resource_path.clone().into()) {
+                    Ok(mut scene) => {
+                        match Blueprint::add_child_in_scene(&mut scene, path.clone(), node.clone())
+                        {
+                            Ok(()) => {
+                                send_editor_event(EditorEvent::UpdateScene(
+                                    SceneNodeUpdate::AddChild(
+                                        resource_path,
+                                        path,
+                                        game_node_id,
+                                        node,
+                                    ),
+                                ));
+                            }
+                            Err(err) => error!("Could not update scene: {:?}", err),
                         }
-                        Err(err) => error!("Could not update scene: {:?}", err),
-                    },
+                    }
                     Err(err) => error!("Could not load scene to update it: {:?}", err),
                 }
             }
-            SceneNodeUpdate::RemoveChild(resource_path, path, node) => {
-                match Blueprint::load_scene(resource_path.into()) {
-                    Ok(mut scene) => match Blueprint::remove_child_in_scene(&mut scene, path, node)
-                    {
+            SceneNodeUpdate::RemoveChild(resource_path, path, game_node_id, node) => {
+                match Blueprint::load_scene(resource_path.clone().into()) {
+                    Ok(mut scene) => match Blueprint::remove_child_in_scene(
+                        &mut scene,
+                        path.clone(),
+                        node.clone(),
+                    ) {
                         Ok(()) => {
-                            send_editor_event(EditorEvent::SetScene(scene));
+                            send_editor_event(EditorEvent::UpdateScene(
+                                SceneNodeUpdate::RemoveChild(
+                                    resource_path,
+                                    path,
+                                    game_node_id,
+                                    node,
+                                ),
+                            ));
                         }
                         Err(err) => error!("Could not remove scene: {:?}", err),
                     },

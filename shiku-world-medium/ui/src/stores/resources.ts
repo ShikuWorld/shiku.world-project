@@ -17,6 +17,7 @@ import { GameNode } from "@/editor/blueprints/GameNode";
 import { Node2DKind } from "@/editor/blueprints/Node2DKind";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 import { EntityUpdate } from "@/editor/blueprints/EntityUpdate";
+import { SceneNodeUpdate } from "@/client/communication/api/bindings/SceneNodeUpdate";
 
 export type Point = { y: number; x: number };
 
@@ -118,6 +119,9 @@ export const use_resources_store = defineStore("resources", {
         [scene_key(scene)]: scene,
       };
     },
+    update_scene(scene_update: SceneNodeUpdate) {
+      console.log(scene_update);
+    },
     get_scene(resource_path: string) {
       if (!this.scene_map[resource_path]) {
         this.get_resource_server(resource_path);
@@ -199,28 +203,37 @@ export const use_resources_store = defineStore("resources", {
     update_data_in_scene_node_on_server(
       resource_path: string,
       path: number[],
+      game_node_id: string,
       entity_update: EntityUpdateKind,
     ) {
       send_admin_event({
-        UpdateSceneNode: { UpdateData: [resource_path, path, entity_update] },
+        UpdateSceneNode: {
+          UpdateData: [resource_path, path, game_node_id, entity_update],
+        },
       });
     },
     add_child_to_scene_on_server(
       resource_path: string,
       path: number[],
+      game_node_id: string,
       data: GameNodeKind,
     ) {
       send_admin_event({
-        UpdateSceneNode: { AddChild: [resource_path, path, data] },
+        UpdateSceneNode: {
+          AddChild: [resource_path, path, game_node_id, data],
+        },
       });
     },
     remove_child_from_scene_on_server(
       resource_path: string,
       path: number[],
+      game_node_id: string,
       data: GameNodeKind,
     ) {
       send_admin_event({
-        UpdateSceneNode: { RemoveChild: [resource_path, path, data] },
+        UpdateSceneNode: {
+          RemoveChild: [resource_path, path, game_node_id, data],
+        },
       });
     },
     delete_scene_server(scene: Scene) {

@@ -75,6 +75,7 @@ pub enum EditorEvent {
     DeletedMap(blueprint::def::GameMap),
     CreatedScene(blueprint::scene::def::Scene),
     SetScene(blueprint::scene::def::Scene),
+    UpdateScene(SceneNodeUpdate),
     DeletedScene(blueprint::scene::def::Scene),
     CreatedTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
@@ -119,9 +120,9 @@ pub enum AdminToSystemEvent {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub enum SceneNodeUpdate {
-    UpdateData(SceneId, Vec<usize>, EntityUpdateKind),
-    AddChild(SceneId, Vec<usize>, GameNodeKind),
-    RemoveChild(SceneId, Vec<usize>, GameNodeKind),
+    UpdateData(SceneId, Vec<usize>, GameNodeId, EntityUpdateKind),
+    AddChild(SceneId, Vec<usize>, GameNodeId, GameNodeKind),
+    RemoveChild(SceneId, Vec<usize>, GameNodeId, GameNodeKind),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

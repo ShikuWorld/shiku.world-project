@@ -13,9 +13,16 @@
       <v-list>
         <v-list-item v-for="node_type in node_type_options">
           <v-list-item-title
-            v-if="selected_node.selection_path"
+            v-if="
+              selected_node.selection_path &&
+              selected_node.selected_game_node_id
+            "
             @click="
-              add_node_type(selected_node.selection_path, node_type.value)
+              add_node_type(
+                selected_node.selection_path,
+                selected_node.selected_game_node_id,
+                node_type.value,
+              )
             "
             >{{ node_type.label }}
           </v-list-item-title>
@@ -68,7 +75,11 @@ const selected_node = computed(() => component_stores.value.game_node);
 const is_node_instance = computed(
   () => component_stores.value.game_node.is_instance === true,
 );
-function add_node_type(path: number[], node_type: GameNodeTypeKeys) {
+function add_node_type(
+  path: number[],
+  game_node_id: string,
+  node_type: GameNodeTypeKeys,
+) {
   if (!path) {
     console.error("Tried to add node to undefined node.");
     return;
@@ -78,6 +89,11 @@ function add_node_type(path: number[], node_type: GameNodeTypeKeys) {
     console.error("Could not create game node to add to scene on server!");
     return;
   }
-  add_child_to_scene_on_server(scene_key(scene.value), path, game_node);
+  add_child_to_scene_on_server(
+    scene_key(scene.value),
+    path,
+    game_node_id,
+    game_node,
+  );
 }
 </script>

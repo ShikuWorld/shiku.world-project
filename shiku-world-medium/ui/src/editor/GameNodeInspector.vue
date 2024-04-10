@@ -50,6 +50,7 @@ function entity_update(entity_update: EntityUpdateKind) {
     update_data_in_scene_node_on_server(
       scene_resource_path.value,
       path.value,
+      game_node.value.id,
       entity_update,
     );
   } else if (

@@ -83,6 +83,7 @@ const on_context_menu = (e: MouseEvent) => {
           remove_child_from_scene_on_server(
             scene_resource_path.value,
             path.value,
+            game_node.value.id,
             node.value,
           );
         },
