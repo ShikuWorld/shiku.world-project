@@ -2,16 +2,28 @@ import { login } from "../menu/twitch";
 import { CommunicationState } from "../communication";
 import { GameInstanceMap } from "@/client/game-instance";
 import { RenderSystem } from "@/client/renderer";
+import { create_display_object, ResourceManagerMap } from "@/client/resources";
+import { Container } from "pixi.js";
+import { set_blueprint_render } from "@/client/renderer/create_game_renderer";
 
 export const setup_medium_api = (
   communication_state: CommunicationState,
   instances: GameInstanceMap,
+  resource_manager_map: ResourceManagerMap,
   render_system: RenderSystem,
 ) => {
   window.medium = {
     twitch_login: (communication_state: CommunicationState) =>
       login(communication_state),
     communication_state: communication_state,
+    create_display_object,
+    set_blueprint_renderer: (blueprint_render_data) => {
+      set_blueprint_render(render_system, instances, blueprint_render_data);
+    },
+    create_container: () => new Container(),
+    get_resource_manager: (module_id) => {
+      return resource_manager_map[module_id];
+    },
     set_camera_iso: (instance_id, world_id, iso) => {
       if (instances[instance_id] && instances[instance_id][world_id]) {
         instances[instance_id][world_id].renderer.camera.update_camera_position(

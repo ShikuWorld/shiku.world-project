@@ -11,6 +11,7 @@ import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { Texture } from "pixi.js";
+import { RenderGraphData } from "@/editor/stores/game-instances";
 
 export interface Point {
   x: number;
@@ -101,6 +102,7 @@ export type LayerContainer = {
 export interface RenderSystem {
   renderer: Renderer;
   stage: Container;
+  blueprint_render_data: RenderGraphData | null;
   dummy_texture_tileset_missing: Texture;
   dummy_texture_loading: Texture;
   current_main_instance: { instance_id?: string; world_id?: string };

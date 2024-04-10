@@ -8,7 +8,13 @@ import { use_toast_store } from "@/editor/stores/toast";
 import { use_editor_store } from "@/editor/stores/editor";
 import { Isometry } from "@/client/entities";
 import { use_resources_store } from "@/editor/stores/resources";
-import { use_game_instances_store } from "@/editor/stores/game-instances";
+import {
+  GameInstancesStore,
+  use_game_instances_store,
+} from "@/editor/stores/game-instances";
+import { ResourceManager } from "@/client/resources";
+import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
+import { Container } from "pixi.js";
 
 declare global {
   interface Window {
@@ -16,6 +22,15 @@ declare global {
     medium: {
       twitch_login: typeof login;
       communication_state: CommunicationState;
+      get_resource_manager: (module_id: string) => ResourceManager | undefined;
+      set_blueprint_renderer: (
+        blueprint_render_data: GameInstancesStore["blueprint_render"],
+      ) => void;
+      create_display_object: (
+        node: GameNodeKind,
+        resource_manager: ResourceManager,
+      ) => Container;
+      create_container: () => Container;
       set_camera_iso: (
         instance_id: string,
         world_id: string,

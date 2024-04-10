@@ -6,6 +6,8 @@ import {
   Sprite,
   Texture,
   FrameObject,
+  Container,
+  Text,
 } from "pixi.js";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { RenderSystem } from "@/client/renderer";
@@ -15,6 +17,7 @@ import { ResourceBundle } from "@/client/communication/api/bindings/ResourceBund
 import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { LoadResource } from "@/client/communication/api/bindings/LoadResource";
 import { GidMap } from "@/editor/blueprints/GidMap";
+import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 
 export interface Graphics {
   textures: Texture[];
@@ -234,6 +237,51 @@ export class ResourceManager {
 
     return graphics;
   }
+}
+
+export function create_display_object(
+  node: GameNodeKind,
+  resource_manager: ResourceManager,
+): Container {
+  const container = new Container();
+  match(node)
+    .with({ Instance: P.select() }, () => {
+      console.error("No instances can be displayed!");
+    })
+    .with({ Node2D: P.select() }, (game_node) => {
+      container.x = game_node.data.transform.position[0];
+      container.y = game_node.data.transform.position[1];
+      container.rotation = game_node.data.transform.rotation;
+      match(game_node.data.kind)
+        .with({ Node2D: P.select() }, () => {
+          //container.addChild(new Text(game_node.name, { fill: "white" }));
+        })
+        .with({ Render: P.select() }, (render) => {
+          const display_object = match(render.kind)
+            .with({ Sprite: P.select() }, (gid) => {
+              const graphics = resource_manager.get_graphics_data_by_gid(gid);
+              return resource_manager.get_sprite_from_graphics(graphics);
+            })
+            .with(
+              { AnimatedSprite: P.select() },
+              (gid) =>
+                new Text(`Animated Sprite not implemented. gid: ${gid}`, {
+                  fill: "red",
+                }),
+            )
+            .exhaustive();
+          container.addChild(display_object);
+        })
+        .with({ RigidBody: P.select() }, (rigid_body) => {
+          console.log("rb", rigid_body);
+        })
+        .with({ Collider: P.select() }, (collider) => {
+          console.log("coll", collider);
+        })
+        .exhaustive();
+    })
+    .exhaustive();
+  return container;
 }
 
 /*

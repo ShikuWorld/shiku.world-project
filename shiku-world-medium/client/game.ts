@@ -56,7 +56,12 @@ export async function start_medium() {
   }
 
   initialize_input_plugins(guest_input);
-  setup_medium_api(communication_system, instances, render_system);
+  setup_medium_api(
+    communication_system,
+    instances,
+    resource_manager_map,
+    render_system,
+  );
 
   menu_system.create_menu_from_config(loginMenuConfig, "login-menu");
 

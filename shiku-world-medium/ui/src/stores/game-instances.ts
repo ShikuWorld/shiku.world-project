@@ -2,8 +2,8 @@ import { defineStore } from "pinia";
 import { Entity } from "@/editor/blueprints/Entity";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { Scene } from "@/editor/blueprints/Scene";
-import { Container, Text } from "pixi.js";
-import { ResourceManager } from "@/client/resources";
+import { Container } from "pixi.js";
+import { create_display_object, ResourceManager } from "@/client/resources";
 import { get_generic_game_node } from "@/editor/stores/resources";
 import { EntityUpdate } from "@/editor/blueprints/EntityUpdate";
 import { match, P } from "ts-pattern";
@@ -22,23 +22,63 @@ export interface RenderGraphData {
   render_root: Node;
   entity_node_to_render_node_map: { [key: string | Entity]: Node };
   entity_node_map: { [key: string | Entity]: GameNodeKind };
-  scene: Scene | null;
 }
 export interface GameInstancesStore {
   game_instance_data_map: {
     [instance_id: string]: {
       [world_id: string]: {
         render_graph_data: RenderGraphData;
+        instance_scene: Scene | null;
       };
     };
   };
+  blueprint_render: {
+    render_graph_data?: RenderGraphData;
+    scene_resource_path: string;
+    is_pinned: boolean;
+  } | null;
 }
 
 export const use_game_instances_store = defineStore("game-instances", {
   state: (): GameInstancesStore => ({
     game_instance_data_map: {},
+    blueprint_render: null,
   }),
   actions: {
+    set_and_render_blueprint_render(
+      module_id: string,
+      scene_resource_path: string,
+      scene: Scene,
+      is_pinned: boolean,
+    ) {
+      const resource_module = window.medium.get_resource_manager(module_id);
+      if (!resource_module) {
+        return;
+      }
+
+      const render_graph_data =
+        this.blueprint_render?.scene_resource_path !== scene_resource_path
+          ? this.render_graph_from_scene(
+              scene,
+              resource_module,
+              window.medium.create_display_object,
+            )
+          : this.blueprint_render.render_graph_data;
+
+      this.blueprint_render = {
+        scene_resource_path,
+        render_graph_data,
+        is_pinned,
+      };
+
+      if (!this.blueprint_render.render_graph_data?.render_root.container) {
+        return;
+      }
+
+      window.medium.set_blueprint_renderer(
+        this.blueprint_render as GameInstancesStore["blueprint_render"],
+      );
+    },
     add_game_instance_data(
       instance_id: string,
       world_id: string,
@@ -57,21 +97,21 @@ export const use_game_instances_store = defineStore("game-instances", {
           },
           entity_node_map: {},
           entity_node_to_render_node_map: {},
-          scene: null,
         },
+        instance_scene: null,
       };
     },
     get_raw_root_container(instance_id: string, world_id: string) {
-      const graph_data = this.get_game_instance_render_graph(
+      const game_instance_data = this.get_game_instance_data(
         instance_id,
         world_id,
       );
-      if (!graph_data) {
+      if (!game_instance_data?.render_graph_data) {
         return null;
       }
-      return toRaw(graph_data.render_root.container);
+      return toRaw(game_instance_data.render_graph_data.render_root.container);
     },
-    get_game_instance_render_graph(instance_id: string, world_id: string) {
+    get_game_instance_data(instance_id: string, world_id: string) {
       if (
         !this.game_instance_data_map[instance_id] ||
         !this.game_instance_data_map[instance_id][world_id]
@@ -81,8 +121,7 @@ export const use_game_instances_store = defineStore("game-instances", {
         );
         return null;
       }
-      return this.game_instance_data_map[instance_id][world_id]
-        .render_graph_data;
+      return this.game_instance_data_map[instance_id][world_id];
     },
     game_instance_exists(instance_id: string, world_id: string): boolean {
       return (
@@ -90,30 +129,45 @@ export const use_game_instances_store = defineStore("game-instances", {
         !!this.game_instance_data_map[instance_id][world_id]
       );
     },
-    render_graph_from_scene(
+    render_graph_from_scene_for_instance(
       instance_id: string,
       world_id: string,
-      scene: Scene,
+      instance_scene: Scene,
       resource_manager: ResourceManager,
-      create_display_object: (
-        node: GameNodeKind,
-        resource_manager: ResourceManager,
-      ) => Container,
+      create_display_object_cb: typeof create_display_object,
     ) {
-      const render_graph_data = this.get_game_instance_render_graph(
+      const game_instance_data = this.get_game_instance_data(
         instance_id,
         world_id,
       );
-      if (!render_graph_data) {
+      if (!game_instance_data?.render_graph_data) {
         return;
       }
-      render_graph_data.scene = scene;
+      game_instance_data.instance_scene = instance_scene;
+      game_instance_data.render_graph_data = this.render_graph_from_scene(
+        instance_scene,
+        resource_manager,
+        create_display_object_cb,
+      );
+    },
+    render_graph_from_scene(
+      scene: Scene,
+      resource_manager: ResourceManager,
+      create_display_object_cb: typeof create_display_object,
+    ): RenderGraphData {
       const game_node_root = get_generic_game_node(scene.root_node);
-      render_graph_data.render_root = {
-        node_id: game_node_root.id,
-        children: [],
-        container: create_display_object(scene.root_node, resource_manager),
-        parent: null,
+      const render_graph_data: RenderGraphData = {
+        render_root: {
+          node_id: game_node_root.id,
+          children: [],
+          container: create_display_object_cb(
+            scene.root_node,
+            resource_manager,
+          ),
+          parent: null,
+        },
+        entity_node_map: {},
+        entity_node_to_render_node_map: {},
       };
       render_graph_data.entity_node_to_render_node_map[
         render_key(game_node_root)
@@ -127,8 +181,9 @@ export const use_game_instances_store = defineStore("game-instances", {
         render_graph_data.render_root,
         scene.root_node,
         resource_manager,
-        create_display_object,
+        create_display_object_cb,
       );
+      return render_graph_data;
     },
     apply_entity_update(
       instance_id: string,
@@ -136,13 +191,14 @@ export const use_game_instances_store = defineStore("game-instances", {
       update: EntityUpdate,
       resource_manager: ResourceManager,
     ) {
-      const render_graph_data = this.get_game_instance_render_graph(
+      const game_instance_data = this.get_game_instance_data(
         instance_id,
         world_id,
       );
-      if (!render_graph_data) {
+      if (!game_instance_data) {
         return;
       }
+      const render_graph_data = game_instance_data.render_graph_data;
       const node = render_graph_data.entity_node_map[update.id];
       const render_node =
         render_graph_data.entity_node_to_render_node_map[update.id];

@@ -191,7 +191,6 @@ const scenes_in_module = computed(() => {
 
 const on_selected_scene_context_menu = (e: MouseEvent) => {
   prevent_browser_default(e);
-  console.log(scenes_in_module.value);
   if (scenes_in_module.value?.length > 0) {
     ContextMenu.showContextMenu({
       theme: "dark",
@@ -199,8 +198,7 @@ const on_selected_scene_context_menu = (e: MouseEvent) => {
       y: e.y,
       items: scenes_in_module.value.map((s) => ({
         label: s.name,
-        onClick(e) {
-          console.log(e);
+        onClick() {
           set_selected_scene(scene_key(s));
         },
       })),
@@ -254,7 +252,7 @@ const current_main_instance_scene = computed(() => {
     const game_instance_data =
       game_instance_data_map.value[instance_id][world_id];
     if (game_instance_data) {
-      return game_instance_data.render_graph_data.scene;
+      return game_instance_data.instance_scene;
     }
   }
 
@@ -386,7 +384,7 @@ function select_as_main_instance(
   if (game_instance_exists(instance_id, world_id)) {
     set_current_main_instance(instance_id, world_id);
     if (current_main_map.value?.main_scene) {
-      set_selected_scene(current_main_map.value?.main_scene);
+      set_selected_scene(current_main_map.value.main_scene);
     }
   }
 }
