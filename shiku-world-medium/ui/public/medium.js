@@ -40906,7 +40906,7 @@ ${e3}`);
         }
         this.renderer.layer_map.ObjectsBelow.addChild(root_container);
       }).with({ UpdateEntity: _.select() }, (node) => {
-        window.medium_gui.game_instances.apply_entity_update(
+        window.medium_gui.game_instances.apply_entity_update_for_instance(
           this.id,
           this.world_id,
           node,

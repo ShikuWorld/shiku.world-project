@@ -9,7 +9,7 @@ import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { KeysOfUnion } from "@/editor/utils";
-import { match } from "ts-pattern";
+import { match, P } from "ts-pattern";
 import { v4 as uuidv4 } from "uuid";
 import { Scene } from "@/editor/blueprints/Scene";
 import { FileBrowserResult } from "@/editor/blueprints/FileBrowserResult";
@@ -18,6 +18,11 @@ import { Node2DKind } from "@/editor/blueprints/Node2DKind";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 import { EntityUpdate } from "@/editor/blueprints/EntityUpdate";
 import { SceneNodeUpdate } from "@/client/communication/api/bindings/SceneNodeUpdate";
+import { reactive, toRefs } from "vue";
+import {
+  RenderGraphData,
+  use_game_instances_store,
+} from "@/editor/stores/game-instances";
 
 export type Point = { y: number; x: number };
 
@@ -29,39 +34,51 @@ export interface ResourcesStore {
   current_file_browser_result: FileBrowserResult;
 }
 
-export const use_resources_store = defineStore("resources", {
-  state: (): ResourcesStore => ({
+export const use_resources_store = defineStore("resources", () => {
+  const { blueprint_render } = toRefs(use_game_instances_store());
+  const {
+    apply_entity_update,
+    add_child_to_render_graph,
+    remove_child_from_render_graph,
+  } = use_game_instances_store();
+  const state: ResourcesStore = reactive({
     modules: {},
     tileset_map: {},
     game_map_map: {},
     scene_map: {},
-    current_file_browser_result: { resources: [], dirs: [], dir: "", path: "" },
-  }),
-  actions: {
+    current_file_browser_result: {
+      resources: [],
+      dirs: [],
+      dir: "",
+      path: "",
+    },
+  });
+
+  const actions = {
     update_module(module: Partial<Module> & { id: string }) {
       if (module.id) {
-        this.modules = {
-          ...this.modules,
-          [module.id]: { ...this.modules[module.id], ...module },
+        state.modules = {
+          ...state.modules,
+          [module.id]: { ...state.modules[module.id], ...module },
         };
       }
     },
     delete_module(module_id: string) {
       const modules = {
-        ...this.modules,
+        ...state.modules,
       };
       delete modules[module_id];
-      this.modules = modules;
+      state.modules = modules;
     },
     create_module(module: Module) {
-      this.modules = {
-        ...this.modules,
+      state.modules = {
+        ...state.modules,
         [module.id]: module,
       };
     },
     set_map(game_map: GameMap) {
-      this.game_map_map = {
-        ...this.game_map_map,
+      state.game_map_map = {
+        ...state.game_map_map,
         [map_key(game_map)]: game_map,
       };
     },
@@ -69,69 +86,144 @@ export const use_resources_store = defineStore("resources", {
       map_update: Partial<GameMap> & { resource_path: string; name: string },
     ) {
       const key = map_key(map_update);
-      this.game_map_map = {
-        ...this.game_map_map,
+      state.game_map_map = {
+        ...state.game_map_map,
         [key]: { ...this.get_map(key), ...map_update },
       };
     },
     delete_map(game_map: GameMap) {
       const maps = {
-        ...this.game_map_map,
+        ...state.game_map_map,
       };
       delete maps[map_key(game_map)];
-      this.game_map_map = maps;
+      state.game_map_map = maps;
     },
     get_module(id: string) {
-      return this.modules[id];
+      return state.modules[id];
     },
     get_map(key: string) {
-      if (!this.game_map_map[key]) {
+      if (!state.game_map_map[key]) {
         this.get_resource_server(key);
       }
-      return this.game_map_map[key];
+      return state.game_map_map[key];
     },
     get_tileset(tileset_path: string) {
-      if (!this.game_map_map[tileset_path]) {
+      if (!state.game_map_map[tileset_path]) {
         this.get_resource_server(tileset_path);
       }
-      return this.tileset_map[tileset_path];
+      return state.tileset_map[tileset_path];
     },
     set_modules(modules: Module[]) {
-      this.modules = modules.reduce(
+      state.modules = modules.reduce(
         (current, module) => ({ ...current, [module.id]: module }),
         {},
       );
     },
     set_tileset(tileset: Tileset) {
-      this.tileset_map = {
-        ...this.tileset_map,
+      state.tileset_map = {
+        ...state.tileset_map,
         [tileset_key(tileset)]: tileset,
       };
     },
     delete_tileset(tileset: Tileset) {
-      const tileset_map = { ...this.tileset_map };
+      const tileset_map = { ...state.tileset_map };
       delete tileset_map[tileset_key(tileset)];
-      this.tileset_map = tileset_map;
+      state.tileset_map = tileset_map;
     },
     set_scene(scene: Scene) {
-      this.scene_map = {
-        ...this.scene_map,
+      state.scene_map = {
+        ...state.scene_map,
         [scene_key(scene)]: scene,
       };
     },
     update_scene(scene_update: SceneNodeUpdate) {
-      console.log(scene_update);
+      match(scene_update)
+        .with(
+          { UpdateData: P.select() },
+          ([resource_path, _, node_id, update]) => {
+            const blueprint_render_value = blueprint_render.value;
+            if (
+              blueprint_render_value &&
+              blueprint_render_value.scene_resource_path === resource_path &&
+              blueprint_render_value.render_graph_data
+            ) {
+              const resource_manager = window.medium.get_resource_manager(
+                blueprint_render_value.module_id,
+              );
+              if (!resource_manager) {
+                return;
+              }
+              apply_entity_update(
+                blueprint_render_value.render_graph_data as RenderGraphData,
+                {
+                  id: node_id,
+                  kind: update,
+                },
+                resource_manager,
+              );
+            }
+          },
+        )
+        .with(
+          { AddChild: P.select() },
+          ([resource_path, _, parent_node_id, game_node]) => {
+            const blueprint_render_value = blueprint_render.value;
+            if (
+              blueprint_render_value &&
+              blueprint_render_value.scene_resource_path === resource_path &&
+              blueprint_render_value.render_graph_data
+            ) {
+              const resource_manager = window.medium.get_resource_manager(
+                blueprint_render_value.module_id,
+              );
+              if (!resource_manager) {
+                return;
+              }
+              add_child_to_render_graph(
+                blueprint_render_value.render_graph_data as RenderGraphData,
+                parent_node_id,
+                game_node,
+                resource_manager,
+                window.medium.create_display_object,
+              );
+            }
+          },
+        )
+        .with(
+          { RemoveChild: P.select() },
+          ([resource_path, _, parent_node_id, game_node]) => {
+            const blueprint_render_value = blueprint_render.value;
+            if (
+              blueprint_render_value &&
+              blueprint_render_value.scene_resource_path === resource_path &&
+              blueprint_render_value.render_graph_data
+            ) {
+              const resource_manager = window.medium.get_resource_manager(
+                blueprint_render_value.module_id,
+              );
+              if (!resource_manager) {
+                return;
+              }
+              remove_child_from_render_graph(
+                blueprint_render_value.render_graph_data as RenderGraphData,
+                parent_node_id,
+                game_node,
+              );
+            }
+          },
+        )
+        .exhaustive();
     },
     get_scene(resource_path: string) {
-      if (!this.scene_map[resource_path]) {
+      if (!state.scene_map[resource_path]) {
         this.get_resource_server(resource_path);
       }
-      return this.scene_map[resource_path];
+      return state.scene_map[resource_path];
     },
     delete_scene(scene: Scene) {
-      const scene_map = { ...this.scene_map };
+      const scene_map = { ...state.scene_map };
       delete scene_map[scene_key(scene)];
-      this.scene_map = scene_map;
+      state.scene_map = scene_map;
     },
     load_modules() {
       send_admin_event("LoadEditorData");
@@ -174,7 +266,7 @@ export const use_resources_store = defineStore("resources", {
       send_admin_event({ BrowseFolder: path });
     },
     set_current_file_browser_result(result: FileBrowserResult) {
-      this.current_file_browser_result = result;
+      state.current_file_browser_result = result;
     },
     get_resource_server(path: string) {
       send_admin_event({ GetResource: path });
@@ -271,7 +363,12 @@ export const use_resources_store = defineStore("resources", {
     save_conductor_server(conductor: Conductor) {
       send_admin_event({ UpdateConductor: conductor });
     },
-  },
+  };
+
+  return {
+    ...toRefs(state),
+    ...actions,
+  };
 });
 
 function send_admin_event(event: AdminToSystemEvent) {
