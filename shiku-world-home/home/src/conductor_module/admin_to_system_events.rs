@@ -371,7 +371,7 @@ pub async fn handle_admin_to_system_event(
                     Err(err) => error!("Could not load scene to update it: {:?}", err),
                 }
             }
-            SceneNodeUpdate::RemoveChild(resource_path, path, game_node_id, node) => {
+            SceneNodeUpdate::RemoveChild(resource_path, path, node) => {
                 match Blueprint::load_scene(resource_path.clone().into()) {
                     Ok(mut scene) => match Blueprint::remove_child_in_scene(
                         &mut scene,
@@ -380,12 +380,7 @@ pub async fn handle_admin_to_system_event(
                     ) {
                         Ok(()) => {
                             send_editor_event(EditorEvent::UpdateScene(
-                                SceneNodeUpdate::RemoveChild(
-                                    resource_path,
-                                    path,
-                                    game_node_id,
-                                    node,
-                                ),
+                                SceneNodeUpdate::RemoveChild(resource_path, path, node),
                             ));
                         }
                         Err(err) => error!("Could not remove scene: {:?}", err),

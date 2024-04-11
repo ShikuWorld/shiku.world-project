@@ -2,4 +2,4 @@
 import type { EntityUpdateKind } from "../blueprints/EntityUpdateKind";
 import type { GameNodeKind } from "../blueprints/GameNodeKind";
 
-export type SceneNodeUpdate = { UpdateData: [string, Array<number>, string, EntityUpdateKind] } | { AddChild: [string, Array<number>, string, GameNodeKind] } | { RemoveChild: [string, Array<number>, string, GameNodeKind] };
+export type SceneNodeUpdate = { UpdateData: [string, Array<number>, string, EntityUpdateKind] } | { AddChild: [string, Array<number>, string, GameNodeKind] } | { RemoveChild: [string, Array<number>, GameNodeKind] };

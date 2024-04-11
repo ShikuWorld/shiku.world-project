@@ -290,22 +290,40 @@ export const use_game_instances_store = defineStore("game-instances", {
     },
     remove_child_from_render_graph(
       render_graph_data: RenderGraphData,
-      parent_node_id: string | number,
-      node_to_remove: GameNodeKind,
+      game_node_to_remove: GameNodeKind,
     ) {
-      const parent_node_render_node =
-        render_graph_data.entity_node_to_render_node_map[parent_node_id];
+      const node_to_remove_id = render_key(
+        get_generic_game_node(game_node_to_remove),
+      );
+      const node_to_remove =
+        render_graph_data.entity_node_to_render_node_map[node_to_remove_id];
+      const parent_node_render_node = node_to_remove?.parent;
       const parent_node_game_node =
-        render_graph_data.entity_node_map[parent_node_id];
-      if (!parent_node_render_node || !parent_node_game_node) {
-        console.error("Could not add child to node!");
+        render_graph_data.entity_node_map[
+          parent_node_render_node?.node_id
+            ? parent_node_render_node.node_id
+            : ""
+        ];
+      if (
+        !parent_node_render_node ||
+        !parent_node_game_node ||
+        !node_to_remove
+      ) {
+        console.error("Could not remove child from node!");
         return;
       }
       const generic_parent_game_node = get_generic_game_node(
         parent_node_game_node,
       );
-      const node_to_remove_id = render_key(
-        get_generic_game_node(node_to_remove),
+      if (!node_to_remove) {
+        console.error("Could not remove node!");
+        return;
+      }
+      console.log(
+        "bef",
+        parent_node_render_node.children.length,
+        generic_parent_game_node.children.length,
+        parent_node_render_node.container.children.length,
       );
       parent_node_render_node.children =
         parent_node_render_node.children.filter(
@@ -315,6 +333,13 @@ export const use_game_instances_store = defineStore("game-instances", {
         generic_parent_game_node.children.filter(
           (c) => render_key(get_generic_game_node(c)) !== node_to_remove_id,
         );
+      parent_node_render_node.container.removeChild(node_to_remove.container);
+      console.log(
+        "after",
+        parent_node_render_node.children.length,
+        generic_parent_game_node.children.length,
+        parent_node_render_node.container.children.length,
+      );
       delete render_graph_data.entity_node_map[node_to_remove_id];
       delete render_graph_data.entity_node_to_render_node_map[
         node_to_remove_id

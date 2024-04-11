@@ -122,7 +122,7 @@ pub enum AdminToSystemEvent {
 pub enum SceneNodeUpdate {
     UpdateData(SceneId, Vec<usize>, GameNodeId, EntityUpdateKind),
     AddChild(SceneId, Vec<usize>, GameNodeId, GameNodeKind),
-    RemoveChild(SceneId, Vec<usize>, GameNodeId, GameNodeKind),
+    RemoveChild(SceneId, Vec<usize>, GameNodeKind),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

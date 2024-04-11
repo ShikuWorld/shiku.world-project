@@ -189,29 +189,25 @@ export const use_resources_store = defineStore("resources", () => {
             }
           },
         )
-        .with(
-          { RemoveChild: P.select() },
-          ([resource_path, _, parent_node_id, game_node]) => {
-            const blueprint_render_value = blueprint_render.value;
-            if (
-              blueprint_render_value &&
-              blueprint_render_value.scene_resource_path === resource_path &&
-              blueprint_render_value.render_graph_data
-            ) {
-              const resource_manager = window.medium.get_resource_manager(
-                blueprint_render_value.module_id,
-              );
-              if (!resource_manager) {
-                return;
-              }
-              remove_child_from_render_graph(
-                blueprint_render_value.render_graph_data as RenderGraphData,
-                parent_node_id,
-                game_node,
-              );
+        .with({ RemoveChild: P.select() }, ([resource_path, _, game_node]) => {
+          const blueprint_render_value = blueprint_render.value;
+          if (
+            blueprint_render_value &&
+            blueprint_render_value.scene_resource_path === resource_path &&
+            blueprint_render_value.render_graph_data
+          ) {
+            const resource_manager = window.medium.get_resource_manager(
+              blueprint_render_value.module_id,
+            );
+            if (!resource_manager) {
+              return;
             }
-          },
-        )
+            remove_child_from_render_graph(
+              blueprint_render_value.render_graph_data as RenderGraphData,
+              game_node,
+            );
+          }
+        })
         .exhaustive();
     },
     get_scene(resource_path: string) {
@@ -319,12 +315,11 @@ export const use_resources_store = defineStore("resources", () => {
     remove_child_from_scene_on_server(
       resource_path: string,
       path: number[],
-      game_node_id: string,
       data: GameNodeKind,
     ) {
       send_admin_event({
         UpdateSceneNode: {
-          RemoveChild: [resource_path, path, game_node_id, data],
+          RemoveChild: [resource_path, path, data],
         },
       });
     },
