@@ -524,5 +524,27 @@ pub async fn handle_admin_to_system_event(
                 }
             }
         }
+        AdminToSystemEvent::RemoveInstanceNode(module_id, game_instance_id, world_id, entity) => {
+            if let Some(module) = module_map.get_mut(&module_id) {
+                if let Some(instance) = module.game_instances.get_mut(&game_instance_id) {
+                    instance.dynamic_module.remove_entity(&world_id, entity);
+                }
+            }
+        }
+        AdminToSystemEvent::AddNodeToInstanceNode(
+            module_id,
+            game_instance_id,
+            world_id,
+            parent_entity,
+            game_node,
+        ) => {
+            if let Some(module) = module_map.get_mut(&module_id) {
+                if let Some(instance) = module.game_instances.get_mut(&game_instance_id) {
+                    instance
+                        .dynamic_module
+                        .add_entity(&world_id, parent_entity, game_node);
+                }
+            }
+        }
     }
 }

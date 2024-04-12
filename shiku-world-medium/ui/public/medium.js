@@ -40912,10 +40912,14 @@ ${e3}`);
           node,
           resource_manager
         );
-      }).with({ RemoveSceneNodes: _.select() }, (node_ids) => {
-        console.log(node_ids);
-      }).with({ ChangeEntity: _.select() }, ([update_entities, _moduleName]) => {
-        console.log(update_entities);
+      }).with({ RemoveEntity: _.select() }, (entity_id) => {
+        window.medium_gui.game_instances.remove_entity_from_instance(
+          this.id,
+          this.world_id,
+          entity_id
+        );
+      }).with({ AddEntity: _.select() }, ([parent_entity, node_to_add]) => {
+        console.log(parent_entity, node_to_add);
       }).with({ ShowTerrain: _.select() }, (layers) => {
         for (const [layer_kind, chunks] of layers) {
           for (const chunk of chunks) {

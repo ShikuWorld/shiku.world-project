@@ -1,5 +1,5 @@
 use crate::core::blueprint::def::{Chunk, GameMap, LayerKind, TerrainParams};
-use crate::core::blueprint::ecs::def::{EntityUpdate, ECS};
+use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{ColliderKind, ColliderShape, RigidBodyType};
 use crate::core::module_system::error::CreateWorldError;
@@ -42,8 +42,8 @@ impl World {
     }
 
     fn create_initial_rigid_bodies(ecs: &mut ECS, physics: &mut RapierSimulation) {
-        for (entity, rigid_body_type) in &ecs.rigid_body_type {
-            if let Some(transform) = &ecs.transforms.get(entity) {
+        for (entity, rigid_body_type) in &ecs.entities.rigid_body_type {
+            if let Some(transform) = &ecs.entities.transforms.get(entity) {
                 let rigid_body_handle = match rigid_body_type {
                     RigidBodyType::Dynamic => {
                         physics.add_dynamic_rigid_body(transform.position.0, transform.position.1)
@@ -62,16 +62,18 @@ impl World {
                             transform.position.1,
                         ),
                 };
-                ecs.rigid_body_handle.insert(*entity, rigid_body_handle);
+                ecs.entities
+                    .rigid_body_handle
+                    .insert(*entity, rigid_body_handle);
             }
         }
     }
 
     fn attach_initial_colliders_to_rigid_bodies(ecs: &mut ECS, physics: &mut RapierSimulation) {
-        for (parent_entity, children) in &ecs.game_node_children {
-            if let Some(rigid_body_handle) = ecs.rigid_body_handle.get(parent_entity) {
+        for (parent_entity, children) in &ecs.entities.game_node_children {
+            if let Some(rigid_body_handle) = ecs.entities.rigid_body_handle.get(parent_entity) {
                 for child_entity in children {
-                    if let Some(child_collider) = ecs.collider.get(child_entity) {
+                    if let Some(child_collider) = ecs.entities.collider.get(child_entity) {
                         let is_sensor = match child_collider.kind {
                             ColliderKind::Solid => false,
                             ColliderKind::Sensor => true,
@@ -102,7 +104,8 @@ impl World {
                                     is_sensor,
                                 ),
                         };
-                        ecs.collider_handle
+                        ecs.entities
+                            .collider_handle
                             .insert(*child_entity, child_collider_handle);
                     }
                 }
@@ -112,5 +115,30 @@ impl World {
 
     pub fn apply_admin_entity_update(&mut self, entity_update: EntityUpdate) {
         self.ecs.apply_entity_update(entity_update);
+    }
+
+    pub fn remove_entity(&mut self, entity: Entity) {
+        let mut children_to_delete = Vec::new();
+        Self::get_children_to_delete(&mut children_to_delete, &entity, &mut self.ecs.entities);
+        self.ecs.entities.remove_entity(entity);
+        for child in children_to_delete {
+            self.ecs.entities.remove_entity(child);
+        }
+    }
+
+    pub fn get_children_to_delete(
+        children_to_delete: &mut Vec<Entity>,
+        entity: &Entity,
+        entities: &mut EntityMaps,
+    ) {
+        for child in entities
+            .game_node_children
+            .get(entity)
+            .cloned()
+            .unwrap_or_default()
+        {
+            Self::get_children_to_delete(children_to_delete, &child, entities);
+            children_to_delete.push(child);
+        }
     }
 }

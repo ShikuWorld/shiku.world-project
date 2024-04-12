@@ -1,4 +1,4 @@
-use log::{debug, error};
+use log::error;
 
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdateKind, ECS};
 use crate::core::blueprint::scene::def::{
@@ -30,11 +30,11 @@ fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKin
         Some(node_script),
         Some(node_children),
     ) = (
-        ecs.game_node_kind.get(entity),
-        ecs.game_node_id.get(entity),
-        ecs.game_node_name.get(entity),
-        ecs.game_node_script.get(entity),
-        ecs.game_node_children.get(entity),
+        ecs.entities.game_node_kind.get(entity),
+        ecs.entities.game_node_id.get(entity),
+        ecs.entities.game_node_name.get(entity),
+        ecs.entities.game_node_script.get(entity),
+        ecs.entities.game_node_children.get(entity),
     ) {
         let children: Vec<GameNodeKind> = node_children
             .iter()
@@ -54,7 +54,7 @@ fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKin
             GameNodeKindClean::Node2D => {
                 if let (Some(node_2d_kind), Some(transform)) = (
                     get_render_node_2d_kind_from_ecs(entity, ecs),
-                    ecs.transforms.get(entity),
+                    ecs.entities.transforms.get(entity),
                 ) {
                     return Some(GameNodeKind::Node2D(GameNode {
                         id: node_id.clone(),
@@ -73,31 +73,31 @@ fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKin
     }
     error!("Was not able to get game_node. entity: {:?}, kind: {:?}, id: {:?}, name: {:?}, script: {:?}, children: {:?}",
         entity,
-        ecs.game_node_kind.get(entity),
-        ecs.game_node_id.get(entity),
-        ecs.game_node_name.get(entity),
-        ecs.game_node_script.get(entity),
-        ecs.game_node_children.get(entity).is_some());
+        ecs.entities.game_node_kind.get(entity),
+        ecs.entities.game_node_id.get(entity),
+        ecs.entities.game_node_name.get(entity),
+        ecs.entities.game_node_script.get(entity),
+        ecs.entities.game_node_children.get(entity).is_some());
     None
 }
 
 fn get_render_node_2d_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<Node2DKind> {
-    if let Some(node_2d_kind) = ecs.node_2d_kind.get(entity) {
+    if let Some(node_2d_kind) = ecs.entities.node_2d_kind.get(entity) {
         match node_2d_kind {
             Node2DKindClean::Node2D => return Some(Node2DKind::Node2D(Node2DDud(0))),
             Node2DKindClean::RigidBody => {
                 if let (Some(velocity), Some(body)) = (
-                    ecs.rigid_body_velocity.get(entity),
-                    ecs.rigid_body_type.get(entity),
+                    ecs.entities.rigid_body_velocity.get(entity),
+                    ecs.entities.rigid_body_type.get(entity),
                 ) {
                     return Some(Node2DKind::RigidBody(RigidBody {
                         body: body.clone(),
-                        velocity: velocity.clone(),
+                        velocity: *velocity,
                     }));
                 }
             }
             Node2DKindClean::Collider => {
-                if let Some(collider) = ecs.collider.get(entity) {
+                if let Some(collider) = ecs.entities.collider.get(entity) {
                     return Some(Node2DKind::Collider(collider.clone()));
                 }
             }
@@ -111,23 +111,25 @@ fn get_render_node_2d_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<Node2D
     error!(
         "Was not able to get node_2d_kind. entity: {:?}, node_2d_kind: {:?}",
         entity,
-        ecs.node_2d_kind.get(entity)
+        ecs.entities.node_2d_kind.get(entity)
     );
     None
 }
 
 fn get_render_from_ecs(entity: &Entity, ecs: &ECS) -> Option<Render> {
     if let (Some(render_kind), Some(render_layer), Some(render_offset)) = (
-        ecs.render_kind.get(entity),
-        ecs.render_layer.get(entity),
-        ecs.render_offset.get(entity),
+        ecs.entities.render_kind.get(entity),
+        ecs.entities.render_layer.get(entity),
+        ecs.entities.render_offset.get(entity),
     ) {
         if let Some(kind) = match render_kind {
             RenderKindClean::AnimatedSprite => ecs
+                .entities
                 .render_gid
                 .get(entity)
                 .map(|gid| RenderKind::AnimatedSprite(*gid)),
             RenderKindClean::Sprite => ecs
+                .entities
                 .render_gid
                 .get(entity)
                 .map(|gid| RenderKind::Sprite(*gid)),
@@ -141,9 +143,9 @@ fn get_render_from_ecs(entity: &Entity, ecs: &ECS) -> Option<Render> {
     }
     error!("Was not able to get render_node. entity: {:?}, render_kind: {:?}, layer: {:?}, offset: {:?}",
         entity,
-        ecs.render_kind.get(entity),
-        ecs.render_layer.get(entity),
-        ecs.render_offset.get(entity));
+        ecs.entities.render_kind.get(entity),
+        ecs.entities.render_layer.get(entity),
+        ecs.entities.render_offset.get(entity));
     None
 }
 impl GameNodeKind {
@@ -171,25 +173,10 @@ impl GameNodeKind {
             children.remove(index);
         } else {
             error!(
-                "Tried to remove a child that was not there, this could have paniced! len: {:?} | index: {:?}",
+                "Tried to remove a child that was not there, this could have panicked! len: {:?} | index: {:?}",
                 children.len(),
                 index
             );
-        }
-    }
-
-    pub fn set_data(&mut self, data: GameNodeKind) {
-        match self {
-            GameNodeKind::Instance(node) => {
-                if let GameNodeKind::Instance(n) = data {
-                    node.data = n.data
-                }
-            }
-            GameNodeKind::Node2D(node) => {
-                if let GameNodeKind::Node2D(n) = data {
-                    node.data = n.data
-                }
-            }
         }
     }
 

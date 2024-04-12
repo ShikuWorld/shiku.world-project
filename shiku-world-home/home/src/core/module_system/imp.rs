@@ -9,9 +9,9 @@ use tokio::time::Instant;
 use crate::core::blueprint::def::{
     BlueprintService, Chunk, GameMap, LayerKind, Module, ModuleId, TerrainParams,
 };
-use crate::core::blueprint::ecs::def::EntityUpdate;
+use crate::core::blueprint::ecs::def::{Entity, EntityUpdate};
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::blueprint::scene::def::Scene;
+use crate::core::blueprint::scene::def::{GameNodeKind, Scene};
 use crate::core::blueprint::scene::imp::build_scene_from_ecs;
 use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
@@ -143,6 +143,35 @@ impl DynamicGameModule {
                 "Could not send entity update",
             );
         }
+    }
+
+    pub fn remove_entity(&mut self, world_id: &WorldId, entity: Entity) {
+        if let Some(world) = self.world_map.get_mut(world_id) {
+            world.remove_entity(entity);
+        }
+        let entity_removed_event = ModuleInstanceEvent {
+            world_id: None,
+            module_id: self.module_id.clone(),
+            instance_id: self.instance_id.clone(),
+            event_type: GameSystemToGuestEvent::RemoveEntity(entity),
+        };
+        Self::send_event_to_actors(
+            world_id,
+            &mut self.module_communication,
+            &self.world_to_guest,
+            &self.world_to_admin,
+            entity_removed_event,
+            "Could not send entity remove event",
+        );
+    }
+
+    pub fn add_entity(
+        &mut self,
+        world_id: &WorldId,
+        parent_entity: Entity,
+        game_node: GameNodeKind,
+    ) {
+        debug!("TODO add entity");
     }
 
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {

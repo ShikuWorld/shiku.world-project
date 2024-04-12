@@ -161,7 +161,7 @@ export const use_game_instances_store = defineStore("game-instances", {
       const game_node_root = get_generic_game_node(scene.root_node);
       const render_graph_data: RenderGraphData = {
         render_root: {
-          node_id: game_node_root.id,
+          node_id: render_key(game_node_root),
           children: [],
           container: create_display_object_cb(
             scene.root_node,
@@ -186,6 +186,21 @@ export const use_game_instances_store = defineStore("game-instances", {
         create_display_object_cb,
       );
       return render_graph_data;
+    },
+    remove_entity_from_instance(
+      instance_id: string,
+      world_id: string,
+      entity: Entity,
+    ) {
+      const game_instance_data = this.get_game_instance_data(
+        instance_id,
+        world_id,
+      );
+      if (!game_instance_data) {
+        return;
+      }
+      const render_graph_data = game_instance_data.render_graph_data;
+      this.remove_child_from_render_graph(render_graph_data, entity);
     },
     apply_entity_update_for_instance(
       instance_id: string,
@@ -290,26 +305,19 @@ export const use_game_instances_store = defineStore("game-instances", {
     },
     remove_child_from_render_graph(
       render_graph_data: RenderGraphData,
-      game_node_to_remove: GameNodeKind,
+      node_to_remove_id: ReturnType<typeof render_key>,
     ) {
-      const node_to_remove_id = render_key(
-        get_generic_game_node(game_node_to_remove),
-      );
       const node_to_remove =
         render_graph_data.entity_node_to_render_node_map[node_to_remove_id];
       const parent_node_render_node = node_to_remove?.parent;
-      const parent_node_game_node =
-        render_graph_data.entity_node_map[
-          parent_node_render_node?.node_id
-            ? parent_node_render_node.node_id
-            : ""
-        ];
-      if (
-        !parent_node_render_node ||
-        !parent_node_game_node ||
-        !node_to_remove
-      ) {
+      if (!parent_node_render_node || !node_to_remove) {
         console.error("Could not remove child from node!");
+        return;
+      }
+      const parent_node_game_node =
+        render_graph_data.entity_node_map[parent_node_render_node.node_id];
+      if (!parent_node_game_node) {
+        console.error("Could not fine parent node to remove from!");
         return;
       }
       const generic_parent_game_node = get_generic_game_node(
@@ -319,12 +327,6 @@ export const use_game_instances_store = defineStore("game-instances", {
         console.error("Could not remove node!");
         return;
       }
-      console.log(
-        "bef",
-        parent_node_render_node.children.length,
-        generic_parent_game_node.children.length,
-        parent_node_render_node.container.children.length,
-      );
       parent_node_render_node.children =
         parent_node_render_node.children.filter(
           (n) => n.node_id === node_to_remove_id,
@@ -334,12 +336,6 @@ export const use_game_instances_store = defineStore("game-instances", {
           (c) => render_key(get_generic_game_node(c)) !== node_to_remove_id,
         );
       parent_node_render_node.container.removeChild(node_to_remove.container);
-      console.log(
-        "after",
-        parent_node_render_node.children.length,
-        generic_parent_game_node.children.length,
-        parent_node_render_node.container.children.length,
-      );
       delete render_graph_data.entity_node_map[node_to_remove_id];
       delete render_graph_data.entity_node_to_render_node_map[
         node_to_remove_id
@@ -358,13 +354,16 @@ export const use_game_instances_store = defineStore("game-instances", {
         children: [],
         parent,
         container: create_display_object_cb(game_node_to_add, resource_manager),
-        node_id: generic_game_node.entity_id || generic_game_node.id,
+        node_id: render_key(generic_game_node),
       };
       parent.children.push(new_node);
       parent.container.addChild(new_node.container);
       entity_node_to_render_node_map[new_node.node_id] = new_node;
       entity_node_map[new_node.node_id] = game_node_to_add;
       return new_node;
+    },
+    render_key_from_game_node(game_node: GameNodeKind) {
+      return render_key(get_generic_game_node(game_node));
     },
     generate_render_graph(
       entity_node_to_render_node_map: RenderGraphData["entity_node_to_render_node_map"],

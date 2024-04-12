@@ -35,6 +35,7 @@
       :path="[]"
       :node_is_instance="is_node_instance"
       :scene_is_instance="is_scene_instance"
+      @remove_node="on_remove_node"
     ></SceneNodeList>
   </div>
 </template>
@@ -58,6 +59,7 @@ import {
   scene_key,
   use_resources_store,
 } from "@/editor/stores/resources";
+import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 
 const node_type_options: { value: GameNodeTypeKeys; label: string }[] = [
   { value: "Instance", label: "Instance" },
@@ -75,6 +77,24 @@ const selected_node = computed(() => component_stores.value.game_node);
 const is_node_instance = computed(
   () => component_stores.value.game_node.is_instance === true,
 );
+const emit = defineEmits<{
+  (
+    e: "remove_node",
+    scene_resource: string,
+    path: number[],
+    node: GameNodeKind,
+    is_from_current_instance: boolean,
+  ): void;
+}>();
+function on_remove_node(
+  scene_resource: string,
+  path: number[],
+  node: GameNodeKind,
+  is_from_current_instance: boolean,
+) {
+  emit("remove_node", scene_resource, path, node, is_from_current_instance);
+}
+
 function add_node_type(
   path: number[],
   game_node_id: string,

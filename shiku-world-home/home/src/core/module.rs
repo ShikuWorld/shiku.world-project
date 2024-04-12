@@ -8,9 +8,9 @@ use crate::core::blueprint;
 use crate::core::blueprint::def::{
     Chunk, Conductor, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
 };
-use crate::core::blueprint::ecs::def::{EntityUpdate, EntityUpdateKind};
+use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{GameNodeId, GameNodeKind, Scene, SceneId};
-use crate::core::entity::def::{EntityId, ShowEntity};
+use crate::core::entity::def::EntityId;
 use crate::core::entity::render::CameraSettings;
 use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
 use crate::core::module_system::game_instance::GameInstanceId;
@@ -106,6 +106,8 @@ pub enum AdminToSystemEvent {
     CreateScene(blueprint::scene::def::Scene),
     UpdateSceneNode(SceneNodeUpdate),
     UpdateInstancedNode(ModuleId, GameInstanceId, WorldId, EntityUpdate),
+    RemoveInstanceNode(ModuleId, GameInstanceId, WorldId, Entity),
+    AddNodeToInstanceNode(ModuleId, GameInstanceId, WorldId, Entity, GameNodeKind),
     DeleteScene(blueprint::scene::def::Scene),
     CreateMap(ModuleId, blueprint::def::GameMap),
     UpdateMap(blueprint::def::MapUpdate),
@@ -303,9 +305,9 @@ pub enum GameSystemToGuestEvent {
     SetParallax(Vec<(LayerName, (Real, Real))>),
     ShowScene(Scene),
     UpdateEntity(EntityUpdate),
-    RemoveSceneNodes(Vec<GameNodeId>),
+    RemoveEntity(Entity),
+    AddEntity(Entity, GameNodeKind),
     SetMouseInputSchema(MouseInputSchema),
-    ChangeEntity(Vec<ShowEntity>),
     SetCamera(EntityId, CameraSettings),
 }
 

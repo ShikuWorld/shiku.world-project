@@ -23,6 +23,7 @@
             <SceneEditor
               :scene="selected_scene"
               :is_scene_instance="false"
+              @remove_node="on_remove_node_from_scene"
             ></SceneEditor>
           </v-expansion-panel-text>
         </v-expansion-panel>
@@ -31,6 +32,7 @@
             <SceneEditor
               :scene="current_main_instance_scene"
               :is_scene_instance="true"
+              @remove_node="on_remove_node_from_scene"
             ></SceneEditor>
           </v-expansion-panel-text>
         </v-expansion-panel>
@@ -129,6 +131,7 @@ import {
 import SceneEditor from "@/editor/editor/SceneEditor.vue";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
 import ContextMenu from "@imengyu/vue3-context-menu";
+import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 
 const tab = ref<number>(0);
 const {
@@ -146,6 +149,7 @@ const {
   set_selected_resource_tab,
   set_current_main_instance,
   set_selected_scene,
+  remove_entity_server,
 } = use_editor_store();
 
 const { game_instance_exists } = use_game_instances_store();
@@ -161,6 +165,7 @@ const {
   load_modules,
   update_map_server,
   get_resource_server,
+  remove_child_from_scene_on_server,
 } = use_resources_store();
 
 const { active_component, component_stores } = storeToRefs(
@@ -206,6 +211,34 @@ const on_selected_scene_context_menu = (e: MouseEvent) => {
   }
 };
 
+function on_remove_node_from_scene(
+  scene_resource: string,
+  path: number[],
+  node: GameNodeKind,
+  is_from_current_instance: boolean,
+) {
+  if (is_from_current_instance) {
+    const entity_id = get_generic_game_node(node).entity_id;
+    if (
+      selected_module_id.value &&
+      current_main_instance.value?.instance_id &&
+      current_main_instance.value?.world_id &&
+      entity_id
+    ) {
+      remove_entity_server(
+        selected_module_id.value,
+        current_main_instance.value.instance_id,
+        current_main_instance.value.world_id,
+        entity_id,
+      );
+    } else {
+      console.error("Could not attempt to remove entity on server... weird.");
+    }
+  } else {
+    remove_child_from_scene_on_server(scene_resource, path, node);
+  }
+}
+
 function prevent_browser_default(e: MouseEvent) {
   e.preventDefault();
 }
@@ -227,9 +260,7 @@ function load_map_palette() {
   set_inspector_component("map");
 }
 const selected_scene = computed(() => {
-  if (component_stores.value.game_node.is_instance) {
-    return current_main_instance_scene.value;
-  } else if (selected_scene_props.value.scene_path !== null) {
+  if (selected_scene_props.value.scene_path !== null) {
     if (scene_map.value[selected_scene_props.value.scene_path]) {
       return scene_map.value[selected_scene_props.value.scene_path];
     } else {

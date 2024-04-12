@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::prelude::{ColliderHandle, Real};
+use remove_entity::RemoveEntity;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -21,6 +22,10 @@ pub struct ECS {
     pub scene_name: String,
     pub scene_resource_path: ResourcePath,
     pub scene_id: SceneId,
+    pub entities: EntityMaps,
+}
+#[derive(Debug, RemoveEntity)]
+pub struct EntityMaps {
     pub game_node_script: HashMap<Entity, Option<String>>,
     pub game_node_id: HashMap<Entity, GameNodeId>,
     pub game_node_name: HashMap<Entity, String>,

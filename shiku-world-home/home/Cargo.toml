@@ -9,6 +9,7 @@ build = "build.rs"
 local = []
 
 [dependencies]
+remove_entity = { path = "../remove_entity" }
 tokio = { version = "1.28.1", features = ["full"] }
 tungstenite = "0.20.1"
 tokio-tungstenite = { version = "0.20.1", features = ["native-tls"] }

@@ -7,6 +7,7 @@ import { Isometry } from "@/client/entities";
 import { reactive, toRefs, watch } from "vue";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
 import { use_resources_store } from "@/editor/stores/resources";
+import { Entity } from "@/editor/blueprints/Entity";
 
 export type Point = { y: number; x: number };
 
@@ -147,6 +148,16 @@ export const use_editor_store = defineStore("editor", () => {
     },
     open_game_instance_server(module_id: string) {
       send_admin_event({ OpenInstance: module_id });
+    },
+    remove_entity_server(
+      module_id: string,
+      game_instance_id: string,
+      world_id: string,
+      entity: Entity,
+    ) {
+      send_admin_event({
+        RemoveInstanceNode: [module_id, game_instance_id, world_id, entity],
+      });
     },
     start_inspecting_world(
       module_id: string,

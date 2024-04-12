@@ -40,6 +40,7 @@ export const use_resources_store = defineStore("resources", () => {
     apply_entity_update,
     add_child_to_render_graph,
     remove_child_from_render_graph,
+    render_key_from_game_node,
   } = use_game_instances_store();
   const state: ResourcesStore = reactive({
     modules: {},
@@ -204,7 +205,7 @@ export const use_resources_store = defineStore("resources", () => {
             }
             remove_child_from_render_graph(
               blueprint_render_value.render_graph_data as RenderGraphData,
-              game_node,
+              render_key_from_game_node(game_node),
             );
           }
         })

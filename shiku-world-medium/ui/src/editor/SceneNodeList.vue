@@ -20,6 +20,7 @@
         :path="[...path, index]"
         :node_is_instance="node_is_instance"
         :scene_is_instance="scene_is_instance"
+        @remove_node="on_remove_node"
       ></SceneNodeList>
     </div>
   </div>
@@ -43,10 +44,7 @@ import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import type { GameNode } from "@/editor/blueprints/GameNode";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import { storeToRefs } from "pinia";
-import {
-  get_generic_game_node,
-  use_resources_store,
-} from "@/editor/stores/resources";
+import { get_generic_game_node } from "@/editor/stores/resources";
 import ContextMenu from "@imengyu/vue3-context-menu";
 
 const props = defineProps<{
@@ -65,8 +63,26 @@ const selected_node_id = computed(() => {
   return component_stores.value.game_node.selected_game_node_id;
 });
 
+const emit = defineEmits<{
+  (
+    e: "remove_node",
+    scene_resource: string,
+    path: number[],
+    node: GameNodeKind,
+    is_from_current_instance: boolean,
+  ): void;
+}>();
+
 const { select_game_node } = use_inspector_store();
-const { remove_child_from_scene_on_server } = use_resources_store();
+
+function on_remove_node(
+  scene_resource: string,
+  path: number[],
+  node: GameNodeKind,
+  is_from_current_instance: boolean,
+) {
+  emit("remove_node", scene_resource, path, node, is_from_current_instance);
+}
 
 const on_context_menu = (e: MouseEvent) => {
   prevent_browser_default(e);
@@ -80,10 +96,12 @@ const on_context_menu = (e: MouseEvent) => {
         label: "Delete",
         disabled: path.value.length === 0,
         onClick: () => {
-          remove_child_from_scene_on_server(
+          emit(
+            "remove_node",
             scene_resource_path.value,
             path.value,
             node.value,
+            node_is_instance.value,
           );
         },
       },
