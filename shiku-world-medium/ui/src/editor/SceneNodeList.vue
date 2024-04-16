@@ -124,6 +124,7 @@ function on_node_click($event: MouseEvent, game_node: GameNode<unknown>) {
       game_node.id,
       path.value,
       scene_is_instance.value,
+      game_node.entity_id,
     );
   }
 }

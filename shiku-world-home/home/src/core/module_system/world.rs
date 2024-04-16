@@ -1,9 +1,12 @@
 use crate::core::blueprint::def::{Chunk, GameMap, LayerKind, TerrainParams};
 use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::blueprint::scene::def::{ColliderKind, ColliderShape, RigidBodyType};
+use crate::core::blueprint::scene::def::{
+    Collider, ColliderKind, ColliderShape, GameNodeKind, RigidBodyType, Transform,
+};
 use crate::core::module_system::error::CreateWorldError;
 use crate::core::rapier_simulation::def::RapierSimulation;
+use rapier2d::prelude::{ColliderHandle, RigidBodyHandle};
 use std::collections::HashMap;
 
 pub type WorldId = String;
@@ -44,27 +47,66 @@ impl World {
     fn create_initial_rigid_bodies(ecs: &mut ECS, physics: &mut RapierSimulation) {
         for (entity, rigid_body_type) in &ecs.entities.rigid_body_type {
             if let Some(transform) = &ecs.entities.transforms.get(entity) {
-                let rigid_body_handle = match rigid_body_type {
-                    RigidBodyType::Dynamic => {
-                        physics.add_dynamic_rigid_body(transform.position.0, transform.position.1)
-                    }
-                    RigidBodyType::Fixed => {
-                        physics.add_fixed_rigid_body(transform.position.0, transform.position.1)
-                    }
-                    RigidBodyType::KinematicPositionBased => physics
-                        .add_kinematic_position_based_rigid_body(
-                            transform.position.0,
-                            transform.position.1,
-                        ),
-                    RigidBodyType::KinematicVelocityBased => physics
-                        .add_kinematic_velocity_based_rigid_body(
-                            transform.position.0,
-                            transform.position.1,
-                        ),
-                };
+                let rigid_body_handle =
+                    Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
                 ecs.entities
                     .rigid_body_handle
                     .insert(*entity, rigid_body_handle);
+            }
+        }
+    }
+
+    fn add_rigid_body_for_entity(entity: &Entity, ecs: &mut ECS, physics: &mut RapierSimulation) {
+        if let (Some(rigid_body_type), Some(transform)) = (
+            ecs.entities.rigid_body_type.get(entity),
+            ecs.entities.transforms.get(entity),
+        ) {
+            let rigid_body_handle =
+                Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
+            ecs.entities
+                .rigid_body_handle
+                .insert(*entity, rigid_body_handle);
+        }
+    }
+
+    fn create_rigid_body_from_type(
+        rigid_body_type: &RigidBodyType,
+        transform: &Transform,
+        physics: &mut RapierSimulation,
+    ) -> RigidBodyHandle {
+        match rigid_body_type {
+            RigidBodyType::Dynamic => {
+                physics.add_dynamic_rigid_body(transform.position.0, transform.position.1)
+            }
+            RigidBodyType::Fixed => {
+                physics.add_fixed_rigid_body(transform.position.0, transform.position.1)
+            }
+            RigidBodyType::KinematicPositionBased => physics
+                .add_kinematic_position_based_rigid_body(
+                    transform.position.0,
+                    transform.position.1,
+                ),
+            RigidBodyType::KinematicVelocityBased => physics
+                .add_kinematic_velocity_based_rigid_body(
+                    transform.position.0,
+                    transform.position.1,
+                ),
+        }
+    }
+
+    fn attach_colliders_to_entity(entity: &Entity, ecs: &mut ECS, physics: &mut RapierSimulation) {
+        if let (Some(children), Some(rigid_body_handle)) = (
+            ecs.entities.game_node_children.get(entity),
+            ecs.entities.rigid_body_handle.get(entity),
+        ) {
+            for child_entity in children {
+                if let Some(child_collider) = ecs.entities.collider.get(child_entity) {
+                    let child_collider_handle =
+                        Self::create_collider(child_collider, rigid_body_handle, physics);
+                    ecs.entities
+                        .collider_handle
+                        .insert(*child_entity, child_collider_handle);
+                }
             }
         }
     }
@@ -74,36 +116,8 @@ impl World {
             if let Some(rigid_body_handle) = ecs.entities.rigid_body_handle.get(parent_entity) {
                 for child_entity in children {
                     if let Some(child_collider) = ecs.entities.collider.get(child_entity) {
-                        let is_sensor = match child_collider.kind {
-                            ColliderKind::Solid => false,
-                            ColliderKind::Sensor => true,
-                        };
-                        let child_collider_handle = match child_collider.shape {
-                            ColliderShape::Ball(radius) => {
-                                physics.create_ball_collider(radius, *rigid_body_handle, is_sensor)
-                            }
-                            ColliderShape::CapsuleX(half_y, radius) => physics
-                                .create_capsule_x_collider(
-                                    half_y,
-                                    radius,
-                                    *rigid_body_handle,
-                                    is_sensor,
-                                ),
-                            ColliderShape::CapsuleY(half_x, radius) => physics
-                                .create_capsule_y_collider(
-                                    half_x,
-                                    radius,
-                                    *rigid_body_handle,
-                                    is_sensor,
-                                ),
-                            ColliderShape::Cuboid(half_x, half_y) => physics
-                                .create_cuboid_collider(
-                                    half_x,
-                                    half_y,
-                                    *rigid_body_handle,
-                                    is_sensor,
-                                ),
-                        };
+                        let child_collider_handle =
+                            Self::create_collider(child_collider, rigid_body_handle, physics);
                         ecs.entities
                             .collider_handle
                             .insert(*child_entity, child_collider_handle);
@@ -113,8 +127,40 @@ impl World {
         }
     }
 
+    fn create_collider(
+        collider: &Collider,
+        rigid_body_handle: &RigidBodyHandle,
+        physics: &mut RapierSimulation,
+    ) -> ColliderHandle {
+        let is_sensor = match collider.kind {
+            ColliderKind::Solid => false,
+            ColliderKind::Sensor => true,
+        };
+        match collider.shape {
+            ColliderShape::Ball(radius) => {
+                physics.create_ball_collider(radius, *rigid_body_handle, is_sensor)
+            }
+            ColliderShape::CapsuleX(half_y, radius) => {
+                physics.create_capsule_x_collider(half_y, radius, *rigid_body_handle, is_sensor)
+            }
+            ColliderShape::CapsuleY(half_x, radius) => {
+                physics.create_capsule_y_collider(half_x, radius, *rigid_body_handle, is_sensor)
+            }
+            ColliderShape::Cuboid(half_x, half_y) => {
+                physics.create_cuboid_collider(half_x, half_y, *rigid_body_handle, is_sensor)
+            }
+        }
+    }
+
     pub fn apply_admin_entity_update(&mut self, entity_update: EntityUpdate) {
         self.ecs.apply_entity_update(entity_update);
+    }
+
+    pub fn add_entity(&mut self, parent_entity: Entity, child: &GameNodeKind) -> Entity {
+        let entity = ECS::add_child_to_entity(parent_entity, child, &mut self.ecs);
+        Self::add_rigid_body_for_entity(&entity, &mut self.ecs, &mut self.physics);
+        Self::attach_colliders_to_entity(&entity, &mut self.ecs, &mut self.physics);
+        entity
     }
 
     pub fn remove_entity(&mut self, entity: Entity) {

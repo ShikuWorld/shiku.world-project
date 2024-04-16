@@ -8,6 +8,7 @@ import { reactive, toRefs, watch } from "vue";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
 import { use_resources_store } from "@/editor/stores/resources";
 import { Entity } from "@/editor/blueprints/Entity";
+import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 
 export type Point = { y: number; x: number };
 
@@ -157,6 +158,23 @@ export const use_editor_store = defineStore("editor", () => {
     ) {
       send_admin_event({
         RemoveInstanceNode: [module_id, game_instance_id, world_id, entity],
+      });
+    },
+    add_entity_server(
+      module_id: string,
+      game_instance_id: string,
+      world_id: string,
+      parent_entity_id: Entity,
+      game_node: GameNodeKind,
+    ) {
+      send_admin_event({
+        AddNodeToInstanceNode: [
+          module_id,
+          game_instance_id,
+          world_id,
+          parent_entity_id,
+          game_node,
+        ],
       });
     },
     start_inspecting_world(

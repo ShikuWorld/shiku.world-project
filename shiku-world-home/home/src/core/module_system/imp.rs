@@ -171,7 +171,29 @@ impl DynamicGameModule {
         parent_entity: Entity,
         game_node: GameNodeKind,
     ) {
-        debug!("TODO add entity");
+        if let Some(world) = self.world_map.get_mut(world_id) {
+            let entity = world.add_entity(parent_entity, &game_node);
+            if let Some(game_node) = GameNodeKind::get_game_node_kind_from_ecs(&entity, &world.ecs)
+            {
+                let add_entity_event = ModuleInstanceEvent {
+                    world_id: None,
+                    module_id: self.module_id.clone(),
+                    instance_id: self.instance_id.clone(),
+                    event_type: GameSystemToGuestEvent::AddEntity(parent_entity, game_node),
+                };
+
+                Self::send_event_to_actors(
+                    world_id,
+                    &mut self.module_communication,
+                    &self.world_to_guest,
+                    &self.world_to_admin,
+                    add_entity_event,
+                    "Could not send entity add event",
+                );
+            } else {
+                error!("Could not create game node from entity!!");
+            }
+        }
     }
 
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {

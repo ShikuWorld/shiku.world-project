@@ -202,6 +202,29 @@ export const use_game_instances_store = defineStore("game-instances", {
       const render_graph_data = game_instance_data.render_graph_data;
       this.remove_child_from_render_graph(render_graph_data, entity);
     },
+    add_entity_to_instance(
+      instance_id: string,
+      world_id: string,
+      parent_id: Entity,
+      node_to_insert: GameNodeKind,
+      resource_manager: ResourceManager,
+    ) {
+      const game_instance_data = this.get_game_instance_data(
+        instance_id,
+        world_id,
+      );
+      if (!game_instance_data) {
+        return;
+      }
+      const render_graph_data = game_instance_data.render_graph_data;
+      this.add_child_to_render_graph(
+        render_graph_data,
+        parent_id,
+        node_to_insert,
+        resource_manager,
+        window.medium.create_display_object,
+      );
+    },
     apply_entity_update_for_instance(
       instance_id: string,
       world_id: string,
@@ -350,14 +373,19 @@ export const use_game_instances_store = defineStore("game-instances", {
       create_display_object_cb: typeof create_display_object,
     ) {
       const generic_game_node = get_generic_game_node(game_node_to_add);
+      const new_node_container = create_display_object_cb(
+        game_node_to_add,
+        resource_manager,
+      );
+      const parent_container = toRaw(parent.container);
       const new_node: Node = {
         children: [],
         parent,
-        container: create_display_object_cb(game_node_to_add, resource_manager),
+        container: new_node_container,
         node_id: render_key(generic_game_node),
       };
       parent.children.push(new_node);
-      parent.container.addChild(new_node.container);
+      parent_container.addChild(new_node_container);
       entity_node_to_render_node_map[new_node.node_id] = new_node;
       entity_node_map[new_node.node_id] = game_node_to_add;
       return new_node;

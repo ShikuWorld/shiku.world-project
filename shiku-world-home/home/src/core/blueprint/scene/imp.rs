@@ -8,7 +8,7 @@ use crate::core::blueprint::scene::def::{
 
 pub fn build_scene_from_ecs(ecs: &ECS) -> Option<Scene> {
     let root_entity = &ecs.scene_root;
-    if let Some(root_node) = get_game_node_kind_from_ecs(root_entity, ecs) {
+    if let Some(root_node) = GameNodeKind::get_game_node_kind_from_ecs(root_entity, ecs) {
         let scene = Scene {
             id: ecs.scene_name.clone(),
             resource_path: ecs.scene_resource_path.clone(),
@@ -19,65 +19,6 @@ pub fn build_scene_from_ecs(ecs: &ECS) -> Option<Scene> {
         return Some(scene);
     }
     error!("Could not load scene from ecs...?");
-    None
-}
-
-fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKind> {
-    if let (
-        Some(node_kind),
-        Some(node_id),
-        Some(node_name),
-        Some(node_script),
-        Some(node_children),
-    ) = (
-        ecs.entities.game_node_kind.get(entity),
-        ecs.entities.game_node_id.get(entity),
-        ecs.entities.game_node_name.get(entity),
-        ecs.entities.game_node_script.get(entity),
-        ecs.entities.game_node_children.get(entity),
-    ) {
-        let children: Vec<GameNodeKind> = node_children
-            .iter()
-            .filter_map(|child_entity| get_game_node_kind_from_ecs(child_entity, ecs))
-            .collect();
-        match node_kind {
-            GameNodeKindClean::Instance => {
-                return Some(GameNodeKind::Instance(GameNode {
-                    id: node_id.clone(),
-                    name: node_name.clone(),
-                    script: node_script.clone(),
-                    entity_id: Some(*entity),
-                    children,
-                    data: "".into(),
-                }));
-            }
-            GameNodeKindClean::Node2D => {
-                if let (Some(node_2d_kind), Some(transform)) = (
-                    get_render_node_2d_kind_from_ecs(entity, ecs),
-                    ecs.entities.transforms.get(entity),
-                ) {
-                    return Some(GameNodeKind::Node2D(GameNode {
-                        id: node_id.clone(),
-                        name: node_name.clone(),
-                        script: node_script.clone(),
-                        entity_id: Some(*entity),
-                        children,
-                        data: Node2D {
-                            transform: transform.clone(),
-                            kind: node_2d_kind,
-                        },
-                    }));
-                }
-            }
-        }
-    }
-    error!("Was not able to get game_node. entity: {:?}, kind: {:?}, id: {:?}, name: {:?}, script: {:?}, children: {:?}",
-        entity,
-        ecs.entities.game_node_kind.get(entity),
-        ecs.entities.game_node_id.get(entity),
-        ecs.entities.game_node_name.get(entity),
-        ecs.entities.game_node_script.get(entity),
-        ecs.entities.game_node_children.get(entity).is_some());
     None
 }
 
@@ -202,5 +143,66 @@ impl GameNodeKind {
                 }
             }
         }
+    }
+
+    pub(crate) fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKind> {
+        if let (
+            Some(node_kind),
+            Some(node_id),
+            Some(node_name),
+            Some(node_script),
+            Some(node_children),
+        ) = (
+            ecs.entities.game_node_kind.get(entity),
+            ecs.entities.game_node_id.get(entity),
+            ecs.entities.game_node_name.get(entity),
+            ecs.entities.game_node_script.get(entity),
+            ecs.entities.game_node_children.get(entity),
+        ) {
+            let children: Vec<GameNodeKind> = node_children
+                .iter()
+                .filter_map(|child_entity| {
+                    GameNodeKind::get_game_node_kind_from_ecs(child_entity, ecs)
+                })
+                .collect();
+            match node_kind {
+                GameNodeKindClean::Instance => {
+                    return Some(GameNodeKind::Instance(GameNode {
+                        id: node_id.clone(),
+                        name: node_name.clone(),
+                        script: node_script.clone(),
+                        entity_id: Some(*entity),
+                        children,
+                        data: "".into(),
+                    }));
+                }
+                GameNodeKindClean::Node2D => {
+                    if let (Some(node_2d_kind), Some(transform)) = (
+                        get_render_node_2d_kind_from_ecs(entity, ecs),
+                        ecs.entities.transforms.get(entity),
+                    ) {
+                        return Some(GameNodeKind::Node2D(GameNode {
+                            id: node_id.clone(),
+                            name: node_name.clone(),
+                            script: node_script.clone(),
+                            entity_id: Some(*entity),
+                            children,
+                            data: Node2D {
+                                transform: transform.clone(),
+                                kind: node_2d_kind,
+                            },
+                        }));
+                    }
+                }
+            }
+        }
+        error!("Was not able to get game_node. entity: {:?}, kind: {:?}, id: {:?}, name: {:?}, script: {:?}, children: {:?}",
+        entity,
+        ecs.entities.game_node_kind.get(entity),
+        ecs.entities.game_node_id.get(entity),
+        ecs.entities.game_node_name.get(entity),
+        ecs.entities.game_node_script.get(entity),
+        ecs.entities.game_node_children.get(entity).is_some());
+        None
     }
 }

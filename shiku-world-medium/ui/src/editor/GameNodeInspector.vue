@@ -46,6 +46,7 @@ const { selected_module_id, current_main_instance } =
   storeToRefs(use_editor_store());
 
 function entity_update(entity_update: EntityUpdateKind) {
+  console.log(game_node.value, game_node.value.entity_id);
   if (!is_instance.value && path.value && scene_resource_path.value) {
     update_data_in_scene_node_on_server(
       scene_resource_path.value,
@@ -61,6 +62,7 @@ function entity_update(entity_update: EntityUpdateKind) {
     game_node.value &&
     game_node.value.entity_id !== null
   ) {
+    console.log("???");
     update_instance_node(
       selected_module_id.value,
       current_main_instance.value.instance_id,

@@ -117,6 +117,13 @@ export class GameInstance {
       })
       .with({ AddEntity: P.select() }, ([parent_entity, node_to_add]) => {
         console.log(parent_entity, node_to_add);
+        window.medium_gui.game_instances.add_entity_to_instance(
+          this.id,
+          this.world_id,
+          parent_entity,
+          node_to_add,
+          resource_manager,
+        );
       })
       .with({ ShowTerrain: P.select() }, (layers) => {
         for (const [layer_kind, chunks] of layers) {

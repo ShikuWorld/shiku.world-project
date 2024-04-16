@@ -23,6 +23,7 @@ pub struct ECS {
     pub scene_resource_path: ResourcePath,
     pub scene_id: SceneId,
     pub entities: EntityMaps,
+    pub entity_counter: NodeInstanceId,
 }
 #[derive(Debug, RemoveEntity)]
 pub struct EntityMaps {

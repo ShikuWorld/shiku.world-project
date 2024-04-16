@@ -23,7 +23,9 @@
             <SceneEditor
               :scene="selected_scene"
               :is_scene_instance="false"
+              :menu_id="'create-scene-node'"
               @remove_node="on_remove_node_from_scene"
+              @add_node="on_add_node_to_scene"
             ></SceneEditor>
           </v-expansion-panel-text>
         </v-expansion-panel>
@@ -32,7 +34,9 @@
             <SceneEditor
               :scene="current_main_instance_scene"
               :is_scene_instance="true"
+              :menu_id="'create-instance-node'"
               @remove_node="on_remove_node_from_scene"
+              @add_node="on_add_node_to_scene"
             ></SceneEditor>
           </v-expansion-panel-text>
         </v-expansion-panel>
@@ -132,6 +136,7 @@ import SceneEditor from "@/editor/editor/SceneEditor.vue";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
 import ContextMenu from "@imengyu/vue3-context-menu";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
+import { Entity } from "@/editor/blueprints/Entity";
 
 const tab = ref<number>(0);
 const {
@@ -150,6 +155,7 @@ const {
   set_current_main_instance,
   set_selected_scene,
   remove_entity_server,
+  add_entity_server,
 } = use_editor_store();
 
 const { game_instance_exists } = use_game_instances_store();
@@ -166,6 +172,7 @@ const {
   update_map_server,
   get_resource_server,
   remove_child_from_scene_on_server,
+  add_child_to_scene_on_server,
 } = use_resources_store();
 
 const { active_component, component_stores } = storeToRefs(
@@ -239,6 +246,41 @@ function on_remove_node_from_scene(
   }
 }
 
+function on_add_node_to_scene(
+  scene_resource: string,
+  path: number[],
+  parent_game_node_id: string,
+  parent_entity_id: Entity | null,
+  node: GameNodeKind,
+  is_from_current_instance: boolean,
+) {
+  if (is_from_current_instance) {
+    if (
+      selected_module_id.value &&
+      current_main_instance.value?.instance_id &&
+      current_main_instance.value?.world_id &&
+      typeof parent_entity_id === "number"
+    ) {
+      add_entity_server(
+        selected_module_id.value,
+        current_main_instance.value.instance_id,
+        current_main_instance.value.world_id,
+        parent_entity_id,
+        node,
+      );
+    } else {
+      console.error("Could not attempt to add entity on server... weird.");
+    }
+  } else {
+    add_child_to_scene_on_server(
+      scene_resource,
+      path,
+      parent_game_node_id,
+      node,
+    );
+  }
+}
+
 function prevent_browser_default(e: MouseEvent) {
   e.preventDefault();
 }
@@ -298,12 +340,19 @@ const current_main_map = computed<GameMap | undefined>(() => {
   return undefined;
 });
 
+const scene_for_selected_node = computed(() => {
+  if (component_stores.value.game_node.is_instance) {
+    return current_main_instance_scene.value;
+  }
+  return selected_scene.value;
+});
+
 const selected_node = computed(() => {
   if (
     component_stores.value.game_node.selection_path &&
-    selected_scene.value?.root_node
+    scene_for_selected_node.value?.root_node
   ) {
-    return get_node_by_path(selected_scene.value.root_node, [
+    return get_node_by_path(scene_for_selected_node.value.root_node, [
       ...component_stores.value.game_node.selection_path,
     ]);
   }
