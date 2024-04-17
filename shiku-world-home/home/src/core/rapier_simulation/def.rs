@@ -14,5 +14,4 @@ pub struct RapierSimulation {
     pub(crate) physics_hooks: (),
     pub(crate) events: Box<dyn EventHandler>,
     pub(crate) physics_pipeline: PhysicsPipeline,
-    pub(crate) simulation_scaling_factor: Real,
 }

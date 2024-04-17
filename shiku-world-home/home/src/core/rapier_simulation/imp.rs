@@ -120,8 +120,8 @@ impl RapierSimulation {
     pub fn move_collider(&mut self, collider_handle: ColliderHandle, movement: Vector<Real>) {
         if let Some(collider) = self.colliders.get_mut(collider_handle) {
             collider.set_translation(Vector::new(
-                collider.translation().x + (movement.x / self.simulation_scaling_factor),
-                collider.translation().y + (movement.y / self.simulation_scaling_factor),
+                collider.translation().x + (movement.x),
+                collider.translation().y + (movement.y),
             ));
         } else {
             //TODO: Log critical errors like these only once somehow
@@ -208,13 +208,7 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
     ) {
         if let Some(body) = self.bodies.get_mut(body_handle) {
-            body.set_translation(
-                Vector::new(
-                    position_x / self.simulation_scaling_factor,
-                    body.translation().y,
-                ),
-                true,
-            );
+            body.set_translation(Vector::new(position_x, body.translation().y), true);
         } else {
             //TODO: Log critical errors like these only once somehow
             error!("Body handle to update did not exist, this should never happen!")
@@ -227,13 +221,7 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
     ) {
         if let Some(body) = self.bodies.get_mut(body_handle) {
-            body.set_translation(
-                Vector::new(
-                    body.translation().x,
-                    position_y / self.simulation_scaling_factor,
-                ),
-                true,
-            );
+            body.set_translation(Vector::new(body.translation().x, position_y), true);
         } else {
             //TODO: Log critical errors like these only once somehow
             error!("Body handle to update did not exist, this should never happen!")
@@ -256,10 +244,8 @@ impl RapierSimulation {
     ) -> (RigidBodyHandle, ColliderHandle) {
         let rigid_body = RigidBodyBuilder::fixed()
             .translation(Vector::new(
-                ((chunk.x * chunk.tile_width) + (chunk.tile_width / 2.0))
-                    / self.simulation_scaling_factor,
-                ((chunk.y * chunk.tile_height) - (chunk.tile_height / 2.0))
-                    / self.simulation_scaling_factor,
+                ((chunk.x * chunk.tile_width) + (chunk.tile_width / 2.0)),
+                ((chunk.y * chunk.tile_height) - (chunk.tile_height / 2.0)),
             ))
             .build();
 
@@ -267,8 +253,8 @@ impl RapierSimulation {
 
         let collider_handle = self.colliders.insert_with_parent(
             ColliderBuilder::cuboid(
-                ((chunk.tile_width * chunk.tiles_in_x) / 2.0) / self.simulation_scaling_factor,
-                ((chunk.tile_height * chunk.tiles_in_y) / 2.0) / self.simulation_scaling_factor,
+                ((chunk.tile_width * chunk.tiles_in_x) / 2.0),
+                ((chunk.tile_height * chunk.tiles_in_y) / 2.0),
             )
             .friction(0.5)
             .collision_groups(COL_GROUP_A)
@@ -287,12 +273,9 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
         is_sensor: bool,
     ) -> ColliderHandle {
-        let collider = ColliderBuilder::cuboid(
-            half_x / self.simulation_scaling_factor,
-            half_y / self.simulation_scaling_factor,
-        )
-        .sensor(is_sensor)
-        .build();
+        let collider = ColliderBuilder::cuboid(half_x, half_y)
+            .sensor(is_sensor)
+            .build();
 
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies)
@@ -304,9 +287,7 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
         is_sensor: bool,
     ) -> ColliderHandle {
-        let collider = ColliderBuilder::ball(radius / self.simulation_scaling_factor)
-            .sensor(is_sensor)
-            .build();
+        let collider = ColliderBuilder::ball(radius).sensor(is_sensor).build();
 
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies)
@@ -319,12 +300,9 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
         is_sensor: bool,
     ) -> ColliderHandle {
-        let collider = ColliderBuilder::capsule_x(
-            half_y / self.simulation_scaling_factor,
-            radius / self.simulation_scaling_factor,
-        )
-        .sensor(is_sensor)
-        .build();
+        let collider = ColliderBuilder::capsule_x(half_y, radius)
+            .sensor(is_sensor)
+            .build();
 
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies)
@@ -337,33 +315,21 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
         is_sensor: bool,
     ) -> ColliderHandle {
-        let collider = ColliderBuilder::capsule_y(
-            half_x / self.simulation_scaling_factor,
-            radius / self.simulation_scaling_factor,
-        )
-        .sensor(is_sensor)
-        .build();
+        let collider = ColliderBuilder::capsule_y(half_x, radius)
+            .sensor(is_sensor)
+            .build();
 
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies)
     }
 
     pub fn get_isometry_from_world_coordinates(&self, pos_x: Real, pos_y: Real) -> Isometry<Real> {
-        Isometry::new(
-            Vector::new(
-                pos_x / self.simulation_scaling_factor,
-                pos_y / self.simulation_scaling_factor,
-            ),
-            0.0,
-        )
+        Isometry::new(Vector::new(pos_x, pos_y), 0.0)
     }
 
     pub fn add_dynamic_rigid_body(&mut self, pos_x: Real, pos_y: Real) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::dynamic()
-            .translation(Vector::new(
-                pos_x / self.simulation_scaling_factor,
-                pos_y / self.simulation_scaling_factor,
-            ))
+            .translation(Vector::new(pos_x, pos_y))
             .build();
 
         self.bodies.insert(rigid_body)
@@ -371,10 +337,7 @@ impl RapierSimulation {
 
     pub fn add_fixed_rigid_body(&mut self, pos_x: Real, pos_y: Real) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::fixed()
-            .translation(Vector::new(
-                pos_x / self.simulation_scaling_factor,
-                pos_y / self.simulation_scaling_factor,
-            ))
+            .translation(Vector::new(pos_x, pos_y))
             .build();
 
         self.bodies.insert(rigid_body)
@@ -386,10 +349,7 @@ impl RapierSimulation {
         pos_y: Real,
     ) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::kinematic_position_based()
-            .translation(Vector::new(
-                pos_x / self.simulation_scaling_factor,
-                pos_y / self.simulation_scaling_factor,
-            ))
+            .translation(Vector::new(pos_x, pos_y))
             .build();
 
         self.bodies.insert(rigid_body)
@@ -401,10 +361,7 @@ impl RapierSimulation {
         pos_y: Real,
     ) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::kinematic_velocity_based()
-            .translation(Vector::new(
-                pos_x / self.simulation_scaling_factor,
-                pos_y / self.simulation_scaling_factor,
-            ))
+            .translation(Vector::new(pos_x, pos_y))
             .build();
 
         self.bodies.insert(rigid_body)
@@ -478,7 +435,6 @@ impl RapierSimulation {
             multibody_joints: MultibodyJointSet::new(),
             impulse_joints: ImpulseJointSet::new(),
             physics_hooks: (),
-            simulation_scaling_factor: 100.0,
             events: Box::from(event_handler),
         }
     }

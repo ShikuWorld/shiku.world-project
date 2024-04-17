@@ -40111,6 +40111,11 @@ ${e3}`);
 
   // client/resources/index.ts
   var import_strongly_typed_events4 = __toESM(require_dist8());
+
+  // shared/index.ts
+  var RENDER_SCALE = 32;
+
+  // client/resources/index.ts
   var ResourceManager = class {
     constructor(_base_url, renderer) {
       this._base_url = _base_url;
@@ -40274,8 +40279,8 @@ ${e3}`);
     N2(node).with({ Instance: _.select() }, () => {
       console.error("No instances can be displayed!");
     }).with({ Node2D: _.select() }, (game_node) => {
-      container.x = game_node.data.transform.position[0];
-      container.y = game_node.data.transform.position[1];
+      container.x = game_node.data.transform.position[0] * RENDER_SCALE;
+      container.y = game_node.data.transform.position[1] * RENDER_SCALE;
       container.rotation = game_node.data.transform.rotation;
       N2(game_node.data.kind).with({ Node2D: _.select() }, () => {
       }).with({ Render: _.select() }, (render2) => {
@@ -40292,7 +40297,16 @@ ${e3}`);
       }).with({ RigidBody: _.select() }, (rigid_body) => {
         console.log("rb", rigid_body);
       }).with({ Collider: _.select() }, (collider) => {
-        console.log("coll", collider);
+        N2(collider.shape).with({ Ball: _.select() }, (radius) => {
+          const graphics = new Graphics().circle(0, 0, radius * RENDER_SCALE).stroke({
+            color: "#ff0000",
+            width: 1
+          });
+          container.addChild(graphics);
+        }).with({ CapsuleX: _.select() }, ([_half_y, _radius]) => {
+        }).with({ CapsuleY: _.select() }, ([_half_x, _radius]) => {
+        }).with({ Cuboid: _.select() }, ([_a, _b]) => {
+        }).exhaustive();
       }).exhaustive();
     }).exhaustive();
     return container;

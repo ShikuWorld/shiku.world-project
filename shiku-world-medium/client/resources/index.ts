@@ -8,6 +8,7 @@ import {
   FrameObject,
   Container,
   Text,
+  Graphics as PixijsGraphics,
 } from "pixi.js";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { RenderSystem } from "@/client/renderer";
@@ -18,6 +19,7 @@ import { Tileset } from "@/client/communication/api/blueprints/Tileset";
 import { LoadResource } from "@/client/communication/api/bindings/LoadResource";
 import { GidMap } from "@/editor/blueprints/GidMap";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
+import { RENDER_SCALE } from "@/shared/index";
 
 export interface Graphics {
   textures: Texture[];
@@ -249,8 +251,8 @@ export function create_display_object(
       console.error("No instances can be displayed!");
     })
     .with({ Node2D: P.select() }, (game_node) => {
-      container.x = game_node.data.transform.position[0];
-      container.y = game_node.data.transform.position[1];
+      container.x = game_node.data.transform.position[0] * RENDER_SCALE;
+      container.y = game_node.data.transform.position[1] * RENDER_SCALE;
       container.rotation = game_node.data.transform.rotation;
       match(game_node.data.kind)
         .with({ Node2D: P.select() }, () => {
@@ -276,7 +278,20 @@ export function create_display_object(
           console.log("rb", rigid_body);
         })
         .with({ Collider: P.select() }, (collider) => {
-          console.log("coll", collider);
+          match(collider.shape)
+            .with({ Ball: P.select() }, (radius) => {
+              const graphics = new PixijsGraphics()
+                .circle(0, 0, radius * RENDER_SCALE)
+                .stroke({
+                  color: "#ff0000",
+                  width: 1,
+                });
+              container.addChild(graphics);
+            })
+            .with({ CapsuleX: P.select() }, ([_half_y, _radius]) => {})
+            .with({ CapsuleY: P.select() }, ([_half_x, _radius]) => {})
+            .with({ Cuboid: P.select() }, ([_a, _b]) => {})
+            .exhaustive();
         })
         .exhaustive();
     })
