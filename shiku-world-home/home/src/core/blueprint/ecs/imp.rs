@@ -47,6 +47,7 @@ impl ECS {
                 rigid_body_handle: HashMap::new(),
                 collider: HashMap::new(),
                 collider_handle: HashMap::new(),
+                dirty: HashMap::new(),
             },
         }
     }
@@ -141,16 +142,27 @@ impl ECS {
             Self::add_child_to_entity(entity, child, ecs);
         }
 
-        return entity;
+        entity
     }
 
     pub fn apply_entity_update(&mut self, entity_update: EntityUpdate) {
         let entity = entity_update.id;
         match entity_update.kind {
-            EntityUpdateKind::UpdateTransform(transform) => {
+            EntityUpdateKind::Transform(transform) => {
                 self.entities.transforms.insert(entity, transform);
             }
-            EntityUpdateKind::UpdateGid(gid) => {
+            EntityUpdateKind::RigidBodyType(rigid_body_type) => {
+                self.entities
+                    .rigid_body_type
+                    .insert(entity, rigid_body_type);
+            }
+            EntityUpdateKind::PositionRotation((x, y, r)) => {
+                if let Some(transform) = self.entities.transforms.get_mut(&entity) {
+                    transform.position = (x, y);
+                    transform.rotation = r;
+                }
+            }
+            EntityUpdateKind::Gid(gid) => {
                 self.entities.render_gid.insert(entity, gid);
             }
         }

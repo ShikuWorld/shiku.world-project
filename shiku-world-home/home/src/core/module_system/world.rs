@@ -1,12 +1,13 @@
 use crate::core::blueprint::def::{Chunk, GameMap, LayerKind, TerrainParams};
-use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, ECS};
+use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     Collider, ColliderKind, ColliderShape, GameNodeKind, RigidBodyType, Transform,
 };
 use crate::core::module_system::error::CreateWorldError;
 use crate::core::rapier_simulation::def::RapierSimulation;
-use rapier2d::prelude::{ColliderHandle, RigidBodyHandle};
+use log::debug;
+use rapier2d::prelude::*;
 use std::collections::HashMap;
 
 pub type WorldId = String;
@@ -39,6 +40,21 @@ impl World {
         })
     }
 
+    pub fn update(&mut self) {
+        self.physics.update();
+        for (entity, rigid_body_handle) in self.ecs.entities.rigid_body_handle.iter() {
+            if let Some(transform) = self.ecs.entities.transforms.get_mut(entity) {
+                let (x, y, r) = self.physics.get_rigid_body_translation(*rigid_body_handle);
+                if transform.position.0 != x || transform.position.1 != y || transform.rotation != r
+                {
+                    transform.position = (x, y);
+                    transform.rotation = r;
+                    self.ecs.entities.dirty.insert(*entity, true);
+                }
+            }
+        }
+    }
+
     fn init_physics_simulation_from_ecs(ecs: &mut ECS, physics: &mut RapierSimulation) {
         Self::create_initial_rigid_bodies(ecs, physics);
         Self::attach_initial_colliders_to_rigid_bodies(ecs, physics);
@@ -52,6 +68,7 @@ impl World {
                 ecs.entities
                     .rigid_body_handle
                     .insert(*entity, rigid_body_handle);
+                debug!("Successfully added rigid body 1");
             }
         }
     }
@@ -66,6 +83,7 @@ impl World {
             ecs.entities
                 .rigid_body_handle
                 .insert(*entity, rigid_body_handle);
+            debug!("Successfully added rigid body 2");
         }
     }
 
@@ -106,8 +124,28 @@ impl World {
                     ecs.entities
                         .collider_handle
                         .insert(*child_entity, child_collider_handle);
+                    debug!("Successfully attached collider 1");
                 }
             }
+        }
+    }
+
+    fn attach_collider_to_its_entity(
+        parent_entity: &Entity,
+        child_entity: &Entity,
+        ecs: &mut ECS,
+        physics: &mut RapierSimulation,
+    ) {
+        if let (Some(child_collider), Some(parent_rigid_body_handle)) = (
+            ecs.entities.collider.get(child_entity),
+            ecs.entities.rigid_body_handle.get(parent_entity),
+        ) {
+            let child_collider_handle =
+                Self::create_collider(child_collider, parent_rigid_body_handle, physics);
+            ecs.entities
+                .collider_handle
+                .insert(*child_entity, child_collider_handle);
+            debug!("Successfully attached collider 2");
         }
     }
 
@@ -121,6 +159,7 @@ impl World {
                         ecs.entities
                             .collider_handle
                             .insert(*child_entity, child_collider_handle);
+                        debug!("Successfully attached collider 2");
                     }
                 }
             }
@@ -153,13 +192,52 @@ impl World {
     }
 
     pub fn apply_admin_entity_update(&mut self, entity_update: EntityUpdate) {
-        self.ecs.apply_entity_update(entity_update);
+        if let Some(rigid_body_handle) = self.ecs.entities.rigid_body_handle.get(&entity_update.id)
+        {
+            let entity = &entity_update.id;
+            match entity_update.kind {
+                EntityUpdateKind::Transform(transform) => {
+                    self.physics.set_translation_and_rotation_for_rigid_body(
+                        Vector::new(transform.position.0, transform.position.1),
+                        transform.rotation,
+                        *rigid_body_handle,
+                    );
+                }
+                EntityUpdateKind::PositionRotation((x, y, r)) => {
+                    self.physics.set_translation_and_rotation_for_rigid_body(
+                        Vector::new(x, y),
+                        r,
+                        *rigid_body_handle,
+                    );
+                }
+                EntityUpdateKind::RigidBodyType(rigid_body_type) => {
+                    self.physics.remove_rigid_body(*rigid_body_handle);
+                    self.ecs.entities.rigid_body_handle.remove(entity);
+
+                    self.ecs
+                        .entities
+                        .rigid_body_type
+                        .insert(*entity, rigid_body_type);
+                    Self::add_rigid_body_for_entity(entity, &mut self.ecs, &mut self.physics);
+                    Self::attach_colliders_to_entity(entity, &mut self.ecs, &mut self.physics);
+                }
+                EntityUpdateKind::Gid(_) => {}
+            }
+        } else {
+            self.ecs.apply_entity_update(entity_update);
+        }
     }
 
     pub fn add_entity(&mut self, parent_entity: Entity, child: &GameNodeKind) -> Entity {
         let entity = ECS::add_child_to_entity(parent_entity, child, &mut self.ecs);
         Self::add_rigid_body_for_entity(&entity, &mut self.ecs, &mut self.physics);
         Self::attach_colliders_to_entity(&entity, &mut self.ecs, &mut self.physics);
+        Self::attach_collider_to_its_entity(
+            &parent_entity,
+            &entity,
+            &mut self.ecs,
+            &mut self.physics,
+        );
         entity
     }
 

@@ -266,12 +266,6 @@ pub enum CommunicationEvent {
         Option<WorldId>,
         GameSystemToGuestEvent,
     ),
-    PositionEvent(
-        ModuleId,
-        GameInstanceId,
-        Option<WorldId>,
-        Vec<(EntityId, Real, Real, Real)>,
-    ),
     ConnectionReady((SessionId, ShouldLogin)),
     Signal(SignalToMedium),
     Toast(ToastAlertLevel, String),
@@ -309,6 +303,7 @@ pub enum GameSystemToGuestEvent {
     AddEntity(Entity, GameNodeKind),
     SetMouseInputSchema(MouseInputSchema),
     SetCamera(EntityId, CameraSettings),
+    PositionEvent(Vec<(Entity, Real, Real, Real)>),
 }
 
 pub type GuestToModule = GuestEvent<ModuleInstanceEvent<GuestToModuleEvent>>;

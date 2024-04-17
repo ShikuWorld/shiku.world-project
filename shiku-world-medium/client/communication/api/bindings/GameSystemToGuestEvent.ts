@@ -9,4 +9,4 @@ import type { LayerName } from "./LayerName";
 import type { MouseInputSchema } from "./MouseInputSchema";
 import type { Scene } from "../blueprints/Scene";
 
-export type GameSystemToGuestEvent = { OpenMenu: string } | { CloseMenu: string } | { UpdateDataStore: string } | { ShowTerrain: Array<[LayerKind, Array<Chunk>]> } | { SetParallax: Array<[LayerName, [number, number]]> } | { ShowScene: Scene } | { UpdateEntity: EntityUpdate } | { RemoveEntity: Entity } | { AddEntity: [Entity, GameNodeKind] } | { SetMouseInputSchema: MouseInputSchema } | { SetCamera: [string, CameraSettings] };
+export type GameSystemToGuestEvent = { OpenMenu: string } | { CloseMenu: string } | { UpdateDataStore: string } | { ShowTerrain: Array<[LayerKind, Array<Chunk>]> } | { SetParallax: Array<[LayerName, [number, number]]> } | { ShowScene: Scene } | { UpdateEntity: EntityUpdate } | { RemoveEntity: Entity } | { AddEntity: [Entity, GameNodeKind] } | { SetMouseInputSchema: MouseInputSchema } | { SetCamera: [string, CameraSettings] } | { PositionEvent: Array<[Entity, number, number, number]> };

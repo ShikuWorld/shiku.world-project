@@ -55,14 +55,6 @@ export class GameInstance {
     update_grid(this.renderer.camera.camera_isometry, this.renderer);
   }
 
-  handle_position_update(
-    position_update: Array<[string, number, number, number]>,
-  ) {
-    for (const [entity_id, x, y, r] of position_update) {
-      this.entity_manager.update_entity_position(entity_id, x, y, r);
-    }
-  }
-
   handle_game_system_event(
     game_system_event: GameSystemToGuestEvent,
     menu_system: MenuSystem,
@@ -100,11 +92,11 @@ export class GameInstance {
         }
         this.renderer.layer_map.ObjectsBelow.addChild(root_container);
       })
-      .with({ UpdateEntity: P.select() }, (node) => {
+      .with({ UpdateEntity: P.select() }, (entity_update) => {
         window.medium_gui.game_instances.apply_entity_update_for_instance(
           this.id,
           this.world_id,
-          node,
+          entity_update,
           resource_manager,
         );
       })
@@ -187,6 +179,21 @@ export class GameInstance {
                                                                                           this.renderer.layerContainer[layer_name].x_pscaling = parallax[0];
                                                                                           this.renderer.layerContainer[layer_name].y_pscaling = parallax[1];
                                                                                         }*/
+      })
+      .with({ PositionEvent: P.select() }, (entities) => {
+        for (const [entity, x, y, r] of entities) {
+          window.medium_gui.game_instances.apply_entity_update_for_instance(
+            this.id,
+            this.world_id,
+            {
+              id: entity,
+              kind: {
+                PositionRotation: [x, y, r],
+              },
+            },
+            resource_manager,
+          );
+        }
       })
       .exhaustive();
   }

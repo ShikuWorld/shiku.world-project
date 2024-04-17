@@ -462,7 +462,7 @@ export function create_2d_game_node(
     .with(
       "Node2D-Collider",
       (): Node2DKind => ({
-        Collider: { kind: "Solid", shape: { Ball: 0 } },
+        Collider: { kind: "Solid", shape: { Ball: 100 } },
       }),
     )
     .with(

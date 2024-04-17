@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use apecs::World as ApecsWorld;
 use flume::Sender;
 use log::{debug, error};
+use rapier2d::math::Real;
 use tokio::time::Instant;
 
 use crate::core::blueprint::def::{
@@ -113,6 +114,51 @@ impl DynamicGameModule {
 
     pub fn update(&mut self, module: &Module) {
         self.handle_guest_events(module);
+        for world in self.world_map.values_mut() {
+            world.update();
+            let position_updates = Self::get_position_updates(world);
+            if position_updates.is_empty() {
+                continue;
+            }
+            let update_position_event = ModuleInstanceEvent {
+                world_id: None,
+                module_id: self.module_id.clone(),
+                instance_id: self.instance_id.clone(),
+                event_type: GameSystemToGuestEvent::PositionEvent(position_updates),
+            };
+            Self::send_event_to_actors(
+                &world.world_id,
+                &mut self.module_communication,
+                &self.world_to_guest,
+                &self.world_to_admin,
+                update_position_event,
+                "Could not send entity update",
+            );
+        }
+    }
+
+    pub fn get_position_updates(world: &mut World) -> Vec<(Entity, Real, Real, Real)> {
+        let transforms = &mut world.ecs.entities.transforms;
+        world
+            .ecs
+            .entities
+            .dirty
+            .drain()
+            .filter_map(|(entity, dirty)| {
+                if dirty {
+                    transforms.get(&entity).map(|transform| {
+                        (
+                            entity,
+                            transform.position.0,
+                            transform.position.1,
+                            transform.rotation,
+                        )
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     pub fn actor_disconnected(&mut self, actor_id: &ActorId) {

@@ -83,7 +83,7 @@ function update_transform(key: keyof Transform, newValue: unknown) {
     ...game_node.value.data.transform,
     [key]: newValue,
   };
-  emit("entityUpdate", { UpdateTransform: transform });
+  emit("entityUpdate", { Transform: transform });
 }
 
 function entity_updated(entity_update: EntityUpdateKind) {

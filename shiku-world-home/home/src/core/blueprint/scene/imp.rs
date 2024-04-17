@@ -123,12 +123,25 @@ impl GameNodeKind {
 
     pub fn update_with_entity_update(&mut self, update: EntityUpdateKind) {
         match update {
-            EntityUpdateKind::UpdateTransform(transform) => {
+            EntityUpdateKind::Transform(transform) => {
                 if let GameNodeKind::Node2D(n) = self {
                     n.data.transform = transform;
                 }
             }
-            EntityUpdateKind::UpdateGid(gid) => {
+            EntityUpdateKind::RigidBodyType(rigid_body_type) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
+                        rigid_body.body = rigid_body_type;
+                    }
+                }
+            }
+            EntityUpdateKind::PositionRotation((x, y, r)) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    n.data.transform.position = (x, y);
+                    n.data.transform.rotation = r;
+                }
+            }
+            EntityUpdateKind::Gid(gid) => {
                 if let GameNodeKind::Node2D(n) = self {
                     if let Node2DKind::Render(r) = &mut n.data.kind {
                         match r.kind {

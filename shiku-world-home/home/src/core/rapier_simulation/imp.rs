@@ -129,9 +129,33 @@ impl RapierSimulation {
         }
     }
 
+    fn atan2_approx(im: f32, re: f32) -> f32 {
+        let abs_y = im.abs() + 1e-10; // kludge to prevent 0/0 condition
+        let r = (re - re.signum() * abs_y) / (abs_y + re.abs());
+        let mut angle = std::f32::consts::PI / 2.0 - (std::f32::consts::PI / 4.0) * re.signum();
+        angle += (0.1963 * r * r - 0.9817) * r;
+        angle * im.signum()
+    }
+
+    pub fn get_rigid_body_translation(
+        &self,
+        rigid_body_handle: RigidBodyHandle,
+    ) -> (Real, Real, Real) {
+        if let Some(rigid_body) = self.bodies.get(rigid_body_handle) {
+            let position = rigid_body.position();
+            return (
+                position.translation.x,
+                position.translation.y,
+                Self::atan2_approx(position.rotation.im, position.rotation.re),
+            );
+        }
+
+        (0.0, 0.0, 0.0)
+    }
+
     pub fn s_get_collider_translation(&self, collider_handle: ColliderHandle) -> Vector<Real> {
         if let Some(collider) = self.colliders.get(collider_handle) {
-            return collider.translation().clone();
+            return *collider.translation();
         }
 
         Vector::zeros()
@@ -157,6 +181,21 @@ impl RapierSimulation {
     ) {
         if let Some(body) = self.bodies.get_mut(body_handle) {
             body.set_translation(position, true);
+        } else {
+            //TODO: Log critical errors like these only once somehow
+            error!("Body handle to update did not exist, this should never happen!")
+        }
+    }
+
+    pub fn set_translation_and_rotation_for_rigid_body(
+        &mut self,
+        position: Vector<Real>,
+        rotation: Real,
+        body_handle: RigidBodyHandle,
+    ) {
+        if let Some(body) = self.bodies.get_mut(body_handle) {
+            body.set_translation(position, true);
+            body.set_rotation(Rotation::new(rotation), true);
         } else {
             //TODO: Log critical errors like these only once somehow
             error!("Body handle to update did not exist, this should never happen!")
@@ -422,14 +461,14 @@ impl RapierSimulation {
     }
 
     pub fn new() -> RapierSimulation {
-        let (contact_send, contact_receiver) = crossbeam::channel::unbounded();
-        let (intersection_send, intersection_receiver) = crossbeam::channel::unbounded();
+        let (contact_send, _contact_receiver) = crossbeam::channel::unbounded();
+        let (intersection_send, _intersection_receiver) = crossbeam::channel::unbounded();
         let event_handler = ChannelEventCollector::new(intersection_send, contact_send);
 
         RapierSimulation {
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
-            gravity: Vector::new(0.0, 0.0),
+            gravity: Vector::new(0.0, 1.0),
             integration_parameters: IntegrationParameters::default(),
             physics_pipeline: PhysicsPipeline::new(),
             islands: IslandManager::new(),

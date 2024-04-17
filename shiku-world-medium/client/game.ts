@@ -219,17 +219,6 @@ export async function start_medium() {
             }
           },
         )
-        .with(
-          { PositionEvent: P.select() },
-          ([_module_id, instance_id, w_id, position_event]) => {
-            const world_id = w_id ? w_id : "default";
-            if (instances[instance_id] && instances[instance_id][world_id]) {
-              instances[instance_id][world_id].handle_position_update(
-                position_event,
-              );
-            }
-          },
-        )
         .with({ Signal: P.select() }, (signal_to_guest) => {
           if (signal_to_guest === "LoginSuccess") {
             menu_system.deactivate("login-menu");

@@ -50,7 +50,7 @@ function update_render_type(kind: KeysOfUnion<RenderKind>) {
 }
 
 function update_gid(gid: string) {
-  emit("entityUpdate", { UpdateGid: Number(gid) });
+  emit("entityUpdate", { Gid: Number(gid) });
 }
 </script>
 <style></style>

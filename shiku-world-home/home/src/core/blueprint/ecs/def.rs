@@ -43,6 +43,7 @@ pub struct EntityMaps {
     pub rigid_body_handle: HashMap<Entity, RigidBodyHandle>,
     pub collider: HashMap<Entity, Collider>,
     pub collider_handle: HashMap<Entity, ColliderHandle>,
+    pub dirty: HashMap<Entity, bool>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -55,6 +56,8 @@ pub struct EntityUpdate {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum EntityUpdateKind {
-    UpdateTransform(Transform),
-    UpdateGid(Gid),
+    Transform(Transform),
+    RigidBodyType(RigidBodyType),
+    PositionRotation((Real, Real, Real)),
+    Gid(Gid),
 }

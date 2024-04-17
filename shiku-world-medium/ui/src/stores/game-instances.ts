@@ -255,7 +255,7 @@ export const use_game_instances_store = defineStore("game-instances", {
       }
       const game_node = Object.values(node)[0];
       match(update.kind)
-        .with({ UpdateTransform: P.select() }, (transform) => {
+        .with({ Transform: P.select() }, (transform) => {
           if (!game_node.data.transform) {
             console.error("Tried to update Node without transform, wtf?");
             return;
@@ -265,7 +265,35 @@ export const use_game_instances_store = defineStore("game-instances", {
           render_node.container.position.y = transform.position[1];
           render_node.container.rotation = transform.rotation;
         })
-        .with({ UpdateGid: P.select() }, (gid) => {
+        .with({ RigidBodyType: P.select() }, (rigid_body_type) => {
+          if (!game_node.data.transform) {
+            console.error(
+              "Tried to update rigid body without a transform, wtf?",
+            );
+            return;
+          }
+          const node_2d = game_node.data as Node2D;
+          const rigid_body =
+            "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
+          if (!rigid_body) {
+            console.error("Could not upate rigid body type");
+            return;
+          }
+          rigid_body.body = rigid_body_type;
+        })
+        .with({ PositionRotation: P.select() }, ([x, y, r]) => {
+          if (!game_node.data.transform) {
+            console.error("Tried to update Node without transform, wtf?");
+            return;
+          }
+          const node_2d = game_node.data as Node2D;
+          node_2d.transform.position = [x, y];
+          node_2d.transform.rotation = r;
+          render_node.container.position.x = x;
+          render_node.container.position.y = y;
+          render_node.container.rotation = r;
+        })
+        .with({ Gid: P.select() }, (gid) => {
           if (get_gid(game_node) === gid) {
             return;
           }

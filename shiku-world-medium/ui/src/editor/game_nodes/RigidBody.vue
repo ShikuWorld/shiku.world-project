@@ -5,7 +5,7 @@
     :hide-details="true"
     :items="body_options"
     :model-value="data.body"
-    @update:model-value="(newValue) => update_body('body', newValue)"
+    @update:model-value="(newValue) => update_body_type(newValue)"
   ></v-select>
   <v-label class="form-label">Velocity</v-label>
   <v-text-field
@@ -32,11 +32,10 @@
   ></v-text-field>
 </template>
 <script lang="ts" setup>
-import { toRaw, toRefs } from "vue";
+import { toRefs } from "vue";
 import { RigidBody } from "@/editor/blueprints/RigidBody";
 import { RigidBodyType } from "@/editor/blueprints/RigidBodyType";
 import { mdiAlphaXBox, mdiAlphaYBox } from "@mdi/js";
-import { Node2DKind } from "@/editor/blueprints/Node2DKind";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 
 const props = defineProps<{ data: RigidBody }>();
@@ -52,14 +51,11 @@ const emit = defineEmits<{
 }>();
 
 function update_body(_key: keyof RigidBody, _newValue: unknown) {
-  /*const update = {
-    ...{
-      body: data.value.body,
-      velocity: toRaw(data.value.velocity),
-    },
-    [key]: newValue,
-  };*/
-  //TODO: Update rigid body
+  console.log("This does nothing atm :)");
+}
+
+function update_body_type(rigid_body_type: RigidBodyType) {
+  emit("entityUpdate", { RigidBodyType: rigid_body_type });
 }
 </script>
 <style>

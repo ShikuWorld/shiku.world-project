@@ -3,20 +3,17 @@ use std::fmt::Debug;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
-use flume::{Sender, unbounded};
+use flume::{unbounded, Sender};
 use log::{debug, error, warn};
 use snowflake::SnowflakeIdBucket;
 use tungstenite::protocol::frame::coding::CloseCode;
 
-use crate::{ResourceModule, SystemModule, WebsocketModule};
 use crate::conductor_module::admin_to_system_events::handle_admin_to_system_event;
 use crate::conductor_module::def::ConductorModule;
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
 use crate::conductor_module::game_instances::create_game_instance_manager;
-use crate::core::{blueprint, send_and_log_error, send_and_log_error_custom};
-use crate::core::{LOGGED_IN_TODAY_DELAY_IN_HOURS, safe_unwrap, Snowflake};
 use crate::core::blueprint::def::{BlueprintService, GidMap, ModuleId, TerrainParams, Tileset};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{
@@ -25,17 +22,20 @@ use crate::core::guest::{
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, EnterFailedState, EnterSuccessState,
     GamePosition, GameSystemToGuest, GuestEvent, GuestStateChange, GuestTo, GuestToModule,
-    GuestToModuleEvent, GuestToSystemEvent, LeaveFailedState, LeaveSuccessState, ModuleInstanceEvent,
-    ModuleIO, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent,
+    GuestToModuleEvent, GuestToSystemEvent, LeaveFailedState, LeaveSuccessState, ModuleIO,
+    ModuleInstanceEvent, ModuleName, ModuleState, ModuleToSystem, ModuleToSystemEvent,
     SignalToMedium, SystemCommunicationIO, SystemToModule, SystemToModuleEvent, ToastAlertLevel,
 };
 use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceManager};
 use crate::core::module_system::world::WorldId;
+use crate::core::{blueprint, send_and_log_error, send_and_log_error_custom};
+use crate::core::{safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
 use crate::login::login_manager::{LoginError, LoginManager};
-use crate::persistence_module::{PersistenceError, PersistenceModule};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
+use crate::persistence_module::{PersistenceError, PersistenceModule};
 use crate::resource_module::def::ResourceBundle;
 use crate::webserver_module::def::WebServerModule;
+use crate::{ResourceModule, SystemModule, WebsocketModule};
 
 impl SystemModule for ConductorModule {
     fn module_name(&self) -> ModuleName {
@@ -822,7 +822,8 @@ impl ConductorModule {
             guest_id,
             event_type,
         } = game_position;
-        if let Ok(message_as_string) = serde_json::to_string(&CommunicationEvent::PositionEvent(
+        debug!("{:?} {:?}", guest_id, event_type);
+        /*if let Ok(message_as_string) = serde_json::to_string(&CommunicationEvent::PositionEvent(
             event_type.0,
             event_type.1,
             event_type.2,
@@ -833,7 +834,7 @@ impl ConductorModule {
             }
         } else {
             return Err(ProcessGameEventError::CouldNotSerializePosition);
-        }
+        }*/
 
         Ok(())
     }

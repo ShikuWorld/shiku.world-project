@@ -40873,11 +40873,6 @@ ${e3}`);
       }
       update_grid(this.renderer.camera.camera_isometry, this.renderer);
     }
-    handle_position_update(position_update) {
-      for (const [entity_id, x3, y3, r3] of position_update) {
-        this.entity_manager.update_entity_position(entity_id, x3, y3, r3);
-      }
-    }
     handle_game_system_event(game_system_event, menu_system, resource_manager) {
       N2(game_system_event).with({ SetCamera: _.select() }, ([entity_id, camera_settings]) => {
         this.renderer.camera.set_camera_ref(entity_id, this.module_name);
@@ -40905,11 +40900,11 @@ ${e3}`);
           return;
         }
         this.renderer.layer_map.ObjectsBelow.addChild(root_container);
-      }).with({ UpdateEntity: _.select() }, (node) => {
+      }).with({ UpdateEntity: _.select() }, (entity_update) => {
         window.medium_gui.game_instances.apply_entity_update_for_instance(
           this.id,
           this.world_id,
-          node,
+          entity_update,
           resource_manager
         );
       }).with({ RemoveEntity: _.select() }, (entity_id) => {
@@ -40951,6 +40946,20 @@ ${e3}`);
           mouse_plugin.plugin_options.mouse_mode = mouse_mode;
         }
       }).with({ SetParallax: _.select() }, (_layer_parallax) => {
+      }).with({ PositionEvent: _.select() }, (entities) => {
+        for (const [entity, x3, y3, r3] of entities) {
+          window.medium_gui.game_instances.apply_entity_update_for_instance(
+            this.id,
+            this.world_id,
+            {
+              id: entity,
+              kind: {
+                PositionRotation: [x3, y3, r3]
+              }
+            },
+            resource_manager
+          );
+        }
       }).exhaustive();
     }
     destroy() {
@@ -41177,16 +41186,6 @@ ${e3}`);
                 game_system_event,
                 menu_system,
                 lazy_get_resource_manager(module_id)
-              );
-            }
-          }
-        ).with(
-          { PositionEvent: _.select() },
-          ([_module_id, instance_id, w_id, position_event]) => {
-            const world_id = w_id ? w_id : "default";
-            if (instances[instance_id] && instances[instance_id][world_id]) {
-              instances[instance_id][world_id].handle_position_update(
-                position_event
               );
             }
           }
