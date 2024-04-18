@@ -221,7 +221,7 @@ impl World {
                     Self::add_rigid_body_for_entity(entity, &mut self.ecs, &mut self.physics);
                     Self::attach_colliders_to_entity(entity, &mut self.ecs, &mut self.physics);
                 }
-                EntityUpdateKind::Gid(_) => {}
+                EntityUpdateKind::Gid(_) | EntityUpdateKind::Name(_) => {}
             }
         } else {
             self.ecs.apply_entity_update(entity_update);

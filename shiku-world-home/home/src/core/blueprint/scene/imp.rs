@@ -128,6 +128,11 @@ impl GameNodeKind {
                     n.data.transform = transform;
                 }
             }
+            EntityUpdateKind::Name(name) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    n.name = name;
+                }
+            }
             EntityUpdateKind::RigidBodyType(rigid_body_type) => {
                 if let GameNodeKind::Node2D(n) = self {
                     if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {

@@ -11,7 +11,8 @@
     "types": ["@types/twitch-ext"],
     "paths": {
       "@/editor/*": ["ui/src/*"],
-      "@/client/*": ["client/*"]
+      "@/client/*": ["client/*"],
+      "@/shared/*": ["shared/*"]
     }
   }
 }

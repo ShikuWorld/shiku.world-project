@@ -11,7 +11,7 @@ import { Node2D } from "@/editor/blueprints/Node2D";
 import { GameNode } from "@/editor/blueprints/GameNode";
 import { toRaw } from "vue";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
-import { RENDER_SCALE } from "../../../shared";
+import { RENDER_SCALE } from "@/shared/index";
 
 export interface Node {
   node_id: ReturnType<typeof render_key>;
@@ -267,6 +267,9 @@ export const use_game_instances_store = defineStore("game-instances", {
           render_node.container.position.y =
             transform.position[1] * RENDER_SCALE;
           render_node.container.rotation = transform.rotation;
+        })
+        .with({ Name: P.select() }, (name) => {
+          game_node.name = name;
         })
         .with({ RigidBodyType: P.select() }, (rigid_body_type) => {
           if (!game_node.data.transform) {

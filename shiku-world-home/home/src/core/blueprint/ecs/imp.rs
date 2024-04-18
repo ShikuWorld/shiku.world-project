@@ -151,6 +151,9 @@ impl ECS {
             EntityUpdateKind::Transform(transform) => {
                 self.entities.transforms.insert(entity, transform);
             }
+            EntityUpdateKind::Name(name) => {
+                self.entities.game_node_name.insert(entity, name);
+            }
             EntityUpdateKind::RigidBodyType(rigid_body_type) => {
                 self.entities
                     .rigid_body_type

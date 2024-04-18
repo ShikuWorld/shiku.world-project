@@ -15,6 +15,7 @@ export default {
     alias: {
       "@/editor": fileURLToPath(new URL("./src", import.meta.url)),
       "@/client": fileURLToPath(new URL("../client", import.meta.url)),
+      "@/shared": fileURLToPath(new URL("../shared", import.meta.url)),
     },
   },
 };

@@ -57,6 +57,7 @@ pub struct EntityUpdate {
 #[ts(export, export_to = "blueprints/")]
 pub enum EntityUpdateKind {
     Transform(Transform),
+    Name(String),
     RigidBodyType(RigidBodyType),
     PositionRotation((Real, Real, Real)),
     Gid(Gid),

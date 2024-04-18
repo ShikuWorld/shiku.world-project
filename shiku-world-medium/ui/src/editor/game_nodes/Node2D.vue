@@ -1,6 +1,11 @@
 <template>
   <div>
-    <div>{{ node_2d_type }}</div>
+    <v-text-field
+      :hide-details="true"
+      density="compact"
+      :model-value="game_node.name"
+      @update:model-value="(new_value) => update_name(new_value)"
+    ></v-text-field>
     <v-label class="form-label">Transform</v-label>
     <v-label class="form-label">Position</v-label>
     <v-text-field
@@ -77,6 +82,10 @@ const node_2d_component = computed(() => {
 const emit = defineEmits<{
   (e: "entityUpdate", data: EntityUpdateKind): void;
 }>();
+
+function update_name(name: string) {
+  emit("entityUpdate", { Name: name });
+}
 
 function update_transform(key: keyof Transform, newValue: unknown) {
   const transform = {

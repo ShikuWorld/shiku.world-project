@@ -2,4 +2,4 @@
 import type { RigidBodyType } from "./RigidBodyType";
 import type { Transform } from "./Transform";
 
-export type EntityUpdateKind = { Transform: Transform } | { RigidBodyType: RigidBodyType } | { PositionRotation: [number, number, number] } | { Gid: number };
+export type EntityUpdateKind = { Transform: Transform } | { Name: string } | { RigidBodyType: RigidBodyType } | { PositionRotation: [number, number, number] } | { Gid: number };
