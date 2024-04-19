@@ -9,7 +9,7 @@ import { EntityUpdate } from "@/editor/blueprints/EntityUpdate";
 import { match, P } from "ts-pattern";
 import { Node2D } from "@/editor/blueprints/Node2D";
 import { GameNode } from "@/editor/blueprints/GameNode";
-import { toRaw } from "vue";
+import { markRaw, toRaw } from "vue";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 import { RENDER_SCALE } from "@/shared/index";
 
@@ -78,7 +78,7 @@ export const use_game_instances_store = defineStore("game-instances", {
       if (!this.blueprint_render.render_graph_data?.render_root.container) {
         return;
       }
-
+      console.log(this.blueprint_render);
       window.medium.set_blueprint_renderer(
         this.blueprint_render as GameInstancesStore["blueprint_render"],
       );
@@ -96,7 +96,7 @@ export const use_game_instances_store = defineStore("game-instances", {
           render_root: {
             node_id: 0,
             children: [],
-            container: create_container(),
+            container: markRaw(create_container()),
             parent: null,
           },
           entity_node_map: {},
@@ -105,7 +105,7 @@ export const use_game_instances_store = defineStore("game-instances", {
         instance_scene: null,
       };
     },
-    get_raw_root_container(instance_id: string, world_id: string) {
+    get_root_container(instance_id: string, world_id: string) {
       const game_instance_data = this.get_game_instance_data(
         instance_id,
         world_id,
@@ -113,7 +113,7 @@ export const use_game_instances_store = defineStore("game-instances", {
       if (!game_instance_data?.render_graph_data) {
         return null;
       }
-      return toRaw(game_instance_data.render_graph_data.render_root.container);
+      return game_instance_data.render_graph_data.render_root.container;
     },
     get_game_instance_data(instance_id: string, world_id: string) {
       if (
@@ -164,9 +164,8 @@ export const use_game_instances_store = defineStore("game-instances", {
         render_root: {
           node_id: render_key(game_node_root),
           children: [],
-          container: create_display_object_cb(
-            scene.root_node,
-            resource_manager,
+          container: markRaw(
+            create_display_object_cb(scene.root_node, resource_manager),
           ),
           parent: null,
         },
@@ -407,11 +406,10 @@ export const use_game_instances_store = defineStore("game-instances", {
       create_display_object_cb: typeof create_display_object,
     ) {
       const generic_game_node = get_generic_game_node(game_node_to_add);
-      const new_node_container = create_display_object_cb(
-        game_node_to_add,
-        resource_manager,
+      const new_node_container = markRaw(
+        create_display_object_cb(game_node_to_add, resource_manager),
       );
-      const parent_container = toRaw(parent.container);
+      const parent_container = parent.container;
       const new_node: Node = {
         children: [],
         parent,
@@ -419,6 +417,7 @@ export const use_game_instances_store = defineStore("game-instances", {
         node_id: render_key(generic_game_node),
       };
       parent.children.push(new_node);
+      console.log(parent_container, new_node_container);
       parent_container.addChild(new_node_container);
       entity_node_to_render_node_map[new_node.node_id] = new_node;
       entity_node_map[new_node.node_id] = game_node_to_add;

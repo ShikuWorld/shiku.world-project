@@ -40903,7 +40903,7 @@ ${e3}`);
           resource_manager,
           create_display_object
         );
-        const root_container = window.medium_gui.game_instances.get_raw_root_container(
+        const root_container = window.medium_gui.game_instances.get_root_container(
           this.id,
           this.world_id
         );
@@ -40928,7 +40928,6 @@ ${e3}`);
           entity_id
         );
       }).with({ AddEntity: _.select() }, ([parent_entity, node_to_add]) => {
-        console.log(parent_entity, node_to_add);
         window.medium_gui.game_instances.add_entity_to_instance(
           this.id,
           this.world_id,

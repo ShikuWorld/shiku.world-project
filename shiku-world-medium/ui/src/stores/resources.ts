@@ -64,6 +64,17 @@ export const use_resources_store = defineStore("resources", () => {
         };
       }
     },
+    get_or_load_scene(
+      scene_map: { [scene_path: string]: Scene },
+      path: string,
+    ): Scene | undefined {
+      if (!scene_map[path]) {
+        this.get_resource_server(path);
+        return undefined;
+      }
+
+      return scene_map[path];
+    },
     delete_module(module_id: string) {
       const modules = {
         ...state.modules,
@@ -210,12 +221,6 @@ export const use_resources_store = defineStore("resources", () => {
           }
         })
         .exhaustive();
-    },
-    get_scene(resource_path: string) {
-      if (!state.scene_map[resource_path]) {
-        this.get_resource_server(resource_path);
-      }
-      return state.scene_map[resource_path];
     },
     delete_scene(scene: Scene) {
       const scene_map = { ...state.scene_map };

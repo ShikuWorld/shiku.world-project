@@ -9,6 +9,7 @@ import {
   Container,
   Text,
   Graphics as PixijsGraphics,
+  Matrix,
 } from "pixi.js";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { RenderSystem } from "@/client/renderer";

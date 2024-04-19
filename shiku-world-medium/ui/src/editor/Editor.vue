@@ -170,6 +170,7 @@ const {
   get_tileset,
   load_modules,
   update_map_server,
+  get_or_load_scene,
   get_resource_server,
   remove_child_from_scene_on_server,
   add_child_to_scene_on_server,
@@ -197,7 +198,7 @@ const tilesets_of_current_module = computed(() => {
 const scenes_in_module = computed(() => {
   return selected_module.value.resources
     .filter((r) => r.kind === "Scene")
-    .map((r) => scene_map.value[r.path])
+    .map((r) => get_or_load_scene(scene_map.value, r.path))
     .filter((r) => r);
 });
 
@@ -303,17 +304,15 @@ function load_map_palette() {
 }
 const selected_scene = computed(() => {
   if (selected_scene_props.value.scene_path !== null) {
-    if (scene_map.value[selected_scene_props.value.scene_path]) {
-      return scene_map.value[selected_scene_props.value.scene_path];
-    } else {
-      get_resource_server(selected_scene_props.value.scene_path);
-    }
+    return get_or_load_scene(
+      scene_map.value,
+      selected_scene_props.value.scene_path,
+    );
   }
 
   return null;
 });
 const current_main_instance_scene = computed(() => {
-  console.log("Checking for changes in game instances...");
   const { instance_id, world_id } = current_main_instance.value;
 
   if (
