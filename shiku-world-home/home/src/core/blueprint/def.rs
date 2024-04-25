@@ -131,13 +131,13 @@ pub struct AnimationFrame {
     duration: u32,
 }
 
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[derive(TS, Debug, Serialize, Deserialize, Clone, Default)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Tile {
-    id: u32,
-    image: Option<Image>,
-    animation: Option<Vec<AnimationFrame>>,
-    collision_shape: Option<CollisionShape>,
+    pub id: u32,
+    pub image: Option<Image>,
+    pub animation: Option<Vec<AnimationFrame>>,
+    pub collision_shape: Option<CollisionShape>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

@@ -11,11 +11,13 @@ use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
 use crate::core::blueprint::def::{
-    BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded,
+    BlueprintError, BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin};
-use crate::core::module::{AdminToSystemEvent, CommunicationEvent, EditorEvent, SceneNodeUpdate};
+use crate::core::module::{
+    AdminToSystemEvent, CommunicationEvent, EditorEvent, SceneNodeUpdate, TilesetUpdate,
+};
 use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
@@ -307,6 +309,26 @@ pub async fn handle_admin_to_system_event(
             }
             Err(err) => error!("Could not create tileset: {:?}", err),
         },
+        AdminToSystemEvent::UpdateTileset(resource_path, tileset_update) => {
+            if let Ok(mut tileset) = Blueprint::load_tileset(resource_path.into()) {
+                match tileset_update {
+                    TilesetUpdate::UpdateCollisionShape(gid, collision_shape) => {
+                        let tile = tileset.tiles.entry(gid).or_default();
+                        tile.collision_shape = Some(collision_shape);
+                    }
+                    TilesetUpdate::RemoveCollisionShape(gid) => {
+                        let tile = tileset.tiles.entry(gid).or_default();
+                        tile.collision_shape = None;
+                    }
+                }
+                match Blueprint::save_tileset(&tileset) {
+                    Ok(()) => {
+                        send_editor_event(EditorEvent::SetTileset(tileset));
+                    }
+                    Err(err) => error!("Could not update tileset: {:?}", err),
+                }
+            }
+        }
         AdminToSystemEvent::SetTileset(tileset) => match Blueprint::save_tileset(&tileset) {
             Ok(()) => {
                 send_editor_event(EditorEvent::SetTileset(tileset));

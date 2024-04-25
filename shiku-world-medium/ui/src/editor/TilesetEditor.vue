@@ -113,6 +113,7 @@ const rows = computed(() => {
 function g_id(y: number, x: number) {
   return (y - 1) * rows.value + x;
 }
+
 const columns = computed(() => {
   if (tileset.value.image) {
     return tileset.value.image.height / tileset.value.tile_height;

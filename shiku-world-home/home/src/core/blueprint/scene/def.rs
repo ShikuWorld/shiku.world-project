@@ -120,7 +120,11 @@ pub enum RigidBodyType {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub enum CollisionShape {}
+pub enum CollisionShape {
+    Rectangle(Real, Real, Real, Real), // start_x, start_y, width, height
+    Circle(Real, Real, Real),          // center_x, center_y, radius
+    Polygon(Vec<(Real, Real)>),        // x,y of a closed polygon
+}
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]

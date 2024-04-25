@@ -6,10 +6,12 @@ use ts_rs::TS;
 
 use crate::core::blueprint;
 use crate::core::blueprint::def::{
-    Chunk, Conductor, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
+    Chunk, Conductor, Gid, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tile, Tileset,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
-use crate::core::blueprint::scene::def::{GameNodeId, GameNodeKind, Scene, SceneId};
+use crate::core::blueprint::scene::def::{
+    CollisionShape, GameNodeId, GameNodeKind, Scene, SceneId,
+};
 use crate::core::entity::def::EntityId;
 use crate::core::entity::render::CameraSettings;
 use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
@@ -102,6 +104,7 @@ pub enum AdminToSystemEvent {
     GetResource(ResourcePath),
     CreateTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
+    UpdateTileset(ResourcePath, TilesetUpdate),
     DeleteTileset(blueprint::def::Tileset),
     CreateScene(blueprint::scene::def::Scene),
     UpdateSceneNode(SceneNodeUpdate),
@@ -125,6 +128,13 @@ pub enum SceneNodeUpdate {
     UpdateData(SceneId, Vec<usize>, GameNodeId, EntityUpdateKind),
     AddChild(SceneId, Vec<usize>, GameNodeId, GameNodeKind),
     RemoveChild(SceneId, Vec<usize>, GameNodeKind),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
+pub enum TilesetUpdate {
+    UpdateCollisionShape(Gid, CollisionShape),
+    RemoveCollisionShape(Gid),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

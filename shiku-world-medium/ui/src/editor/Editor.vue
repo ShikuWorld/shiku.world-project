@@ -137,6 +137,9 @@ import { use_game_instances_store } from "@/editor/stores/game-instances";
 import ContextMenu from "@imengyu/vue3-context-menu";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { Entity } from "@/editor/blueprints/Entity";
+import { Scene } from "@/editor/blueprints/Scene";
+import { TilesetUpdate } from "@/client/communication/api/bindings/TilesetUpdate";
+import { send_admin_event } from "@/client/communication/setup_communication_system";
 
 const tab = ref<number>(0);
 const {
@@ -167,7 +170,7 @@ const { game_map_map, tileset_map, scene_map } = storeToRefs(
 );
 const {
   get_module,
-  get_tileset,
+  get_or_load_tileset,
   load_modules,
   update_map_server,
   get_or_load_scene,
@@ -185,7 +188,7 @@ load_modules();
 
 const selected_module = computed(() => get_module(selected_module_id?.value));
 const selected_tileset = computed(() =>
-  get_tileset(selected_tileset_path.value),
+  get_or_load_tileset(tileset_map.value, selected_tileset_path.value),
 );
 const tilesets_of_current_module = computed(() => {
   return selected_module.value.resources
@@ -199,7 +202,7 @@ const scenes_in_module = computed(() => {
   return selected_module.value.resources
     .filter((r) => r.kind === "Scene")
     .map((r) => get_or_load_scene(scene_map.value, r.path))
-    .filter((r) => r);
+    .filter((r) => r) as Scene[];
 });
 
 const on_selected_scene_context_menu = (e: MouseEvent) => {

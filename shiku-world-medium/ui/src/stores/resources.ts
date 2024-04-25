@@ -23,6 +23,8 @@ import {
   RenderGraphData,
   use_game_instances_store,
 } from "@/editor/stores/game-instances";
+import { TileUpdate } from "@/client/communication/api/bindings/TileUpdate";
+import { TilesetUpdate } from "@/client/communication/api/bindings/TilesetUpdate";
 
 export type Point = { y: number; x: number };
 
@@ -75,6 +77,17 @@ export const use_resources_store = defineStore("resources", () => {
 
       return scene_map[path];
     },
+    get_or_load_tileset(
+      tileset_map: { [resource_path: string]: Tileset },
+      path: string,
+    ): Tileset | undefined {
+      if (!tileset_map[path]) {
+        this.get_resource_server(path);
+        return undefined;
+      }
+
+      return tileset_map[path];
+    },
     delete_module(module_id: string) {
       const modules = {
         ...state.modules,
@@ -98,10 +111,13 @@ export const use_resources_store = defineStore("resources", () => {
       map_update: Partial<GameMap> & { resource_path: string; name: string },
     ) {
       const key = map_key(map_update);
-      state.game_map_map = {
-        ...state.game_map_map,
-        [key]: { ...this.get_map(key), ...map_update },
-      };
+      const game_map = state.game_map_map[key];
+      if (game_map) {
+        state.game_map_map = {
+          ...state.game_map_map,
+          [key]: { ...game_map, ...map_update },
+        };
+      }
     },
     delete_map(game_map: GameMap) {
       const maps = {
@@ -112,18 +128,6 @@ export const use_resources_store = defineStore("resources", () => {
     },
     get_module(id: string) {
       return state.modules[id];
-    },
-    get_map(key: string) {
-      if (!state.game_map_map[key]) {
-        this.get_resource_server(key);
-      }
-      return state.game_map_map[key];
-    },
-    get_tileset(tileset_path: string) {
-      if (!state.game_map_map[tileset_path]) {
-        this.get_resource_server(tileset_path);
-      }
-      return state.tileset_map[tileset_path];
     },
     set_modules(modules: Module[]) {
       state.modules = modules.reduce(
@@ -349,8 +353,8 @@ export const use_resources_store = defineStore("resources", () => {
     create_tileset_server(tileset: Tileset) {
       send_admin_event({ CreateTileset: tileset });
     },
-    update_tileset_server(tileset: Tileset) {
-      send_admin_event({ SetTileset: tileset });
+    update_tileset_server(resource_path: string, tile_update: TilesetUpdate) {
+      send_admin_event({ UpdateTileset: [resource_path, tile_update] });
     },
     delete_tileset_server(tileset: Tileset) {
       send_admin_event({ DeleteTileset: tileset });
