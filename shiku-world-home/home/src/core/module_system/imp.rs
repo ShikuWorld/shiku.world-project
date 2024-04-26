@@ -79,7 +79,7 @@ impl DynamicGameModule {
 
     pub fn get_terrain_params(&self, world_id: &WorldId) -> Option<TerrainParams> {
         if let Some(world) = self.world_map.get(world_id) {
-            return Some(world.terrain_params.clone());
+            return Some(world.terrain_manager.params.clone());
         }
         None
     }
@@ -243,34 +243,31 @@ impl DynamicGameModule {
     }
 
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
-        //TODO: Update terrain if layer is terrain
+        if let Some(world) = self.world_map.get_mut(world_id) {
+            world
+                .terrain_manager
+                .write_chunk(chunk, layer_kind, &mut world.physics);
 
-        self.world_map
-            .get_mut(world_id)
-            .and_then(|world| world.terrain.get_mut(layer_kind))
-            .and_then(|chunks| {
-                chunks.insert(
-                    cantor_pair(chunk.position.0, chunk.position.1),
-                    chunk.clone(),
-                )
-            });
-        let terrain_update = ModuleInstanceEvent {
-            world_id: None,
-            module_id: self.module_id.clone(),
-            instance_id: self.instance_id.clone(),
-            event_type: GameSystemToGuestEvent::ShowTerrain(vec![(
-                layer_kind.clone(),
-                vec![chunk.clone()],
-            )]),
-        };
-        Self::send_event_to_actors(
-            world_id,
-            &mut self.module_communication,
-            &self.world_to_guest,
-            &self.world_to_admin,
-            terrain_update,
-            "Could not send terrain update",
-        );
+            let terrain_update = ModuleInstanceEvent {
+                world_id: None,
+                module_id: self.module_id.clone(),
+                instance_id: self.instance_id.clone(),
+                event_type: GameSystemToGuestEvent::ShowTerrain(vec![(
+                    layer_kind.clone(),
+                    vec![chunk.clone()],
+                )]),
+            };
+            Self::send_event_to_actors(
+                world_id,
+                &mut self.module_communication,
+                &self.world_to_guest,
+                &self.world_to_admin,
+                terrain_update,
+                "Could not send terrain update",
+            );
+        } else {
+            error!("Could not update chunk in world {:?}", world_id);
+        }
     }
 
     fn send_event_to_actors(
@@ -510,7 +507,8 @@ impl DynamicGameModule {
     ) -> Option<Vec<(LayerKind, Vec<Chunk>)>> {
         world_map.get(world_id).map(|world| {
             world
-                .terrain
+                .terrain_manager
+                .layer_data
                 .iter()
                 .map(|(a, b)| (a.clone(), b.values().cloned().collect()))
                 .collect()

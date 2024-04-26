@@ -7,3 +7,5 @@ pub mod error;
 pub mod game_instance;
 
 pub mod world;
+
+pub mod terrain_manager;

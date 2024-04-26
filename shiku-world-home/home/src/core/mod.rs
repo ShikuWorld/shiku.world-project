@@ -153,7 +153,9 @@ fn to_natural(num: i32) -> u32 {
     }
 }
 
-fn cantor_pair(x: i32, y: i32) -> u32 {
+pub type CantorPair = u32;
+
+fn cantor_pair(x: i32, y: i32) -> CantorPair {
     let xx = to_natural(x);
     let yy = to_natural(y);
     (xx + yy) * (xx + yy + 1) / 2 + yy

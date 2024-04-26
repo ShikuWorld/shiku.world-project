@@ -1,22 +1,23 @@
-use crate::core::blueprint::def::{Chunk, GameMap, LayerKind, TerrainParams};
+use log::debug;
+use rapier2d::prelude::*;
+use std::collections::HashMap;
+
+use crate::core::blueprint::def::{GameMap, LayerKind, TerrainParams};
 use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     Collider, ColliderKind, ColliderShape, GameNodeKind, RigidBodyType, Transform,
 };
 use crate::core::module_system::error::CreateWorldError;
+use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
-use log::debug;
-use rapier2d::prelude::*;
-use std::collections::HashMap;
 
 pub type WorldId = String;
 
 pub struct World {
     pub world_id: WorldId,
     pub physics: RapierSimulation,
-    pub terrain: HashMap<LayerKind, HashMap<u32, Chunk>>,
-    pub terrain_params: TerrainParams,
+    pub terrain_manager: TerrainManager,
     pub ecs: ECS,
 }
 
@@ -29,13 +30,16 @@ impl World {
 
         Ok(World {
             world_id: game_map.world_id.clone(),
-            terrain_params: TerrainParams {
-                chunk_size: game_map.chunk_size,
-                tile_height: game_map.tile_height,
-                tile_width: game_map.tile_width,
-            },
             physics,
-            terrain: game_map.terrain.clone(),
+            terrain_manager: TerrainManager::new(
+                TerrainParams {
+                    chunk_size: game_map.chunk_size,
+                    tile_height: game_map.tile_height,
+                    tile_width: game_map.tile_width,
+                },
+                game_map.terrain.clone(),
+                HashMap::new(), // TODO: Add real map
+            ),
             ecs,
         })
     }

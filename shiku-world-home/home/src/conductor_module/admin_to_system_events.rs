@@ -11,7 +11,7 @@ use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded, Tileset,
+    BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin};
