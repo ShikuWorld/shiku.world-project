@@ -1,6 +1,7 @@
 use crate::core::blueprint::def::{BlueprintService, Conductor};
 use crate::core::module::EditorEvent;
 use log::error;
+use rapier2d::prelude::Real;
 
 pub fn save_and_send_conductor_update<F>(conductor: Conductor, send_editor_event: &mut F)
 where
@@ -13,5 +14,61 @@ where
         Err(err) => {
             error!("Could not save conductor {:?}", err)
         }
+    }
+}
+
+pub fn bring_polygon_in_clockwise_order(vertices: &mut [(Real, Real)]) {
+    // Find the centroid of the polygon
+    let mut centroid_x = 0.0;
+    let mut centroid_y = 0.0;
+    for &(x, y) in vertices.iter() {
+        centroid_x += x;
+        centroid_y += y;
+    }
+    let n = vertices.len() as Real;
+    centroid_x /= n;
+    centroid_y /= n;
+
+    // Sort the vertices based on their angle with respect to the centroid
+    vertices.sort_by(|&(x1, y1), &(x2, y2)| {
+        let dx1 = x1 - centroid_x;
+        let dy1 = y1 - centroid_y;
+        let dx2 = x2 - centroid_x;
+        let dy2 = y2 - centroid_y;
+
+        let cross_product = dx1 * dy2 - dx2 * dy1;
+        if cross_product > 0.0 {
+            std::cmp::Ordering::Less
+        } else if cross_product < 0.0 {
+            std::cmp::Ordering::Greater
+        } else {
+            // If the cross product is zero, the points are collinear.
+            // Compare the distances from the centroid to determine the order.
+            let dist1 = dx1 * dx1 + dy1 * dy1;
+            let dist2 = dx2 * dx2 + dy2 * dy2;
+            dist1.partial_cmp(&dist2).unwrap()
+        }
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sort_polygon_vertices() {
+        let mut vertices1 = vec![(0.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (1.0, 1.0)];
+        bring_polygon_in_clockwise_order(&mut vertices1);
+        assert_eq!(
+            vertices1,
+            vec![(-1.0, 0.0), (0.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        );
+
+        let mut vertices2 = vec![(1.0, 0.0), (0.0, 0.0), (0.0, 1.0), (1.0, 1.0)];
+        bring_polygon_in_clockwise_order(&mut vertices2);
+        assert_eq!(
+            vertices2,
+            vec![(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        );
     }
 }

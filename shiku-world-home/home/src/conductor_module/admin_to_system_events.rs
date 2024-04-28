@@ -5,7 +5,9 @@ use flume::Sender;
 use log::{debug, error};
 use uuid::Uuid;
 
-use crate::conductor_module::blueprint_helper::save_and_send_conductor_update;
+use crate::conductor_module::blueprint_helper::{
+    bring_polygon_in_clockwise_order, save_and_send_conductor_update,
+};
 use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap};
 use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
@@ -14,6 +16,7 @@ use crate::core::blueprint::def::{
     BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
+use crate::core::blueprint::scene::def::CollisionShape;
 use crate::core::guest::{ActorId, Admin};
 use crate::core::module::{
     AdminToSystemEvent, CommunicationEvent, EditorEvent, SceneNodeUpdate, TilesetUpdate,
@@ -312,8 +315,11 @@ pub async fn handle_admin_to_system_event(
         AdminToSystemEvent::UpdateTileset(resource_path, tileset_update) => {
             if let Ok(mut tileset) = Blueprint::load_tileset(resource_path.into()) {
                 match tileset_update {
-                    TilesetUpdate::UpdateCollisionShape(gid, collision_shape) => {
+                    TilesetUpdate::UpdateCollisionShape(gid, mut collision_shape) => {
                         let tile = tileset.tiles.entry(gid).or_default();
+                        if let CollisionShape::Polygon(ref mut vertices) = &mut collision_shape {
+                            bring_polygon_in_clockwise_order(vertices);
+                        }
                         tile.collision_shape = Some(collision_shape);
                     }
                     TilesetUpdate::RemoveCollisionShape(gid) => {
