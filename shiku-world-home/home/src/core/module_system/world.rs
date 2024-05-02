@@ -26,20 +26,22 @@ impl World {
         let world_scene = Blueprint::load_scene(game_map.main_scene.clone().into())?;
         let mut ecs = ECS::from(&world_scene);
         let mut physics = RapierSimulation::new();
+        let terrain_manager = TerrainManager::new(
+            TerrainParams {
+                chunk_size: game_map.chunk_size,
+                tile_height: game_map.tile_height,
+                tile_width: game_map.tile_width,
+            },
+            game_map.terrain.clone(),
+            HashMap::new(), // TODO: Add real map
+            &mut physics,
+        );
         Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
 
         Ok(World {
             world_id: game_map.world_id.clone(),
             physics,
-            terrain_manager: TerrainManager::new(
-                TerrainParams {
-                    chunk_size: game_map.chunk_size,
-                    tile_height: game_map.tile_height,
-                    tile_width: game_map.tile_width,
-                },
-                game_map.terrain.clone(),
-                HashMap::new(), // TODO: Add real map
-            ),
+            terrain_manager,
             ecs,
         })
     }

@@ -17,14 +17,25 @@ impl<T: Sized, const N: usize> Cycle<T, N> {
 
 use std::ops::{Index, IndexMut};
 
+#[derive(Debug, Clone)]
 pub struct RingVec<T: Default> {
     pub data: Vec<T>,
+    default: T,
+}
+
+impl<T: Default> From<Vec<T>> for RingVec<T> {
+    fn from(value: Vec<T>) -> Self {
+        let mut r = RingVec::new(10);
+        r.data.extend(value);
+        r
+    }
 }
 
 impl<T: Default> RingVec<T> {
     pub fn new(capacity: usize) -> Self {
         RingVec {
             data: Vec::with_capacity(capacity),
+            default: T::default(),
         }
     }
 
@@ -32,7 +43,7 @@ impl<T: Default> RingVec<T> {
         self.data.push(item);
     }
 
-    fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.data.len()
     }
 
@@ -46,10 +57,16 @@ impl<T: Default> RingVec<T> {
     }
 
     pub fn first(&self) -> &T {
+        if self.len() == 0 {
+            return &self.default;
+        }
         self.index(0)
     }
 
     pub fn last(&self) -> &T {
+        if self.len() == 0 {
+            return &self.default;
+        }
         self.index((self.len() - 1) as isize)
     }
 }
@@ -60,7 +77,7 @@ impl<T: Default> Index<isize> for RingVec<T> {
     fn index(&self, index: isize) -> &Self::Output {
         match self.wrap_index(index) {
             Some(i) => &self.data[i],
-            None => &T::default(),
+            None => &self.default,
         }
     }
 }
@@ -69,7 +86,7 @@ impl<T: Default> IndexMut<isize> for RingVec<T> {
     fn index_mut(&mut self, index: isize) -> &mut Self::Output {
         match self.wrap_index(index) {
             Some(i) => &mut self.data[i],
-            None => &mut T::default(),
+            None => &mut self.default,
         }
     }
 }

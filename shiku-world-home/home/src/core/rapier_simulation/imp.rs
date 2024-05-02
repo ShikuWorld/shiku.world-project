@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use crate::core::module_system::terrain_manager::{TerrainPolyLine, TerrainPolyLineBuilder};
 use log::error;
 use rapier2d::crossbeam;
 use rapier2d::prelude::*;
@@ -46,6 +47,10 @@ impl RapierSimulation {
         } else {
             Aabb::new(Point::new(0.0, 0.0), Point::new(0.0, 0.0))
         }
+    }
+
+    pub fn add_polyine(&self, vertices: &Vec<(i32, i32)>) -> (RigidBodyHandle, ColliderHandle) {
+        todo!()
     }
 
     pub fn get_contacting_colliders(&self, collider_handle: ColliderHandle) -> Vec<ColliderHandle> {
