@@ -6,7 +6,7 @@ use ts_rs::TS;
 
 use crate::core::blueprint;
 use crate::core::blueprint::def::{
-    Chunk, Conductor, Gid, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tile, Tileset,
+    Chunk, Conductor, Gid, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{
@@ -307,6 +307,7 @@ pub enum GameSystemToGuestEvent {
     UpdateDataStore(String),
     ShowTerrain(Vec<(LayerKind, Vec<Chunk>)>),
     SetParallax(Vec<(LayerName, (Real, Real))>),
+    ShowTerrainCollisionLines(Vec<Vec<(Real, Real)>>),
     ShowScene(Scene),
     UpdateEntity(EntityUpdate),
     RemoveEntity(Entity),

@@ -40728,7 +40728,7 @@ ${e3}`);
         const graphics = resource_manager.get_graphics_data_by_gid(gid);
         const sprite = resource_manager.get_sprite_from_graphics(graphics);
         sprite.x = i3 % this.terrain_params.chunk_size * this.terrain_params.tile_width;
-        sprite.y = Math.floor(i3 / this.terrain_params.chunk_size) * this.terrain_params.tile_height;
+        sprite.y = Math.floor(i3 / this.terrain_params.chunk_size) * this.terrain_params.tile_height + this.terrain_params.tile_height;
         sprite.rotation = 0;
         chunk_map_entry.container.addChild(sprite);
       }
@@ -40792,7 +40792,7 @@ ${e3}`);
             -(grid.sprite.tilePosition.x - grid.selected_tile.x) / renderer.terrain_params.tile_width,
             -(grid.sprite.tilePosition.y - grid.selected_tile.y) / renderer.terrain_params.tile_height
           ];
-          window.medium_gui.editor.select_tile_position({ x: x3, y: y3 });
+          window.medium_gui.editor.select_tile_position({ x: x3, y: y3 - 1 });
         }).with(1, () => {
           middle_click_start = {
             click_start: { x: mouse_event.x, y: mouse_event.y },
@@ -40871,11 +40871,14 @@ ${e3}`);
       this.entity_manager = create_entity_manager();
       this.terrain_manager = create_terrain_manager(terrain_params);
       this.layer_map_keys = Object.keys(this.renderer.layer_map);
+      this.collision_lines = new Container();
+      this.renderer.layer_map.ObjectsFront.addChild(this.collision_lines);
     }
     renderer;
     entity_manager;
     terrain_manager;
     layer_map_keys;
+    collision_lines;
     update() {
       this.renderer.camera.update_camera_position_from_ref(this.entity_manager);
       for (const layerName of this.layer_map_keys) {
@@ -40973,9 +40976,31 @@ ${e3}`);
             resource_manager
           );
         }
+      }).with({ ShowTerrainCollisionLines: _.select() }, (lines) => {
+        console.log(lines);
+        this.draw_terrain_collisions(lines);
       }).exhaustive();
     }
     destroy() {
+    }
+    draw_terrain_collisions(lines) {
+      this.collision_lines.removeChildren();
+      for (const l3 of lines) {
+        if (l3.length < 2) {
+          console.error("Line needs to have at least 2 vertices...?");
+          continue;
+        }
+        const collision_graphics = new Graphics().moveTo(
+          l3[0][0] * RENDER_SCALE + 1,
+          l3[0][1] * RENDER_SCALE + 1
+        );
+        for (let i3 = 1; i3 < l3.length; i3++) {
+          const [x3, y3] = l3[i3];
+          collision_graphics.lineTo(x3 * RENDER_SCALE + 1, y3 * RENDER_SCALE + 1);
+        }
+        collision_graphics.stroke("#ff0000");
+        this.collision_lines.addChild(collision_graphics);
+      }
     }
   };
   function create_new_game_instance(id, module_name, world_id, terrain_params) {

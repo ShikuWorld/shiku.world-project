@@ -1,18 +1,15 @@
-use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::collections::HashMap;
 
-use apecs::World as ApecsWorld;
 use flume::Sender;
 use log::{debug, error};
 use rapier2d::math::Real;
 use tokio::time::Instant;
 
 use crate::core::blueprint::def::{
-    BlueprintService, Chunk, GameMap, LayerKind, Module, ModuleId, TerrainParams,
+    BlueprintService, Chunk, GameMap, Gid, LayerKind, Module, ModuleId, TerrainParams,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate};
-use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::blueprint::scene::def::{GameNodeKind, Scene};
+use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Scene};
 use crate::core::blueprint::scene::imp::build_scene_from_ecs;
 use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
@@ -28,7 +25,7 @@ use crate::core::module_system::def::{
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::module_system::world::{World, WorldId};
-use crate::core::{cantor_pair, send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
+use crate::core::{send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
 
 impl DynamicGameModule {
     pub fn create(
@@ -37,6 +34,11 @@ impl DynamicGameModule {
         module_output_sender: ModuleOutputSender,
     ) -> (DynamicGameModule, ModuleInputSender) {
         let (module_input_sender, module_input_receiver) = create_module_communication_input();
+        let gid_to_collision_shape_map =
+            BlueprintService::generate_gid_to_shape_map(&module.resources).unwrap_or_else(|err| {
+                error!("Could not load gid to collision shape map! {:?}", err);
+                HashMap::new()
+            });
         let mut dynamic_module = DynamicGameModule {
             world_map: HashMap::new(),
             guests: HashMap::new(),
@@ -45,6 +47,7 @@ impl DynamicGameModule {
             admin_to_world: LazyHashmapSet::new(),
             world_to_admin: LazyHashmapSet::new(),
             world_to_guest: LazyHashmapSet::new(),
+            gid_to_collision_shape_map,
             module_communication: ModuleCommunication::new(
                 module_input_receiver,
                 module_output_sender,
@@ -70,7 +73,7 @@ impl DynamicGameModule {
             return Err(CreateWorldError::DidAlreadyExist);
         }
 
-        let new_world = World::new(game_map)?;
+        let new_world = World::new(game_map, &self.gid_to_collision_shape_map)?;
         self.world_map.insert(game_map.world_id.clone(), new_world);
         self.world_to_admin.init(game_map.world_id.clone());
         self.world_to_guest.init(game_map.world_id.clone());
@@ -244,9 +247,12 @@ impl DynamicGameModule {
 
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
         if let Some(world) = self.world_map.get_mut(world_id) {
-            world
-                .terrain_manager
-                .write_chunk(chunk, layer_kind, &mut world.physics);
+            world.terrain_manager.write_chunk(
+                chunk,
+                layer_kind,
+                &self.gid_to_collision_shape_map,
+                &mut world.physics,
+            );
 
             let terrain_update = ModuleInstanceEvent {
                 world_id: None,
@@ -265,8 +271,47 @@ impl DynamicGameModule {
                 terrain_update,
                 "Could not send terrain update",
             );
+            Self::send_event_to_admins(
+                world_id,
+                &mut self.module_communication,
+                &self.world_to_admin,
+                ModuleInstanceEvent {
+                    module_id: self.module_id.clone(),
+                    instance_id: self.instance_id.clone(),
+                    world_id: Some(world_id.clone()),
+                    event_type: GameSystemToGuestEvent::ShowTerrainCollisionLines(
+                        world.terrain_manager.get_lines_as_vert_vec(),
+                    ),
+                },
+                "Could not send terrain collision line update to admins!",
+            );
         } else {
             error!("Could not update chunk in world {:?}", world_id);
+        }
+    }
+
+    fn send_event_to_admins(
+        world_id: &WorldId,
+        module_communication: &mut ModuleCommunication,
+        world_to_admin: &LazyHashmapSet<WorldId, ActorId>,
+        event: ModuleInstanceEvent<GameSystemToGuestEvent>,
+        custom_error_msg: &str,
+    ) {
+        if let Some(admin_ids) = world_to_admin.hashset(world_id) {
+            let mut admin_event = event;
+            admin_event.world_id = Some(world_id.clone());
+            for admin_id in admin_ids {
+                send_and_log_error_custom(
+                    &mut module_communication
+                        .output_sender
+                        .game_system_to_guest_sender,
+                    GuestEvent {
+                        guest_id: *admin_id,
+                        event_type: admin_event.clone(),
+                    },
+                    custom_error_msg,
+                );
+            }
         }
     }
 
@@ -381,14 +426,14 @@ impl DynamicGameModule {
         actor_id: ActorId,
         world_id: &WorldId,
         module_id: ModuleId,
-        set_world: bool,
+        is_admin: bool,
     ) {
         if let Some(initial_terrain_event) = Self::get_initial_terrain_event(
             world_map,
             module_id.clone(),
             instance_id.clone(),
             world_id,
-            set_world,
+            is_admin,
         ) {
             send_and_log_error(
                 sender,
@@ -399,6 +444,22 @@ impl DynamicGameModule {
             );
         }
         if let Some(world) = world_map.get(world_id) {
+            if is_admin {
+                send_and_log_error(
+                    sender,
+                    GuestEvent {
+                        guest_id: actor_id,
+                        event_type: ModuleInstanceEvent {
+                            module_id: module_id.clone(),
+                            instance_id: instance_id.clone(),
+                            world_id: Some(world_id.clone()),
+                            event_type: GameSystemToGuestEvent::ShowTerrainCollisionLines(
+                                world.terrain_manager.get_lines_as_vert_vec(),
+                            ),
+                        },
+                    },
+                );
+            }
             if let Some(scene) = build_scene_from_ecs(&world.ecs) {
                 send_and_log_error(
                     sender,
@@ -407,7 +468,7 @@ impl DynamicGameModule {
                         event_type: ModuleInstanceEvent {
                             module_id,
                             instance_id,
-                            world_id: if set_world {
+                            world_id: if is_admin {
                                 Some(world_id.clone())
                             } else {
                                 None

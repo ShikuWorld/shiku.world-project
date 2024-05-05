@@ -85,6 +85,7 @@ export class TerrainManager {
         (i % this.terrain_params.chunk_size) * this.terrain_params.tile_width;
       sprite.y =
         Math.floor(i / this.terrain_params.chunk_size) *
+          this.terrain_params.tile_height +
         this.terrain_params.tile_height;
       sprite.rotation = 0;
 

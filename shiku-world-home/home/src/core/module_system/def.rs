@@ -2,12 +2,13 @@ use std::collections::{HashMap, HashSet};
 
 use tokio::time::Instant;
 
-use crate::core::blueprint::def::ModuleId;
+use crate::core::blueprint::def::{Gid, ModuleId};
+use crate::core::blueprint::scene::def::CollisionShape;
 use crate::core::guest::ActorId;
-use crate::core::LazyHashmapSet;
 use crate::core::module::{GuestInput, ModuleInputReceiver, ModuleOutputSender};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::module_system::world::{World, WorldId};
+use crate::core::LazyHashmapSet;
 
 pub struct GuestCommunication {
     pub resources_loaded: bool,
@@ -37,6 +38,7 @@ pub type AdminSet = HashSet<ActorId>;
 
 pub struct DynamicGameModule {
     pub world_map: HashMap<WorldId, World>,
+    pub gid_to_collision_shape_map: HashMap<Gid, CollisionShape>,
     pub guests: GuestMap,
     pub admins: AdminMap,
     pub world_to_admin: LazyHashmapSet<WorldId, ActorId>,

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
 use std::io::{BufReader, BufWriter};
 use std::path::PathBuf;
@@ -8,9 +9,11 @@ use walkdir::WalkDir;
 
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, BlueprintService, Chunk, Conductor, FileBrowserFileKind,
-    FileBrowserResult, GameMap, GidMap, LayerKind, Module, ResourceKind, ResourceLoaded, Tileset,
+    FileBrowserResult, GameMap, Gid, GidMap, LayerKind, Module, ResourceKind, ResourceLoaded,
+    Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
+use crate::core::blueprint::scene::def::CollisionShape;
 use crate::core::{cantor_pair, get_out_dir, safe_unwrap};
 
 impl Module {
@@ -165,6 +168,29 @@ impl BlueprintService {
             }
         }
         Ok(GidMap(gid_map))
+    }
+
+    pub fn generate_gid_to_shape_map(
+        resources: &[BlueprintResource],
+    ) -> Result<HashMap<Gid, CollisionShape>, BlueprintError> {
+        let mut gid_to_collision_shape_map = HashMap::new();
+        let mut current_count = 0;
+        for resource in resources.iter().filter(|r| ResourceKind::Tileset == r.kind) {
+            let tileset = Blueprint::load_tileset(resource.path.clone().into())?;
+
+            for (id, t) in &tileset.tiles {
+                if let Some(c) = &t.collision_shape {
+                    gid_to_collision_shape_map.insert(current_count + id, c.clone());
+                }
+            }
+
+            if tileset.image.is_some() {
+                current_count += tileset.tile_count;
+            } else {
+                current_count += tileset.tiles.len() as u32;
+            }
+        }
+        Ok(gid_to_collision_shape_map)
     }
 
     pub fn determine_file_type(file_name: &str) -> FileBrowserFileKind {

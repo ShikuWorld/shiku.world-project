@@ -68,7 +68,7 @@ export function show_grid(
             -(grid.sprite.tilePosition.y - grid.selected_tile.y) /
               renderer.terrain_params.tile_height,
           ];
-          window.medium_gui.editor.select_tile_position({ x, y });
+          window.medium_gui.editor.select_tile_position({ x, y: y - 1 });
         })
         .with(1, () => {
           middle_click_start = {

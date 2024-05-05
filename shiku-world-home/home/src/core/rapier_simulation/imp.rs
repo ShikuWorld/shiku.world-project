@@ -3,6 +3,7 @@ use std::ops::Deref;
 use crate::core::module_system::terrain_manager::{TerrainPolyLine, TerrainPolyLineBuilder};
 use log::error;
 use rapier2d::crossbeam;
+use rapier2d::na::Point2;
 use rapier2d::prelude::*;
 
 use crate::core::rapier_simulation::def::RapierSimulation;
@@ -49,8 +50,17 @@ impl RapierSimulation {
         }
     }
 
-    pub fn add_polyine(&self, vertices: &Vec<(i32, i32)>) -> (RigidBodyHandle, ColliderHandle) {
-        todo!()
+    pub fn add_polyine(
+        &mut self,
+        vertices: Vec<Point2<Real>>,
+    ) -> (RigidBodyHandle, ColliderHandle) {
+        let body_handle = self.add_fixed_rigid_body(0.0, 0.0);
+        let collider = ColliderBuilder::polyline(vertices, None).build();
+        let collider_handle =
+            self.colliders
+                .insert_with_parent(collider, body_handle, &mut self.bodies);
+
+        (body_handle, collider_handle)
     }
 
     pub fn get_contacting_colliders(&self, collider_handle: ColliderHandle) -> Vec<ColliderHandle> {

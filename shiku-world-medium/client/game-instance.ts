@@ -13,7 +13,8 @@ import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { set_container_to_viewport_coordinate } from "@/client/camera";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { update_grid } from "@/client/renderer/grid";
-import { Container } from "pixi.js";
+import { Container, Graphics } from "pixi.js";
+import { RENDER_SCALE } from "@/shared/index";
 
 export type GameInstanceMap = {
   [instance_id: string]: { [world_id: string]: GameInstance };
@@ -24,6 +25,7 @@ export class GameInstance {
   entity_manager: EntityManager;
   terrain_manager: TerrainManager;
   layer_map_keys: LayerKind[];
+  collision_lines: Container;
 
   constructor(
     public id: string,
@@ -40,6 +42,8 @@ export class GameInstance {
     this.entity_manager = create_entity_manager();
     this.terrain_manager = create_terrain_manager(terrain_params);
     this.layer_map_keys = Object.keys(this.renderer.layer_map) as LayerKind[];
+    this.collision_lines = new Container();
+    this.renderer.layer_map.ObjectsFront.addChild(this.collision_lines);
   }
 
   update() {
@@ -194,10 +198,34 @@ export class GameInstance {
           );
         }
       })
+      .with({ ShowTerrainCollisionLines: P.select() }, (lines) => {
+        console.log(lines);
+        this.draw_terrain_collisions(lines);
+      })
       .exhaustive();
   }
 
   destroy() {}
+
+  draw_terrain_collisions(lines: [number, number][][]) {
+    this.collision_lines.removeChildren();
+    for (const l of lines) {
+      if (l.length < 2) {
+        console.error("Line needs to have at least 2 vertices...?");
+        continue;
+      }
+      const collision_graphics = new Graphics().moveTo(
+        l[0][0] * RENDER_SCALE + 1,
+        l[0][1] * RENDER_SCALE + 1,
+      );
+      for (let i = 1; i < l.length; i++) {
+        const [x, y] = l[i];
+        collision_graphics.lineTo(x * RENDER_SCALE + 1, y * RENDER_SCALE + 1);
+      }
+      collision_graphics.stroke("#ff0000");
+      this.collision_lines.addChild(collision_graphics);
+    }
+  }
 }
 
 export function create_new_game_instance(

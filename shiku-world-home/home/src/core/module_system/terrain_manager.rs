@@ -4,7 +4,9 @@ use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::ring::RingVec;
 use crate::core::{cantor_pair, CantorPair};
 use log::{debug, error};
-use rapier2d::prelude::{ColliderHandle, Polyline, RigidBodyHandle};
+use rapier2d::math::Real;
+use rapier2d::na::Point2;
+use rapier2d::prelude::{ColliderHandle, RigidBodyHandle};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 type PolyLineId = u32;
@@ -17,7 +19,7 @@ pub struct TerrainPolyLine {
     pub id: PolyLineId,
     pub body_handle: RigidBodyHandle,
     pub collider_handle: ColliderHandle,
-    pub vertices: Vec<Vertex>,
+    pub vertices: Vec<Point2<Real>>,
     pub tiles: HashSet<TilePosition>,
 }
 
@@ -42,7 +44,7 @@ impl TerrainPolyLineBuilder {
 struct TerrainGridTile {
     gid: Gid,
     position: TilePosition,
-    polyline_to_edge_map: HashMap<PolyLineId, Edge>,
+    polyline_to_edge_map: HashMap<PolyLineId, HashSet<Edge>>,
     edge_to_polyline_map: HashMap<Edge, PolyLineId>,
     vertices: RingVec<Vertex>,
     edge_start_to_edge_i_map: HashMap<Vertex, isize>,
@@ -82,11 +84,10 @@ impl TerrainGridTile {
 
 pub struct PolylineBookkeeping {
     terrain_grid: HashMap<TilePosition, TerrainGridTile>,
-    open_edges: HashMap<Edge, TilePosition>,
-    gid_to_chunk_map: HashMap<Gid, HashSet<CantorPair>>,
-    chunk_to_lines_map: HashMap<CantorPair, HashSet<PolyLineId>>,
-    lines: HashMap<PolyLineId, TerrainPolyLine>,
-    id_gen: PolyLineId,
+    pub open_edges: HashMap<Edge, TilePosition>,
+    pub gid_to_chunk_map: HashMap<Gid, HashSet<CantorPair>>,
+    pub lines: HashMap<PolyLineId, TerrainPolyLine>,
+    pub id_gen: PolyLineId,
 }
 
 impl PolylineBookkeeping {
@@ -98,16 +99,16 @@ impl PolylineBookkeeping {
 
 pub struct TerrainManager {
     pub layer_data: HashMap<LayerKind, HashMap<CantorPair, Chunk>>,
-    pub collision_shape_map: HashMap<Gid, CollisionShape>,
     pub params: TerrainParams,
     pub polyline_bookkeeping: PolylineBookkeeping,
+    pub pixel_to_meter_conversion: Real,
 }
 
 impl TerrainManager {
     pub fn new(
         params: TerrainParams,
         layer_data: HashMap<LayerKind, HashMap<CantorPair, Chunk>>,
-        collision_shape_map: HashMap<Gid, CollisionShape>,
+        collision_shape_map: &HashMap<Gid, CollisionShape>,
         physics: &mut RapierSimulation,
     ) -> TerrainManager {
         debug!("Initializing Terrain Manager");
@@ -116,7 +117,6 @@ impl TerrainManager {
             open_edges: HashMap::new(),
             id_gen: 0,
             gid_to_chunk_map: HashMap::new(),
-            chunk_to_lines_map: HashMap::new(),
             lines: HashMap::new(),
         };
 
@@ -125,43 +125,75 @@ impl TerrainManager {
             Self::initialize_terrain_grid(
                 terrain_chunks,
                 &params,
-                &collision_shape_map,
+                collision_shape_map,
                 &mut polyline_bookkeeping,
             )
         }
-
+        let pixel_to_meter_conversion = 32.0;
         debug!("Calculating polylines");
-        Self::calc_polylines(&mut polyline_bookkeeping, physics);
+        Self::calc_polylines(
+            &mut polyline_bookkeeping,
+            physics,
+            pixel_to_meter_conversion,
+        );
 
         TerrainManager {
             params,
             layer_data,
-            collision_shape_map,
             polyline_bookkeeping,
+            pixel_to_meter_conversion,
         }
+    }
+
+    pub fn get_lines_as_vert_vec(&self) -> Vec<Vec<(Real, Real)>> {
+        self.polyline_bookkeeping
+            .lines
+            .values()
+            .map(|l| l.vertices.iter().map(|v| (v.x, v.y)).collect())
+            .collect()
     }
 
     pub fn write_chunk(
         &mut self,
         chunk: &Chunk,
         layer_kind: &LayerKind,
+        collision_shape_map: &HashMap<Gid, CollisionShape>,
         physics: &mut RapierSimulation,
     ) {
-        self.layer_data.get_mut(layer_kind).and_then(|chunk_map| {
+        if let Some(chunk_map) = self.layer_data.get_mut(layer_kind) {
+            let chunk_id = cantor_pair(chunk.position.0, chunk.position.1);
+            debug!("Writing chunk");
             if *layer_kind == LayerKind::Terrain {
-                Self::update_terrain_collisions(
+                debug!("Chunk is terrain");
+                let affected_tile_positions = Self::remove_polylines_of_chunk_and_its_edges(
                     chunk,
-                    chunk_map,
-                    &self.collision_shape_map,
+                    &self.params,
                     &mut self.polyline_bookkeeping,
                     physics,
                 );
+                debug!("affected_tile_positions ${:?}", affected_tile_positions);
+                chunk_map.insert(chunk_id, chunk.clone());
+                debug!("chunk_id ${:?}", chunk_id);
+                Self::set_chunk_in_bookkeeping(
+                    &self.params,
+                    collision_shape_map,
+                    &mut self.polyline_bookkeeping,
+                    &chunk_id,
+                    chunk,
+                );
+                Self::prepare_polyline_calculation_for_tiles(
+                    &mut self.polyline_bookkeeping,
+                    affected_tile_positions,
+                );
+                Self::calc_polylines(
+                    &mut self.polyline_bookkeeping,
+                    physics,
+                    self.pixel_to_meter_conversion,
+                );
+            } else {
+                chunk_map.insert(chunk_id, chunk.clone());
             }
-            chunk_map.insert(
-                cantor_pair(chunk.position.0, chunk.position.1),
-                chunk.clone(),
-            )
-        });
+        };
     }
 
     pub fn initialize_terrain_grid(
@@ -171,49 +203,85 @@ impl TerrainManager {
         polyline_bookkeeping: &mut PolylineBookkeeping,
     ) {
         for (cantor_pair, chunk) in terrain_chunks {
-            let (chunk_x, chunk_y) = chunk.position;
-            for (i, tile_gid) in chunk.data.iter().enumerate() {
-                if *tile_gid == 0 {
-                    continue;
-                }
-                let (x, y) = Self::get_tile_position(
-                    chunk_x,
-                    chunk_y,
-                    terrain_params.chunk_size as i32,
-                    i as i32,
-                );
-                polyline_bookkeeping
-                    .gid_to_chunk_map
-                    .entry(*tile_gid)
-                    .or_default()
-                    .insert(*cantor_pair);
-                let vertices = Self::get_vertices_from_collision_shape(
-                    x,
-                    y,
-                    terrain_params,
-                    gid_to_collision_shape_map.get(tile_gid),
-                );
-                polyline_bookkeeping.terrain_grid.insert(
-                    (x, y),
-                    TerrainGridTile {
-                        position: (x, y),
-                        edge_to_polyline_map: HashMap::new(),
-                        polyline_to_edge_map: HashMap::new(),
-                        surface_edges: Self::get_edges_from_vertices(&vertices),
-                        vertices,
-                        edge_end_to_edge_i_map: HashMap::new(),
-                        edge_start_to_edge_i_map: HashMap::new(),
-                        gid: *tile_gid,
-                    },
-                );
-            }
+            Self::set_chunk_in_bookkeeping(
+                terrain_params,
+                gid_to_collision_shape_map,
+                polyline_bookkeeping,
+                cantor_pair,
+                chunk,
+            );
         }
 
-        debug!("{:?}", polyline_bookkeeping.terrain_grid.keys());
         let tile_positions: Vec<(i32, i32)> =
             polyline_bookkeeping.terrain_grid.keys().copied().collect();
+        Self::prepare_polyline_calculation_for_tiles(polyline_bookkeeping, tile_positions);
+    }
+
+    pub fn remove_polylines_of_chunk_and_its_edges(
+        chunk: &Chunk,
+        terrain_params: &TerrainParams,
+        polyline_bookkeeping: &mut PolylineBookkeeping,
+        physics: &mut RapierSimulation,
+    ) -> Vec<TilePosition> {
+        let mut polyline_set = HashSet::new();
+        let mut affected_tile_positions = HashSet::new();
+        let (c_x, c_y) = chunk.position;
+        let chunk_size = terrain_params.chunk_size as i32;
+        let (min_x, max_x) = (c_x * chunk_size - 1, c_x * chunk_size + chunk_size + 1);
+        let (min_y, max_y) = (c_y * chunk_size - 1, c_y * chunk_size + chunk_size + 1);
+        // Need to remove the lines on the edges as well because new inserted tiles might change
+        // how the polylines form
+        for x in min_x..=max_x {
+            for y in min_y..=max_y {
+                if (x == min_x || x == max_x) && (y == min_y || y == max_y) {
+                    // Ignore edges
+                    continue;
+                }
+                if let Some(tile) = polyline_bookkeeping.terrain_grid.get(&(x, y)) {
+                    for p_id in tile.edge_to_polyline_map.values() {
+                        polyline_set.insert(*p_id);
+                    }
+                }
+                affected_tile_positions.insert((x, y));
+            }
+        }
+        debug!("Found the following polylines: ${:?}", polyline_set);
+        for p_id in polyline_set {
+            if let Some(polyline) = polyline_bookkeeping.lines.remove(&p_id) {
+                for pos in polyline.tiles {
+                    if let Some(tile) = polyline_bookkeeping.terrain_grid.get_mut(&pos) {
+                        if let Some(edges) = tile.polyline_to_edge_map.get(&polyline.id) {
+                            debug!("Removing edges {:?}", edges);
+                            for edge in edges {
+                                tile.edge_to_polyline_map.remove(edge);
+
+                                // The open edges will automatically be filled in by the chunk
+                                // insertion step, we only want to add this  back to open_edges
+                                // for poly-lines that go way out into other chunks
+                                if !affected_tile_positions.contains(&pos) {
+                                    polyline_bookkeeping.open_edges.insert(*edge, pos);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                physics.remove_rigid_body(polyline.body_handle);
+            }
+        }
+        affected_tile_positions.into_iter().collect()
+    }
+
+    fn prepare_polyline_calculation_for_tiles(
+        polyline_bookkeeping: &mut PolylineBookkeeping,
+        tile_positions: Vec<(i32, i32)>,
+    ) {
         for tile_pos in tile_positions {
             if let Some(mut tile) = polyline_bookkeeping.terrain_grid.remove(&tile_pos) {
+                tile.surface_edges = Self::get_edges_from_vertices(&tile.vertices);
+                tile.edge_start_to_edge_i_map.clear();
+                tile.edge_end_to_edge_i_map.clear();
+
                 tile.surface_edges.data.retain(|edge| {
                     Self::is_edge_on_surface(*edge, &tile_pos, &polyline_bookkeeping.terrain_grid)
                 });
@@ -227,51 +295,120 @@ impl TerrainManager {
         }
     }
 
+    fn set_chunk_in_bookkeeping(
+        terrain_params: &TerrainParams,
+        gid_to_collision_shape_map: &HashMap<Gid, CollisionShape>,
+        polyline_bookkeeping: &mut PolylineBookkeeping,
+        _cantor_pair: &u32,
+        chunk: &Chunk,
+    ) {
+        let (chunk_x, chunk_y) = chunk.position;
+        for (i, tile_gid) in chunk.data.iter().enumerate() {
+            let (x, y) = Self::get_tile_position(
+                chunk_x,
+                chunk_y,
+                terrain_params.chunk_size as i32,
+                i as i32,
+            );
+            if *tile_gid == 0 {
+                polyline_bookkeeping.terrain_grid.remove(&(x, y));
+                continue;
+            }
+            let vertices = Self::get_vertices_from_collision_shape(
+                x,
+                y,
+                terrain_params,
+                gid_to_collision_shape_map.get(tile_gid),
+            );
+            polyline_bookkeeping.terrain_grid.insert(
+                (x, y),
+                TerrainGridTile {
+                    position: (x, y),
+                    edge_to_polyline_map: HashMap::new(),
+                    polyline_to_edge_map: HashMap::new(),
+                    surface_edges: RingVec::new(8),
+                    vertices,
+                    edge_end_to_edge_i_map: HashMap::new(),
+                    edge_start_to_edge_i_map: HashMap::new(),
+                    gid: *tile_gid,
+                },
+            );
+        }
+    }
+
+    /*
+               polyline_bookkeeping
+               .gid_to_chunk_map
+               .entry(*tile_gid)
+               .or_default()
+               .insert(*cantor_pair);
+    */
+
     fn calc_polylines(
         polyline_bookkeeping: &mut PolylineBookkeeping,
         physics: &mut RapierSimulation,
+        pixel_to_meter_conversion: Real,
     ) {
+        debug!("~~~~~~~~~~~~~~CALCULATING POOYLINE~~~~~~~~~~");
         let mut open_edge_option = polyline_bookkeeping.open_edges.keys().next().copied();
         debug!("Open vertices {:?}", polyline_bookkeeping.open_edges);
         while let Some(open_edge) = open_edge_option {
             debug!("Open vertex {:?}", open_edge);
-            let mut current_poly_line: TerrainPolyLineBuilder =
-                TerrainPolyLineBuilder::new(polyline_bookkeeping.get_polyline_id());
+
             if let Some(tile_pos) = polyline_bookkeeping.open_edges.remove(&open_edge) {
-                println!("right");
-                Self::add_vertices(
-                    &mut current_poly_line,
-                    &tile_pos,
-                    &mut polyline_bookkeeping.terrain_grid,
-                    &mut polyline_bookkeeping.open_edges,
-                    &open_edge,
-                    true,
-                );
-                println!("left");
-                Self::add_vertices(
-                    &mut current_poly_line,
-                    &tile_pos,
-                    &mut polyline_bookkeeping.terrain_grid,
-                    &mut polyline_bookkeeping.open_edges,
-                    &open_edge,
-                    false,
-                );
+                if polyline_bookkeeping.terrain_grid.contains_key(&tile_pos) {
+                    let mut current_poly_line: TerrainPolyLineBuilder =
+                        TerrainPolyLineBuilder::new(polyline_bookkeeping.get_polyline_id());
+                    debug!("-> RIGHT");
+                    Self::add_vertices(
+                        &mut current_poly_line,
+                        &tile_pos,
+                        &mut polyline_bookkeeping.terrain_grid,
+                        &mut polyline_bookkeeping.open_edges,
+                        &open_edge,
+                        true,
+                    );
+                    debug!("-> LEFT");
+                    Self::add_vertices(
+                        &mut current_poly_line,
+                        &tile_pos,
+                        &mut polyline_bookkeeping.terrain_grid,
+                        &mut polyline_bookkeeping.open_edges,
+                        &open_edge,
+                        false,
+                    );
+                    polyline_bookkeeping.lines.insert(
+                        current_poly_line.id,
+                        Self::add_poly_to_physics(
+                            current_poly_line,
+                            physics,
+                            pixel_to_meter_conversion,
+                        ),
+                    );
+                }
             }
+
             open_edge_option = polyline_bookkeeping.open_edges.keys().next().copied();
-            polyline_bookkeeping.lines.insert(
-                current_poly_line.id,
-                Self::add_poly_to_physics(current_poly_line, physics),
-            );
         }
     }
 
     fn add_poly_to_physics(
         polyline_builder: TerrainPolyLineBuilder,
         physics: &mut RapierSimulation,
+        pixel_to_meter_conversion: Real,
     ) -> TerrainPolyLine {
-        let mut vertices = Vec::from(polyline_builder.vertices);
-        vertices.dedup();
-        let (body_handle, collider_handle) = physics.add_polyine(&vertices);
+        let mut vec = Vec::from(polyline_builder.vertices);
+        vec.dedup();
+        let vertices: Vec<Point2<Real>> = vec
+            .into_iter()
+            .map(|v| {
+                Point2::new(
+                    (v.0 as Real) / pixel_to_meter_conversion,
+                    (v.1 as Real) / pixel_to_meter_conversion,
+                )
+            })
+            .collect();
+        let (body_handle, collider_handle) = physics.add_polyine(vertices.clone());
         TerrainPolyLine {
             id: polyline_builder.id,
             vertices,
@@ -293,7 +430,7 @@ impl TerrainManager {
         let get_next_edge = if clockwise {
             |t: &TerrainGridTile, e: &Edge, e_i: isize| {
                 let next_edge = t.surface_edges[e_i + 1];
-                if e.1 == next_edge.0 {
+                if e.1 == next_edge.0 && !t.edge_to_polyline_map.contains_key(&next_edge) {
                     return Some((next_edge, e_i + 1));
                 }
 
@@ -302,7 +439,7 @@ impl TerrainManager {
         } else {
             |t: &TerrainGridTile, e: &Edge, e_i: isize| {
                 let next_edge = t.surface_edges[e_i - 1];
-                if e.0 == next_edge.1 {
+                if e.0 == next_edge.1 && !t.edge_to_polyline_map.contains_key(&next_edge) {
                     return Some((next_edge, e_i - 1));
                 }
 
@@ -335,7 +472,10 @@ impl TerrainManager {
 
                 println!("adding edge {:?}", current_e);
                 open_edges.remove(&current_e);
-                tile.polyline_to_edge_map.insert(current_poly.id, current_e);
+                tile.polyline_to_edge_map
+                    .entry(current_poly.id)
+                    .or_default()
+                    .insert(current_e);
                 if tile
                     .edge_to_polyline_map
                     .insert(current_e, current_poly.id)
@@ -355,7 +495,10 @@ impl TerrainManager {
                         current_e = next_edge;
                         println!("adding edge {:?}", current_e);
                         open_edges.remove(&current_e);
-                        tile.polyline_to_edge_map.insert(current_poly.id, current_e);
+                        tile.polyline_to_edge_map
+                            .entry(current_poly.id)
+                            .or_default()
+                            .insert(current_e);
                         if tile
                             .edge_to_polyline_map
                             .insert(current_e, current_poly.id)
@@ -379,11 +522,9 @@ impl TerrainManager {
                 );
                 println!("Option after {:?}", current_connected_edge_option);
             } else {
-                error!(
-                    "Could not find tile, that should not happen! {:?}",
-                    current_connected_edge_option
-                );
-                current_connected_edge_option = None;
+                let next_open_edge_key = open_edges.keys().next().cloned();
+                current_connected_edge_option =
+                    next_open_edge_key.and_then(|k| open_edges.remove(&k).map(|t| (t, k)));
             }
         }
     }
@@ -514,7 +655,7 @@ impl TerrainManager {
                     for (x, y) in v {
                         vertices
                             .data
-                            .push((tile_x + *x as i32, start_y + *y as i32))
+                            .push((start_x + *x as i32, start_y + *y as i32))
                     }
                 }
             }
@@ -534,15 +675,6 @@ impl TerrainManager {
         let x = tile_i % chunk_size;
         let y = tile_i / chunk_size;
         ((chunk_x * chunk_size) + x, (chunk_y * chunk_size) + y)
-    }
-
-    pub fn update_terrain_collisions(
-        chunk: &Chunk,
-        terrain_chunks: &HashMap<u32, Chunk>,
-        collision_shape_map: &HashMap<Gid, CollisionShape>,
-        polyline_bookkeeping: &mut PolylineBookkeeping,
-        physics: &mut RapierSimulation,
-    ) {
     }
     fn get_edges_from_vertices(vertices: &RingVec<Vertex>) -> RingVec<Edge> {
         let mut edge_list = RingVec::new(100);

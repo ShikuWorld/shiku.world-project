@@ -6,10 +6,10 @@ use rapier2d::prelude::Real;
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
-use crate::core::blueprint::def::Module;
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, Chunk, GameMap, LayerKind, ResourceKind, TerrainParams,
 };
+use crate::core::blueprint::def::{BlueprintService, Module};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{ActorId, Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{

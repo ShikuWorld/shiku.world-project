@@ -2,11 +2,11 @@ use log::debug;
 use rapier2d::prelude::*;
 use std::collections::HashMap;
 
-use crate::core::blueprint::def::{GameMap, LayerKind, TerrainParams};
+use crate::core::blueprint::def::{GameMap, Gid, LayerKind, TerrainParams};
 use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
-    Collider, ColliderKind, ColliderShape, GameNodeKind, RigidBodyType, Transform,
+    Collider, ColliderKind, ColliderShape, CollisionShape, GameNodeKind, RigidBodyType, Transform,
 };
 use crate::core::module_system::error::CreateWorldError;
 use crate::core::module_system::terrain_manager::TerrainManager;
@@ -22,7 +22,10 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(game_map: &GameMap) -> Result<World, CreateWorldError> {
+    pub fn new(
+        game_map: &GameMap,
+        collision_shape_map: &HashMap<Gid, CollisionShape>,
+    ) -> Result<World, CreateWorldError> {
         let world_scene = Blueprint::load_scene(game_map.main_scene.clone().into())?;
         let mut ecs = ECS::from(&world_scene);
         let mut physics = RapierSimulation::new();
@@ -33,7 +36,7 @@ impl World {
                 tile_width: game_map.tile_width,
             },
             game_map.terrain.clone(),
-            HashMap::new(), // TODO: Add real map
+            collision_shape_map,
             &mut physics,
         );
         Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);

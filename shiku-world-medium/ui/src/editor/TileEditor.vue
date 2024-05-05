@@ -6,10 +6,10 @@
       </div>
       <CollisionEditor
         class="collision-editor"
-        v-if="tile_width && tile_height && collision_shape"
+        v-if="tile_width && tile_height && collision_shape_tmp"
         :width="tile_width"
         :height="tile_height"
-        :collision_shape="collision_shape"
+        :collision_shape="collision_shape_tmp"
       ></CollisionEditor>
     </div>
     <v-select
@@ -20,13 +20,14 @@
       @update:model-value="(new_value) => update_collider(new_value)"
     ></v-select>
     <v-textarea
-      :model-value="collision_data"
-      @update:model-value="(new_value) => update_collider_data(new_value)"
+      :model-value="collision_data_tmp"
+      @update:model-value="(new_value) => (collision_data_tmp = new_value)"
     ></v-textarea>
+    <v-btn @click="update_collider_data(collision_data_tmp)">Save</v-btn>
   </div>
 </template>
 <script lang="ts" setup>
-import { computed, toRefs } from "vue";
+import { computed, onMounted, ref, toRefs, watch } from "vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
 import { get_resource_url } from "@/client/config/config";
 import { KeysOfUnion } from "@/editor/utils";
@@ -52,12 +53,37 @@ const collider_options: (KeysOfUnion<CollisionShape> | null)[] = [
   "Circle",
   "Polygon",
 ];
+const tile = computed(() => {
+  return tileset.value.tiles[tile_id.value];
+});
 const collision_shape = computed(() => {
   if (tile.value) {
     return tile.value.collision_shape;
   }
   return null;
 });
+
+const collision_shape_tmp = computed(() => {
+  if (collision_data_tmp.value) {
+    try {
+      return JSON.parse(collision_data_tmp.value);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+});
+
+const collision_data_tmp = ref<string | null | undefined>();
+
+watch(collision_shape, () => {
+  collision_data_tmp.value = collision_data.value;
+});
+
+onMounted(() => {
+  collision_data_tmp.value = collision_data.value;
+});
+
 const collision_shape_selection = computed(
   (): KeysOfUnion<CollisionShape> | null => {
     if (tile.value && tile.value.collision_shape) {
@@ -86,9 +112,6 @@ const tile_height = computed(() => {
   return tileset.value.image
     ? tileset.value.tile_height
     : tile.value.image?.height;
-});
-const tile = computed(() => {
-  return tileset.value.tiles[tile_id.value];
 });
 const styleWindow = computed(() => {
   return {
@@ -138,7 +161,11 @@ function update_collider(new_value: KeysOfUnion<CollisionShape> | null) {
   }
 }
 
-function update_collider_data(new_value: string) {
+function update_collider_data(new_value: string | null | undefined) {
+  if (!new_value) {
+    return;
+  }
+
   try {
     const collision_shape = JSON.parse(new_value) as CollisionShape;
     const key = Object.keys(
