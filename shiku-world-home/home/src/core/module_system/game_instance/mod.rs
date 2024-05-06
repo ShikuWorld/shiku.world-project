@@ -7,10 +7,12 @@ use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, Chunk, GameMap, LayerKind, ResourceKind, TerrainParams,
+    BlueprintError, BlueprintResource, Chunk, GameMap, Gid, GidMap, LayerKind, ResourceKind,
+    TerrainParams,
 };
 use crate::core::blueprint::def::{BlueprintService, Module};
 use crate::core::blueprint::resource_loader::Blueprint;
+use crate::core::blueprint::scene::def::CollisionShape;
 use crate::core::guest::{ActorId, Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication, AdminEnterSuccessState, AdminLeftSuccessState, EnterFailedState,
@@ -73,6 +75,18 @@ impl GameInstanceManager {
         manager.register_resources(resource_module);
 
         Ok((manager, input_sender, output_receiver))
+    }
+
+    pub fn update_gid_collision_shape_map(
+        &mut self,
+        gid: &Gid,
+        collision_shape: &Option<CollisionShape>,
+    ) {
+        for game_instance in self.game_instances.values_mut() {
+            game_instance
+                .dynamic_module
+                .update_gid_collision_shape_map(gid, collision_shape);
+        }
     }
 
     pub fn update(&mut self) {

@@ -85,7 +85,8 @@ impl TerrainGridTile {
 pub struct PolylineBookkeeping {
     terrain_grid: HashMap<TilePosition, TerrainGridTile>,
     pub open_edges: HashMap<Edge, TilePosition>,
-    pub gid_to_chunk_map: HashMap<Gid, HashSet<CantorPair>>,
+    pub gid_to_cantor_pair_map: HashMap<Gid, HashSet<CantorPair>>,
+    pub chunk_to_cantor_pair_map: HashMap<CantorPair, HashSet<Gid>>,
     pub lines: HashMap<PolyLineId, TerrainPolyLine>,
     pub id_gen: PolyLineId,
 }
@@ -116,7 +117,8 @@ impl TerrainManager {
             terrain_grid: HashMap::new(),
             open_edges: HashMap::new(),
             id_gen: 0,
-            gid_to_chunk_map: HashMap::new(),
+            gid_to_cantor_pair_map: HashMap::new(),
+            chunk_to_cantor_pair_map: HashMap::new(),
             lines: HashMap::new(),
         };
 
@@ -142,6 +144,28 @@ impl TerrainManager {
             layer_data,
             polyline_bookkeeping,
             pixel_to_meter_conversion,
+        }
+    }
+
+    pub fn update_collision_shape(
+        &mut self,
+        gid: &Gid,
+        collision_shape_map: &HashMap<Gid, CollisionShape>,
+        physics: &mut RapierSimulation,
+    ) {
+        let mut chunks_to_update = Vec::new();
+        let terrain_layer = LayerKind::Terrain;
+        if let Some(cantor_pairs) = self.polyline_bookkeeping.gid_to_cantor_pair_map.get(gid) {
+            if let Some(terrain_chunks) = self.layer_data.get_mut(&terrain_layer) {
+                for cantor_pair in cantor_pairs {
+                    if let Some(chunk) = terrain_chunks.remove(cantor_pair) {
+                        chunks_to_update.push(chunk);
+                    }
+                }
+            }
+        }
+        for chunk in chunks_to_update {
+            self.write_chunk(&chunk, &terrain_layer, collision_shape_map, physics);
         }
     }
 
@@ -172,13 +196,22 @@ impl TerrainManager {
                     physics,
                 );
                 debug!("affected_tile_positions ${:?}", affected_tile_positions);
+                Self::clear_gid_cantor_pair_relations(
+                    &mut self.polyline_bookkeeping,
+                    &chunk_id,
+                    chunk_map.get(&chunk_id),
+                );
                 chunk_map.insert(chunk_id, chunk.clone());
+                Self::add_gid_cantor_pair_relations(
+                    &mut self.polyline_bookkeeping,
+                    &chunk_id,
+                    Some(&chunk),
+                );
                 debug!("chunk_id ${:?}", chunk_id);
                 Self::set_chunk_in_bookkeeping(
                     &self.params,
                     collision_shape_map,
                     &mut self.polyline_bookkeeping,
-                    &chunk_id,
                     chunk,
                 );
                 Self::prepare_polyline_calculation_for_tiles(
@@ -196,6 +229,48 @@ impl TerrainManager {
         };
     }
 
+    fn clear_gid_cantor_pair_relations(
+        polyline_bookkeeping: &mut PolylineBookkeeping,
+        chunk_id: &CantorPair,
+        chunk_option: Option<&Chunk>,
+    ) {
+        if let Some(chunk) = chunk_option {
+            for tile_gid in &chunk.data {
+                polyline_bookkeeping
+                    .gid_to_cantor_pair_map
+                    .entry(*tile_gid)
+                    .or_default()
+                    .remove(chunk_id);
+                polyline_bookkeeping
+                    .chunk_to_cantor_pair_map
+                    .entry(*chunk_id)
+                    .or_default()
+                    .remove(tile_gid);
+            }
+        }
+    }
+
+    fn add_gid_cantor_pair_relations(
+        polyline_bookkeeping: &mut PolylineBookkeeping,
+        chunk_id: &CantorPair,
+        chunk_option: Option<&Chunk>,
+    ) {
+        if let Some(chunk) = chunk_option {
+            for tile_gid in &chunk.data {
+                polyline_bookkeeping
+                    .gid_to_cantor_pair_map
+                    .entry(*tile_gid)
+                    .or_default()
+                    .insert(*chunk_id);
+                polyline_bookkeeping
+                    .chunk_to_cantor_pair_map
+                    .entry(*chunk_id)
+                    .or_default()
+                    .insert(*tile_gid);
+            }
+        }
+    }
+
     pub fn initialize_terrain_grid(
         terrain_chunks: &HashMap<u32, Chunk>,
         terrain_params: &TerrainParams,
@@ -203,11 +278,11 @@ impl TerrainManager {
         polyline_bookkeeping: &mut PolylineBookkeeping,
     ) {
         for (cantor_pair, chunk) in terrain_chunks {
+            Self::add_gid_cantor_pair_relations(polyline_bookkeeping, cantor_pair, Some(&chunk));
             Self::set_chunk_in_bookkeeping(
                 terrain_params,
                 gid_to_collision_shape_map,
                 polyline_bookkeeping,
-                cantor_pair,
                 chunk,
             );
         }
@@ -256,7 +331,7 @@ impl TerrainManager {
                                 tile.edge_to_polyline_map.remove(edge);
 
                                 // The open edges will automatically be filled in by the chunk
-                                // insertion step, we only want to add this  back to open_edges
+                                // insertion step, we only want to add back to open_edges
                                 // for poly-lines that go way out into other chunks
                                 if !affected_tile_positions.contains(&pos) {
                                     polyline_bookkeeping.open_edges.insert(*edge, pos);
@@ -299,7 +374,6 @@ impl TerrainManager {
         terrain_params: &TerrainParams,
         gid_to_collision_shape_map: &HashMap<Gid, CollisionShape>,
         polyline_bookkeeping: &mut PolylineBookkeeping,
-        _cantor_pair: &u32,
         chunk: &Chunk,
     ) {
         let (chunk_x, chunk_y) = chunk.position;

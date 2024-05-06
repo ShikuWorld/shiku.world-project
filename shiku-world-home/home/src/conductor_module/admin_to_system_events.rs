@@ -313,14 +313,34 @@ pub async fn handle_admin_to_system_event(
             Err(err) => error!("Could not create tileset: {:?}", err),
         },
         AdminToSystemEvent::UpdateTileset(resource_path, tileset_update) => {
-            if let Ok(mut tileset) = Blueprint::load_tileset(resource_path.into()) {
+            if let Ok(mut tileset) = Blueprint::load_tileset(resource_path.clone().into()) {
                 match tileset_update {
-                    TilesetUpdate::UpdateCollisionShape(gid, mut collision_shape) => {
-                        let tile = tileset.tiles.entry(gid).or_default();
+                    TilesetUpdate::UpdateCollisionShape(tile_id, mut collision_shape) => {
+                        let tile = tileset.tiles.entry(tile_id).or_default();
                         if let CollisionShape::Polygon(ref mut vertices) = &mut collision_shape {
                             bring_polygon_in_clockwise_order(vertices);
                         }
                         tile.collision_shape = Some(collision_shape);
+                        for m in module_map.values_mut() {
+                            if let Some(gid_start) =
+                                m.module_blueprint
+                                    .gid_map
+                                    .0
+                                    .iter()
+                                    .find_map(|(r_path, gid)| {
+                                        if *r_path == resource_path {
+                                            Some(gid)
+                                        } else {
+                                            None
+                                        }
+                                    })
+                            {
+                                m.update_gid_collision_shape_map(
+                                    &(gid_start + tile_id),
+                                    &tile.collision_shape,
+                                )
+                            }
+                        }
                     }
                     TilesetUpdate::RemoveCollisionShape(gid) => {
                         let tile = tileset.tiles.entry(gid).or_default();

@@ -68,6 +68,43 @@ impl DynamicGameModule {
         (dynamic_module, module_input_sender)
     }
 
+    pub fn update_gid_collision_shape_map(
+        &mut self,
+        gid: &Gid,
+        collision_shape_option: &Option<CollisionShape>,
+    ) {
+        match collision_shape_option {
+            None => {
+                self.gid_to_collision_shape_map.remove(&gid);
+            }
+            Some(collision_shape) => {
+                self.gid_to_collision_shape_map
+                    .insert(*gid, collision_shape.clone());
+            }
+        }
+        for world in self.world_map.values_mut() {
+            world.terrain_manager.update_collision_shape(
+                gid,
+                &self.gid_to_collision_shape_map,
+                &mut world.physics,
+            );
+            Self::send_event_to_admins(
+                &world.world_id,
+                &mut self.module_communication,
+                &self.world_to_admin,
+                ModuleInstanceEvent {
+                    module_id: self.module_id.clone(),
+                    instance_id: self.instance_id.clone(),
+                    world_id: Some(world.world_id.clone()),
+                    event_type: GameSystemToGuestEvent::ShowTerrainCollisionLines(
+                        world.terrain_manager.get_lines_as_vert_vec(),
+                    ),
+                },
+                "Could not send terrain collision line update for collision shapes to admins!",
+            );
+        }
+    }
+
     pub fn create_world(&mut self, game_map: &GameMap) -> Result<WorldId, CreateWorldError> {
         if self.world_map.contains_key(&game_map.world_id) {
             return Err(CreateWorldError::DidAlreadyExist);

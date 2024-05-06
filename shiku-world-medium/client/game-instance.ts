@@ -15,7 +15,13 @@ import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { update_grid } from "@/client/renderer/grid";
 import { Container, Graphics } from "pixi.js";
 import { RENDER_SCALE } from "@/shared/index";
-
+const collision_graphic_colors = [
+  "#FF0000",
+  "#FFD400",
+  "#3CB44B",
+  "#46F0F0",
+  "#F032E6",
+];
 export type GameInstanceMap = {
   [instance_id: string]: { [world_id: string]: GameInstance };
 };
@@ -209,20 +215,26 @@ export class GameInstance {
 
   draw_terrain_collisions(lines: [number, number][][]) {
     this.collision_lines.removeChildren();
+    let i = 0;
     for (const l of lines) {
       if (l.length < 2) {
         console.error("Line needs to have at least 2 vertices...?");
         continue;
       }
       const collision_graphics = new Graphics().moveTo(
-        l[0][0] * RENDER_SCALE + 1,
-        l[0][1] * RENDER_SCALE + 1,
+        l[0][0] * RENDER_SCALE,
+        l[0][1] * RENDER_SCALE,
       );
       for (let i = 1; i < l.length; i++) {
         const [x, y] = l[i];
-        collision_graphics.lineTo(x * RENDER_SCALE + 1, y * RENDER_SCALE + 1);
+        collision_graphics.lineTo(x * RENDER_SCALE, y * RENDER_SCALE);
       }
-      collision_graphics.stroke("#ff0000");
+      collision_graphics.stroke({
+        color: collision_graphic_colors[i % collision_graphic_colors.length],
+        width: 2,
+      });
+
+      i += 1;
       this.collision_lines.addChild(collision_graphics);
     }
   }
