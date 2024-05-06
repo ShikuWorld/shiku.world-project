@@ -7,6 +7,7 @@
         <v-tab value="resources">Resources</v-tab>
       </v-tabs>
     </div>
+    <RhaiEditor ref="rhai_editor"></RhaiEditor>
     <div class="editor-nav-left">
       <v-expansion-panels
         :multiple="true"
@@ -25,6 +26,7 @@
               :is_scene_instance="false"
               :menu_id="'create-scene-node'"
               @remove_node="on_remove_node_from_scene"
+              @edit_script="on_edit_script"
               @add_node="on_add_node_to_scene"
             ></SceneEditor>
           </v-expansion-panel-text>
@@ -36,6 +38,7 @@
               :is_scene_instance="true"
               :menu_id="'create-instance-node'"
               @remove_node="on_remove_node_from_scene"
+              @edit_script="on_edit_script"
               @add_node="on_add_node_to_scene"
             ></SceneEditor>
           </v-expansion-panel-text>
@@ -138,8 +141,7 @@ import ContextMenu from "@imengyu/vue3-context-menu";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { Entity } from "@/editor/blueprints/Entity";
 import { Scene } from "@/editor/blueprints/Scene";
-import { TilesetUpdate } from "@/client/communication/api/bindings/TilesetUpdate";
-import { send_admin_event } from "@/client/communication/setup_communication_system";
+import RhaiEditor from "@/editor/editor/RhaiEditor.vue";
 
 const tab = ref<number>(0);
 const {
@@ -160,7 +162,7 @@ const {
   remove_entity_server,
   add_entity_server,
 } = use_editor_store();
-
+const rhai_editor = ref<typeof RhaiEditor>();
 const { game_instance_exists } = use_game_instances_store();
 
 const { game_instance_data_map } = storeToRefs(use_game_instances_store());
@@ -247,6 +249,17 @@ function on_remove_node_from_scene(
     }
   } else {
     remove_child_from_scene_on_server(scene_resource, path, node);
+  }
+}
+
+function on_edit_script(
+  scene_resource: string,
+  path: number[],
+  node: GameNodeKind,
+  is_from_current_instance: boolean,
+) {
+  if (rhai_editor.value) {
+    rhai_editor.value.open();
   }
 }
 

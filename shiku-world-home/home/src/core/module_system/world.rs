@@ -1,5 +1,6 @@
-use log::debug;
+use log::{debug, error};
 use rapier2d::prelude::*;
+use rhai::Engine;
 use std::collections::HashMap;
 
 use crate::core::blueprint::def::{GameMap, Gid, LayerKind, TerrainParams};
@@ -19,6 +20,7 @@ pub struct World {
     pub physics: RapierSimulation,
     pub terrain_manager: TerrainManager,
     pub ecs: ECS,
+    pub script_engine: Engine,
 }
 
 impl World {
@@ -40,12 +42,14 @@ impl World {
             &mut physics,
         );
         Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
-
+        let engine = Engine::new();
+        Self::init_scripts(&engine, &mut ecs, &mut physics);
         Ok(World {
             world_id: game_map.world_id.clone(),
             physics,
             terrain_manager,
             ecs,
+            script_engine: engine,
         })
     }
 
@@ -59,6 +63,24 @@ impl World {
                     transform.position = (x, y);
                     transform.rotation = r;
                     self.ecs.entities.dirty.insert(*entity, true);
+                }
+            }
+        }
+    }
+
+    fn init_scripts(engine: &Engine, ecs: &mut ECS, physics: &mut RapierSimulation) {
+        for (entity, script) in ecs
+            .entities
+            .game_node_script_src
+            .iter()
+            .filter_map(|(e, s)| s.as_ref().map(|src| (e, src)))
+        {
+            match engine.compile(script) {
+                Ok(ast) => {
+                    ecs.entities.game_node_script.insert(*entity, ast);
+                }
+                Err(err) => {
+                    error!("Could not init script: ${:?}", err);
                 }
             }
         }

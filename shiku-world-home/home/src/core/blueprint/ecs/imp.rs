@@ -31,6 +31,7 @@ impl ECS {
             scene_id: SceneId::default(),
             entity_counter: 0,
             entities: EntityMaps {
+                game_node_script_src: HashMap::new(),
                 game_node_script: HashMap::new(),
                 game_node_id: HashMap::new(),
                 game_node_name: HashMap::new(),
@@ -76,7 +77,7 @@ impl ECS {
                     .insert(entity, GameNodeKindClean::Node2D);
                 ecs.entities.game_node_id.insert(entity, node_2d.id.clone());
                 ecs.entities
-                    .game_node_script
+                    .game_node_script_src
                     .insert(entity, node_2d.script.clone());
                 ecs.entities.game_node_children.insert(entity, Vec::new());
                 ecs.entities

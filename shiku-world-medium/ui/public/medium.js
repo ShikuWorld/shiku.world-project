@@ -40857,6 +40857,13 @@ ${e3}`);
   }
 
   // client/game-instance.ts
+  var collision_graphic_colors = [
+    "#FF0000",
+    "#FFD400",
+    "#3CB44B",
+    "#46F0F0",
+    "#F032E6"
+  ];
   var GameInstance = class {
     constructor(id, module_name, world_id, terrain_params) {
       this.id = id;
@@ -40985,20 +40992,25 @@ ${e3}`);
     }
     draw_terrain_collisions(lines) {
       this.collision_lines.removeChildren();
+      let i3 = 0;
       for (const l3 of lines) {
         if (l3.length < 2) {
           console.error("Line needs to have at least 2 vertices...?");
           continue;
         }
         const collision_graphics = new Graphics().moveTo(
-          l3[0][0] * RENDER_SCALE + 1,
-          l3[0][1] * RENDER_SCALE + 1
+          l3[0][0] * RENDER_SCALE,
+          l3[0][1] * RENDER_SCALE
         );
-        for (let i3 = 1; i3 < l3.length; i3++) {
-          const [x3, y3] = l3[i3];
-          collision_graphics.lineTo(x3 * RENDER_SCALE + 1, y3 * RENDER_SCALE + 1);
+        for (let i4 = 1; i4 < l3.length; i4++) {
+          const [x3, y3] = l3[i4];
+          collision_graphics.lineTo(x3 * RENDER_SCALE, y3 * RENDER_SCALE);
         }
-        collision_graphics.stroke("#ff0000");
+        collision_graphics.stroke({
+          color: collision_graphic_colors[i3 % collision_graphic_colors.length],
+          width: 2
+        });
+        i3 += 1;
         this.collision_lines.addChild(collision_graphics);
       }
     }

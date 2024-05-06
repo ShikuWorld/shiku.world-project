@@ -18,7 +18,7 @@ impl RapierSimulation {
             &self.gravity,
             &self.integration_parameters,
             &mut self.islands,
-            &mut self.broad_phase,
+            &mut self.broad_phase_multi_sap,
             &mut self.narrow_phase,
             &mut self.bodies,
             &mut self.colliders,
@@ -36,7 +36,7 @@ impl RapierSimulation {
         collider_handle: ColliderHandle,
     ) -> Vec<ColliderHandle> {
         self.narrow_phase
-            .intersections_with(collider_handle)
+            .intersection_pairs_with(collider_handle)
             .filter(|(c1, c2, intersecting)| *intersecting)
             .map(|(c1, c2, _i)| if c1 == collider_handle { c2 } else { c1 })
             .collect()
@@ -65,7 +65,7 @@ impl RapierSimulation {
 
     pub fn get_contacting_colliders(&self, collider_handle: ColliderHandle) -> Vec<ColliderHandle> {
         self.narrow_phase
-            .contacts_with(collider_handle)
+            .contact_pairs_with(collider_handle)
             .map(|contact_pair| {
                 if contact_pair.collider1 == collider_handle {
                     contact_pair.collider2
@@ -444,7 +444,7 @@ impl RapierSimulation {
             integration_parameters: IntegrationParameters::default(),
             physics_pipeline: PhysicsPipeline::new(),
             islands: IslandManager::new(),
-            broad_phase: BroadPhase::new(),
+            broad_phase_multi_sap: BroadPhaseMultiSap::new(),
             narrow_phase: NarrowPhase::new(),
             ccd_solver: CCDSolver::new(),
             multibody_joints: MultibodyJointSet::new(),

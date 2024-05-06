@@ -38,6 +38,7 @@
       :node_is_instance="is_node_instance"
       :scene_is_instance="is_scene_instance"
       @remove_node="on_remove_node"
+      @edit_script="on_edit_script"
     ></SceneNodeList>
   </div>
 </template>
@@ -93,6 +94,13 @@ const emit = defineEmits<{
     is_from_current_instance: boolean,
   ): void;
   (
+    e: "edit_script",
+    scene_resource: string,
+    path: number[],
+    node: GameNodeKind,
+    is_from_current_instance: boolean,
+  ): void;
+  (
     e: "add_node",
     scene_resource: string,
     path: number[],
@@ -109,6 +117,14 @@ function on_remove_node(
   is_from_current_instance: boolean,
 ) {
   emit("remove_node", scene_resource, path, node, is_from_current_instance);
+}
+function on_edit_script(
+  scene_resource: string,
+  path: number[],
+  node: GameNodeKind,
+  is_from_current_instance: boolean,
+) {
+  emit("edit_script", scene_resource, path, node, is_from_current_instance);
 }
 
 function add_node_type(

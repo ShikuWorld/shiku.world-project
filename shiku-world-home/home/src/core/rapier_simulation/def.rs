@@ -4,7 +4,7 @@ pub struct RapierSimulation {
     pub(crate) gravity: Vector<Real>,
     pub(crate) integration_parameters: IntegrationParameters,
     pub(crate) islands: IslandManager,
-    pub(crate) broad_phase: BroadPhase,
+    pub(crate) broad_phase_multi_sap: BroadPhaseMultiSap,
     pub(crate) narrow_phase: NarrowPhase,
     pub(crate) bodies: RigidBodySet,
     pub(crate) colliders: ColliderSet,

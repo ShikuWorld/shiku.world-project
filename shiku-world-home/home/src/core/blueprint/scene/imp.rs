@@ -174,7 +174,7 @@ impl GameNodeKind {
             ecs.entities.game_node_kind.get(entity),
             ecs.entities.game_node_id.get(entity),
             ecs.entities.game_node_name.get(entity),
-            ecs.entities.game_node_script.get(entity),
+            ecs.entities.game_node_script_src.get(entity),
             ecs.entities.game_node_children.get(entity),
         ) {
             let children: Vec<GameNodeKind> = node_children
@@ -219,7 +219,7 @@ impl GameNodeKind {
         ecs.entities.game_node_kind.get(entity),
         ecs.entities.game_node_id.get(entity),
         ecs.entities.game_node_name.get(entity),
-        ecs.entities.game_node_script.get(entity),
+        ecs.entities.game_node_script_src.get(entity),
         ecs.entities.game_node_children.get(entity).is_some());
         None
     }
