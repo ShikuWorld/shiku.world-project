@@ -9,7 +9,7 @@ use thiserror::Error;
 use ts_rs::TS;
 use walkdir::Error as WalkDirError;
 
-use crate::core::blueprint::scene::def::{CollisionShape, Scene};
+use crate::core::blueprint::scene::def::{CollisionShape, Scene, Script};
 use crate::core::guest::{ModuleEnterSlot, ModuleExitSlot};
 use crate::core::module::ModuleName;
 
@@ -34,19 +34,11 @@ impl Conductor {
     }
 }
 
-#[derive(TS, Debug, Serialize, Deserialize, PartialEq, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum ResourceKind {
-    Tileset,
-    Scene,
-    Map,
-    Unknown,
-}
-
 pub enum ResourceLoaded {
     Tileset(Tileset),
     Scene(Scene),
     Map(GameMap),
+    Script(Script),
     Unknown,
 }
 
@@ -68,8 +60,19 @@ pub enum FileBrowserFileKind {
     Module,
     Map,
     Tileset,
+    Script,
     Scene,
     Folder,
+    Unknown,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum ResourceKind {
+    Tileset,
+    Scene,
+    Map,
+    Script,
     Unknown,
 }
 

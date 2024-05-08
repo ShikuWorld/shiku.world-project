@@ -10,7 +10,7 @@ use crate::core::blueprint::def::{
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{
-    CollisionShape, GameNodeId, GameNodeKind, Scene, SceneId,
+    CollisionShape, GameNodeId, GameNodeKind, Scene, SceneId, Script, ScriptId,
 };
 use crate::core::entity::def::EntityId;
 use crate::core::entity::render::CameraSettings;
@@ -71,6 +71,9 @@ pub enum EditorEvent {
     CreatedModule(ModuleId, blueprint::def::Module),
     DeletedModule(ModuleId),
     UpdatedModule(ModuleId, blueprint::def::Module),
+    CreatedScript(Script),
+    SetScript(Script),
+    DeletedScript(ScriptId),
     CreatedMap(blueprint::def::GameMap),
     SetMap(blueprint::def::GameMap),
     UpdatedMap(blueprint::def::MapUpdate),

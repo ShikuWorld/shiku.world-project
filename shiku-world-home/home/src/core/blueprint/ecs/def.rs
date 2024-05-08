@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::prelude::{ColliderHandle, Real};
 use remove_entity::RemoveEntity;
-use rhai::AST;
+use rhai::Scope;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -28,8 +28,8 @@ pub struct ECS {
 }
 #[derive(Debug, RemoveEntity)]
 pub struct EntityMaps {
-    pub game_node_script_src: HashMap<Entity, Option<String>>,
-    pub game_node_script: HashMap<Entity, AST>,
+    pub game_node_script_src: HashMap<Entity, Option<ResourcePath>>,
+    pub game_node_script_scope: HashMap<Entity, Scope<'static>>,
     pub game_node_id: HashMap<Entity, GameNodeId>,
     pub game_node_name: HashMap<Entity, String>,
     pub game_node_children: HashMap<Entity, Vec<Entity>>,

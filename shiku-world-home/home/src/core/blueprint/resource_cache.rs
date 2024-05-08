@@ -10,13 +10,14 @@ use crate::core::blueprint::def::{
     BlueprintError, BlueprintService, FileBrowserFileKind, GameMap, Module, ResourcePath, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::blueprint::scene::def::Scene;
+use crate::core::blueprint::scene::def::{Scene, Script};
 use crate::core::{get_out_dir, safe_unwrap};
 
 pub struct ResourceCache {
     pub tilesets: RwLock<HashMap<ResourcePath, Tileset>>,
     pub maps: RwLock<HashMap<ResourcePath, GameMap>>,
     pub scenes: RwLock<HashMap<ResourcePath, Scene>>,
+    pub scripts: RwLock<HashMap<ResourcePath, Script>>,
     pub modules: RwLock<HashMap<ResourcePath, Module>>,
 }
 
@@ -27,6 +28,7 @@ pub fn get_resource_cache() -> &'static ResourceCache {
         tilesets: RwLock::new(HashMap::new()),
         maps: RwLock::new(HashMap::new()),
         scenes: RwLock::new(HashMap::new()),
+        scripts: RwLock::new(HashMap::new()),
         modules: RwLock::new(HashMap::new()),
     })
 }
@@ -73,6 +75,15 @@ pub fn init_resource_cache() -> Result<(), BlueprintError> {
                     .write()
                     .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
                     .insert(full_resource_path.display().to_string(), module);
+                debug!("Successfully loaded {:?}", full_resource_path.display());
+            }
+            FileBrowserFileKind::Script => {
+                let script = Blueprint::load_from_file(PathBuf::from(full_resource_path))?;
+                resources
+                    .scripts
+                    .write()
+                    .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
+                    .insert(full_resource_path.display().to_string(), script);
                 debug!("Successfully loaded {:?}", full_resource_path.display());
             }
             FileBrowserFileKind::Folder | FileBrowserFileKind::Conductor => {}

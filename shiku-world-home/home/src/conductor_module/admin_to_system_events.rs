@@ -249,6 +249,9 @@ pub async fn handle_admin_to_system_event(
                 ResourceLoaded::Map(map) => {
                     send_editor_event(EditorEvent::SetMap(map));
                 }
+                ResourceLoaded::Script(script) => {
+                    send_editor_event(EditorEvent::SetScript(script));
+                }
                 ResourceLoaded::Unknown => {
                     debug!("unknown resource {:?}", path);
                 }

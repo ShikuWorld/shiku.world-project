@@ -69,7 +69,8 @@ impl World {
     }
 
     fn init_scripts(engine: &Engine, ecs: &mut ECS, physics: &mut RapierSimulation) {
-        for (entity, script) in ecs
+        //TODO
+        /*for (entity, script) in ecs
             .entities
             .game_node_script_src
             .iter()
@@ -83,7 +84,7 @@ impl World {
                     error!("Could not init script: ${:?}", err);
                 }
             }
-        }
+        }*/
     }
 
     fn init_physics_simulation_from_ecs(ecs: &mut ECS, physics: &mut RapierSimulation) {

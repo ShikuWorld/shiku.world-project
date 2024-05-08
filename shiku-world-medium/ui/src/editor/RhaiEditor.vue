@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { EditorView, minimalSetup } from "codemirror";
+import { EditorView, basicSetup } from "codemirror";
+import { rust } from "@codemirror/lang-rust";
+import { cobalt } from "thememirror";
+
 const editor = ref<HTMLElement>();
 const is_active = ref<boolean>(false);
 function open() {
@@ -9,7 +12,7 @@ function open() {
     if (editor.value) {
       new EditorView({
         doc: 'console.log("hi");',
-        extensions: [minimalSetup],
+        extensions: [basicSetup, rust(), cobalt],
         parent: editor.value,
       });
     }

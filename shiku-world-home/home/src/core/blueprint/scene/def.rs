@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 pub type SceneId = String;
+pub type ScriptId = String;
 pub type GameNodeId = String;
 pub type NodeInstanceId = u32;
 
@@ -15,6 +16,15 @@ pub struct Scene {
     pub name: String,
     pub resource_path: ResourcePath,
     pub root_node: GameNodeKind,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Script {
+    pub id: ScriptId,
+    pub name: String,
+    pub resource_path: ResourcePath,
+    pub content: String,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

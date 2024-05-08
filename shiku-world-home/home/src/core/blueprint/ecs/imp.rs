@@ -32,7 +32,7 @@ impl ECS {
             entity_counter: 0,
             entities: EntityMaps {
                 game_node_script_src: HashMap::new(),
-                game_node_script: HashMap::new(),
+                game_node_script_scope: HashMap::new(),
                 game_node_id: HashMap::new(),
                 game_node_name: HashMap::new(),
                 game_node_children: HashMap::new(),

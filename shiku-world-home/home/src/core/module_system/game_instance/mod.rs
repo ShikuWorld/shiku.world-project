@@ -278,9 +278,10 @@ impl GameInstanceManager {
                     }
                 }
             }
-            ResourceKind::Scene => Vec::new(),
-            ResourceKind::Map => Vec::new(),
-            ResourceKind::Unknown => Vec::new(),
+            ResourceKind::Scene
+            | ResourceKind::Map
+            | ResourceKind::Unknown
+            | ResourceKind::Script => Vec::new(),
         }
     }
 

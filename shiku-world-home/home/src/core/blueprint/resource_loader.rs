@@ -15,7 +15,7 @@ use crate::core::blueprint::def::{
 };
 use crate::core::blueprint::ecs::def::{EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::resource_cache::get_resource_cache;
-use crate::core::blueprint::scene::def::{GameNodeKind, Scene};
+use crate::core::blueprint::scene::def::{GameNodeKind, Scene, Script};
 use crate::core::get_out_dir;
 use crate::core::module::ModuleName;
 
@@ -185,6 +185,38 @@ impl Blueprint {
     pub fn delete_map(map: &GameMap) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
         Self::delete(&map.resource_path, &map.name, "map", &resources.maps)
+    }
+
+    pub fn create_script(map: &Script) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::create(
+            map,
+            &map.resource_path,
+            &map.name,
+            "script",
+            &resources.scripts,
+        )
+    }
+
+    pub fn load_script(path: PathBuf) -> Result<Script, BlueprintError> {
+        let resources = get_resource_cache();
+        Self::load(path, &resources.scripts)
+    }
+
+    pub fn save_script(map: &Script) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::save(
+            map,
+            &map.resource_path,
+            &map.name,
+            "script",
+            &resources.scripts,
+        )
+    }
+
+    pub fn delete_script(map: &Script) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::delete(&map.resource_path, &map.name, "script", &resources.scripts)
     }
 
     pub fn create_scene(scene: &Scene) -> Result<(), BlueprintError> {

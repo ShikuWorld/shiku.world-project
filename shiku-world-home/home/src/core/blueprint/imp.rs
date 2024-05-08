@@ -61,29 +61,17 @@ impl BlueprintService {
             .flatten()
         {
             let file_name = safe_unwrap(entry.file_name().to_str(), BlueprintError::OsParsing)?;
-            match Self::determine_file_type(file_name) {
-                FileBrowserFileKind::Scene => {
+            let file_browser_file_type = Self::determine_file_type(file_name);
+            match &file_browser_file_type {
+                FileBrowserFileKind::Scene
+                | FileBrowserFileKind::Tileset
+                | FileBrowserFileKind::Map
+                | FileBrowserFileKind::Script => {
                     file_browser_entry.resources.push(BlueprintResource {
                         file_name: file_name.to_string(),
                         dir: directory.clone(),
                         path: format!("{}/{}", directory, file_name),
-                        kind: ResourceKind::Scene,
-                    });
-                }
-                FileBrowserFileKind::Tileset => {
-                    file_browser_entry.resources.push(BlueprintResource {
-                        file_name: file_name.to_string(),
-                        dir: directory.clone(),
-                        path: format!("{}/{}", directory, file_name),
-                        kind: ResourceKind::Tileset,
-                    });
-                }
-                FileBrowserFileKind::Map => {
-                    file_browser_entry.resources.push(BlueprintResource {
-                        file_name: file_name.to_string(),
-                        dir: directory.clone(),
-                        path: format!("{}/{}", directory, file_name),
-                        kind: ResourceKind::Map,
+                        kind: file_browser_file_type.into(),
                     });
                 }
                 FileBrowserFileKind::Folder => {
@@ -124,6 +112,13 @@ impl BlueprintService {
                                 ResourceLoaded::Unknown
                             }
                         },
+                        ResourceKind::Script => match Blueprint::load_script(path_buf) {
+                            Ok(script) => ResourceLoaded::Script(script),
+                            Err(err) => {
+                                error!("Could not load Resource: {:?}", err);
+                                ResourceLoaded::Unknown
+                            }
+                        },
                         ResourceKind::Unknown => ResourceLoaded::Unknown,
                     };
                 }
@@ -139,6 +134,7 @@ impl BlueprintService {
         match parts.as_slice() {
             [_, "tileset", "json"] => ResourceKind::Tileset,
             [_, "scene", "json"] => ResourceKind::Scene,
+            [_, "script", "json"] => ResourceKind::Script,
             [_, "map", "json"] => ResourceKind::Map,
             _ => ResourceKind::Unknown,
         }
@@ -201,6 +197,7 @@ impl BlueprintService {
             [_, "tileset", "json"] => FileBrowserFileKind::Tileset,
             [_, "map", "json"] => FileBrowserFileKind::Map,
             [_, "scene", "json"] => FileBrowserFileKind::Scene,
+            [_, "script", "json"] => FileBrowserFileKind::Script,
             [_, "module", "json"] => FileBrowserFileKind::Module,
             [_] => FileBrowserFileKind::Folder,
             _ => FileBrowserFileKind::Unknown,
@@ -237,6 +234,21 @@ impl BlueprintService {
         let file = File::create(file_path)?;
         let writer = BufWriter::new(file);
         Ok(serde_json::to_writer_pretty(writer, blueprint)?)
+    }
+}
+
+impl From<FileBrowserFileKind> for ResourceKind {
+    fn from(value: FileBrowserFileKind) -> Self {
+        match value {
+            FileBrowserFileKind::Folder
+            | FileBrowserFileKind::Unknown
+            | FileBrowserFileKind::Conductor
+            | FileBrowserFileKind::Module => ResourceKind::Unknown,
+            FileBrowserFileKind::Map => ResourceKind::Map,
+            FileBrowserFileKind::Tileset => ResourceKind::Tileset,
+            FileBrowserFileKind::Script => ResourceKind::Script,
+            FileBrowserFileKind::Scene => ResourceKind::Scene,
+        }
     }
 }
 
