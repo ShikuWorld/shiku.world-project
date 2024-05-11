@@ -26,10 +26,10 @@ pub struct ECS {
     pub entities: EntityMaps,
     pub entity_counter: NodeInstanceId,
 }
+
 #[derive(Debug, RemoveEntity)]
 pub struct EntityMaps {
-    pub game_node_script_src: HashMap<Entity, Option<ResourcePath>>,
-    pub game_node_script_scope: HashMap<Entity, Scope<'static>>,
+    pub game_node_script: HashMap<Entity, (ResourcePath, Scope<'static>)>,
     pub game_node_id: HashMap<Entity, GameNodeId>,
     pub game_node_name: HashMap<Entity, String>,
     pub game_node_children: HashMap<Entity, Vec<Entity>>,

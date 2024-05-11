@@ -23,7 +23,7 @@ use crate::core::module_system::def::{
     DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication, ModuleGuest,
 };
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
-use crate::core::module_system::game_instance::GameInstanceId;
+use crate::core::module_system::game_instance::{AstCache, GameInstanceId};
 use crate::core::module_system::world::{World, WorldId};
 use crate::core::{send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
 
@@ -31,6 +31,7 @@ impl DynamicGameModule {
     pub fn create(
         instance_id: GameInstanceId,
         module: &Module,
+        script_ast_cache: &AstCache,
         module_output_sender: ModuleOutputSender,
     ) -> (DynamicGameModule, ModuleInputSender) {
         let (module_input_sender, module_input_receiver) = create_module_communication_input();
@@ -60,7 +61,7 @@ impl DynamicGameModule {
             Vec::new()
         });
         for game_map in game_maps {
-            if let Err(err) = dynamic_module.create_world(&game_map) {
+            if let Err(err) = dynamic_module.create_world(&game_map, script_ast_cache) {
                 error!("Could not create world '{}': {:?}", game_map.name, err);
             }
         }
@@ -83,10 +84,11 @@ impl DynamicGameModule {
             }
         }
         for world in self.world_map.values_mut() {
+            let mut physics = world.physics.borrow_mut();
             world.terrain_manager.update_collision_shape(
                 gid,
                 &self.gid_to_collision_shape_map,
-                &mut world.physics,
+                &mut physics,
             );
             Self::send_event_to_admins(
                 &world.world_id,
@@ -105,12 +107,16 @@ impl DynamicGameModule {
         }
     }
 
-    pub fn create_world(&mut self, game_map: &GameMap) -> Result<WorldId, CreateWorldError> {
+    pub fn create_world(
+        &mut self,
+        game_map: &GameMap,
+        script_ast_cache: &AstCache,
+    ) -> Result<WorldId, CreateWorldError> {
         if self.world_map.contains_key(&game_map.world_id) {
             return Err(CreateWorldError::DidAlreadyExist);
         }
 
-        let new_world = World::new(game_map, &self.gid_to_collision_shape_map)?;
+        let new_world = World::new(game_map, &self.gid_to_collision_shape_map, script_ast_cache)?;
         self.world_map.insert(game_map.world_id.clone(), new_world);
         self.world_to_admin.init(game_map.world_id.clone());
         self.world_to_guest.init(game_map.world_id.clone());
@@ -152,10 +158,10 @@ impl DynamicGameModule {
         }
     }
 
-    pub fn update(&mut self, module: &Module) {
+    pub fn update(&mut self, module: &Module, script_ast_cache: &AstCache) {
         self.handle_guest_events(module);
         for world in self.world_map.values_mut() {
-            world.update();
+            world.update(script_ast_cache);
             let position_updates = Self::get_position_updates(world);
             if position_updates.is_empty() {
                 continue;
@@ -284,11 +290,12 @@ impl DynamicGameModule {
 
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
         if let Some(world) = self.world_map.get_mut(world_id) {
+            let mut physics = world.physics.borrow_mut();
             world.terrain_manager.write_chunk(
                 chunk,
                 layer_kind,
                 &self.gid_to_collision_shape_map,
-                &mut world.physics,
+                &mut physics,
             );
 
             let terrain_update = ModuleInstanceEvent {

@@ -164,17 +164,10 @@ impl GameNodeKind {
     }
 
     pub(crate) fn get_game_node_kind_from_ecs(entity: &Entity, ecs: &ECS) -> Option<GameNodeKind> {
-        if let (
-            Some(node_kind),
-            Some(node_id),
-            Some(node_name),
-            Some(node_script),
-            Some(node_children),
-        ) = (
+        if let (Some(node_kind), Some(node_id), Some(node_name), Some(node_children)) = (
             ecs.entities.game_node_kind.get(entity),
             ecs.entities.game_node_id.get(entity),
             ecs.entities.game_node_name.get(entity),
-            ecs.entities.game_node_script_src.get(entity),
             ecs.entities.game_node_children.get(entity),
         ) {
             let children: Vec<GameNodeKind> = node_children
@@ -188,7 +181,7 @@ impl GameNodeKind {
                     return Some(GameNodeKind::Instance(GameNode {
                         id: node_id.clone(),
                         name: node_name.clone(),
-                        script: node_script.clone(),
+                        script: Some("".into()),
                         entity_id: Some(*entity),
                         children,
                         data: "".into(),
@@ -202,7 +195,7 @@ impl GameNodeKind {
                         return Some(GameNodeKind::Node2D(GameNode {
                             id: node_id.clone(),
                             name: node_name.clone(),
-                            script: node_script.clone(),
+                            script: Some("".into()),
                             entity_id: Some(*entity),
                             children,
                             data: Node2D {
@@ -214,12 +207,11 @@ impl GameNodeKind {
                 }
             }
         }
-        error!("Was not able to get game_node. entity: {:?}, kind: {:?}, id: {:?}, name: {:?}, script: {:?}, children: {:?}",
+        error!("Was not able to get game_node. entity:, kind: {:?}, id: {:?}, name: {:?}, script: {:?}, children: {:?}",
         entity,
         ecs.entities.game_node_kind.get(entity),
         ecs.entities.game_node_id.get(entity),
         ecs.entities.game_node_name.get(entity),
-        ecs.entities.game_node_script_src.get(entity),
         ecs.entities.game_node_children.get(entity).is_some());
         None
     }

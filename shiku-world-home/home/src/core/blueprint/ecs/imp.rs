@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use log::error;
+use rhai::{ParseError, Scope};
 
 use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS};
 use crate::core::blueprint::scene::def::{
-    GameNodeKind, GameNodeKindClean, Node2DKind, Node2DKindClean, NodeInstanceId, RenderKind,
-    RenderKindClean, Scene, SceneId,
+    GameNodeKind, GameNodeKindClean, Node2DKind, Node2DKindClean, RenderKind, RenderKindClean,
+    Scene, SceneId, Script,
 };
 
 impl From<&Scene> for ECS {
@@ -31,8 +32,7 @@ impl ECS {
             scene_id: SceneId::default(),
             entity_counter: 0,
             entities: EntityMaps {
-                game_node_script_src: HashMap::new(),
-                game_node_script_scope: HashMap::new(),
+                game_node_script: HashMap::new(),
                 game_node_id: HashMap::new(),
                 game_node_name: HashMap::new(),
                 game_node_children: HashMap::new(),
@@ -76,9 +76,11 @@ impl ECS {
                     .game_node_kind
                     .insert(entity, GameNodeKindClean::Node2D);
                 ecs.entities.game_node_id.insert(entity, node_2d.id.clone());
-                ecs.entities
-                    .game_node_script_src
-                    .insert(entity, node_2d.script.clone());
+                if let Some(resource_path) = &node_2d.script {
+                    ecs.entities
+                        .game_node_script
+                        .insert(entity, (resource_path.clone(), Scope::new()));
+                }
                 ecs.entities.game_node_children.insert(entity, Vec::new());
                 ecs.entities
                     .game_node_name
