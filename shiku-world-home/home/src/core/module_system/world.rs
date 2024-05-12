@@ -52,7 +52,7 @@ impl World {
         let mut script_engine = Engine::new();
         let physics_rc = Rc::from(RefCell::from(physics));
         Self::setup_scripting_api(&mut script_engine, &physics_rc);
-        Self::call_init_func_on_game_nodes(&mut script_engine, script_ast_cache, &mut ecs);
+        Self::call_init_func_on_game_nodes(&script_engine, script_ast_cache, &mut ecs);
 
         Ok(World {
             world_id: game_map.world_id.clone(),
@@ -90,8 +90,8 @@ impl World {
             }
         }
         for (resource_path, scope) in self.ecs.entities.game_node_script.values_mut() {
-            if let Some(ast) = script_ast_cache.init.get(resource_path) {
-                match self.script_engine.call_fn(scope, ast, "init", ()) {
+            if let Some(ast) = script_ast_cache.update.get(resource_path) {
+                match self.script_engine.call_fn(scope, ast, "update", ()) {
                     Ok(()) => {}
                     Err(err) => {
                         //TODO find way to not log this every frame

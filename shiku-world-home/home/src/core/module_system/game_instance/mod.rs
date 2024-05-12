@@ -22,7 +22,7 @@ use crate::core::module::{
 use crate::core::module_system::def::DynamicGameModule;
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::world::WorldId;
-use crate::core::{blueprint, send_and_log_error, TARGET_FRAME_DURATION};
+use crate::core::{send_and_log_error, TARGET_FRAME_DURATION};
 use crate::resource_module::def::{LoadResource, ResourceModule};
 use crate::resource_module::errors::ResourceParseError;
 
@@ -89,6 +89,11 @@ impl AstCache {
                 }
             }
         })
+    }
+
+    pub fn remove_script(&mut self, resource_path: &ResourcePath) {
+        self.init.remove(resource_path);
+        self.update.remove(resource_path);
     }
 }
 
@@ -349,7 +354,54 @@ impl GameInstanceManager {
         }
     }
 
-    pub fn init_script_ast_cache(&mut self) {
+    pub fn update_script_ast_cache(&mut self, updated_resources: &[BlueprintResource]) {
+        let engine = Engine::new();
+        let current_script_set: HashSet<String> = self
+            .module_blueprint
+            .resources
+            .iter()
+            .filter_map(|r| {
+                if r.kind == ResourceKind::Script {
+                    Some(r.path.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        let updated_script_set: HashSet<String> = updated_resources
+            .iter()
+            .filter_map(|r| {
+                if r.kind == ResourceKind::Script {
+                    Some(r.path.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for insertion in updated_script_set.difference(&current_script_set) {
+            match Blueprint::load_script(insertion.into()) {
+                Ok(script) => {
+                    match self
+                        .script_ast_cache
+                        .compile_and_cache_script(&engine, &script)
+                    {
+                        Ok(()) => {}
+                        Err(err) => {
+                            error!("Was not able to compile newly add new script {err}")
+                        }
+                    }
+                }
+                Err(err) => {
+                    error!("Was not able to load new script resource {err}")
+                }
+            }
+        }
+        for deletion in current_script_set.difference(&updated_script_set) {
+            self.script_ast_cache.remove_script(deletion);
+        }
+    }
+
+    fn init_script_ast_cache(&mut self) {
         let engine = Engine::new();
         for resource in &self.module_blueprint.resources {
             if ResourceKind::Script == resource.kind {

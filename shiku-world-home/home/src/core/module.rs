@@ -10,7 +10,7 @@ use crate::core::blueprint::def::{
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{
-    CollisionShape, GameNodeId, GameNodeKind, Scene, SceneId, Script, ScriptId,
+    CollisionShape, GameNodeId, GameNodeKind, Scene, SceneId, Script,
 };
 use crate::core::entity::def::EntityId;
 use crate::core::entity::render::CameraSettings;
@@ -73,7 +73,7 @@ pub enum EditorEvent {
     UpdatedModule(ModuleId, blueprint::def::Module),
     CreatedScript(Script),
     SetScript(Script),
-    DeletedScript(ScriptId),
+    DeletedScript(Script),
     CreatedMap(blueprint::def::GameMap),
     SetMap(blueprint::def::GameMap),
     UpdatedMap(blueprint::def::MapUpdate),
@@ -96,7 +96,7 @@ pub enum EditorEvent {
 #[ts(export)]
 pub enum AdminToSystemEvent {
     ProviderLoggedIn(ProviderLoggedIn),
-    UpdateConductor(blueprint::def::Conductor),
+    UpdateConductor(Conductor),
     BrowseFolder(String),
     OpenInstance(ModuleId),
     StartInspectingWorld(ModuleId, GameInstanceId, WorldId),
@@ -105,19 +105,22 @@ pub enum AdminToSystemEvent {
     UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),
     GetResource(ResourcePath),
-    CreateTileset(blueprint::def::Tileset),
-    SetTileset(blueprint::def::Tileset),
+    CreateTileset(Tileset),
+    SetTileset(Tileset),
     UpdateTileset(ResourcePath, TilesetUpdate),
-    DeleteTileset(blueprint::def::Tileset),
-    CreateScene(blueprint::scene::def::Scene),
+    DeleteTileset(Tileset),
+    CreateScene(Scene),
     UpdateSceneNode(SceneNodeUpdate),
     UpdateInstancedNode(ModuleId, GameInstanceId, WorldId, EntityUpdate),
     RemoveInstanceNode(ModuleId, GameInstanceId, WorldId, Entity),
     AddNodeToInstanceNode(ModuleId, GameInstanceId, WorldId, Entity, GameNodeKind),
-    DeleteScene(blueprint::scene::def::Scene),
+    DeleteScene(Scene),
     CreateMap(ModuleId, blueprint::def::GameMap),
     UpdateMap(blueprint::def::MapUpdate),
     DeleteMap(ModuleId, blueprint::def::GameMap),
+    CreateScript(Script),
+    UpdateScript(Script),
+    DeleteScript(Script),
     DeleteModule(ModuleId),
     SetMainDoorStatus(bool),
     SetBackDoorStatus(bool),

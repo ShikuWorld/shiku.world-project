@@ -214,9 +214,14 @@ impl Blueprint {
         )
     }
 
-    pub fn delete_script(map: &Script) -> Result<(), BlueprintError> {
+    pub fn delete_script(script: &Script) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::delete(&map.resource_path, &map.name, "script", &resources.scripts)
+        Self::delete(
+            &script.resource_path,
+            &script.name,
+            "script",
+            &resources.scripts,
+        )
     }
 
     pub fn create_scene(scene: &Scene) -> Result<(), BlueprintError> {

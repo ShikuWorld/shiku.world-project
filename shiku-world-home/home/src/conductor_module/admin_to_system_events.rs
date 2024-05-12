@@ -465,6 +465,7 @@ pub async fn handle_admin_to_system_event(
                                 module.get_active_actor_ids(),
                             );
                             module.module_blueprint.gid_map = gid_map;
+                            module.update_script_ast_cache(&resources);
                             module.module_blueprint.resources = resources;
                         }
                         Err(err) => error!("Could not generate gid map! {:?}", err),
@@ -539,6 +540,37 @@ pub async fn handle_admin_to_system_event(
                 }
                 Err(err) => {
                     debug!("Could not create module: {:?}", err);
+                }
+            }
+        }
+        AdminToSystemEvent::CreateScript(script) => match Blueprint::create_script(&script) {
+            Ok(()) => {
+                send_editor_event(EditorEvent::CreatedScript(script));
+            }
+            Err(err) => {
+                debug!("Could not create script: {:?}", err);
+            }
+        },
+        AdminToSystemEvent::UpdateScript(script) => {
+            // TODO: Check ast compilation before saving
+            // TODO: Update script in all modules
+            match Blueprint::save_script(&script) {
+                Ok(()) => {
+                    send_editor_event(EditorEvent::SetScript(script));
+                }
+                Err(err) => {
+                    debug!("Could not create script: {:?}", err);
+                }
+            }
+        }
+        AdminToSystemEvent::DeleteScript(script) => {
+            // TODO: Delete script in all modules
+            match Blueprint::delete_script(&script) {
+                Ok(()) => {
+                    send_editor_event(EditorEvent::DeletedScript(script));
+                }
+                Err(err) => {
+                    debug!("Could not create script: {:?}", err);
                 }
             }
         }
