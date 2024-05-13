@@ -1,20 +1,24 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use flume::{unbounded, Sender};
 use log::{debug, error, warn};
+use rhai::Module;
 use snowflake::SnowflakeIdBucket;
 use tungstenite::protocol::frame::coding::CloseCode;
 
 use crate::conductor_module::admin_to_system_events::handle_admin_to_system_event;
-use crate::conductor_module::def::ConductorModule;
+use crate::conductor_module::def::{ConductorModule, ResourceToModuleMap};
 use crate::conductor_module::errors::{
     HandleLoginError, ProcessGameEventError, ProcessModuleEventError, SendEventToModuleError,
 };
 use crate::conductor_module::game_instances::create_game_instance_manager;
-use crate::core::blueprint::def::{BlueprintService, GidMap, ModuleId, TerrainParams, Tileset};
+use crate::core::blueprint::def::{
+    BlueprintResource, BlueprintService, GidMap, ModuleId, ResourceKind, ResourcePath,
+    TerrainParams, Tileset,
+};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{
     ActorId, Actors, Admin, Guest, LoginData, ModuleEnterSlot, ProviderUserId,
@@ -75,6 +79,30 @@ impl ConductorModule {
         self.handle_admin_events().await;
     }
 
+    pub fn update_resource_to_module_map(
+        resource_to_module_map: &mut ResourceToModuleMap,
+        module_id: &ModuleId,
+        current_resources: &Vec<BlueprintResource>,
+        updated_resources: &Vec<BlueprintResource>,
+    ) {
+        let current_script_set: HashSet<String> =
+            current_resources.iter().map(|r| r.path.clone()).collect();
+        let updated_script_set: HashSet<String> =
+            updated_resources.iter().map(|r| r.path.clone()).collect();
+        for insertion in updated_script_set.difference(&current_script_set) {
+            resource_to_module_map
+                .entry(insertion.clone())
+                .or_default()
+                .insert(module_id.clone());
+        }
+        for deletion in current_script_set.difference(&updated_script_set) {
+            resource_to_module_map
+                .entry(deletion.clone())
+                .or_default()
+                .remove(module_id);
+        }
+    }
+
     fn check_admin_login(login_data: &LoginData) -> bool {
         login_data.provider_user_id == "52657886"
     }
@@ -104,6 +132,7 @@ impl ConductorModule {
                                 &mut self.web_server_module,
                                 &mut self.resource_module,
                                 &mut self.module_map,
+                                &mut self.resource_to_module_map,
                                 &mut self.system_to_admin_communication.sender,
                                 admin,
                                 event,
@@ -164,11 +193,13 @@ impl ConductorModule {
         let system_to_admin_communication = SystemCommunicationIO { receiver, sender };
 
         let modules = Blueprint::get_all_modules().unwrap();
+        let mut resource_to_module_map = HashMap::new();
         for module in modules {
             create_game_instance_manager(
                 module.clone(),
                 &mut module_map,
                 &mut resource_module,
+                &mut resource_to_module_map,
                 &mut module_communication_map,
             )
             .unwrap();
@@ -184,6 +215,7 @@ impl ConductorModule {
             login_manager: LoginManager::new(),
             snowflake_gen,
             module_connection_map: HashMap::new(),
+            resource_to_module_map: HashMap::new(),
             guests: HashMap::new(),
             admins: HashMap::new(),
 
@@ -535,7 +567,7 @@ impl ConductorModule {
         resource_module: &mut ResourceModule,
     ) {
         match module.try_leave(guest) {
-            Ok((instance_id, LeaveSuccessState::Left)) => {
+            Ok((_instance_id, LeaveSuccessState::Left)) => {
                 guest.current_module_id = None;
                 if let Err(err) = resource_module
                     .disable_module_resource_updates(module.module_blueprint.id.clone(), &guest.id)

@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
 use snowflake::SnowflakeIdBucket;
 
-use crate::core::blueprint::def::{BlueprintService, ModuleId};
+use crate::core::blueprint::def::{BlueprintService, ModuleId, ResourcePath};
 use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ModuleExitSlot, ProviderUserId};
 use crate::core::module::{ModuleIO, SystemCommunicationIO};
@@ -16,6 +16,7 @@ use crate::{ResourceModule, WebsocketModule};
 
 pub type ModuleMap = HashMap<ModuleId, GameInstanceManager>;
 pub type ModuleCommunicationMap = HashMap<ModuleId, ModuleIO>;
+pub type ResourceToModuleMap = HashMap<ResourcePath, HashSet<ModuleId>>;
 
 pub struct ConductorModule {
     pub(super) blueprint: blueprint::def::Conductor,
@@ -26,6 +27,7 @@ pub struct ConductorModule {
     pub(super) web_server_module: WebServerModule,
     pub(super) login_manager: LoginManager,
     pub(super) module_map: ModuleMap,
+    pub(crate) resource_to_module_map: ResourceToModuleMap,
     pub(super) module_connection_map: HashMap<ModuleExitSlot, (ModuleId, ModuleEnterSlot)>,
     pub(super) module_communication_map: ModuleCommunicationMap,
     pub(super) guests: HashMap<Snowflake, Guest>,

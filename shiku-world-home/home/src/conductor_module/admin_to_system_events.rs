@@ -8,12 +8,14 @@ use uuid::Uuid;
 use crate::conductor_module::blueprint_helper::{
     bring_polygon_in_clockwise_order, save_and_send_conductor_update,
 };
-use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap};
+use crate::conductor_module::def::{
+    ConductorModule, ModuleCommunicationMap, ModuleMap, ResourceToModuleMap,
+};
 use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
 use crate::core::blueprint::def::{
-    BlueprintResource, BlueprintService, ResourceKind, ResourceLoaded, Tileset,
+    BlueprintResource, BlueprintService, Conductor, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::CollisionShape;
@@ -30,6 +32,7 @@ pub async fn handle_admin_to_system_event(
     web_server_module: &mut WebServerModule,
     resource_module: &mut ResourceModule,
     module_map: &mut ModuleMap,
+    resource_to_module_map: &mut ResourceToModuleMap,
     system_to_admin_communication_sender: &mut Sender<(ActorId, CommunicationEvent)>,
     admin: &Admin,
     event: AdminToSystemEvent,
@@ -465,6 +468,12 @@ pub async fn handle_admin_to_system_event(
                                 module.get_active_actor_ids(),
                             );
                             module.module_blueprint.gid_map = gid_map;
+                            ConductorModule::update_resource_to_module_map(
+                                resource_to_module_map,
+                                &module_id,
+                                &module.module_blueprint.resources,
+                                &resources,
+                            );
                             module.update_script_ast_cache(&resources);
                             module.module_blueprint.resources = resources;
                         }
@@ -528,6 +537,7 @@ pub async fn handle_admin_to_system_event(
                         module_blueprint,
                         module_map,
                         resource_module,
+                        resource_to_module_map,
                         module_communication_map,
                     ) {
                         if let Some(module) = module_map.get(&module_id) {
@@ -552,19 +562,43 @@ pub async fn handle_admin_to_system_event(
             }
         },
         AdminToSystemEvent::UpdateScript(script) => {
-            // TODO: Check ast compilation before saving
-            // TODO: Update script in all modules
-            match Blueprint::save_script(&script) {
-                Ok(()) => {
-                    send_editor_event(EditorEvent::SetScript(script));
+            let mut is_script_compiling = true;
+            let script_resource_path =
+                format!("{:?}/{:?}.script.json", script.resource_path, script.name);
+            for module_id in resource_to_module_map
+                .entry(script_resource_path.clone())
+                .or_default()
+                .iter()
+            {
+                if let Some(module) = module_map.get_mut(module_id) {
+                    is_script_compiling &= module.compile_script(script_resource_path.clone());
                 }
-                Err(err) => {
-                    debug!("Could not create script: {:?}", err);
+            }
+
+            if is_script_compiling {
+                match Blueprint::save_script(&script) {
+                    Ok(()) => {
+                        send_editor_event(EditorEvent::SetScript(script));
+                    }
+                    Err(err) => {
+                        debug!("Could not create script: {:?}", err);
+                    }
                 }
             }
         }
         AdminToSystemEvent::DeleteScript(script) => {
-            // TODO: Delete script in all modules
+            let script_resource_path =
+                format!("{:?}/{:?}.script.json", script.resource_path, script.name);
+            for module_id in resource_to_module_map
+                .entry(script_resource_path.clone())
+                .or_default()
+                .iter()
+            {
+                if let Some(module) = module_map.get_mut(module_id) {
+                    module.remove_script(&script_resource_path);
+                }
+            }
+
             match Blueprint::delete_script(&script) {
                 Ok(()) => {
                     send_editor_event(EditorEvent::DeletedScript(script));

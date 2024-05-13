@@ -1,6 +1,6 @@
 use log::error;
 
-use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap};
+use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap, ResourceToModuleMap};
 use crate::core::blueprint::def::{BlueprintError, Module, ModuleId};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::module::ModuleIO;
@@ -11,11 +11,18 @@ pub fn create_game_instance_manager(
     module_blueprint: Module,
     module_map: &mut ModuleMap,
     resource_module: &mut ResourceModule,
+    resource_to_module_map: &mut ResourceToModuleMap,
     module_communication_map: &mut ModuleCommunicationMap,
 ) -> Option<ModuleId> {
     match GameInstanceManager::new(module_blueprint, resource_module) {
         Ok((game_instance_manager, module_input_sender, module_output_receiver)) => {
             let module_id = game_instance_manager.module_blueprint.id.clone();
+            for resource in &game_instance_manager.module_blueprint.resources {
+                resource_to_module_map
+                    .entry(resource.path.clone())
+                    .or_default()
+                    .insert(module_id.clone());
+            }
             module_map.insert(module_id.clone(), game_instance_manager);
 
             module_communication_map.insert(

@@ -8,7 +8,8 @@ use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, Chunk, GameMap, Gid, LayerKind, ResourceKind, TerrainParams,
+    BlueprintError, BlueprintResource, Chunk, GameMap, Gid, LayerKind, ModuleId, ResourceKind,
+    TerrainParams,
 };
 use crate::core::blueprint::def::{Module, ResourcePath};
 use crate::core::blueprint::resource_loader::Blueprint;
@@ -354,8 +355,33 @@ impl GameInstanceManager {
         }
     }
 
-    pub fn update_script_ast_cache(&mut self, updated_resources: &[BlueprintResource]) {
+    pub fn remove_script(&mut self, resource_path: &ResourcePath) {
+        self.script_ast_cache.remove_script(resource_path);
+    }
+
+    pub fn compile_script(&mut self, resource_path: ResourcePath) -> bool {
         let engine = Engine::new();
+        match Blueprint::load_script(resource_path.into()) {
+            Ok(script) => {
+                match self
+                    .script_ast_cache
+                    .compile_and_cache_script(&engine, &script)
+                {
+                    Ok(()) => true,
+                    Err(err) => {
+                        error!("Was not able to compile newly added script {err}");
+                        false
+                    }
+                }
+            }
+            Err(err) => {
+                error!("Was not able to load new script resource {err}");
+                false
+            }
+        }
+    }
+
+    pub fn update_script_ast_cache(&mut self, updated_resources: &[BlueprintResource]) {
         let current_script_set: HashSet<String> = self
             .module_blueprint
             .resources
@@ -379,22 +405,7 @@ impl GameInstanceManager {
             })
             .collect();
         for insertion in updated_script_set.difference(&current_script_set) {
-            match Blueprint::load_script(insertion.into()) {
-                Ok(script) => {
-                    match self
-                        .script_ast_cache
-                        .compile_and_cache_script(&engine, &script)
-                    {
-                        Ok(()) => {}
-                        Err(err) => {
-                            error!("Was not able to compile newly add new script {err}")
-                        }
-                    }
-                }
-                Err(err) => {
-                    error!("Was not able to load new script resource {err}")
-                }
-            }
+            self.compile_script(insertion.clone());
         }
         for deletion in current_script_set.difference(&updated_script_set) {
             self.script_ast_cache.remove_script(deletion);
