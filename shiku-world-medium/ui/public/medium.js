@@ -41052,6 +41052,12 @@ ${e3}`);
       window.medium_gui.resources.update_scene(d3);
     }).with({ DeletedScene: _.select() }, (d3) => {
       window.medium_gui.resources.delete_scene(d3);
+    }).with({ SetScript: _.select() }, (d3) => {
+      window.medium_gui.resources.set_script(d3);
+    }).with({ CreatedScript: _.select() }, (d3) => {
+      window.medium_gui.resources.set_script(d3);
+    }).with({ DeletedScript: _.select() }, (d3) => {
+      window.medium_gui.resources.delete_script(d3);
     }).with({ CreatedMap: _.select() }, (d3) => {
       window.medium_gui.resources.set_map(d3);
     }).with({ SetMap: _.select() }, (d3) => {

@@ -7,7 +7,11 @@
         <v-tab value="resources">Resources</v-tab>
       </v-tabs>
     </div>
-    <RhaiEditor ref="rhai_editor"></RhaiEditor>
+    <RhaiEditor
+      v-if="selected_script_resource_path"
+      :script_resource_path="selected_script_resource_path"
+      ref="rhai_editor"
+    ></RhaiEditor>
     <div class="editor-nav-left">
       <v-expansion-panels
         :multiple="true"
@@ -163,6 +167,7 @@ const {
   add_entity_server,
 } = use_editor_store();
 const rhai_editor = ref<typeof RhaiEditor>();
+const selected_script_resource_path = ref<string | null>();
 const { game_instance_exists } = use_game_instances_store();
 
 const { game_instance_data_map } = storeToRefs(use_game_instances_store());
@@ -252,15 +257,13 @@ function on_remove_node_from_scene(
   }
 }
 
-function on_edit_script(
-  scene_resource: string,
-  path: number[],
-  node: GameNodeKind,
-  is_from_current_instance: boolean,
-) {
-  if (rhai_editor.value) {
-    rhai_editor.value.open();
-  }
+function on_edit_script(script_resource_path: string) {
+  selected_script_resource_path.value = script_resource_path;
+  setTimeout(() => {
+    if (rhai_editor.value) {
+      rhai_editor.value.open();
+    }
+  }, 10);
 }
 
 function on_add_node_to_scene(

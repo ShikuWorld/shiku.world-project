@@ -9,7 +9,7 @@ import { EntityUpdate } from "@/editor/blueprints/EntityUpdate";
 import { match, P } from "ts-pattern";
 import { Node2D } from "@/editor/blueprints/Node2D";
 import { GameNode } from "@/editor/blueprints/GameNode";
-import { markRaw, toRaw } from "vue";
+import { markRaw } from "vue";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 import { RENDER_SCALE } from "@/shared/index";
 
@@ -266,6 +266,9 @@ export const use_game_instances_store = defineStore("game-instances", {
           render_node.container.position.y =
             transform.position[1] * RENDER_SCALE;
           render_node.container.rotation = transform.rotation;
+        })
+        .with({ ScriptPath: P.select() }, (script) => {
+          game_node.script = script;
         })
         .with({ Name: P.select() }, (name) => {
           game_node.name = name;

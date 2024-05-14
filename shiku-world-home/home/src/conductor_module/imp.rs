@@ -215,7 +215,7 @@ impl ConductorModule {
             login_manager: LoginManager::new(),
             snowflake_gen,
             module_connection_map: HashMap::new(),
-            resource_to_module_map: HashMap::new(),
+            resource_to_module_map,
             guests: HashMap::new(),
             admins: HashMap::new(),
 

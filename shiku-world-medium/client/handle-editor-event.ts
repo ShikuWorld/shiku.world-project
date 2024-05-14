@@ -43,6 +43,15 @@ export function handle_editor_event(event: EditorEvent) {
     .with({ DeletedScene: P.select() }, (d) => {
       window.medium_gui.resources.delete_scene(d);
     })
+    .with({ SetScript: P.select() }, (d) => {
+      window.medium_gui.resources.set_script(d);
+    })
+    .with({ CreatedScript: P.select() }, (d) => {
+      window.medium_gui.resources.set_script(d);
+    })
+    .with({ DeletedScript: P.select() }, (d) => {
+      window.medium_gui.resources.delete_script(d);
+    })
     .with({ CreatedMap: P.select() }, (d) => {
       window.medium_gui.resources.set_map(d);
     })

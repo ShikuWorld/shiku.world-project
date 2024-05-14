@@ -70,9 +70,10 @@ impl AstCache {
         engine: &Engine,
         script: &Script,
     ) -> Result<(), ParseError> {
+        debug!("{:?}", &script.content);
         engine.compile(&script.content).map(|ast| {
             let script_resource_path =
-                format!("{:?}/{:?}.script.json", script.resource_path, script.name);
+                format!("{}/{}.script.json", script.resource_path, script.name);
 
             self.init.remove(&script_resource_path);
             self.update.remove(&script_resource_path);
@@ -359,55 +360,44 @@ impl GameInstanceManager {
         self.script_ast_cache.remove_script(resource_path);
     }
 
-    pub fn compile_script(&mut self, resource_path: ResourcePath) -> bool {
+    pub fn compile_and_cache_script(&mut self, script: &Script) -> bool {
         let engine = Engine::new();
-        match Blueprint::load_script(resource_path.into()) {
-            Ok(script) => {
-                match self
-                    .script_ast_cache
-                    .compile_and_cache_script(&engine, &script)
-                {
-                    Ok(()) => true,
-                    Err(err) => {
-                        error!("Was not able to compile newly added script {err}");
-                        false
-                    }
-                }
-            }
+        match self
+            .script_ast_cache
+            .compile_and_cache_script(&engine, script)
+        {
+            Ok(()) => true,
             Err(err) => {
-                error!("Was not able to load new script resource {err}");
+                error!("Was not able to compile script: {err}");
                 false
             }
         }
     }
 
-    pub fn update_script_ast_cache(&mut self, updated_resources: &[BlueprintResource]) {
-        let current_script_set: HashSet<String> = self
+    pub fn update_script_cache_from_resources(&mut self, updated_resources: &[BlueprintResource]) {
+        let by_script_resource =
+            |r: &BlueprintResource| (r.kind == ResourceKind::Script).then(|| r.path.clone());
+        let existing_script_paths: HashSet<String> = self
             .module_blueprint
             .resources
             .iter()
-            .filter_map(|r| {
-                if r.kind == ResourceKind::Script {
-                    Some(r.path.clone())
-                } else {
-                    None
-                }
-            })
+            .filter_map(by_script_resource)
             .collect();
-        let updated_script_set: HashSet<String> = updated_resources
+        let updated_script_paths: HashSet<String> = updated_resources
             .iter()
-            .filter_map(|r| {
-                if r.kind == ResourceKind::Script {
-                    Some(r.path.clone())
-                } else {
-                    None
-                }
-            })
+            .filter_map(by_script_resource)
             .collect();
-        for insertion in updated_script_set.difference(&current_script_set) {
-            self.compile_script(insertion.clone());
+        for insertion in updated_script_paths.difference(&existing_script_paths) {
+            match Blueprint::load_script(insertion.clone().into()) {
+                Ok(script) => {
+                    self.compile_and_cache_script(&script);
+                }
+                Err(err) => {
+                    error!("Could not load script to add to resources! {err}")
+                }
+            }
         }
-        for deletion in current_script_set.difference(&updated_script_set) {
+        for deletion in existing_script_paths.difference(&updated_script_paths) {
             self.script_ast_cache.remove_script(deletion);
         }
     }

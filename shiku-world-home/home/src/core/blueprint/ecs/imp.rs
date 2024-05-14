@@ -157,6 +157,16 @@ impl ECS {
             EntityUpdateKind::Name(name) => {
                 self.entities.game_node_name.insert(entity, name);
             }
+            EntityUpdateKind::ScriptPath(script_path_option) => match script_path_option {
+                Some(script_path) => {
+                    self.entities
+                        .game_node_script
+                        .insert(entity, (script_path, Scope::new()));
+                }
+                None => {
+                    self.entities.game_node_script.remove(&entity);
+                }
+            },
             EntityUpdateKind::RigidBodyType(rigid_body_type) => {
                 self.entities
                     .rigid_body_type

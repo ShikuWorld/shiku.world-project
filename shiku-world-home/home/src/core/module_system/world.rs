@@ -5,9 +5,9 @@ use std::sync::RwLock;
 
 use log::{debug, error};
 use rapier2d::prelude::*;
-use rhai::{Engine, FuncRegistration, Module as RhaiModule};
+use rhai::{Engine, FuncRegistration, Module as RhaiModule, Scope};
 
-use crate::core::blueprint::def::{GameMap, Gid, TerrainParams};
+use crate::core::blueprint::def::{GameMap, Gid, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
@@ -72,6 +72,9 @@ impl World {
                 cloned_physics_rc.borrow_mut().add_fixed_rigid_body(x, y);
             },
         );
+        FuncRegistration::new("test_api").set_into_module(&mut module, |input: String| {
+            println!("test_api: {}", input);
+        });
         engine.register_static_module("shiku::api", module.into());
     }
 
@@ -265,6 +268,17 @@ impl World {
                         *rigid_body_handle,
                     );
                 }
+                EntityUpdateKind::ScriptPath(script_path_option) => match script_path_option {
+                    None => {
+                        self.ecs.entities.game_node_script.remove(entity);
+                    }
+                    Some(script_path) => {
+                        self.ecs
+                            .entities
+                            .game_node_script
+                            .insert(*entity, (script_path, Scope::new()));
+                    }
+                },
                 EntityUpdateKind::PositionRotation((x, y, r)) => {
                     physics.set_translation_and_rotation_for_rigid_body(
                         Vector::new(x, y),

@@ -72,13 +72,7 @@ const emit = defineEmits<{
     node: GameNodeKind,
     is_from_current_instance: boolean,
   ): void;
-  (
-    e: "edit_script",
-    scene_resource: string,
-    path: number[],
-    node: GameNodeKind,
-    is_from_current_instance: boolean,
-  ): void;
+  (e: "edit_script", script_resource_path: string): void;
 }>();
 
 const { select_game_node } = use_inspector_store();
@@ -92,18 +86,13 @@ function on_remove_node(
   emit("remove_node", scene_resource, path, node, is_from_current_instance);
 }
 
-function on_edit_script(
-  scene_resource: string,
-  path: number[],
-  node: GameNodeKind,
-  is_from_current_instance: boolean,
-) {
-  emit("edit_script", scene_resource, path, node, is_from_current_instance);
+function on_edit_script(script_resource_path: string) {
+  emit("edit_script", script_resource_path);
 }
 
 const on_context_menu = (e: MouseEvent) => {
   prevent_browser_default(e);
-
+  const generic_node = get_generic_game_node(node.value);
   ContextMenu.showContextMenu({
     theme: "dark",
     x: e.x,
@@ -124,14 +113,9 @@ const on_context_menu = (e: MouseEvent) => {
       },
       {
         label: "Script",
+        disabled: generic_node.script === null,
         onClick: () => {
-          emit(
-            "edit_script",
-            scene_resource_path.value,
-            path.value,
-            node.value,
-            node_is_instance.value,
-          );
+          emit("edit_script", generic_node.script!);
         },
       },
     ],

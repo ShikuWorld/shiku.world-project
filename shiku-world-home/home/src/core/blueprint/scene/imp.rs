@@ -128,6 +128,11 @@ impl GameNodeKind {
                     n.data.transform = transform;
                 }
             }
+            EntityUpdateKind::ScriptPath(script_path_option) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    n.script = script_path_option;
+                }
+            }
             EntityUpdateKind::Name(name) => {
                 if let GameNodeKind::Node2D(n) = self {
                     n.name = name;
@@ -181,7 +186,7 @@ impl GameNodeKind {
                     return Some(GameNodeKind::Instance(GameNode {
                         id: node_id.clone(),
                         name: node_name.clone(),
-                        script: Some("".into()),
+                        script: None,
                         entity_id: Some(*entity),
                         children,
                         data: "".into(),
@@ -195,7 +200,11 @@ impl GameNodeKind {
                         return Some(GameNodeKind::Node2D(GameNode {
                             id: node_id.clone(),
                             name: node_name.clone(),
-                            script: Some("".into()),
+                            script: ecs
+                                .entities
+                                .game_node_script
+                                .get(entity)
+                                .map(|(path, _)| path.clone()),
                             entity_id: Some(*entity),
                             children,
                             data: Node2D {

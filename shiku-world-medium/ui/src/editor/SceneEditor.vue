@@ -93,13 +93,7 @@ const emit = defineEmits<{
     node: GameNodeKind,
     is_from_current_instance: boolean,
   ): void;
-  (
-    e: "edit_script",
-    scene_resource: string,
-    path: number[],
-    node: GameNodeKind,
-    is_from_current_instance: boolean,
-  ): void;
+  (e: "edit_script", script_resource_path: string): void;
   (
     e: "add_node",
     scene_resource: string,
@@ -118,13 +112,8 @@ function on_remove_node(
 ) {
   emit("remove_node", scene_resource, path, node, is_from_current_instance);
 }
-function on_edit_script(
-  scene_resource: string,
-  path: number[],
-  node: GameNodeKind,
-  is_from_current_instance: boolean,
-) {
-  emit("edit_script", scene_resource, path, node, is_from_current_instance);
+function on_edit_script(script_resource_path: string) {
+  emit("edit_script", script_resource_path);
 }
 
 function add_node_type(

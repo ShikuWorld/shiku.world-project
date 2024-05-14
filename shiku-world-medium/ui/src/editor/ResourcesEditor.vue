@@ -42,6 +42,11 @@
                 >Scene</v-list-item-title
               >
             </v-list-item>
+            <v-list-item>
+              <v-list-item-title @click="create_script_dialog = true"
+                >Script</v-list-item-title
+              >
+            </v-list-item>
           </v-list>
         </v-menu>
         <v-dialog v-model="create_tileset_dialog" width="800">
@@ -62,6 +67,12 @@
             @close="create_scene_dialog = false"
             @save="save_scene"
           ></CreateScene>
+        </v-dialog>
+        <v-dialog v-model="create_script_dialog" width="800">
+          <CreateScript
+            @close="create_script_dialog = false"
+            @save="save_script"
+          ></CreateScript>
         </v-dialog>
       </v-window-item>
       <v-window-item
@@ -95,9 +106,12 @@ import { use_inspector_store } from "@/editor/stores/inspector";
 import CreateScene from "@/editor/editor/CreateScene.vue";
 import { Scene } from "@/editor/blueprints/Scene";
 import { use_resources_store } from "@/editor/stores/resources";
+import { Script } from "@/editor/blueprints/Script";
+import CreateScript from "@/editor/editor/CreateScript.vue";
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
 const create_scene_dialog = ref(false);
+const create_script_dialog = ref(false);
 const { close_resource, set_selected_tile } = use_editor_store();
 const { set_inspector_component } = use_inspector_store();
 const { open_resource_paths, selected_resource_tab, selected_module_id } =
@@ -109,6 +123,7 @@ const {
   create_scene_server,
   get_module,
   get_resource_server,
+  create_script_server,
 } = use_resources_store();
 const { modules, tileset_map } = storeToRefs(use_resources_store());
 const available_resources = computed(
@@ -154,6 +169,9 @@ function ensure_resources_are_loaded() {
       .with({ kind: "Scene" }, (r) => {
         console.log("hm scene?", r);
       })
+      .with({ kind: "Script" }, (r) => {
+        console.log("hm scene?", r);
+      })
       .with({ kind: "Unknown" }, () => {})
       .exhaustive();
   }
@@ -172,6 +190,11 @@ function save_map(game_map: GameMap) {
 function save_scene(scene: Scene) {
   create_scene_dialog.value = false;
   create_scene_server(scene);
+}
+
+function save_script(script: Script) {
+  create_script_dialog.value = false;
+  create_script_server(script);
 }
 </script>
 <style></style>

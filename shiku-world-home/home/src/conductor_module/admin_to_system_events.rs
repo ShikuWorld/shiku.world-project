@@ -474,7 +474,7 @@ pub async fn handle_admin_to_system_event(
                                 &module.module_blueprint.resources,
                                 &resources,
                             );
-                            module.update_script_ast_cache(&resources);
+                            module.update_script_cache_from_resources(&resources);
                             module.module_blueprint.resources = resources;
                         }
                         Err(err) => error!("Could not generate gid map! {:?}", err),
@@ -564,14 +564,14 @@ pub async fn handle_admin_to_system_event(
         AdminToSystemEvent::UpdateScript(script) => {
             let mut is_script_compiling = true;
             let script_resource_path =
-                format!("{:?}/{:?}.script.json", script.resource_path, script.name);
+                format!("{}/{}.script.json", script.resource_path, script.name);
             for module_id in resource_to_module_map
                 .entry(script_resource_path.clone())
                 .or_default()
                 .iter()
             {
                 if let Some(module) = module_map.get_mut(module_id) {
-                    is_script_compiling &= module.compile_script(script_resource_path.clone());
+                    is_script_compiling &= module.compile_and_cache_script(&script);
                 }
             }
 
@@ -588,7 +588,7 @@ pub async fn handle_admin_to_system_event(
         }
         AdminToSystemEvent::DeleteScript(script) => {
             let script_resource_path =
-                format!("{:?}/{:?}.script.json", script.resource_path, script.name);
+                format!("{}/{}.script.json", script.resource_path, script.name);
             for module_id in resource_to_module_map
                 .entry(script_resource_path.clone())
                 .or_default()

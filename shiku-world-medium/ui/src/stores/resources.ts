@@ -23,8 +23,8 @@ import {
   RenderGraphData,
   use_game_instances_store,
 } from "@/editor/stores/game-instances";
-import { TileUpdate } from "@/client/communication/api/bindings/TileUpdate";
 import { TilesetUpdate } from "@/client/communication/api/bindings/TilesetUpdate";
+import { Script } from "@/editor/blueprints/Script";
 
 export type Point = { y: number; x: number };
 
@@ -33,6 +33,7 @@ export interface ResourcesStore {
   game_map_map: { [map_path: string]: GameMap };
   modules: { [module_id: string]: Module };
   scene_map: { [scene_path: string]: Scene };
+  script_map: { [scene_path: string]: Script };
   current_file_browser_result: FileBrowserResult;
 }
 
@@ -49,6 +50,7 @@ export const use_resources_store = defineStore("resources", () => {
     tileset_map: {},
     game_map_map: {},
     scene_map: {},
+    script_map: {},
     current_file_browser_result: {
       resources: [],
       dirs: [],
@@ -65,6 +67,17 @@ export const use_resources_store = defineStore("resources", () => {
           [module.id]: { ...state.modules[module.id], ...module },
         };
       }
+    },
+    get_or_load_script(
+      script_map: { [script_path: string]: Script },
+      path: string,
+    ): Script | undefined {
+      if (!script_map[path]) {
+        this.get_resource_server(path);
+        return undefined;
+      }
+
+      return script_map[path];
     },
     get_or_load_scene(
       scene_map: { [scene_path: string]: Scene },
@@ -125,6 +138,19 @@ export const use_resources_store = defineStore("resources", () => {
       };
       delete maps[map_key(game_map)];
       state.game_map_map = maps;
+    },
+    set_script(script: Script) {
+      state.script_map = {
+        ...state.script_map,
+        [script_key(script)]: script,
+      };
+    },
+    delete_script(script: Script) {
+      const scripts = {
+        ...state.script_map,
+      };
+      delete scripts[script_key(script)];
+      state.script_map = scripts;
     },
     get_module(id: string) {
       return state.modules[id];
@@ -283,6 +309,12 @@ export const use_resources_store = defineStore("resources", () => {
     create_scene_server(scene: Scene) {
       send_admin_event({ CreateScene: scene });
     },
+    create_script_server(script: Script) {
+      send_admin_event({ CreateScript: script });
+    },
+    update_script_server(script: Script) {
+      send_admin_event({ UpdateScript: script });
+    },
     update_instance_node(
       module_id: string,
       game_instance_id: string,
@@ -392,6 +424,10 @@ export function scene_key(scene: Scene) {
 
 export function map_key(game_map: { resource_path: string; name: string }) {
   return `${game_map.resource_path}/${game_map.name}.map.json`;
+}
+
+export function script_key(script: Script) {
+  return `${script.resource_path}/${script.name}.script.json`;
 }
 
 export function get_node_by_path(

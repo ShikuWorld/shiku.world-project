@@ -6,6 +6,13 @@
       :model-value="game_node.name"
       @update:model-value="(new_value) => update_name(new_value)"
     ></v-text-field>
+    <v-select
+      label="Script"
+      :hide-details="true"
+      :items="scripts"
+      :model-value="game_node.script"
+      @update:model-value="(newValue) => update_script(newValue)"
+    ></v-select>
     <v-label class="form-label">Transform</v-label>
     <v-label class="form-label">Position</v-label>
     <v-text-field
@@ -63,11 +70,26 @@ import { GameNode } from "@/editor/blueprints/GameNode";
 import { mdiAlphaXBox, mdiAlphaYBox } from "@mdi/js";
 import { Transform } from "@/editor/blueprints/Transform";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
+import { storeToRefs } from "pinia";
+import { use_editor_store } from "@/editor/stores/editor";
+import { use_resources_store } from "@/editor/stores/resources";
 
 const props = defineProps<{
   game_node: GameNode<Node2D>;
 }>();
 const { game_node } = toRefs(props);
+const { get_module } = use_resources_store();
+const { selected_module_id } = storeToRefs(use_editor_store());
+const scripts = computed(() => {
+  const module = get_module(selected_module_id.value);
+  if (module) {
+    return [
+      null,
+      ...module.resources.filter((r) => r.kind === "Script").map((r) => r.path),
+    ];
+  }
+  return [null];
+});
 
 const node_2d_type = computed(() => Object.keys(game_node.value.data.kind)[0]);
 
@@ -85,6 +107,10 @@ const emit = defineEmits<{
 
 function update_name(name: string) {
   emit("entityUpdate", { Name: name });
+}
+
+function update_script(script_path: string | null) {
+  emit("entityUpdate", { ScriptPath: script_path });
 }
 
 function update_transform(key: keyof Transform, newValue: unknown) {

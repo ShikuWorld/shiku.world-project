@@ -60,6 +60,7 @@ pub struct EntityUpdate {
 pub enum EntityUpdateKind {
     Transform(Transform),
     Name(String),
+    ScriptPath(Option<ResourcePath>),
     RigidBodyType(RigidBodyType),
     PositionRotation((Real, Real, Real)),
     Gid(Gid),

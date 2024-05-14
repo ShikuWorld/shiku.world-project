@@ -1,4 +1,4 @@
-use log::error;
+use log::{debug, error};
 
 use crate::conductor_module::def::{ModuleCommunicationMap, ModuleMap, ResourceToModuleMap};
 use crate::core::blueprint::def::{BlueprintError, Module, ModuleId};
@@ -18,6 +18,7 @@ pub fn create_game_instance_manager(
         Ok((game_instance_manager, module_input_sender, module_output_receiver)) => {
             let module_id = game_instance_manager.module_blueprint.id.clone();
             for resource in &game_instance_manager.module_blueprint.resources {
+                debug!("Adding resource to resource_to_module_map: {:?}", resource);
                 resource_to_module_map
                     .entry(resource.path.clone())
                     .or_default()
