@@ -6,9 +6,9 @@ use rapier2d::math::Real;
 use tokio::time::Instant;
 
 use crate::core::blueprint::def::{
-    BlueprintService, Chunk, GameMap, Gid, LayerKind, Module, ModuleId, TerrainParams,
+    BlueprintService, Chunk, GameMap, Gid, LayerKind, Module, ModuleId, ResourcePath, TerrainParams,
 };
-use crate::core::blueprint::ecs::def::{Entity, EntityUpdate};
+use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Scene};
 use crate::core::blueprint::scene::imp::build_scene_from_ecs;
 use crate::core::guest::ActorId;
@@ -31,7 +31,6 @@ impl DynamicGameModule {
     pub fn create(
         instance_id: GameInstanceId,
         module: &Module,
-        script_ast_cache: &AstCache,
         module_output_sender: ModuleOutputSender,
     ) -> (DynamicGameModule, ModuleInputSender) {
         let (module_input_sender, module_input_receiver) = create_module_communication_input();
@@ -61,7 +60,7 @@ impl DynamicGameModule {
             Vec::new()
         });
         for game_map in game_maps {
-            if let Err(err) = dynamic_module.create_world(&game_map, script_ast_cache) {
+            if let Err(err) = dynamic_module.create_world(&game_map) {
                 error!("Could not create world '{}': {:?}", game_map.name, err);
             }
         }
@@ -107,20 +106,22 @@ impl DynamicGameModule {
         }
     }
 
-    pub fn create_world(
-        &mut self,
-        game_map: &GameMap,
-        script_ast_cache: &AstCache,
-    ) -> Result<WorldId, CreateWorldError> {
+    pub fn create_world(&mut self, game_map: &GameMap) -> Result<WorldId, CreateWorldError> {
         if self.world_map.contains_key(&game_map.world_id) {
             return Err(CreateWorldError::DidAlreadyExist);
         }
 
-        let new_world = World::new(game_map, &self.gid_to_collision_shape_map, script_ast_cache)?;
+        let new_world = World::new(game_map, &self.gid_to_collision_shape_map)?;
         self.world_map.insert(game_map.world_id.clone(), new_world);
         self.world_to_admin.init(game_map.world_id.clone());
         self.world_to_guest.init(game_map.world_id.clone());
         Ok(game_map.world_id.clone())
+    }
+
+    pub fn remove_script(&mut self, resource_path: &ResourcePath) {
+        for world in self.world_map.values_mut() {
+            world.ecs.remove_script_on_all_entities(resource_path);
+        }
     }
 
     pub fn get_terrain_params(&self, world_id: &WorldId) -> Option<TerrainParams> {
@@ -158,10 +159,12 @@ impl DynamicGameModule {
         }
     }
 
-    pub fn update(&mut self, module: &Module, script_ast_cache: &AstCache) {
+    pub fn update(&mut self, module: &Module) {
         self.handle_guest_events(module);
+        self.send_scope_updates_to_admins();
         for world in self.world_map.values_mut() {
-            world.update(script_ast_cache);
+            world.update();
+
             let position_updates = Self::get_position_updates(world);
             if position_updates.is_empty() {
                 continue;
@@ -180,6 +183,34 @@ impl DynamicGameModule {
                 update_position_event,
                 "Could not send entity update",
             );
+        }
+    }
+
+    fn send_scope_updates_to_admins(&mut self) {
+        for world in self.world_map.values_mut() {
+            if self.world_to_admin.len(&world.world_id) > 0 {
+                for (entity, game_node_script) in world.ecs.entities.game_node_script.iter_mut() {
+                    if let Some(scope_update) = game_node_script.update_scope_cache() {
+                        debug!("Sending scope update to admins: {:?}", scope_update);
+                        let scope_update_event = ModuleInstanceEvent {
+                            world_id: None,
+                            module_id: self.module_id.clone(),
+                            instance_id: self.instance_id.clone(),
+                            event_type: GameSystemToGuestEvent::UpdateEntity(EntityUpdate {
+                                id: *entity,
+                                kind: EntityUpdateKind::SetScriptScope(scope_update),
+                            }),
+                        };
+                        Self::send_event_to_admins(
+                            &world.world_id,
+                            &mut self.module_communication,
+                            &self.world_to_admin,
+                            scope_update_event,
+                            "Could not send scope update to admins",
+                        );
+                    }
+                }
+            }
         }
     }
 
@@ -503,6 +534,8 @@ impl DynamicGameModule {
                         },
                     },
                 );
+
+                Self::send_current_script_scopes(sender, &instance_id, actor_id, &module_id, world);
             }
             if let Some(scene) = build_scene_from_ecs(&world.ecs) {
                 send_and_log_error(
@@ -527,6 +560,34 @@ impl DynamicGameModule {
                     world_id
                 );
             }
+        }
+    }
+
+    pub fn send_current_script_scopes(
+        sender: &mut Sender<GameSystemToGuest>,
+        instance_id: &GameInstanceId,
+        actor_id: ActorId,
+        module_id: &ModuleId,
+        world: &World,
+    ) {
+        for (entity, game_node_script) in world.ecs.entities.game_node_script.iter() {
+            let initial_scope = game_node_script.scope_cache.clone();
+            let scope_update_event = ModuleInstanceEvent {
+                world_id: Some(world.world_id.clone()),
+                module_id: module_id.clone(),
+                instance_id: instance_id.clone(),
+                event_type: GameSystemToGuestEvent::UpdateEntity(EntityUpdate {
+                    id: *entity,
+                    kind: EntityUpdateKind::SetScriptScope(initial_scope),
+                }),
+            };
+            send_and_log_error(
+                sender,
+                GuestEvent {
+                    guest_id: actor_id,
+                    event_type: scope_update_event,
+                },
+            );
         }
     }
 

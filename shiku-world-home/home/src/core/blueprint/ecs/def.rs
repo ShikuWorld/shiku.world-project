@@ -2,12 +2,13 @@ use std::collections::HashMap;
 
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::prelude::{ColliderHandle, Real};
-use remove_entity::RemoveEntity;
-use rhai::Scope;
+use rhai::{ParseError, Scope, AST};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
+use remove_entity::RemoveEntity;
+
+use crate::core::blueprint::def::{BlueprintError, Gid, LayerKind, ResourcePath};
 use crate::core::blueprint::scene::def::{
     Collider, GameNodeId, GameNodeKindClean, Node2DKindClean, NodeInstanceId, RenderKindClean,
     RigidBodyType, SceneId, Transform,
@@ -27,9 +28,37 @@ pub struct ECS {
     pub entity_counter: NodeInstanceId,
 }
 
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum ScopeCacheValue {
+    String(String),
+    Number(f64),
+}
+
+#[derive(Debug)]
+pub struct GameNodeScript {
+    pub path: ResourcePath,
+    pub ast: AST,
+    pub scope_cache: HashMap<String, ScopeCacheValue>,
+    pub scope: Scope<'static>,
+    pub(crate) game_node_script_functions: GameNodeScriptFunctions,
+}
+
+#[derive(Debug)]
+pub struct GameNodeScriptFunctions {
+    pub init: bool,
+    pub update: bool,
+}
+
+#[derive(Debug)]
+pub enum GameNodeScriptError {
+    BlueprintError(BlueprintError),
+    CompileError(ParseError),
+}
+
 #[derive(Debug, RemoveEntity)]
 pub struct EntityMaps {
-    pub game_node_script: HashMap<Entity, (ResourcePath, Scope<'static>)>,
+    pub game_node_script: HashMap<Entity, GameNodeScript>,
     pub game_node_id: HashMap<Entity, GameNodeId>,
     pub game_node_name: HashMap<Entity, String>,
     pub game_node_children: HashMap<Entity, Vec<Entity>>,
@@ -61,6 +90,8 @@ pub enum EntityUpdateKind {
     Transform(Transform),
     Name(String),
     ScriptPath(Option<ResourcePath>),
+    UpdateScriptScope(String, ScopeCacheValue),
+    SetScriptScope(HashMap<String, ScopeCacheValue>),
     RigidBodyType(RigidBodyType),
     PositionRotation((Real, Real, Real)),
     Gid(Gid),

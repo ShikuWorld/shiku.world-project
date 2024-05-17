@@ -46,13 +46,13 @@ pub struct GameInstanceManager {
     pub(crate) input_receiver: ModuleInputReceiver,
     pub(crate) output_sender: ModuleOutputSender,
     pub(crate) module_blueprint: Module,
-    pub(crate) script_ast_cache: AstCache,
     pub(crate) game_instance_timeout: Real,
     pub(crate) instance_id_gen: SnowflakeIdBucket,
 }
 
 #[derive(Debug)]
 pub struct AstCache {
+    pub scope: HashMap<ResourcePath, AST>,
     pub init: HashMap<ResourcePath, AST>,
     pub update: HashMap<ResourcePath, AST>,
 }
@@ -60,6 +60,7 @@ pub struct AstCache {
 impl AstCache {
     pub fn new() -> AstCache {
         AstCache {
+            scope: HashMap::new(),
             update: HashMap::new(),
             init: HashMap::new(),
         }
@@ -90,12 +91,14 @@ impl AstCache {
                     _ => {}
                 }
             }
+            self.scope.insert(script_resource_path.clone(), ast.clone());
         })
     }
 
     pub fn remove_script(&mut self, resource_path: &ResourcePath) {
         self.init.remove(resource_path);
         self.update.remove(resource_path);
+        self.scope.remove(resource_path);
     }
 }
 
@@ -117,14 +120,12 @@ impl GameInstanceManager {
             connected_actor_ids: HashSet::new(),
             instance_id_gen: SnowflakeIdBucket::new(1, 6),
             game_instance_timeout: 30000.0,
-            script_ast_cache: AstCache::new(),
             input_receiver,
             output_sender,
             module_blueprint,
         };
 
         manager.register_resources(resource_module);
-        manager.init_script_ast_cache();
 
         Ok((manager, input_sender, output_receiver))
     }
@@ -145,7 +146,7 @@ impl GameInstanceManager {
         self.relay_messages_to_correct_instances();
 
         for game_instance in self.game_instances.values_mut() {
-            game_instance.update(&self.module_blueprint, &self.script_ast_cache);
+            game_instance.update(&self.module_blueprint);
             if !game_instance.dynamic_module.guests.is_empty()
                 || !game_instance.dynamic_module.admins.is_empty()
             {
@@ -299,13 +300,7 @@ impl GameInstanceManager {
     ) -> HashMap<GameInstanceId, Result<WorldId, CreateWorldError>> {
         self.game_instances
             .values_mut()
-            .map(|v| {
-                (
-                    v.id.clone(),
-                    v.dynamic_module
-                        .create_world(game_map, &self.script_ast_cache),
-                )
-            })
+            .map(|v| (v.id.clone(), v.dynamic_module.create_world(game_map)))
             .collect()
     }
 
@@ -356,25 +351,65 @@ impl GameInstanceManager {
         }
     }
 
-    pub fn remove_script(&mut self, resource_path: &ResourcePath) {
-        self.script_ast_cache.remove_script(resource_path);
-    }
-
-    pub fn compile_and_cache_script(&mut self, script: &Script) -> bool {
-        let engine = Engine::new();
-        match self
-            .script_ast_cache
-            .compile_and_cache_script(&engine, script)
-        {
-            Ok(()) => true,
+    pub fn recompile_script(
+        &mut self,
+        script: &Script,
+        script_resource_path: &ResourcePath,
+    ) -> bool {
+        match Engine::new().compile(&script.content) {
+            Ok(ast) => {
+                debug!("Script compiled successfully! {:?}", ast);
+                for game_instance in self.game_instances.values_mut() {
+                    for world in game_instance.dynamic_module.world_map.values_mut() {
+                        let mut script_reset = false;
+                        for game_node_script in world.ecs.entities.game_node_script.values_mut() {
+                            debug!("Checking script path: {:?}", script_resource_path);
+                            if game_node_script.path == *script_resource_path {
+                                debug!("Resetting script from new ast!");
+                                script_reset = true;
+                                game_node_script
+                                    .reset_from_new_ast(&world.script_engine, ast.clone());
+                            }
+                        }
+                        if script_reset {
+                            if let Some(admins) = game_instance
+                                .dynamic_module
+                                .world_to_admin
+                                .hashset(&world.world_id)
+                            {
+                                for admin_id in admins {
+                                    DynamicGameModule::send_current_script_scopes(
+                                        &mut game_instance
+                                            .dynamic_module
+                                            .module_communication
+                                            .output_sender
+                                            .game_system_to_guest_sender,
+                                        &game_instance.id,
+                                        *admin_id,
+                                        &self.module_blueprint.id,
+                                        world,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+                true
+            }
             Err(err) => {
-                error!("Was not able to compile script: {err}");
+                error!("Could not parse script! {:?}", err);
                 false
             }
         }
     }
 
-    pub fn update_script_cache_from_resources(&mut self, updated_resources: &[BlueprintResource]) {
+    pub fn remove_script(&mut self, resource_path: &ResourcePath) {
+        for game_instance in self.game_instances.values_mut() {
+            game_instance.dynamic_module.remove_script(resource_path);
+        }
+    }
+
+    pub fn update_scripts_from_resources(&mut self, updated_resources: &[BlueprintResource]) {
         let by_script_resource =
             |r: &BlueprintResource| (r.kind == ResourceKind::Script).then(|| r.path.clone());
         let existing_script_paths: HashSet<String> = self
@@ -387,35 +422,11 @@ impl GameInstanceManager {
             .iter()
             .filter_map(by_script_resource)
             .collect();
-        for insertion in updated_script_paths.difference(&existing_script_paths) {
-            match Blueprint::load_script(insertion.clone().into()) {
-                Ok(script) => {
-                    self.compile_and_cache_script(&script);
-                }
-                Err(err) => {
-                    error!("Could not load script to add to resources! {err}")
-                }
-            }
-        }
         for deletion in existing_script_paths.difference(&updated_script_paths) {
-            self.script_ast_cache.remove_script(deletion);
-        }
-    }
-
-    fn init_script_ast_cache(&mut self) {
-        let engine = Engine::new();
-        for resource in &self.module_blueprint.resources {
-            if ResourceKind::Script == resource.kind {
-                match Blueprint::load_script(resource.path.clone().into()) {
-                    Ok(script) => match self
-                        .script_ast_cache
-                        .compile_and_cache_script(&engine, &script)
-                    {
-                        Ok(()) => {}
-                        Err(err) => error!("Could not compile script: {err}"),
-                    },
-                    Err(err) => error!("Could not load script: {err}"),
-                }
+            for game_instance in self.game_instances.values_mut() {
+                game_instance
+                    .dynamic_module
+                    .remove_script(&ResourcePath::from(deletion.clone()));
             }
         }
     }
@@ -458,7 +469,6 @@ impl GameInstanceManager {
         let new_game_instance = GameInstance::new(
             self.instance_id_gen.get_id().to_string(),
             &self.module_blueprint,
-            &self.script_ast_cache,
             self.output_sender.clone(),
         );
         let new_game_instance_id = new_game_instance.id.clone();
@@ -533,11 +543,10 @@ impl GameInstance {
     pub fn new(
         id: GameInstanceId,
         module: &Module,
-        script_ast_cache: &AstCache,
         output_sender: ModuleOutputSender,
     ) -> GameInstance {
         let (dynamic_module, input_sender) =
-            DynamicGameModule::create(id.clone(), module, script_ast_cache, output_sender);
+            DynamicGameModule::create(id.clone(), module, output_sender);
         GameInstance {
             id,
             dynamic_module,
@@ -547,7 +556,7 @@ impl GameInstance {
         }
     }
 
-    pub fn update(&mut self, module: &Module, script_ast_cache: &AstCache) {
-        self.dynamic_module.update(module, script_ast_cache);
+    pub fn update(&mut self, module: &Module) {
+        self.dynamic_module.update(module);
     }
 }

@@ -76,6 +76,7 @@ import { use_resources_store } from "@/editor/stores/resources";
 
 const props = defineProps<{
   game_node: GameNode<Node2D>;
+  is_instance: boolean;
 }>();
 const { game_node } = toRefs(props);
 const { get_module } = use_resources_store();

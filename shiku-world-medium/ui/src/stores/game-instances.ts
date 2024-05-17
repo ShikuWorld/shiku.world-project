@@ -12,6 +12,7 @@ import { GameNode } from "@/editor/blueprints/GameNode";
 import { markRaw } from "vue";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 import { RENDER_SCALE } from "@/shared/index";
+import { ScopeCacheValue } from "@/editor/blueprints/ScopeCacheValue";
 
 export interface Node {
   node_id: ReturnType<typeof render_key>;
@@ -31,6 +32,9 @@ export interface GameInstancesStore {
       [world_id: string]: {
         render_graph_data: RenderGraphData;
         instance_scene: Scene | null;
+        scope_cache: {
+          [game_node_id: string]: { [scope_key: string]: ScopeCacheValue };
+        };
       };
     };
   };
@@ -102,6 +106,7 @@ export const use_game_instances_store = defineStore("game-instances", {
           entity_node_map: {},
           entity_node_to_render_node_map: {},
         },
+        scope_cache: {},
         instance_scene: null,
       };
     },
@@ -239,7 +244,25 @@ export const use_game_instances_store = defineStore("game-instances", {
         return;
       }
       const render_graph_data = game_instance_data.render_graph_data;
-      this.apply_entity_update(render_graph_data, update, resource_manager);
+
+      // These might be set before the graph is even rendered
+      const update_applied = match(update.kind)
+        .with({ UpdateScriptScope: P.select() }, ([scope_key, scope_value]) => {
+          if (!game_instance_data.scope_cache[update.id]) {
+            game_instance_data.scope_cache[update.id] = {};
+          }
+          game_instance_data.scope_cache[update.id][scope_key] = scope_value;
+          return true;
+        })
+        .with({ SetScriptScope: P.select() }, (scope_cache_update) => {
+          game_instance_data.scope_cache[update.id] = scope_cache_update;
+          return true;
+        })
+        .otherwise(() => false);
+
+      if (!update_applied) {
+        this.apply_entity_update(render_graph_data, update, resource_manager);
+      }
     },
     apply_entity_update(
       render_graph_data: RenderGraphData,
@@ -324,6 +347,15 @@ export const use_game_instances_store = defineStore("game-instances", {
             resource_manager.get_sprite_from_graphics(graphics),
             0,
           );
+        })
+        .with(
+          { UpdateScriptScope: P.select() },
+          ([_scope_key, _scope_value]) => {
+            /* dealt with one level up */
+          },
+        )
+        .with({ SetScriptScope: P.select() }, (_scope_cache_update) => {
+          /* dealt with one level up */
         })
         .exhaustive();
     },

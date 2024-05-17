@@ -474,7 +474,7 @@ pub async fn handle_admin_to_system_event(
                                 &module.module_blueprint.resources,
                                 &resources,
                             );
-                            module.update_script_cache_from_resources(&resources);
+                            module.update_scripts_from_resources(&resources);
                             module.module_blueprint.resources = resources;
                         }
                         Err(err) => error!("Could not generate gid map! {:?}", err),
@@ -570,8 +570,9 @@ pub async fn handle_admin_to_system_event(
                 .or_default()
                 .iter()
             {
+                debug!("Updating script in module {:?}", module_id);
                 if let Some(module) = module_map.get_mut(module_id) {
-                    is_script_compiling &= module.compile_and_cache_script(&script);
+                    is_script_compiling &= module.recompile_script(&script, &script_resource_path);
                 }
             }
 

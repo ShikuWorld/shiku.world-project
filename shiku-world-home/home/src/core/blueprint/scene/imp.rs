@@ -1,4 +1,4 @@
-use log::error;
+use log::{debug, error};
 
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdateKind, ECS};
 use crate::core::blueprint::scene::def::{
@@ -165,6 +165,18 @@ impl GameNodeKind {
                     }
                 }
             }
+            EntityUpdateKind::UpdateScriptScope(scope_key, scope_value) => {
+                debug!(
+                    "Update script scope not implemented for scenes: {:?} {:?}",
+                    scope_key, scope_value
+                );
+            }
+            EntityUpdateKind::SetScriptScope(scope_cache) => {
+                debug!(
+                    "Set script scope not implemented for scenes: {:?}",
+                    scope_cache
+                );
+            }
         }
     }
 
@@ -204,7 +216,7 @@ impl GameNodeKind {
                                 .entities
                                 .game_node_script
                                 .get(entity)
-                                .map(|(path, _)| path.clone()),
+                                .map(|s| s.path.clone()),
                             entity_id: Some(*entity),
                             children,
                             data: Node2D {

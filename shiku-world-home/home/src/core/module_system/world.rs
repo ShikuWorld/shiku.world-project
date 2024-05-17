@@ -1,20 +1,18 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::RwLock;
 
-use log::{debug, error};
+use log::debug;
 use rapier2d::prelude::*;
-use rhai::{Engine, FuncRegistration, Module as RhaiModule, Scope};
+use rhai::{Engine, FuncRegistration, Module as RhaiModule};
 
-use crate::core::blueprint::def::{GameMap, Gid, ResourcePath, TerrainParams};
+use crate::core::blueprint::def::{GameMap, Gid, TerrainParams};
 use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     Collider, ColliderKind, ColliderShape, CollisionShape, GameNodeKind, RigidBodyType, Transform,
 };
 use crate::core::module_system::error::CreateWorldError;
-use crate::core::module_system::game_instance::AstCache;
 use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
 
@@ -32,7 +30,6 @@ impl World {
     pub fn new(
         game_map: &GameMap,
         collision_shape_map: &HashMap<Gid, CollisionShape>,
-        script_ast_cache: &AstCache,
     ) -> Result<World, CreateWorldError> {
         let world_scene = Blueprint::load_scene(game_map.main_scene.clone().into())?;
         let mut ecs = ECS::from(&world_scene);
@@ -52,7 +49,7 @@ impl World {
         let mut script_engine = Engine::new();
         let physics_rc = Rc::from(RefCell::from(physics));
         Self::setup_scripting_api(&mut script_engine, &physics_rc);
-        Self::call_init_func_on_game_nodes(&script_engine, script_ast_cache, &mut ecs);
+        Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
 
         Ok(World {
             world_id: game_map.world_id.clone(),
@@ -78,7 +75,7 @@ impl World {
         engine.register_static_module("shiku::api", module.into());
     }
 
-    pub fn update(&mut self, script_ast_cache: &AstCache) {
+    pub fn update(&mut self) {
         let mut physics = self.physics.borrow_mut();
         physics.update();
         for (entity, rigid_body_handle) in self.ecs.entities.rigid_body_handle.iter() {
@@ -92,30 +89,14 @@ impl World {
                 }
             }
         }
-        for (resource_path, scope) in self.ecs.entities.game_node_script.values_mut() {
-            if let Some(ast) = script_ast_cache.update.get(resource_path) {
-                match self.script_engine.call_fn(scope, ast, "update", ()) {
-                    Ok(()) => {}
-                    Err(err) => {
-                        //TODO find way to not log this every frame
-                        error!("Could not call init function in script: ${:?}", err);
-                    }
-                }
-            }
+        for game_node_script in self.ecs.entities.game_node_script.values_mut() {
+            game_node_script.call_update(&self.script_engine);
         }
     }
 
-    fn call_init_func_on_game_nodes(script_engine: &Engine, ast_cache: &AstCache, ecs: &mut ECS) {
-        for (resource_path, scope) in ecs.entities.game_node_script.values_mut() {
-            if let Some(ast) = ast_cache.init.get(resource_path) {
-                match script_engine.call_fn(scope, ast, "init", ()) {
-                    Ok(()) => {}
-                    Err(err) => {
-                        //TODO find way to not log this every frame
-                        error!("Could not call init function in script: ${:?}", err);
-                    }
-                }
-            }
+    fn call_init_func_on_game_nodes(script_engine: &Engine, ecs: &mut ECS) {
+        for game_node_script in ecs.entities.game_node_script.values_mut() {
+            game_node_script.call_init(script_engine);
         }
     }
 
@@ -260,7 +241,7 @@ impl World {
         if let Some(rigid_body_handle) = self.ecs.entities.rigid_body_handle.get(&entity_update.id)
         {
             let entity = &entity_update.id;
-            match entity_update.kind {
+            match &entity_update.kind {
                 EntityUpdateKind::Transform(transform) => {
                     physics.set_translation_and_rotation_for_rigid_body(
                         Vector::new(transform.position.0, transform.position.1),
@@ -268,21 +249,10 @@ impl World {
                         *rigid_body_handle,
                     );
                 }
-                EntityUpdateKind::ScriptPath(script_path_option) => match script_path_option {
-                    None => {
-                        self.ecs.entities.game_node_script.remove(entity);
-                    }
-                    Some(script_path) => {
-                        self.ecs
-                            .entities
-                            .game_node_script
-                            .insert(*entity, (script_path, Scope::new()));
-                    }
-                },
                 EntityUpdateKind::PositionRotation((x, y, r)) => {
                     physics.set_translation_and_rotation_for_rigid_body(
-                        Vector::new(x, y),
-                        r,
+                        Vector::new(*x, *y),
+                        *r,
                         *rigid_body_handle,
                     );
                 }
@@ -293,20 +263,29 @@ impl World {
                     self.ecs
                         .entities
                         .rigid_body_type
-                        .insert(*entity, rigid_body_type);
+                        .insert(*entity, rigid_body_type.clone());
                     Self::add_rigid_body_for_entity(entity, &mut self.ecs, &mut physics);
                     Self::attach_colliders_to_entity(entity, &mut self.ecs, &mut physics);
                 }
-                EntityUpdateKind::Gid(_) | EntityUpdateKind::Name(_) => {}
+                EntityUpdateKind::Gid(_)
+                | EntityUpdateKind::Name(_)
+                | EntityUpdateKind::UpdateScriptScope(_, _)
+                | EntityUpdateKind::SetScriptScope(_)
+                | EntityUpdateKind::ScriptPath(_) => {
+                    self.ecs
+                        .apply_entity_update(entity_update, &self.script_engine);
+                }
             }
         } else {
-            self.ecs.apply_entity_update(entity_update);
+            self.ecs
+                .apply_entity_update(entity_update, &self.script_engine);
         }
     }
 
     pub fn add_entity(&mut self, parent_entity: Entity, child: &GameNodeKind) -> Entity {
         let mut physics = self.physics.borrow_mut();
-        let entity = ECS::add_child_to_entity(parent_entity, child, &mut self.ecs);
+        let entity =
+            ECS::add_child_to_entity(parent_entity, child, &mut self.ecs, &self.script_engine);
         Self::add_rigid_body_for_entity(&entity, &mut self.ecs, &mut physics);
         Self::attach_colliders_to_entity(&entity, &mut self.ecs, &mut physics);
         Self::attach_collider_to_its_entity(&parent_entity, &entity, &mut self.ecs, &mut physics);
