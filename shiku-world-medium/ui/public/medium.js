@@ -41105,7 +41105,7 @@ ${e3}`);
     const button_feedback_update = setup_button_feedback();
     const instances = {};
     const resource_manager_map = {};
-    const current_active_instance = null;
+    let current_active_instance = null;
     function lazy_get_resource_manager(module_id) {
       if (!resource_manager_map[module_id]) {
         resource_manager_map[module_id] = create_resource_manager(render_system);
@@ -41188,13 +41188,17 @@ ${e3}`);
               world_id,
               terrain_params
             );
-            show_grid(render_system, instances[instance_id][world_id].renderer);
+            current_active_instance = instance_id;
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.addChild(
                 instances[instance_id][world_id].renderer.main_container_wrapper
               );
             }
             if (is_admin) {
+              show_grid(
+                render_system,
+                instances[instance_id][world_id].renderer
+              );
               const guaranteed_world_id_as_admin = w_id;
               send_admin_event(
                 {
@@ -41210,7 +41214,6 @@ ${e3}`);
           }
         ).with({ UnloadGame: _.select() }, ([_2, instance_id, w_id]) => {
           const world_id = w_id ? w_id : GUEST_SINGLE_WORLD_ID;
-          console.log("wait not even?", instance_id, world_id, instances);
           if (instances[instance_id] && instances[instance_id][world_id]) {
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.removeChild(

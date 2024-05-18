@@ -60,6 +60,8 @@ pub struct ModuleGuest {
 
 pub struct ModuleAdmin {
     pub(crate) id: ActorId,
+    pub(crate) guest_input: GuestInput,
+    pub(crate) last_input_time: Instant,
     pub(crate) resources_loaded: bool,
     pub(crate) connected: bool,
 }

@@ -21,6 +21,7 @@ impl Module {
         Module {
             id,
             name,
+            main_map: None,
             max_guests: 0,
             min_guests: 0,
             gid_map: GidMap(Vec::new()),

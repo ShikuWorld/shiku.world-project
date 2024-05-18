@@ -171,6 +171,7 @@ pub struct Module {
     pub id: ModuleId,
     pub name: ModuleName,
     pub resources: Vec<BlueprintResource>,
+    pub main_map: Option<ResourcePath>,
     pub gid_map: GidMap,
     pub insert_points: Vec<IOPoint>,
     pub exit_points: Vec<IOPoint>,
@@ -186,6 +187,7 @@ pub struct ModuleUpdate {
     pub resources: Option<Vec<BlueprintResource>>,
     pub insert_points: Option<Vec<IOPoint>>,
     pub exit_points: Option<Vec<IOPoint>>,
+    pub main_map: Option<Option<ResourcePath>>,
     pub max_guests: Option<usize>,
     pub min_guests: Option<usize>,
 }
@@ -197,6 +199,7 @@ impl ModuleUpdate {
             resources: None,
             insert_points: None,
             exit_points: None,
+            main_map: None,
             max_guests: None,
             min_guests: None,
         }

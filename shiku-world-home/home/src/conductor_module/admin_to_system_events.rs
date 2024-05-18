@@ -459,6 +459,9 @@ pub async fn handle_admin_to_system_event(
                         new_name,
                     ));
                 }
+                if let Some(main_map) = module_update.main_map {
+                    module.module_blueprint.main_map = main_map;
+                }
                 if let Some(resources) = module_update.resources {
                     match BlueprintService::generate_gid_map(&resources) {
                         Ok(gid_map) => {

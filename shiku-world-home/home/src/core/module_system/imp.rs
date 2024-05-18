@@ -20,7 +20,8 @@ use crate::core::module::{
 };
 use crate::core::module::{GuestInput, GuestToModuleEvent};
 use crate::core::module_system::def::{
-    DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication, ModuleGuest,
+    AdminMap, DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication,
+    ModuleGuest,
 };
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::{AstCache, GameInstanceId};
@@ -146,10 +147,18 @@ impl DynamicGameModule {
         Ok(game_map.world_id.clone())
     }
 
-    fn set_guest_input(guests: &mut GuestMap, guest_id: &ActorId, input: GuestInput) {
-        if let Some(guest) = guests.get_mut(guest_id) {
+    fn set_actor_input(
+        guests: &mut GuestMap,
+        admins: &mut AdminMap,
+        actor_id: &ActorId,
+        input: GuestInput,
+    ) {
+        if let Some(guest) = guests.get_mut(actor_id) {
             guest.guest_input = input;
             guest.last_input_time = Instant::now();
+        } else if let Some(admin) = admins.get_mut(actor_id) {
+            admin.guest_input = input;
+            admin.last_input_time = Instant::now();
         }
     }
 
@@ -448,7 +457,7 @@ impl DynamicGameModule {
             } = event;
             match event_type.event_type {
                 GuestToModuleEvent::ControlInput(input) => {
-                    Self::set_guest_input(&mut self.guests, &guest_id, input)
+                    Self::set_actor_input(&mut self.guests, &mut self.admins, &guest_id, input);
                 }
                 GuestToModuleEvent::GameSetupDone => {
                     Self::set_resources_loaded(&mut self.guests, &guest_id);
@@ -620,6 +629,8 @@ impl DynamicGameModule {
             .insert_entry(&admin.id, world_id.clone());
         self.admins.entry(admin.id).or_insert(ModuleAdmin {
             id: admin.id,
+            guest_input: GuestInput::new(),
+            last_input_time: Instant::now(),
             connected: false,
             resources_loaded: false,
         });

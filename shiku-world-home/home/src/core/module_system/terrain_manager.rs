@@ -186,16 +186,13 @@ impl TerrainManager {
     ) {
         if let Some(chunk_map) = self.layer_data.get_mut(layer_kind) {
             let chunk_id = cantor_pair(chunk.position.0, chunk.position.1);
-            debug!("Writing chunk");
             if *layer_kind == LayerKind::Terrain {
-                debug!("Chunk is terrain");
                 let affected_tile_positions = Self::remove_polylines_of_chunk_and_its_edges(
                     chunk,
                     &self.params,
                     &mut self.polyline_bookkeeping,
                     physics,
                 );
-                debug!("affected_tile_positions ${:?}", affected_tile_positions);
                 Self::clear_gid_cantor_pair_relations(
                     &mut self.polyline_bookkeeping,
                     &chunk_id,
@@ -205,9 +202,8 @@ impl TerrainManager {
                 Self::add_gid_cantor_pair_relations(
                     &mut self.polyline_bookkeeping,
                     &chunk_id,
-                    Some(&chunk),
+                    Some(chunk),
                 );
-                debug!("chunk_id ${:?}", chunk_id);
                 Self::set_chunk_in_bookkeeping(
                     &self.params,
                     collision_shape_map,
@@ -320,13 +316,12 @@ impl TerrainManager {
                 affected_tile_positions.insert((x, y));
             }
         }
-        debug!("Found the following polylines: ${:?}", polyline_set);
+
         for p_id in polyline_set {
             if let Some(polyline) = polyline_bookkeeping.lines.remove(&p_id) {
                 for pos in polyline.tiles {
                     if let Some(tile) = polyline_bookkeeping.terrain_grid.get_mut(&pos) {
                         if let Some(edges) = tile.polyline_to_edge_map.get(&polyline.id) {
-                            debug!("Removing edges {:?}", edges);
                             for edge in edges {
                                 tile.edge_to_polyline_map.remove(edge);
 
@@ -410,30 +405,17 @@ impl TerrainManager {
         }
     }
 
-    /*
-               polyline_bookkeeping
-               .gid_to_chunk_map
-               .entry(*tile_gid)
-               .or_default()
-               .insert(*cantor_pair);
-    */
-
     fn calc_polylines(
         polyline_bookkeeping: &mut PolylineBookkeeping,
         physics: &mut RapierSimulation,
         pixel_to_meter_conversion: Real,
     ) {
-        debug!("~~~~~~~~~~~~~~CALCULATING POOYLINE~~~~~~~~~~");
         let mut open_edge_option = polyline_bookkeeping.open_edges.keys().next().copied();
-        debug!("Open vertices {:?}", polyline_bookkeeping.open_edges);
         while let Some(open_edge) = open_edge_option {
-            debug!("Open vertex {:?}", open_edge);
-
             if let Some(tile_pos) = polyline_bookkeeping.open_edges.remove(&open_edge) {
                 if polyline_bookkeeping.terrain_grid.contains_key(&tile_pos) {
                     let mut current_poly_line: TerrainPolyLineBuilder =
                         TerrainPolyLineBuilder::new(polyline_bookkeeping.get_polyline_id());
-                    debug!("-> RIGHT");
                     Self::add_vertices(
                         &mut current_poly_line,
                         &tile_pos,
@@ -442,7 +424,6 @@ impl TerrainManager {
                         &open_edge,
                         true,
                     );
-                    debug!("-> LEFT");
                     Self::add_vertices(
                         &mut current_poly_line,
                         &tile_pos,
@@ -538,13 +519,10 @@ impl TerrainManager {
         };
 
         while let Some((current_tile_position, start_e)) = current_connected_edge_option {
-            println!("current tile position {:?}", current_tile_position);
             if let Some(tile) = terrain_grid.get_mut(&current_tile_position) {
-                println!("edges {:?}", tile.surface_edges);
                 let mut current_e = start_e;
                 current_poly.tiles.insert(current_tile_position);
 
-                println!("adding edge {:?}", current_e);
                 open_edges.remove(&current_e);
                 tile.polyline_to_edge_map
                     .entry(current_poly.id)
@@ -555,7 +533,6 @@ impl TerrainManager {
                     .insert(current_e, current_poly.id)
                     .is_none()
                 {
-                    println!("adding vertices {:?}", current_e);
                     add_vertices(current_poly, current_e);
                 }
 
@@ -567,7 +544,6 @@ impl TerrainManager {
                     {
                         current_edge_i = next_edge_i;
                         current_e = next_edge;
-                        println!("adding edge {:?}", current_e);
                         open_edges.remove(&current_e);
                         tile.polyline_to_edge_map
                             .entry(current_poly.id)
@@ -587,14 +563,12 @@ impl TerrainManager {
                         current_e
                     );
                 }
-                println!("Option before {:?}", current_connected_edge_option);
                 current_connected_edge_option = Self::get_connected_edge(
                     &current_tile_position,
                     current_e,
                     terrain_grid,
                     clockwise,
                 );
-                println!("Option after {:?}", current_connected_edge_option);
             } else {
                 let next_open_edge_key = open_edges.keys().next().cloned();
                 current_connected_edge_option =
@@ -636,7 +610,6 @@ impl TerrainManager {
         position: TilePosition,
         clockwise: bool,
     ) {
-        debug!("looking for {:?}", position);
         if let Some(tile) = terrain_grid.get(&position) {
             let edge_i_option = if clockwise {
                 tile.edge_start_to_edge_i_map.get(&edge.1)
@@ -645,7 +618,6 @@ impl TerrainManager {
             };
             if let Some(edge) = edge_i_option.map(|edge_i| tile.surface_edges[*edge_i]) {
                 if tile.edge_to_polyline_map.contains_key(&edge) {
-                    debug!("### already contained");
                     return;
                 }
                 possible_tile_positions.push((position, edge));

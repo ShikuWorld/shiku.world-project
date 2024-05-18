@@ -2,4 +2,4 @@
 import type { BlueprintResource } from "./BlueprintResource";
 import type { IOPoint } from "./IOPoint";
 
-export interface ModuleUpdate { name: string | null, resources: Array<BlueprintResource> | null, insert_points: Array<IOPoint> | null, exit_points: Array<IOPoint> | null, max_guests: number | null, min_guests: number | null, }
+export interface ModuleUpdate { name: string | null, resources: Array<BlueprintResource> | null, insert_points: Array<IOPoint> | null, exit_points: Array<IOPoint> | null, main_map: string | null | null, max_guests: number | null, min_guests: number | null, }

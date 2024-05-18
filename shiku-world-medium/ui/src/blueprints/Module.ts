@@ -3,4 +3,4 @@ import type { BlueprintResource } from "./BlueprintResource";
 import type { GidMap } from "./GidMap";
 import type { IOPoint } from "./IOPoint";
 
-export interface Module { id: string, name: string, resources: Array<BlueprintResource>, gid_map: GidMap, insert_points: Array<IOPoint>, exit_points: Array<IOPoint>, max_guests: number, min_guests: number, close_after_full: boolean, }
+export interface Module { id: string, name: string, resources: Array<BlueprintResource>, main_map: string | null, gid_map: GidMap, insert_points: Array<IOPoint>, exit_points: Array<IOPoint>, max_guests: number, min_guests: number, close_after_full: boolean, }

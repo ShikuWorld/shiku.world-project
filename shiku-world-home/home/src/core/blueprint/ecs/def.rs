@@ -48,6 +48,8 @@ pub struct GameNodeScript {
 pub struct GameNodeScriptFunctions {
     pub init: bool,
     pub update: bool,
+    pub actor_joined: bool,
+    pub actor_left: bool,
 }
 
 #[derive(Debug)]

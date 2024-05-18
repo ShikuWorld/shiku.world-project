@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 
 use log::{debug, error};
@@ -86,7 +86,7 @@ impl ECS {
                 if let Some(resource_path) = &node_2d.script {
                     match GameNodeScript::new(engine, resource_path.clone()) {
                         Ok(mut game_node_script) => {
-                            game_node_script.init_scope(engine);
+                            game_node_script.update_scope_from_script(engine);
                             ecs.entities
                                 .game_node_script
                                 .insert(entity, game_node_script);
@@ -227,7 +227,7 @@ impl GameNodeScript {
     pub fn new(engine: &Engine, path: ResourcePath) -> Result<Self, GameNodeScriptError> {
         Self::compile(engine, path.clone()).map(|ast| {
             let mut game_node_script = Self::from_ast(path, ast);
-            game_node_script.init_scope(engine);
+            game_node_script.update_scope_from_script(engine);
             game_node_script
         })
     }
@@ -310,21 +310,33 @@ impl GameNodeScript {
         }
     }
 
-    pub fn init_scope(&mut self, engine: &Engine) {
-        self.scope.clear();
-        match engine.run_ast_with_scope(&mut self.scope, &self.ast) {
+    pub fn update_scope_from_script(&mut self, engine: &Engine) {
+        let mut new_scope = Scope::new();
+        match engine.run_ast_with_scope(&mut new_scope, &self.ast) {
             Ok(()) => {
-                debug!("Scope initialized successfully");
-                Self::init_scope_cache_from_scope(&mut self.scope_cache, &self.scope);
+                let mut new_scope_cache = HashMap::new();
+                Self::init_scope_cache_from_scope(&mut new_scope_cache, &new_scope);
+                let scope_cache = &mut self.scope_cache;
+                // Remove keys not present in new scope
+                scope_cache.retain(|k, _| new_scope_cache.contains_key(k));
+                // Add new values to scope cache but keep old values
+                for (key, value) in new_scope_cache {
+                    scope_cache.entry(key).or_insert(value);
+                }
+                self.scope.clear();
+                for (key, value) in scope_cache.iter() {
+                    self.scope.set_value(key.clone(), value.clone());
+                }
+                debug!("Scope update successfully");
             }
-            Err(e) => error!("Error initializing scope: {:?}", e),
+            Err(e) => error!("Error updating scope: {:?}", e),
         }
     }
 
     pub fn reset_from_new_ast(&mut self, engine: &Engine, ast: AST) {
         self.ast = ast;
         self.game_node_script_functions = Self::get_game_node_script_functions_from_ast(&self.ast);
-        self.init_scope(engine);
+        self.update_scope_from_script(engine);
     }
 
     pub fn call_init(&mut self, engine: &Engine) {
@@ -349,11 +361,15 @@ impl GameNodeScript {
         let mut functions = GameNodeScriptFunctions {
             init: false,
             update: false,
+            actor_joined: false,
+            actor_left: false,
         };
         for fun in ast.iter_functions() {
             match fun.name {
                 "init" => functions.init = true,
                 "update" => functions.update = true,
+                "actor_joined" => functions.actor_joined = true,
+                "actor_left" => functions.actor_left = true,
                 _ => {}
             }
         }

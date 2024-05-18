@@ -40,7 +40,7 @@ export async function start_medium() {
   const button_feedback_update = setup_button_feedback();
   const instances: GameInstanceMap = {};
   const resource_manager_map: ResourceManagerMap = {};
-  const current_active_instance: string | null = null;
+  let current_active_instance: string | null = null;
 
   function lazy_get_resource_manager(module_id: string) {
     if (!resource_manager_map[module_id]) {
@@ -152,7 +152,7 @@ export async function start_medium() {
               world_id,
               terrain_params,
             );
-            show_grid(render_system, instances[instance_id][world_id].renderer);
+            current_active_instance = instance_id;
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.addChild(
                 instances[instance_id][world_id].renderer
@@ -160,6 +160,10 @@ export async function start_medium() {
               );
             }
             if (is_admin) {
+              show_grid(
+                render_system,
+                instances[instance_id][world_id].renderer,
+              );
               const guaranteed_world_id_as_admin = w_id!;
               send_admin_event(
                 {
@@ -176,7 +180,6 @@ export async function start_medium() {
         )
         .with({ UnloadGame: P.select() }, ([_, instance_id, w_id]) => {
           const world_id = w_id ? w_id : GUEST_SINGLE_WORLD_ID;
-          console.log("wait not even?", instance_id, world_id, instances);
           if (instances[instance_id] && instances[instance_id][world_id]) {
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.removeChild(

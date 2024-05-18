@@ -7,6 +7,14 @@
       density="compact"
       hide-details="auto"
     ></v-text-field>
+    <v-select
+      label="Main Map"
+      :model-value="module.main_map"
+      :items="map_options"
+      :item-value="'path'"
+      :item-title="'file_name'"
+      @update:model-value="(new_value) => change_module_main_map(new_value)"
+    ></v-select>
     <v-divider></v-divider>
     <v-text-field
       label="Insert Point"
@@ -91,7 +99,7 @@
 import { Module } from "@/editor/blueprints/Module";
 import { use_editor_store } from "@/editor/stores/editor";
 import { mdiTrashCan } from "@mdi/js";
-import { onMounted, ref, toRefs, watch } from "vue";
+import { computed, onMounted, ref, toRefs, watch } from "vue";
 import ModuleSlots from "@/editor/editor/ModuleSlots.vue";
 import AddResourcesModal from "@/editor/editor/AddResourcesModal.vue";
 import { storeToRefs } from "pinia";
@@ -134,6 +142,10 @@ watch(module, () => {
   load_missing_maps();
 });
 
+const map_options = computed(() => {
+  return module.value.resources.filter((m) => m.kind === "Map");
+});
+
 function load_missing_maps() {
   for (const r of module.value.resources.filter(
     (m) => m.kind === "Map" && !game_map_map.value[m.path],
@@ -155,6 +167,12 @@ function delete_exit_point(exit_point_name: string) {
     exit_points: module.value.exit_points.filter(
       (p) => p.name !== exit_point_name,
     ),
+  });
+}
+
+function change_module_main_map(resource_path: string) {
+  save_module_server(module.value.id, {
+    main_map: resource_path,
   });
 }
 

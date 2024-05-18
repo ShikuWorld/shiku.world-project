@@ -195,10 +195,8 @@ export const use_resources_store = defineStore("resources", () => {
               if (!resource_manager) {
                 return;
               }
-              console.log("here?");
               apply_entity_update(
                 blueprint_render_value.render_graph_data as RenderGraphData,
-                {},
                 {
                   id: node_id,
                   kind: update,
@@ -276,6 +274,7 @@ export const use_resources_store = defineStore("resources", () => {
             min_guests: null,
             resources: null,
             insert_points: null,
+            main_map: null,
             ...module_update,
           },
         ],
