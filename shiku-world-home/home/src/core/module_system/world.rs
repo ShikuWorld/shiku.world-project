@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -12,6 +12,9 @@ use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     Collider, ColliderKind, ColliderShape, CollisionShape, GameNodeKind, RigidBodyType, Transform,
 };
+use crate::core::guest::ActorId;
+use crate::core::module::GuestInput;
+use crate::core::module_system::def::DynamicGameModule;
 use crate::core::module_system::error::CreateWorldError;
 use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
@@ -21,9 +24,24 @@ pub type WorldId = String;
 pub struct World {
     pub world_id: WorldId,
     pub physics: Rc<RefCell<RapierSimulation>>,
+    pub actor_api: Rc<RefCell<ActorApi>>,
     pub terrain_manager: TerrainManager,
-    pub ecs: ECS,
+    pub ecs: Rc<RefCell<ECS>>,
     pub script_engine: Engine,
+}
+
+pub struct ActorApi {
+    actor_inputs: HashMap<ActorId, GuestInput>,
+}
+
+impl ActorApi {
+    pub fn get_actor_input(&self, actor_id: &ActorId) -> Option<&GuestInput> {
+        self.actor_inputs.get(actor_id)
+    }
+
+    pub fn set_actor_input(&mut self, actor_id: ActorId, guest_input: GuestInput) {
+        self.actor_inputs.insert(actor_id, guest_input);
+    }
 }
 
 impl World {
@@ -48,19 +66,35 @@ impl World {
 
         let mut script_engine = Engine::new();
         let physics_rc = Rc::from(RefCell::from(physics));
-        Self::setup_scripting_api(&mut script_engine, &physics_rc);
+        Self::setup_physics_scripting_api(&mut script_engine, &physics_rc);
         Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
-
+        let actor_api = Rc::from(RefCell::from(ActorApi {
+            actor_inputs: HashMap::new(),
+        }));
+        Self::setup_input_scripting_api(&mut script_engine, actor_api.clone());
         Ok(World {
             world_id: game_map.world_id.clone(),
             physics: physics_rc,
+            actor_api,
             terrain_manager,
-            ecs,
+            ecs: Rc::from(RefCell::from(ecs)),
             script_engine,
         })
     }
 
-    fn setup_scripting_api(engine: &mut Engine, physics: &Rc<RefCell<RapierSimulation>>) {
+    pub fn actor_joined_world(&mut self, actor_id: &ActorId) {
+        for game_node_script in self.ecs.borrow_mut().entities.game_node_script.values_mut() {
+            game_node_script.call_actor_joined(&self.script_engine, actor_id);
+        }
+    }
+
+    pub fn actor_left_world(&mut self, actor_id: &ActorId) {
+        for game_node_script in self.ecs.borrow_mut().entities.game_node_script.values_mut() {
+            game_node_script.call_actor_left(&self.script_engine, actor_id);
+        }
+    }
+
+    fn setup_physics_scripting_api(engine: &mut Engine, physics: &Rc<RefCell<RapierSimulation>>) {
         let mut module = RhaiModule::new();
         let cloned_physics_rc = physics.clone();
         FuncRegistration::new("add_fixed_rigid_body").set_into_module(
@@ -69,28 +103,56 @@ impl World {
                 cloned_physics_rc.borrow_mut().add_fixed_rigid_body(x, y);
             },
         );
-        FuncRegistration::new("test_api").set_into_module(&mut module, |input: String| {
-            println!("test_api: {}", input);
-        });
-        engine.register_static_module("shiku::api", module.into());
+        engine.register_static_module("shiku::physics", module.into());
+    }
+
+    fn setup_input_scripting_api(engine: &mut Engine, actor_api_ref: Rc<RefCell<ActorApi>>) {
+        let mut module = RhaiModule::new();
+        FuncRegistration::new("is_key_down").set_into_module(
+            &mut module,
+            move |actor_id: ActorId, key: &str| {
+                let actor_api = actor_api_ref.borrow();
+                if let Some(guest_input) = actor_api.get_actor_input(&actor_id) {
+                    return match key {
+                        "right" => guest_input.right,
+                        "left" => guest_input.left,
+                        "up" => guest_input.up,
+                        "down" => guest_input.down,
+                        "start" => guest_input.start,
+                        "action_1" => guest_input.action_1,
+                        "action_2" => guest_input.action_2,
+                        _ => false,
+                    };
+                }
+                false
+            },
+        );
+        engine.register_static_module("shiku::input", module.into());
     }
 
     pub fn update(&mut self) {
-        let mut physics = self.physics.borrow_mut();
+        Self::do_update(
+            &mut self.physics.borrow_mut(),
+            &mut self.ecs.borrow_mut(),
+            &self.script_engine,
+        );
+    }
+
+    fn do_update(physics: &mut RapierSimulation, ecs: &mut ECS, script_engine: &Engine) {
         physics.update();
-        for (entity, rigid_body_handle) in self.ecs.entities.rigid_body_handle.iter() {
-            if let Some(transform) = self.ecs.entities.transforms.get_mut(entity) {
+        for (entity, rigid_body_handle) in ecs.entities.rigid_body_handle.iter() {
+            if let Some(transform) = ecs.entities.transforms.get_mut(entity) {
                 let (x, y, r) = physics.get_rigid_body_translation(*rigid_body_handle);
                 if transform.position.0 != x || transform.position.1 != y || transform.rotation != r
                 {
                     transform.position = (x, y);
                     transform.rotation = r;
-                    self.ecs.entities.dirty.insert(*entity, true);
+                    ecs.entities.dirty.insert(*entity, true);
                 }
             }
         }
-        for game_node_script in self.ecs.entities.game_node_script.values_mut() {
-            game_node_script.call_update(&self.script_engine);
+        for game_node_script in ecs.entities.game_node_script.values_mut() {
+            game_node_script.call_update(script_engine);
         }
     }
 
@@ -237,9 +299,9 @@ impl World {
     }
 
     pub fn apply_admin_entity_update(&mut self, entity_update: EntityUpdate) {
+        let mut ecs = self.ecs.borrow_mut();
         let mut physics = self.physics.borrow_mut();
-        if let Some(rigid_body_handle) = self.ecs.entities.rigid_body_handle.get(&entity_update.id)
-        {
+        if let Some(rigid_body_handle) = ecs.entities.rigid_body_handle.get(&entity_update.id) {
             let entity = &entity_update.id;
             match &entity_update.kind {
                 EntityUpdateKind::Transform(transform) => {
@@ -258,46 +320,44 @@ impl World {
                 }
                 EntityUpdateKind::RigidBodyType(rigid_body_type) => {
                     physics.remove_rigid_body(*rigid_body_handle);
-                    self.ecs.entities.rigid_body_handle.remove(entity);
+                    ecs.entities.rigid_body_handle.remove(entity);
 
-                    self.ecs
-                        .entities
+                    ecs.entities
                         .rigid_body_type
                         .insert(*entity, rigid_body_type.clone());
-                    Self::add_rigid_body_for_entity(entity, &mut self.ecs, &mut physics);
-                    Self::attach_colliders_to_entity(entity, &mut self.ecs, &mut physics);
+                    Self::add_rigid_body_for_entity(entity, &mut ecs, &mut physics);
+                    Self::attach_colliders_to_entity(entity, &mut ecs, &mut physics);
                 }
                 EntityUpdateKind::Gid(_)
                 | EntityUpdateKind::Name(_)
                 | EntityUpdateKind::UpdateScriptScope(_, _)
                 | EntityUpdateKind::SetScriptScope(_)
                 | EntityUpdateKind::ScriptPath(_) => {
-                    self.ecs
-                        .apply_entity_update(entity_update, &self.script_engine);
+                    ecs.apply_entity_update(entity_update, &self.script_engine);
                 }
             }
         } else {
-            self.ecs
-                .apply_entity_update(entity_update, &self.script_engine);
+            ecs.apply_entity_update(entity_update, &self.script_engine);
         }
     }
 
     pub fn add_entity(&mut self, parent_entity: Entity, child: &GameNodeKind) -> Entity {
+        let mut ecs = self.ecs.borrow_mut();
         let mut physics = self.physics.borrow_mut();
-        let entity =
-            ECS::add_child_to_entity(parent_entity, child, &mut self.ecs, &self.script_engine);
-        Self::add_rigid_body_for_entity(&entity, &mut self.ecs, &mut physics);
-        Self::attach_colliders_to_entity(&entity, &mut self.ecs, &mut physics);
-        Self::attach_collider_to_its_entity(&parent_entity, &entity, &mut self.ecs, &mut physics);
+        let entity = ECS::add_child_to_entity(parent_entity, child, &mut ecs, &self.script_engine);
+        Self::add_rigid_body_for_entity(&entity, &mut ecs, &mut physics);
+        Self::attach_colliders_to_entity(&entity, &mut ecs, &mut physics);
+        Self::attach_collider_to_its_entity(&parent_entity, &entity, &mut ecs, &mut physics);
         entity
     }
 
     pub fn remove_entity(&mut self, entity: Entity) {
+        let mut ecs = self.ecs.borrow_mut();
         let mut children_to_delete = Vec::new();
-        Self::get_children_to_delete(&mut children_to_delete, &entity, &mut self.ecs.entities);
-        self.ecs.entities.remove_entity(entity);
+        Self::get_children_to_delete(&mut children_to_delete, &entity, &mut ecs.entities);
+        ecs.entities.remove_entity(entity);
         for child in children_to_delete {
-            self.ecs.entities.remove_entity(child);
+            ecs.entities.remove_entity(child);
         }
     }
 

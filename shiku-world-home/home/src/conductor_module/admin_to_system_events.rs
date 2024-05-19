@@ -21,8 +21,10 @@ use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::CollisionShape;
 use crate::core::guest::{ActorId, Admin};
 use crate::core::module::{
-    AdminToSystemEvent, CommunicationEvent, EditorEvent, SceneNodeUpdate, TilesetUpdate,
+    AdminToSystemEvent, CommunicationEvent, EditorEvent, GuestToModuleEvent, SceneNodeUpdate,
+    TilesetUpdate,
 };
+use crate::core::module_system::def::DynamicGameModule;
 use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
@@ -46,6 +48,19 @@ pub async fn handle_admin_to_system_event(
     };
 
     match event {
+        AdminToSystemEvent::ControlInput(module_id, instance_id, guest_input) => {
+            if let Some(module) = module_map.get_mut(&module_id) {
+                if let Some(instance) = module.game_instances.get_mut(&instance_id) {
+                    DynamicGameModule::set_actor_input(
+                        &instance.dynamic_module.guest_to_world,
+                        &instance.dynamic_module.admin_to_world,
+                        &mut instance.dynamic_module.world_map,
+                        &admin.id,
+                        guest_input,
+                    );
+                }
+            }
+        }
         AdminToSystemEvent::WorldInitialized(module_id, instance_id, world_id) => {
             if let Some(instance) = module_map
                 .get_mut(&module_id)

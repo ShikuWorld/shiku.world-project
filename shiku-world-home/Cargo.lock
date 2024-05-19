@@ -891,6 +891,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "smartstring",
  "spin_sleep",
  "thiserror",
  "tiled",

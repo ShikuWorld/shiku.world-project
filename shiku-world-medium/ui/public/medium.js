@@ -41105,7 +41105,8 @@ ${e3}`);
     const button_feedback_update = setup_button_feedback();
     const instances = {};
     const resource_manager_map = {};
-    let current_active_instance = null;
+    let current_active_instance_id = null;
+    let current_active_module_id = null;
     function lazy_get_resource_manager(module_id) {
       if (!resource_manager_map[module_id]) {
         resource_manager_map[module_id] = create_resource_manager(render_system);
@@ -41132,7 +41133,7 @@ ${e3}`);
     }
     const open_menu = document.querySelector("#open-menu span");
     open_menu?.addEventListener("click", () => {
-      menu_system.toggle(`${current_active_instance}Menu`);
+      menu_system.toggle(`${current_active_instance_id}Menu`);
     });
     function main_loop() {
       window.requestAnimationFrame(main_loop);
@@ -41188,7 +41189,8 @@ ${e3}`);
               world_id,
               terrain_params
             );
-            current_active_instance = instance_id;
+            current_active_instance_id = instance_id;
+            current_active_module_id = module_id;
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.addChild(
                 instances[instance_id][world_id].renderer.main_container_wrapper
@@ -41220,13 +41222,7 @@ ${e3}`);
                 instances[instance_id][world_id].renderer.main_container_wrapper
               );
             }
-            console.log(
-              render_system.current_main_instance,
-              instance_id,
-              world_id
-            );
             if (render_system.current_main_instance.instance_id === instance_id && render_system.current_main_instance.world_id === world_id) {
-              console.log("removing?");
               render_system.stage.removeChild(
                 instances[instance_id][world_id].renderer.main_container_wrapper
               );
@@ -41236,6 +41232,10 @@ ${e3}`);
             if (Object.keys(instances[instance_id]).length === 0) {
               delete instances[instance_id];
             }
+            window.medium_gui.game_instances.remove_game_instance(
+              instance_id,
+              world_id
+            );
           }
         }).with(
           { GameSystemEvent: _.select() },
@@ -41275,13 +41275,27 @@ ${e3}`);
           instance.update();
         }
       }
-      if (guest_input.is_dirty && current_active_instance !== null) {
-        send_module_event(
-          {
-            ControlInput: create_guest_input_event(guest_input)
-          },
-          communication_system
-        );
+      if (guest_input.is_dirty && current_active_instance_id !== null && current_active_module_id !== null) {
+        if (is_admin) {
+          send_admin_event(
+            {
+              ControlInput: [
+                current_active_module_id,
+                current_active_instance_id,
+                create_guest_input_event(guest_input)
+              ]
+            },
+            communication_system
+          );
+        } else {
+          console.log("Sending control input guest");
+          send_module_event(
+            {
+              ControlInput: create_guest_input_event(guest_input)
+            },
+            communication_system
+          );
+        }
         guest_input.is_dirty = false;
       }
     }

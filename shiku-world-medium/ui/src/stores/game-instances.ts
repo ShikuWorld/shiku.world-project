@@ -110,6 +110,12 @@ export const use_game_instances_store = defineStore("game-instances", {
         instance_scene: null,
       };
     },
+    remove_game_instance(instance_id: string, world_id: string) {
+      if (!this.game_instance_data_map[instance_id]) {
+        return;
+      }
+      delete this.game_instance_data_map[instance_id][world_id];
+    },
     get_root_container(instance_id: string, world_id: string) {
       const game_instance_data = this.get_game_instance_data(
         instance_id,

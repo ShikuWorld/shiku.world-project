@@ -326,6 +326,7 @@ addOrUpdateNode({
   id: "Login",
   exit_points: [{ name: "LoginOut", condition_script: "" }],
   insert_points: [],
+  main_map: null,
   name: "Login",
   gid_map: [],
   max_guests: 0,

@@ -101,6 +101,7 @@ pub enum AdminToSystemEvent {
     OpenInstance(ModuleId),
     StartInspectingWorld(ModuleId, GameInstanceId, WorldId),
     StopInspectingWorld(ModuleId, GameInstanceId, WorldId),
+    ControlInput(ModuleId, GameInstanceId, GuestInput),
     WorldInitialized(ModuleId, GameInstanceId, WorldId),
     UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),

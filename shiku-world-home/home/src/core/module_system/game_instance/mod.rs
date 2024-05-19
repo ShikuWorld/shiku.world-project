@@ -112,7 +112,7 @@ impl GameInstanceManager {
     > {
         let (input_sender, input_receiver, output_sender, output_receiver) =
             create_module_communication();
-        let mut manager = GameInstanceManager {
+        let manager = GameInstanceManager {
             game_instances: HashMap::new(),
             inactive_game_instances: Vec::new(),
             guest_to_game_instance_map: HashMap::new(),
@@ -192,7 +192,7 @@ impl GameInstanceManager {
                     }
                     false
                 })
-                .map(|(actor_id, _)| actor_id.clone()),
+                .map(|(actor_id, _)| *actor_id),
         );
         active_actors.extend(self.active_admins.keys());
 
@@ -362,7 +362,13 @@ impl GameInstanceManager {
                 for game_instance in self.game_instances.values_mut() {
                     for world in game_instance.dynamic_module.world_map.values_mut() {
                         let mut script_reset = false;
-                        for game_node_script in world.ecs.entities.game_node_script.values_mut() {
+                        for game_node_script in world
+                            .ecs
+                            .borrow_mut()
+                            .entities
+                            .game_node_script
+                            .values_mut()
+                        {
                             debug!("Checking script path: {:?}", script_resource_path);
                             if game_node_script.path == *script_resource_path {
                                 debug!("Resetting script from new ast!");

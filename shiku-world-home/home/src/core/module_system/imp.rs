@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use flume::Sender;
 use log::{debug, error};
@@ -121,7 +123,10 @@ impl DynamicGameModule {
 
     pub fn remove_script(&mut self, resource_path: &ResourcePath) {
         for world in self.world_map.values_mut() {
-            world.ecs.remove_script_on_all_entities(resource_path);
+            world
+                .ecs
+                .borrow_mut()
+                .remove_script_on_all_entities(resource_path);
         }
     }
 
@@ -147,18 +152,29 @@ impl DynamicGameModule {
         Ok(game_map.world_id.clone())
     }
 
-    fn set_actor_input(
-        guests: &mut GuestMap,
-        admins: &mut AdminMap,
+    pub fn set_actor_input(
+        guest_to_world_map: &HashMap<ActorId, WorldId>,
+        admin_to_world_map: &LazyHashmapSet<ActorId, WorldId>,
+        world_map: &mut HashMap<WorldId, World>,
         actor_id: &ActorId,
         input: GuestInput,
     ) {
-        if let Some(guest) = guests.get_mut(actor_id) {
-            guest.guest_input = input;
-            guest.last_input_time = Instant::now();
-        } else if let Some(admin) = admins.get_mut(actor_id) {
-            admin.guest_input = input;
-            admin.last_input_time = Instant::now();
+        if let Some(world_id) = guest_to_world_map.get(actor_id) {
+            if let Some(world) = world_map.get_mut(world_id) {
+                world
+                    .actor_api
+                    .borrow_mut()
+                    .set_actor_input(*actor_id, input.clone());
+            }
+        } else if let Some(world_ids) = admin_to_world_map.hashset(actor_id) {
+            for world_id in world_ids {
+                if let Some(world) = world_map.get_mut(world_id) {
+                    world
+                        .actor_api
+                        .borrow_mut()
+                        .set_actor_input(*actor_id, input.clone());
+                }
+            }
         }
     }
 
@@ -197,8 +213,9 @@ impl DynamicGameModule {
 
     fn send_scope_updates_to_admins(&mut self) {
         for world in self.world_map.values_mut() {
+            let entities = &mut world.ecs.borrow_mut().entities;
             if self.world_to_admin.len(&world.world_id) > 0 {
-                for (entity, game_node_script) in world.ecs.entities.game_node_script.iter_mut() {
+                for (entity, game_node_script) in entities.game_node_script.iter_mut() {
                     if let Some(scope_update) = game_node_script.update_scope_cache() {
                         debug!("Sending scope update to admins: {:?}", scope_update);
                         let scope_update_event = ModuleInstanceEvent {
@@ -224,10 +241,9 @@ impl DynamicGameModule {
     }
 
     pub fn get_position_updates(world: &mut World) -> Vec<(Entity, Real, Real, Real)> {
-        let transforms = &mut world.ecs.entities.transforms;
-        world
-            .ecs
-            .entities
+        let entities = &mut world.ecs.borrow_mut().entities;
+        let transforms = &mut entities.transforms;
+        entities
             .dirty
             .drain()
             .filter_map(|(entity, dirty)| {
@@ -305,7 +321,8 @@ impl DynamicGameModule {
     ) {
         if let Some(world) = self.world_map.get_mut(world_id) {
             let entity = world.add_entity(parent_entity, &game_node);
-            if let Some(game_node) = GameNodeKind::get_game_node_kind_from_ecs(&entity, &world.ecs)
+            if let Some(game_node) =
+                GameNodeKind::get_game_node_kind_from_ecs(&entity, &world.ecs.borrow_mut())
             {
                 let add_entity_event = ModuleInstanceEvent {
                     world_id: None,
@@ -457,7 +474,13 @@ impl DynamicGameModule {
             } = event;
             match event_type.event_type {
                 GuestToModuleEvent::ControlInput(input) => {
-                    Self::set_actor_input(&mut self.guests, &mut self.admins, &guest_id, input);
+                    Self::set_actor_input(
+                        &self.guest_to_world,
+                        &self.admin_to_world,
+                        &mut self.world_map,
+                        &guest_id,
+                        input,
+                    );
                 }
                 GuestToModuleEvent::GameSetupDone => {
                     Self::set_resources_loaded(&mut self.guests, &guest_id);
@@ -546,7 +569,7 @@ impl DynamicGameModule {
 
                 Self::send_current_script_scopes(sender, &instance_id, actor_id, &module_id, world);
             }
-            if let Some(scene) = build_scene_from_ecs(&world.ecs) {
+            if let Some(scene) = build_scene_from_ecs(&world.ecs.borrow()) {
                 send_and_log_error(
                     sender,
                     GuestEvent {
@@ -579,7 +602,7 @@ impl DynamicGameModule {
         module_id: &ModuleId,
         world: &World,
     ) {
-        for (entity, game_node_script) in world.ecs.entities.game_node_script.iter() {
+        for (entity, game_node_script) in world.ecs.borrow().entities.game_node_script.iter() {
             let initial_scope = game_node_script.scope_cache.clone();
             let scope_update_event = ModuleInstanceEvent {
                 world_id: Some(world.world_id.clone()),
@@ -624,16 +647,20 @@ impl DynamicGameModule {
         admin: &Admin,
         world_id: WorldId,
     ) -> Result<EnterSuccessState, EnterFailedState> {
-        self.world_to_admin.insert_entry(&world_id, admin.id);
-        self.admin_to_world
-            .insert_entry(&admin.id, world_id.clone());
+        self.world_to_admin.insert_entry(world_id.clone(), admin.id);
+        debug!("Admin entered world: {:?}", world_id);
+        self.admin_to_world.insert_entry(admin.id, world_id.clone());
+        debug!("admin to world: {:?}", self.admin_to_world);
         self.admins.entry(admin.id).or_insert(ModuleAdmin {
             id: admin.id,
-            guest_input: GuestInput::new(),
             last_input_time: Instant::now(),
             connected: false,
             resources_loaded: false,
         });
+
+        if let Some(world) = self.world_map.get_mut(&world_id) {
+            world.actor_joined_world(&admin.id);
+        }
 
         Ok(EnterSuccessState::Entered)
     }
@@ -649,6 +676,10 @@ impl DynamicGameModule {
             self.admins.remove(&admin.id);
             self.admin_to_world.remove(&admin.id);
         }
+        if let Some(world) = self.world_map.get_mut(&world_id) {
+            world.actor_left_world(&admin.id);
+        }
+
         Ok(LeaveSuccessState::Left)
     }
 
@@ -665,7 +696,6 @@ impl DynamicGameModule {
                     connected: true,
                     resources_loaded: false,
                 },
-                guest_input: GuestInput::new(),
                 last_input_time: Instant::now(),
                 world_id: None,
             },

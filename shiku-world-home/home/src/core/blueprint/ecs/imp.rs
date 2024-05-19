@@ -1,19 +1,21 @@
-use std::collections::{HashMap, HashSet};
-use std::ops::Deref;
+use std::cmp::PartialEq;
+use std::collections::{BTreeMap, HashMap};
 
 use log::{debug, error};
 use rhai::{Dynamic, Engine, ImmutableString, Scope, AST};
+use smartstring::{LazyCompact, SmartString, SmartStringMode};
 
-use crate::core::blueprint::def::{BlueprintError, ResourcePath};
+use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::def::{
-    Entity, EntityMaps, EntityUpdate, EntityUpdateKind, GameNodeScript, GameNodeScriptError,
-    GameNodeScriptFunctions, ScopeCacheValue, ECS,
+    DynamicMap, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, GameNodeScript,
+    GameNodeScriptError, GameNodeScriptFunctions, ScopeCacheValue, ECS,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     GameNodeKind, GameNodeKindClean, Node2DKind, Node2DKindClean, RenderKind, RenderKindClean,
     Scene, SceneId, Script,
 };
+use crate::core::guest::ActorId;
 
 impl From<&Scene> for ECS {
     fn from(scene: &Scene) -> Self {
@@ -233,16 +235,12 @@ impl GameNodeScript {
     }
 
     pub fn update_scope(&mut self, scope_key: String, scope_value: ScopeCacheValue) {
-        match scope_value {
-            ScopeCacheValue::String(value) => {
-                debug!("Setting string value: {} {:?}", scope_key, value);
-                self.scope.set_value(&scope_key, value);
-            }
-            ScopeCacheValue::Number(value) => {
-                debug!("Setting number value: {} {:?}", scope_key, value);
-                self.scope.set_value(&scope_key, value);
-            }
-        }
+        let dynamic_value: Dynamic = scope_value.into();
+        debug!(
+            "Updating scope key: {} with value: {:?}",
+            scope_key, dynamic_value
+        );
+        self.scope.set_value(&scope_key, dynamic_value);
     }
 
     pub fn from_ast(path: ResourcePath, ast: AST) -> Self {
@@ -262,13 +260,8 @@ impl GameNodeScript {
         scope: &Scope,
     ) {
         for (key, _, value) in scope.iter() {
-            if let Some(value) = value.read_lock::<ImmutableString>() {
-                debug!("Inserting into scope cache: {} {:?}", key, value);
-                scope_cache.insert(key.into(), ScopeCacheValue::String(value.clone().into()));
-            } else if let Some(value) = value.read_lock::<f64>() {
-                debug!("Inserting into scope cache: {} {:?}", key, value);
-                scope_cache.insert(key.into(), ScopeCacheValue::Number(*value));
-            }
+            debug!("Init scope cache key: {} with value: {:?}", key, value);
+            scope_cache.insert(key.into(), value.clone().into());
         }
     }
 
@@ -284,7 +277,6 @@ impl GameNodeScript {
                         .and_then(|v| v.read_lock::<ImmutableString>())
                     {
                         if *scope_value != *cache_value {
-                            debug!("Comparing {} {:?} {:?}", key, scope_value, cache_value);
                             *value = ScopeCacheValue::String(scope_value.clone().into());
                             updated = true;
                         }
@@ -295,9 +287,46 @@ impl GameNodeScript {
                         self.scope.get(key).and_then(|v| v.read_lock::<f64>())
                     {
                         if (*scope_value - *cache_value).abs() > 0.0001_f64 {
-                            debug!("Comparing {} {:?} {:?}", key, scope_value, cache_value);
                             *value = ScopeCacheValue::Number(*scope_value);
                             updated = true;
+                        }
+                    }
+                }
+                ScopeCacheValue::Integer(cache_value) => {
+                    if let Some(scope_value) =
+                        self.scope.get(key).and_then(|v| v.read_lock::<i64>())
+                    {
+                        if *scope_value != *cache_value {
+                            *value = ScopeCacheValue::Integer(*scope_value);
+                            updated = true;
+                        }
+                    }
+                }
+                ScopeCacheValue::Map(cache_value) => {
+                    if let Some(scope_value) = self
+                        .scope
+                        .get(key)
+                        .and_then(|v| v.read_lock::<DynamicMap>())
+                    {
+                        for (key, value) in scope_value.iter() {
+                            match cache_value.get(key.as_str()) {
+                                Some(cache_value) => {
+                                    if !ScopeCacheValue::equals_dynamic_value(cache_value, value) {
+                                        updated = true;
+                                    }
+                                }
+                                None => {
+                                    updated = true;
+                                }
+                            }
+                        }
+                        if updated {
+                            debug!("Updating map");
+                            let mut new_map = HashMap::new();
+                            for (key, value) in scope_value.iter() {
+                                new_map.insert(key.clone().into(), value.clone().into());
+                            }
+                            *value = ScopeCacheValue::Map(new_map);
                         }
                     }
                 }
@@ -325,9 +354,10 @@ impl GameNodeScript {
                 }
                 self.scope.clear();
                 for (key, value) in scope_cache.iter() {
-                    self.scope.set_value(key.clone(), value.clone());
+                    let dynamic_value: Dynamic = value.clone().into();
+                    self.scope.set_value(key.clone(), dynamic_value);
                 }
-                debug!("Scope update successfully");
+                debug!("Scope update successful");
             }
             Err(e) => error!("Error updating scope: {:?}", e),
         }
@@ -353,6 +383,24 @@ impl GameNodeScript {
             match engine.call_fn::<()>(&mut self.scope, &self.ast, "update", ()) {
                 Ok(()) => {}
                 Err(e) => error!("Error calling update function: {:?}", e),
+            }
+        }
+    }
+
+    pub fn call_actor_joined(&mut self, engine: &Engine, actor_id: &ActorId) {
+        if self.game_node_script_functions.actor_joined {
+            match engine.call_fn::<()>(&mut self.scope, &self.ast, "actor_joined", (*actor_id,)) {
+                Ok(()) => {}
+                Err(e) => error!("Error calling actor_joined function: {:?}", e),
+            }
+        }
+    }
+
+    pub fn call_actor_left(&mut self, engine: &Engine, actor_id: &ActorId) {
+        if self.game_node_script_functions.actor_left {
+            match engine.call_fn::<()>(&mut self.scope, &self.ast, "actor_left", (*actor_id,)) {
+                Ok(()) => {}
+                Err(e) => error!("Error calling actor_left function: {:?}", e),
             }
         }
     }
@@ -386,6 +434,68 @@ impl GameNodeScript {
         match engine.compile(&script.content) {
             Ok(ast) => Ok(ast),
             Err(e) => Err(GameNodeScriptError::CompileError(e)),
+        }
+    }
+}
+
+impl PartialEq for ScopeCacheValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (ScopeCacheValue::String(a), ScopeCacheValue::String(b)) => a == b,
+            (ScopeCacheValue::Number(a), ScopeCacheValue::Number(b)) => (a - b).abs() < 0.0001_f64,
+            (ScopeCacheValue::Integer(a), ScopeCacheValue::Integer(b)) => a == b,
+            (ScopeCacheValue::Map(a), ScopeCacheValue::Map(b)) => a == b,
+            _ => false,
+        }
+    }
+}
+
+impl Into<Dynamic> for ScopeCacheValue {
+    fn into(self) -> Dynamic {
+        debug!("Converting ScopeCacheValue to Dynamic: {:?}", self);
+        match self {
+            ScopeCacheValue::String(val) => Dynamic::from(val),
+            ScopeCacheValue::Number(val) => Dynamic::from(val),
+            ScopeCacheValue::Integer(val) => Dynamic::from(val),
+            ScopeCacheValue::Map(map) => {
+                let mut dynamic_map: DynamicMap = BTreeMap::new();
+                for (key, value) in map {
+                    dynamic_map.insert(SmartString::from(key), value.into());
+                }
+                Dynamic::from(dynamic_map)
+            }
+        }
+    }
+}
+
+impl Into<ScopeCacheValue> for Dynamic {
+    fn into(self) -> ScopeCacheValue {
+        debug!("Converting Dynamic to ScopeCacheValue: {:?}", self);
+        match self.type_name() {
+            "string" => ScopeCacheValue::String(self.try_cast::<String>().unwrap_or_else(|| {
+                error!("Error casting Dynamic to String");
+                String::default()
+            })),
+            "f64" => ScopeCacheValue::Number(self.try_cast::<f64>().unwrap_or_else(|| {
+                error!("Error casting Dynamic to f64");
+                0.0
+            })),
+            "i64" => ScopeCacheValue::Integer(self.try_cast::<i64>().unwrap_or_else(|| {
+                error!("Error casting Dynamic to i64");
+                0
+            })),
+            "map" => {
+                let mut map = HashMap::new();
+                let cast_value = self.try_cast::<DynamicMap>().unwrap_or_else(|| {
+                    error!("Error casting Dynamic to HashMap<ImmutableString, Dynamic>");
+                    BTreeMap::new()
+                });
+                for (key, value) in cast_value {
+                    map.insert(key.into(), value.into());
+                }
+                ScopeCacheValue::Map(map)
+            }
+            type_name => ScopeCacheValue::String(format!("Unknown type: {type_name}")),
         }
     }
 }

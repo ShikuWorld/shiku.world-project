@@ -62,10 +62,8 @@ impl<K: Eq + Hash, T: Eq + Hash> LazyHashmapSet<K, T> {
         }
         false
     }
-    pub fn insert_entry(&mut self, key: &K, value: T) {
-        if let Some(data) = self.data.get_mut(key) {
-            data.insert(value);
-        }
+    pub fn insert_entry(&mut self, key: K, value: T) {
+        self.data.entry(key).or_default().insert(value);
     }
 
     pub fn filter<F>(&mut self, key: K, mut callback: F)
