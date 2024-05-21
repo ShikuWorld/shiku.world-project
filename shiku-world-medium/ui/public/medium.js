@@ -39374,7 +39374,8 @@ ${e3}`);
       const game_instance = worlds[render_system.current_main_instance.world_id];
       if (game_instance.renderer.main_container && blueprint_render_data && blueprint_render_data.render_graph_data) {
         blueprint_render_data.render_graph_data.render_root.container.alpha = 0.5;
-        game_instance.renderer.layer_map.ObjectsFront.addChild(
+        game_instance.renderer.blueprint_container.removeChildren();
+        game_instance.renderer.blueprint_container.addChild(
           blueprint_render_data.render_graph_data.render_root.container
         );
       }
@@ -39435,12 +39436,15 @@ ${e3}`);
     const main_container = new Container();
     const main_container_wrapper = new Container();
     const layer_map = createLayerMap();
+    const blueprint_container = new Container();
     addLayerMapToContainer(main_container, layer_map);
+    layer_map.ObjectsFront.addChild(blueprint_container);
     main_container_wrapper.addChild(main_container);
     return {
       camera: create_camera(),
       layer_map,
       main_container,
+      blueprint_container,
       main_container_wrapper,
       terrain_params
     };
@@ -40276,13 +40280,11 @@ ${e3}`);
   };
   function create_display_object(node, resource_manager) {
     const container = new Container();
-    N2(node).with({ Instance: _.select() }, () => {
-      console.error("No instances can be displayed!");
-    }).with({ Node2D: _.select() }, (game_node) => {
+    N2(node).with({ Node2D: _.select() }, (game_node) => {
       container.x = game_node.data.transform.position[0] * RENDER_SCALE;
       container.y = game_node.data.transform.position[1] * RENDER_SCALE;
       container.rotation = game_node.data.transform.rotation;
-      N2(game_node.data.kind).with({ Node2D: _.select() }, () => {
+      N2(game_node.data.kind).with({ Node2D: _.select() }, { Instance: _.select() }, () => {
       }).with({ Render: _.select() }, (render2) => {
         const display_object = N2(render2.kind).with({ Sprite: _.select() }, (gid) => {
           const graphics = resource_manager.get_graphics_data_by_gid(gid);
@@ -40305,7 +40307,12 @@ ${e3}`);
           container.addChild(graphics);
         }).with({ CapsuleX: _.select() }, ([_half_y, _radius]) => {
         }).with({ CapsuleY: _.select() }, ([_half_x, _radius]) => {
-        }).with({ Cuboid: _.select() }, ([_a, _b]) => {
+        }).with({ Cuboid: _.select() }, ([a3, b3]) => {
+          const graphics = new Graphics().rect(0, 0, a3, b3).stroke({
+            color: "#ff0000",
+            width: 1
+          });
+          container.addChild(graphics);
         }).exhaustive();
       }).exhaustive();
     }).exhaustive();

@@ -448,6 +448,7 @@ pub async fn handle_admin_to_system_event(
                         node.clone(),
                     ) {
                         Ok(()) => {
+                            debug!("Removed child from scene: {:?}", node);
                             send_editor_event(EditorEvent::UpdateScene(
                                 SceneNodeUpdate::RemoveChild(resource_path, path, node),
                             ));

@@ -38,13 +38,6 @@ export interface ResourcesStore {
 }
 
 export const use_resources_store = defineStore("resources", () => {
-  const { blueprint_render } = toRefs(use_game_instances_store());
-  const {
-    apply_entity_update,
-    add_child_to_render_graph,
-    remove_child_from_render_graph,
-    render_key_from_game_node,
-  } = use_game_instances_store();
   const state: ResourcesStore = reactive({
     modules: {},
     tileset_map: {},
@@ -183,20 +176,22 @@ export const use_resources_store = defineStore("resources", () => {
         .with(
           { UpdateData: P.select() },
           ([resource_path, _, node_id, update]) => {
-            const blueprint_render_value = blueprint_render.value;
+            const { blueprint_render } = toRefs(use_game_instances_store());
+            const { apply_entity_update } = use_game_instances_store();
             if (
-              blueprint_render_value &&
-              blueprint_render_value.scene_resource_path === resource_path &&
-              blueprint_render_value.render_graph_data
+              blueprint_render &&
+              blueprint_render.value &&
+              blueprint_render.value.scene_resource_path === resource_path &&
+              blueprint_render.value.render_graph_data
             ) {
               const resource_manager = window.medium.get_resource_manager(
-                blueprint_render_value.module_id,
+                blueprint_render.value.module_id,
               );
               if (!resource_manager) {
                 return;
               }
               apply_entity_update(
-                blueprint_render_value.render_graph_data as RenderGraphData,
+                blueprint_render.value.render_graph_data as RenderGraphData,
                 {
                   id: node_id,
                   kind: update,
@@ -209,20 +204,22 @@ export const use_resources_store = defineStore("resources", () => {
         .with(
           { AddChild: P.select() },
           ([resource_path, _, parent_node_id, game_node]) => {
-            const blueprint_render_value = blueprint_render.value;
+            const { add_child_to_render_graph } = use_game_instances_store();
+            const { blueprint_render } = toRefs(use_game_instances_store());
             if (
-              blueprint_render_value &&
-              blueprint_render_value.scene_resource_path === resource_path &&
-              blueprint_render_value.render_graph_data
+              blueprint_render &&
+              blueprint_render.value &&
+              blueprint_render.value.scene_resource_path === resource_path &&
+              blueprint_render.value.render_graph_data
             ) {
               const resource_manager = window.medium.get_resource_manager(
-                blueprint_render_value.module_id,
+                blueprint_render.value.module_id,
               );
               if (!resource_manager) {
                 return;
               }
               add_child_to_render_graph(
-                blueprint_render_value.render_graph_data as RenderGraphData,
+                blueprint_render.value.render_graph_data as RenderGraphData,
                 parent_node_id,
                 game_node,
                 resource_manager,
@@ -232,20 +229,23 @@ export const use_resources_store = defineStore("resources", () => {
           },
         )
         .with({ RemoveChild: P.select() }, ([resource_path, _, game_node]) => {
-          const blueprint_render_value = blueprint_render.value;
+          const { blueprint_render } = toRefs(use_game_instances_store());
+          const { remove_child_from_render_graph, render_key_from_game_node } =
+            use_game_instances_store();
           if (
-            blueprint_render_value &&
-            blueprint_render_value.scene_resource_path === resource_path &&
-            blueprint_render_value.render_graph_data
+            blueprint_render &&
+            blueprint_render.value &&
+            blueprint_render.value.scene_resource_path === resource_path &&
+            blueprint_render.value.render_graph_data
           ) {
             const resource_manager = window.medium.get_resource_manager(
-              blueprint_render_value.module_id,
+              blueprint_render.value.module_id,
             );
             if (!resource_manager) {
               return;
             }
             remove_child_from_render_graph(
-              blueprint_render_value.render_graph_data as RenderGraphData,
+              blueprint_render.value.render_graph_data as RenderGraphData,
               render_key_from_game_node(game_node),
             );
           }
@@ -496,6 +496,12 @@ export function create_2d_game_node(
 ): Node2DKind {
   return match(game_node_type)
     .with("Node2D-Node2D", (): Node2DKind => ({ Node2D: 0 }))
+    .with(
+      "Node2D-Instance",
+      (): Node2DKind => ({
+        Instance: "",
+      }),
+    )
     .with(
       "Node2D-RigidBody",
       (): Node2DKind => ({

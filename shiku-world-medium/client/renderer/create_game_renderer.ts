@@ -48,7 +48,8 @@ export function set_blueprint_render(
       blueprint_render_data.render_graph_data
     ) {
       blueprint_render_data.render_graph_data.render_root.container.alpha = 0.5;
-      game_instance.renderer.layer_map.ObjectsFront.addChild(
+      game_instance.renderer.blueprint_container.removeChildren();
+      game_instance.renderer.blueprint_container.addChild(
         blueprint_render_data.render_graph_data.render_root.container,
       );
     }
@@ -137,12 +138,15 @@ export const create_instance_rendering = (
   const main_container = new Container();
   const main_container_wrapper = new Container();
   const layer_map = createLayerMap();
+  const blueprint_container = new Container();
   addLayerMapToContainer(main_container, layer_map);
+  layer_map.ObjectsFront.addChild(blueprint_container);
   main_container_wrapper.addChild(main_container);
   return {
     camera: create_camera(),
     layer_map,
     main_container,
+    blueprint_container,
     main_container_wrapper,
     terrain_params,
   };

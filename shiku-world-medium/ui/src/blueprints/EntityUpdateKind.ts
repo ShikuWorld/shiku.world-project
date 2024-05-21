@@ -3,4 +3,4 @@ import type { RigidBodyType } from "./RigidBodyType";
 import type { ScopeCacheValue } from "./ScopeCacheValue";
 import type { Transform } from "./Transform";
 
-export type EntityUpdateKind = { Transform: Transform } | { Name: string } | { ScriptPath: string | null } | { UpdateScriptScope: [string, ScopeCacheValue] } | { SetScriptScope: Record<string, ScopeCacheValue> } | { RigidBodyType: RigidBodyType } | { PositionRotation: [number, number, number] } | { Gid: number };
+export type EntityUpdateKind = { Transform: Transform } | { Name: string } | { InstancePath: string } | { ScriptPath: string | null } | { UpdateScriptScope: [string, ScopeCacheValue] } | { SetScriptScope: Record<string, ScopeCacheValue> } | { RigidBodyType: RigidBodyType } | { PositionRotation: [number, number, number] } | { Gid: number };

@@ -37,9 +37,6 @@ export interface EditorStore {
 }
 
 export const use_editor_store = defineStore("editor", () => {
-  const { set_and_render_blueprint_render } = use_game_instances_store();
-  const { scene_map } = toRefs(use_resources_store());
-
   const state: EditorStore = reactive({
     editor_open: false,
     module_instance_map: {},
@@ -206,15 +203,18 @@ export const use_editor_store = defineStore("editor", () => {
     },
   };
 
+  const { get_or_load_scene } = use_resources_store();
+  const { scene_map } = toRefs(use_resources_store());
   watch([state.selected_scene_props, scene_map], () => {
     const scene_path = state.selected_scene_props.scene_path;
     if (!scene_path) {
       return;
     }
-    const scene = scene_map.value[scene_path];
+    const scene = get_or_load_scene(scene_map.value, scene_path);
     if (!scene) {
       return;
     }
+    const { set_and_render_blueprint_render } = use_game_instances_store();
     set_and_render_blueprint_render(
       state.selected_module_id,
       scene_path,

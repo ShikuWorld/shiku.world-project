@@ -113,6 +113,7 @@ export interface RenderSystem {
 export interface InstanceRendering {
   main_container_wrapper: Container;
   main_container: Container;
+  blueprint_container: Container;
   grid?: {
     sprite: TilingSprite;
     selected_tile: Graphics;

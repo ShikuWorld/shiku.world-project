@@ -2,6 +2,7 @@ use std::cmp::PartialEq;
 use std::collections::{BTreeMap, HashMap};
 
 use log::{debug, error};
+use rapier2d::math;
 use rhai::{Dynamic, Engine, ImmutableString, Scope, AST};
 use smartstring::{LazyCompact, SmartString, SmartStringMode};
 
@@ -46,6 +47,8 @@ impl ECS {
                 game_node_children: HashMap::new(),
                 game_node_kind: HashMap::new(),
                 node_2d_kind: HashMap::new(),
+                node_2d_instance_path: HashMap::new(),
+                node_2d_entity_instance_parent: HashMap::new(),
                 render_kind: HashMap::new(),
                 render_offset: HashMap::new(),
                 render_layer: HashMap::new(),
@@ -67,18 +70,23 @@ impl ECS {
         ecs: &mut ECS,
         engine: &Engine,
     ) -> Entity {
+        let child_entity = Entity(ecs.entity_counter);
         ecs.entities
             .game_node_children
             .entry(parent_entity)
             .or_default()
-            .push(Entity(ecs.entity_counter));
+            .push(child_entity);
+        if let Some(Node2DKindClean::Instance) = ecs.entities.node_2d_kind.get(&parent_entity) {
+            ecs.entities
+                .node_2d_entity_instance_parent
+                .insert(child_entity, parent_entity);
+        }
         Self::add_entity(child, ecs, engine)
     }
 
     fn add_entity(node_kind: &GameNodeKind, ecs: &mut ECS, engine: &Engine) -> Entity {
         let entity = Entity(ecs.entity_counter);
         ecs.entity_counter += 1;
-
         match node_kind {
             GameNodeKind::Node2D(node_2d) => {
                 ecs.entities
@@ -107,6 +115,14 @@ impl ECS {
                     .insert(entity, node_2d.data.transform.clone());
 
                 match &node_2d.data.kind {
+                    Node2DKind::Instance(resource_path) => {
+                        ecs.entities
+                            .node_2d_kind
+                            .insert(entity, Node2DKindClean::Instance);
+                        ecs.entities
+                            .node_2d_instance_path
+                            .insert(entity, resource_path.clone());
+                    }
                     Node2DKind::Node2D(_) => {
                         ecs.entities
                             .node_2d_kind
@@ -154,15 +170,34 @@ impl ECS {
                     }
                 }
             }
-            GameNodeKind::Instance(_node) => {
-                error!("Instance not implemented!");
-            }
         }
-        for child in node_kind.get_children() {
-            Self::add_child_to_entity(entity, child, ecs, engine);
+        if let Some(instance_root_node) = Self::get_node_2d_instance_root_node(node_kind) {
+            debug!("# Adding instance root node");
+            Self::add_child_to_entity(entity, &instance_root_node, ecs, engine);
+        } else {
+            for child in node_kind.get_children() {
+                Self::add_child_to_entity(entity, child, ecs, engine);
+            }
         }
 
         entity
+    }
+
+    fn get_node_2d_instance_root_node(game_node_kind: &GameNodeKind) -> Option<GameNodeKind> {
+        match game_node_kind {
+            GameNodeKind::Node2D(node_2d) => match &node_2d.data.kind {
+                Node2DKind::Instance(resource_path) => {
+                    match Blueprint::load_scene(resource_path.clone().into()) {
+                        Ok(scene) => Some(scene.root_node),
+                        Err(e) => {
+                            error!("Error loading scene: {:?}", e);
+                            None
+                        }
+                    }
+                }
+                _ => None,
+            },
+        }
     }
 
     pub fn remove_script_on_all_entities(&mut self, resource_path: &ResourcePath) {
@@ -171,9 +206,23 @@ impl ECS {
             .retain(|_, script| script.path != *resource_path);
     }
 
+    pub fn get_instance_root_entity(&self, entity: &Entity) -> Option<&Entity> {
+        if let Some(Node2DKindClean::Instance) = self.entities.node_2d_kind.get(entity) {
+            return self
+                .entities
+                .game_node_children
+                .get(entity)
+                .and_then(|children| children.first());
+        }
+        None
+    }
+
     pub fn apply_entity_update(&mut self, entity_update: EntityUpdate, engine: &Engine) {
         let entity = entity_update.id;
         match entity_update.kind {
+            EntityUpdateKind::InstancePath(_) => {
+                error!("Instances should not exist on themselves inside ECS for now!");
+            }
             EntityUpdateKind::Transform(transform) => {
                 self.entities.transforms.insert(entity, transform);
             }
@@ -260,7 +309,6 @@ impl GameNodeScript {
         scope: &Scope,
     ) {
         for (key, _, value) in scope.iter() {
-            debug!("Init scope cache key: {} with value: {:?}", key, value);
             scope_cache.insert(key.into(), value.clone().into());
         }
     }
@@ -452,7 +500,6 @@ impl PartialEq for ScopeCacheValue {
 
 impl Into<Dynamic> for ScopeCacheValue {
     fn into(self) -> Dynamic {
-        debug!("Converting ScopeCacheValue to Dynamic: {:?}", self);
         match self {
             ScopeCacheValue::String(val) => Dynamic::from(val),
             ScopeCacheValue::Number(val) => Dynamic::from(val),
@@ -470,7 +517,6 @@ impl Into<Dynamic> for ScopeCacheValue {
 
 impl Into<ScopeCacheValue> for Dynamic {
     fn into(self) -> ScopeCacheValue {
-        debug!("Converting Dynamic to ScopeCacheValue: {:?}", self);
         match self.type_name() {
             "string" => ScopeCacheValue::String(self.try_cast::<String>().unwrap_or_else(|| {
                 error!("Error casting Dynamic to String");

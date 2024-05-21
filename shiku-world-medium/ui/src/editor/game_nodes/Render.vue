@@ -24,7 +24,7 @@ import { Render } from "@/editor/blueprints/Render";
 import { match, P } from "ts-pattern";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 
-const props = defineProps<{ data: Render }>();
+const props = defineProps<{ data: Render; is_instance: boolean }>();
 const { data } = toRefs(props);
 const render_options: Array<KeysOfUnion<RenderKind>> = [
   "AnimatedSprite",

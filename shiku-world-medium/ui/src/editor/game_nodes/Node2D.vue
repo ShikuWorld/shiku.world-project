@@ -57,7 +57,7 @@
   <div v-if="node_2d_type !== 'Node2D'">
     <component
       :is="node_2d_component"
-      v-bind="{ data }"
+      v-bind="{ data, is_instance }"
       @entityUpdate="entity_updated"
       :key="game_node.id"
     ></component>
@@ -78,7 +78,7 @@ const props = defineProps<{
   game_node: GameNode<Node2D>;
   is_instance: boolean;
 }>();
-const { game_node } = toRefs(props);
+const { game_node, is_instance } = toRefs(props);
 const { get_module } = use_resources_store();
 const { selected_module_id } = storeToRefs(use_editor_store());
 const scripts = computed(() => {

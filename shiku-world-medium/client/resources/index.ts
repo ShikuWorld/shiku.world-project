@@ -247,15 +247,12 @@ export function create_display_object(
 ): Container {
   const container = new Container();
   match(node)
-    .with({ Instance: P.select() }, () => {
-      console.error("No instances can be displayed!");
-    })
     .with({ Node2D: P.select() }, (game_node) => {
       container.x = game_node.data.transform.position[0] * RENDER_SCALE;
       container.y = game_node.data.transform.position[1] * RENDER_SCALE;
       container.rotation = game_node.data.transform.rotation;
       match(game_node.data.kind)
-        .with({ Node2D: P.select() }, () => {
+        .with({ Node2D: P.select() }, { Instance: P.select() }, () => {
           //container.addChild(new Text(game_node.name, { fill: "white" }));
         })
         .with({ Render: P.select() }, (render) => {
@@ -290,7 +287,13 @@ export function create_display_object(
             })
             .with({ CapsuleX: P.select() }, ([_half_y, _radius]) => {})
             .with({ CapsuleY: P.select() }, ([_half_x, _radius]) => {})
-            .with({ Cuboid: P.select() }, ([_a, _b]) => {})
+            .with({ Cuboid: P.select() }, ([a, b]) => {
+              const graphics = new PixijsGraphics().rect(0, 0, a, b).stroke({
+                color: "#ff0000",
+                width: 1,
+              });
+              container.addChild(graphics);
+            })
             .exhaustive();
         })
         .exhaustive();

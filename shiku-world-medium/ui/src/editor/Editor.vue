@@ -208,18 +208,27 @@ const tilesets_of_current_module = computed(() => {
 const scenes_in_module = computed(() => {
   return selected_module.value.resources
     .filter((r) => r.kind === "Scene")
-    .map((r) => get_or_load_scene(scene_map.value, r.path))
-    .filter((r) => r) as Scene[];
+    .map((r) => get_or_load_scene(scene_map.value, r.path));
+});
+
+const all_scenes_loaded = computed(() => {
+  return scenes_in_module.value.every((s) => s !== undefined);
 });
 
 const on_selected_scene_context_menu = (e: MouseEvent) => {
   prevent_browser_default(e);
   if (scenes_in_module.value?.length > 0) {
+    if (!all_scenes_loaded.value) {
+      setTimeout(() => {
+        on_selected_scene_context_menu(e);
+      }, 100);
+      return;
+    }
     ContextMenu.showContextMenu({
       theme: "dark",
       x: e.x,
       y: e.y,
-      items: scenes_in_module.value.map((s) => ({
+      items: (scenes_in_module.value as Scene[]).map((s) => ({
         label: s.name,
         onClick() {
           set_selected_scene(scene_key(s));

@@ -4,4 +4,4 @@ import type { Node2DDud } from "./Node2DDud";
 import type { Render } from "./Render";
 import type { RigidBody } from "./RigidBody";
 
-export type Node2DKind = { Node2D: Node2DDud } | { RigidBody: RigidBody } | { Collider: Collider } | { Render: Render };
+export type Node2DKind = { Instance: string } | { Node2D: Node2DDud } | { RigidBody: RigidBody } | { Collider: Collider } | { Render: Render };

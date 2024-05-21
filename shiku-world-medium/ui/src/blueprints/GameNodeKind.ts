@@ -2,4 +2,4 @@
 import type { GameNode } from "./GameNode";
 import type { Node2D } from "./Node2D";
 
-export type GameNodeKind = { Instance: GameNode<string> } | { Node2D: GameNode<Node2D> };
+export type GameNodeKind = { Node2D: GameNode<Node2D> };

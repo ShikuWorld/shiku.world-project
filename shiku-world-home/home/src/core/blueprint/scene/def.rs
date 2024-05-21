@@ -1,8 +1,9 @@
-use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
-use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
+
+use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
+use crate::core::blueprint::ecs::def::Entity;
 
 pub type SceneId = String;
 pub type ScriptId = String;
@@ -30,14 +31,12 @@ pub struct Script {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum GameNodeKind {
-    Instance(GameNode<ResourcePath>),
     Node2D(GameNode<Node2D>),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum GameNodeKindClean {
-    Instance,
     Node2D,
 }
 
@@ -66,6 +65,7 @@ pub struct Node2DDud(pub usize);
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum Node2DKind {
+    Instance(ResourcePath),
     Node2D(Node2DDud),
     RigidBody(RigidBody),
     Collider(Collider),
@@ -75,6 +75,7 @@ pub enum Node2DKind {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum Node2DKindClean {
+    Instance,
     Node2D,
     RigidBody,
     Collider,

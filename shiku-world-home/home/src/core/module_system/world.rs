@@ -168,29 +168,34 @@ impl World {
     }
 
     fn create_initial_rigid_bodies(ecs: &mut ECS, physics: &mut RapierSimulation) {
-        for (entity, rigid_body_type) in &ecs.entities.rigid_body_type {
-            if let Some(transform) = &ecs.entities.transforms.get(entity) {
-                let rigid_body_handle =
-                    Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
-                ecs.entities
-                    .rigid_body_handle
-                    .insert(*entity, rigid_body_handle);
-                debug!("Successfully added rigid body 1");
-            }
+        for (original_entity, rigid_body_type) in ecs.entities.rigid_body_type.clone() {
+            Self::add_rigid_body_for_entity(&original_entity, &rigid_body_type, ecs, physics);
         }
     }
 
-    fn add_rigid_body_for_entity(entity: &Entity, ecs: &mut ECS, physics: &mut RapierSimulation) {
-        if let (Some(rigid_body_type), Some(transform)) = (
-            ecs.entities.rigid_body_type.get(entity),
-            ecs.entities.transforms.get(entity),
-        ) {
+    fn add_rigid_body_for_entity(
+        original_entity: &Entity,
+        rigid_body_type: &RigidBodyType,
+        ecs: &mut ECS,
+        physics: &mut RapierSimulation,
+    ) {
+        let mut possible_instance_entity = original_entity;
+        debug!("Trying parent entity: {:?}", original_entity);
+        if let Some(parent_entity) = ecs
+            .entities
+            .node_2d_entity_instance_parent
+            .get(original_entity)
+        {
+            debug!("Found parent entity: {:?}", parent_entity);
+            possible_instance_entity = parent_entity;
+        }
+        if let Some(transform) = ecs.entities.transforms.get(possible_instance_entity) {
+            debug!("Adding rigid body for entity: {:?}", original_entity);
             let rigid_body_handle =
                 Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
             ecs.entities
                 .rigid_body_handle
-                .insert(*entity, rigid_body_handle);
-            debug!("Successfully added rigid body 2");
+                .insert(*original_entity, rigid_body_handle);
         }
     }
 
@@ -325,13 +330,19 @@ impl World {
                     ecs.entities
                         .rigid_body_type
                         .insert(*entity, rigid_body_type.clone());
-                    Self::add_rigid_body_for_entity(entity, &mut ecs, &mut physics);
+                    Self::add_rigid_body_for_entity(
+                        entity,
+                        &rigid_body_type,
+                        &mut ecs,
+                        &mut physics,
+                    );
                     Self::attach_colliders_to_entity(entity, &mut ecs, &mut physics);
                 }
                 EntityUpdateKind::Gid(_)
                 | EntityUpdateKind::Name(_)
                 | EntityUpdateKind::UpdateScriptScope(_, _)
                 | EntityUpdateKind::SetScriptScope(_)
+                | EntityUpdateKind::InstancePath(_)
                 | EntityUpdateKind::ScriptPath(_) => {
                     ecs.apply_entity_update(entity_update, &self.script_engine);
                 }
@@ -345,7 +356,9 @@ impl World {
         let mut ecs = self.ecs.borrow_mut();
         let mut physics = self.physics.borrow_mut();
         let entity = ECS::add_child_to_entity(parent_entity, child, &mut ecs, &self.script_engine);
-        Self::add_rigid_body_for_entity(&entity, &mut ecs, &mut physics);
+        if let Some(rigid_body_type) = ecs.entities.rigid_body_type.get(&entity).cloned() {
+            Self::add_rigid_body_for_entity(&entity, &rigid_body_type, &mut ecs, &mut physics);
+        }
         Self::attach_colliders_to_entity(&entity, &mut ecs, &mut physics);
         Self::attach_collider_to_its_entity(&parent_entity, &entity, &mut ecs, &mut physics);
         entity

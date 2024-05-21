@@ -38,7 +38,7 @@ import { RigidBodyType } from "@/editor/blueprints/RigidBodyType";
 import { mdiAlphaXBox, mdiAlphaYBox } from "@mdi/js";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 
-const props = defineProps<{ data: RigidBody }>();
+const props = defineProps<{ data: RigidBody; is_instance: boolean }>();
 const { data } = toRefs(props);
 const body_options: Array<RigidBodyType> = [
   "Dynamic",
