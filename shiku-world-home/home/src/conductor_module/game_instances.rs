@@ -47,16 +47,17 @@ pub fn remove_game_instance_manager(
     module_map: &mut ModuleMap,
     resource_module: &mut ResourceModule,
     module_communication_map: &mut ModuleCommunicationMap,
-) -> Result<(), BlueprintError> {
-    if let Some(instance_manager) = module_map.remove(module_id) {
+) -> Result<Module, BlueprintError> {
+    return if let Some(instance_manager) = module_map.remove(module_id) {
         module_communication_map.remove(module_id);
         resource_module.unregister_resources_for_module(module_id);
-        Blueprint::delete_module(&instance_manager.module_blueprint.name)?;
+        let module_blueprint_name = instance_manager.module_blueprint.name.clone();
+        let module_blueprint = instance_manager.module_blueprint;
+        Blueprint::delete_module(&module_blueprint_name)?;
+        Ok(module_blueprint)
     } else {
-        return Err(BlueprintError::FileDoesNotExist(
+        Err(BlueprintError::FileDoesNotExist(
             "Instance Manager not there".into(),
-        ));
-    }
-
-    Ok(())
+        ))
+    };
 }

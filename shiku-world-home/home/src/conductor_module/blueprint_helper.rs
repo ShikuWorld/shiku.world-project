@@ -1,7 +1,10 @@
-use crate::core::blueprint::def::{BlueprintService, Conductor};
+use crate::core::blueprint::def::{BlueprintResource, BlueprintService, Conductor, ResourceKind};
+use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::module::EditorEvent;
+use crate::resource_module::def::LoadResource;
 use log::error;
 use rapier2d::prelude::Real;
+use std::path::PathBuf;
 
 pub fn save_and_send_conductor_update<F>(conductor: Conductor, send_editor_event: &mut F)
 where
@@ -13,6 +16,29 @@ where
         }
         Err(err) => {
             error!("Could not save conductor {:?}", err)
+        }
+    }
+}
+
+pub fn loading_resources_from_blueprint_resource(
+    blueprint_resource: &BlueprintResource,
+) -> Vec<LoadResource> {
+    match blueprint_resource.kind {
+        ResourceKind::Tileset => {
+            match Blueprint::load_tileset(PathBuf::from(blueprint_resource.path.clone())) {
+                Ok(tileset) => tileset
+                    .get_image_paths()
+                    .iter()
+                    .map(|path| LoadResource::image(path.clone()))
+                    .collect(),
+                Err(err) => {
+                    error!("Could not load tileset! {:?}", err);
+                    Vec::new()
+                }
+            }
+        }
+        ResourceKind::Scene | ResourceKind::Map | ResourceKind::Unknown | ResourceKind::Script => {
+            Vec::new()
         }
     }
 }

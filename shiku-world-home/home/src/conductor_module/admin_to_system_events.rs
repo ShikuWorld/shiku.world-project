@@ -6,7 +6,8 @@ use log::{debug, error};
 use uuid::Uuid;
 
 use crate::conductor_module::blueprint_helper::{
-    bring_polygon_in_clockwise_order, save_and_send_conductor_update,
+    bring_polygon_in_clockwise_order, loading_resources_from_blueprint_resource,
+    save_and_send_conductor_update,
 };
 use crate::conductor_module::def::{
     ConductorModule, ModuleCommunicationMap, ModuleMap, ResourceToModuleMap,
@@ -21,10 +22,11 @@ use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::CollisionShape;
 use crate::core::guest::{ActorId, Admin};
 use crate::core::module::{
-    AdminToSystemEvent, CommunicationEvent, EditorEvent, GuestToModuleEvent, SceneNodeUpdate,
-    TilesetUpdate,
+    AdminLeftSuccessState, AdminToSystemEvent, CommunicationEvent, EditorEvent, GuestToModuleEvent,
+    SceneNodeUpdate, TilesetUpdate,
 };
 use crate::core::module_system::def::DynamicGameModule;
+use crate::core::module_system::game_instance::GameInstance;
 use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
@@ -150,12 +152,18 @@ pub async fn handle_admin_to_system_event(
                     game_instance_id.clone(),
                     world_id.clone(),
                 ) {
-                    Ok(_) => {
-                        if let Err(err) = resource_module
-                            .disable_module_resource_updates(module_id.clone(), &admin.id)
-                        {
-                            error!("Could not unregister from resource updates! {:?}", err);
+                    Ok(success_state) => {
+                        match success_state {
+                            AdminLeftSuccessState::LeftWorld => {}
+                            AdminLeftSuccessState::LeftWorldAndInstance => {
+                                if let Err(err) = resource_module
+                                    .disable_module_resource_updates(module_id.clone(), &admin.id)
+                                {
+                                    error!("Could not unregister from resource updates! {:?}", err);
+                                }
+                            }
                         }
+
                         send_communication_event(CommunicationEvent::UnloadGame(
                             module_id,
                             game_instance_id,
@@ -494,6 +502,26 @@ pub async fn handle_admin_to_system_event(
                                 &resources,
                             );
                             module.update_scripts_from_resources(&resources);
+
+                            for resource in &resources {
+                                if !module
+                                    .module_blueprint
+                                    .resources
+                                    .iter()
+                                    .any(|r| r.path == resource.path)
+                                {
+                                    loading_resources_from_blueprint_resource(resource)
+                                        .into_iter()
+                                        .for_each(|resource| {
+                                            debug!("Registering new resource {:?}", resource);
+                                            resource_module.register_resource_for_module(
+                                                module_id.clone(),
+                                                resource,
+                                            )
+                                        });
+                                }
+                            }
+
                             module.module_blueprint.resources = resources;
                         }
                         Err(err) => error!("Could not generate gid map! {:?}", err),
@@ -629,14 +657,22 @@ pub async fn handle_admin_to_system_event(
             }
         }
         AdminToSystemEvent::DeleteModule(module_id) => {
-            debug!("Deleting module!");
             match remove_game_instance_manager(
                 &module_id,
                 module_map,
                 resource_module,
                 module_communication_map,
             ) {
-                Ok(()) => {
+                Ok(module) => {
+                    if let Ok(mut conductor) = BlueprintService::load_conductor_blueprint() {
+                        conductor
+                            .module_connection_map
+                            .retain(|exit_slot, (_, enter_slot)| {
+                                !module.exit_points.iter().any(|e| e.name == *exit_slot)
+                                    && !module.insert_points.iter().any(|e| e.name == *enter_slot)
+                            });
+                        save_and_send_conductor_update(conductor, &mut send_editor_event);
+                    }
                     send_editor_event(EditorEvent::DeletedModule(module_id));
                 }
                 Err(err) => {

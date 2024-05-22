@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+use crate::conductor_module::blueprint_helper::loading_resources_from_blueprint_resource;
 use log::{debug, error};
 use rapier2d::prelude::Real;
 use rhai::{Engine, ParseError, AST};
@@ -224,7 +225,6 @@ impl GameInstanceManager {
         instance_id: GameInstanceId,
         world_id: WorldId,
     ) -> Result<AdminLeftSuccessState, LeaveFailedState> {
-        let mut success_state = AdminLeftSuccessState::LeftWorld;
         let active_admin_instances = self.active_admins.entry(admin.id).or_default();
         if !active_admin_instances.contains(&instance_id) {
             return Err(LeaveFailedState::NotInModule);
@@ -232,12 +232,13 @@ impl GameInstanceManager {
         if let Some(instance) = self.game_instances.get_mut(&instance_id) {
             instance.dynamic_module.let_admin_leave(admin, world_id)?;
             if !instance.dynamic_module.admins.contains_key(&admin.id) {
-                success_state = AdminLeftSuccessState::LeftWorldAndInstance;
+                active_admin_instances.remove(&instance_id);
+                self.connected_actor_ids.remove(&admin.id);
+                return Ok(AdminLeftSuccessState::LeftWorldAndInstance);
             }
         }
-        active_admin_instances.remove(&instance_id);
-        self.connected_actor_ids.remove(&admin.id);
-        Ok(success_state)
+
+        Ok(AdminLeftSuccessState::LeftWorld)
     }
 
     pub fn try_enter(
@@ -314,34 +315,10 @@ impl GameInstanceManager {
             .collect()
     }
 
-    fn loading_resources_from_blueprint_resource(
-        blueprint_resource: &BlueprintResource,
-    ) -> Vec<LoadResource> {
-        match blueprint_resource.kind {
-            ResourceKind::Tileset => {
-                match Blueprint::load_tileset(PathBuf::from(blueprint_resource.path.clone())) {
-                    Ok(tileset) => tileset
-                        .get_image_paths()
-                        .iter()
-                        .map(|path| LoadResource::image(path.clone()))
-                        .collect(),
-                    Err(err) => {
-                        error!("Could not load tileset! {:?}", err);
-                        Vec::new()
-                    }
-                }
-            }
-            ResourceKind::Scene
-            | ResourceKind::Map
-            | ResourceKind::Unknown
-            | ResourceKind::Script => Vec::new(),
-        }
-    }
-
     pub fn register_resources(&self, resource_module: &mut ResourceModule) {
         resource_module.init_resources_for_module(self.module_blueprint.id.clone());
         for resource in &self.module_blueprint.resources {
-            Self::loading_resources_from_blueprint_resource(resource)
+            loading_resources_from_blueprint_resource(resource)
                 .into_iter()
                 .for_each(|resource| {
                     debug!("Registering {:?}", resource);
