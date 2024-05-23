@@ -88,6 +88,7 @@ impl ScopeCacheValue {
 pub struct GameNodeScript {
     pub path: ResourcePath,
     pub ast: AST,
+    pub entity: Entity,
     pub scope_cache: HashMap<String, ScopeCacheValue>,
     pub scope: Scope<'static>,
     pub(crate) game_node_script_functions: GameNodeScriptFunctions,

@@ -30,6 +30,14 @@
             (new_value) => scope_update(scope_key, new_value, scope_type)
           "
         ></v-text-field>
+        <v-text-field
+          v-if="scope_type === 'Integer'"
+          type="number"
+          :model-value="scope_value"
+          @update:model-value="
+            (new_value) => scope_update(scope_key, new_value, scope_type)
+          "
+        ></v-text-field>
       </div>
     </div>
   </div>
@@ -107,6 +115,12 @@ const scope_cache = computed<Array<[string, string, string | number]> | null>(
 function scope_update(key: string, value: string | number, type: string) {
   if (type === "Number") {
     value = Number(value);
+    if (Number.isNaN(value)) {
+      return;
+    }
+  }
+  if (type === "Integer") {
+    value = Math.round(Number(value));
     if (Number.isNaN(value)) {
       return;
     }

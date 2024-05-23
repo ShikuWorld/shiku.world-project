@@ -94,7 +94,7 @@ impl ECS {
                     .insert(entity, GameNodeKindClean::Node2D);
                 ecs.entities.game_node_id.insert(entity, node_2d.id.clone());
                 if let Some(resource_path) = &node_2d.script {
-                    match GameNodeScript::new(engine, resource_path.clone()) {
+                    match GameNodeScript::new(entity, engine, resource_path.clone()) {
                         Ok(mut game_node_script) => {
                             game_node_script.update_scope_from_script(engine);
                             ecs.entities
@@ -230,7 +230,7 @@ impl ECS {
                 self.entities.game_node_name.insert(entity, name);
             }
             EntityUpdateKind::ScriptPath(script_path_option) => match script_path_option {
-                Some(script_path) => match GameNodeScript::new(engine, script_path) {
+                Some(script_path) => match GameNodeScript::new(entity, engine, script_path) {
                     Ok(game_node_script) => {
                         self.entities
                             .game_node_script
@@ -275,9 +275,13 @@ impl ECS {
 }
 
 impl GameNodeScript {
-    pub fn new(engine: &Engine, path: ResourcePath) -> Result<Self, GameNodeScriptError> {
+    pub fn new(
+        entity: Entity,
+        engine: &Engine,
+        path: ResourcePath,
+    ) -> Result<Self, GameNodeScriptError> {
         Self::compile(engine, path.clone()).map(|ast| {
-            let mut game_node_script = Self::from_ast(path, ast);
+            let mut game_node_script = Self::from_ast(entity, path, ast);
             game_node_script.update_scope_from_script(engine);
             game_node_script
         })
@@ -292,10 +296,11 @@ impl GameNodeScript {
         self.scope.set_value(&scope_key, dynamic_value);
     }
 
-    pub fn from_ast(path: ResourcePath, ast: AST) -> Self {
+    pub fn from_ast(entity: Entity, path: ResourcePath, ast: AST) -> Self {
         let game_node_script_functions = Self::get_game_node_script_functions_from_ast(&ast);
         let scope = Scope::new();
         Self {
+            entity,
             path,
             ast,
             scope_cache: HashMap::new(),
@@ -405,6 +410,8 @@ impl GameNodeScript {
                     let dynamic_value: Dynamic = value.clone().into();
                     self.scope.set_value(key.clone(), dynamic_value);
                 }
+                self.scope
+                    .push_constant("ENTITY_ID", Dynamic::from(self.entity));
                 debug!("Scope update successful");
             }
             Err(e) => error!("Error updating scope: {:?}", e),

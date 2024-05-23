@@ -1,10 +1,10 @@
 use std::cell::{Ref, RefCell};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use log::debug;
 use rapier2d::prelude::*;
-use rhai::{Engine, FuncRegistration, Module as RhaiModule};
+use rhai::{Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
 use crate::core::blueprint::def::{GameMap, Gid, TerrainParams};
 use crate::core::blueprint::ecs::def::{Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS};
@@ -25,6 +25,7 @@ pub struct World {
     pub world_id: WorldId,
     pub physics: Rc<RefCell<RapierSimulation>>,
     pub actor_api: Rc<RefCell<ActorApi>>,
+    pub entity_set: HashSet<Entity>,
     pub terrain_manager: TerrainManager,
     pub ecs: Rc<RefCell<ECS>>,
     pub script_engine: Engine,
@@ -66,41 +67,100 @@ impl World {
 
         let mut script_engine = Engine::new();
         let physics_rc = Rc::from(RefCell::from(physics));
-        Self::setup_physics_scripting_api(&mut script_engine, &physics_rc);
-        Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
+        let ecs_rc = Rc::from(RefCell::from(ecs));
+        Self::setup_physics_scripting_api(&mut script_engine, &physics_rc, &ecs_rc);
         let actor_api = Rc::from(RefCell::from(ActorApi {
             actor_inputs: HashMap::new(),
         }));
         Self::setup_input_scripting_api(&mut script_engine, actor_api.clone());
+        Self::call_init_func_on_game_nodes(&script_engine, &mut ecs_rc.borrow_mut());
         Ok(World {
             world_id: game_map.world_id.clone(),
             physics: physics_rc,
             actor_api,
+            entity_set: HashSet::new(),
             terrain_manager,
-            ecs: Rc::from(RefCell::from(ecs)),
+            ecs: ecs_rc,
             script_engine,
         })
     }
 
     pub fn actor_joined_world(&mut self, actor_id: &ActorId) {
-        for game_node_script in self.ecs.borrow_mut().entities.game_node_script.values_mut() {
-            game_node_script.call_actor_joined(&self.script_engine, actor_id);
+        match self.ecs.try_borrow_mut() {
+            Ok(mut ecs) => {
+                for game_node_script in ecs.entities.game_node_script.values_mut() {
+                    game_node_script.call_actor_joined(&self.script_engine, actor_id);
+                }
+            }
+            Err(err) => {
+                debug!("Could not borrow ecs actor_joined_world: {:?}", err);
+            }
         }
     }
 
     pub fn actor_left_world(&mut self, actor_id: &ActorId) {
-        for game_node_script in self.ecs.borrow_mut().entities.game_node_script.values_mut() {
-            game_node_script.call_actor_left(&self.script_engine, actor_id);
+        match self.ecs.try_borrow_mut() {
+            Ok(mut ecs) => {
+                for game_node_script in ecs.entities.game_node_script.values_mut() {
+                    game_node_script.call_actor_left(&self.script_engine, actor_id);
+                }
+            }
+            Err(err) => {
+                debug!("Could not borrow ecs actor_left_world: {:?}", err);
+            }
         }
     }
 
-    fn setup_physics_scripting_api(engine: &mut Engine, physics: &Rc<RefCell<RapierSimulation>>) {
+    fn setup_physics_scripting_api(
+        engine: &mut Engine,
+        physics_rc: &Rc<RefCell<RapierSimulation>>,
+        ecs_rc: &Rc<RefCell<ECS>>,
+    ) {
         let mut module = RhaiModule::new();
-        let cloned_physics_rc = physics.clone();
+        let cloned_physics_rc = physics_rc.clone();
         FuncRegistration::new("add_fixed_rigid_body").set_into_module(
             &mut module,
             move |x: Real, y: Real| {
                 cloned_physics_rc.borrow_mut().add_fixed_rigid_body(x, y);
+            },
+        );
+        let cloned_ecs_rc = ecs_rc.clone();
+        FuncRegistration::new("get_rigid_body_handle").set_into_module(
+            &mut module,
+            move |entity: Entity| -> Dynamic {
+                match cloned_ecs_rc.try_borrow() {
+                    Ok(ecs) => {
+                        if let Some(rigid_body_entity) = ecs
+                            .entities
+                            .game_node_children
+                            .get(&entity)
+                            .and_then(|children| {
+                                children.iter().find(|child| {
+                                    ecs.entities.rigid_body_handle.contains_key(child)
+                                })
+                            })
+                        {
+                            return Dynamic::from(*rigid_body_entity);
+                        }
+                    }
+                    Err(err) => {
+                        debug!("Could not borrow ecs get_rigid_body_handle: {:?}", err);
+                    }
+                }
+
+                Dynamic::from(())
+            },
+        );
+        let cloned_physics_rc = physics_rc.clone();
+        let cloned_ecs_rc = ecs_rc.clone();
+        FuncRegistration::new("apply_force_to_rigid_body").set_into_module(
+            &mut module,
+            move |entity: Entity, force_x: Real, force_y: Real| {
+                let mut physics = cloned_physics_rc.borrow_mut();
+                let ecs = cloned_ecs_rc.borrow();
+                if let Some(rigid_body_handle) = ecs.entities.rigid_body_handle.get(&entity) {
+                    physics.s_apply_force(*rigid_body_handle, Vector::new(force_x, force_y));
+                }
             },
         );
         engine.register_static_module("shiku::physics", module.into());
@@ -138,7 +198,7 @@ impl World {
         );
     }
 
-    fn do_update(physics: &mut RapierSimulation, ecs: &mut ECS, script_engine: &Engine) {
+    fn do_update(physics: &mut RapierSimulation, ecs: &mut ECS, engine: &Engine) {
         physics.update();
         for (entity, rigid_body_handle) in ecs.entities.rigid_body_handle.iter() {
             if let Some(transform) = ecs.entities.transforms.get_mut(entity) {
@@ -151,8 +211,9 @@ impl World {
                 }
             }
         }
+
         for game_node_script in ecs.entities.game_node_script.values_mut() {
-            game_node_script.call_update(script_engine);
+            game_node_script.call_update(engine);
         }
     }
 
