@@ -1,3 +1,4 @@
+use diesel::row::NamedRow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -86,26 +87,27 @@ impl DynamicGameModule {
             }
         }
         for world in self.world_map.values_mut() {
-            let mut physics = world.physics.borrow_mut();
-            world.terrain_manager.update_collision_shape(
-                gid,
-                &self.gid_to_collision_shape_map,
-                &mut physics,
-            );
-            Self::send_event_to_admins(
-                &world.world_id,
-                &mut self.module_communication,
-                &self.world_to_admin,
-                ModuleInstanceEvent {
-                    module_id: self.module_id.clone(),
-                    instance_id: self.instance_id.clone(),
-                    world_id: Some(world.world_id.clone()),
-                    event_type: GameSystemToGuestEvent::ShowTerrainCollisionLines(
-                        world.terrain_manager.get_lines_as_vert_vec(),
-                    ),
-                },
-                "Could not send terrain collision line update for collision shapes to admins!",
-            );
+            if let Some(mut physics) = world.physics.try_borrow_mut() {
+                world.terrain_manager.update_collision_shape(
+                    gid,
+                    &self.gid_to_collision_shape_map,
+                    &mut physics,
+                );
+                Self::send_event_to_admins(
+                    &world.world_id,
+                    &mut self.module_communication,
+                    &self.world_to_admin,
+                    ModuleInstanceEvent {
+                        module_id: self.module_id.clone(),
+                        instance_id: self.instance_id.clone(),
+                        world_id: Some(world.world_id.clone()),
+                        event_type: GameSystemToGuestEvent::ShowTerrainCollisionLines(
+                            world.terrain_manager.get_lines_as_vert_vec(),
+                        ),
+                    },
+                    "Could not send terrain collision line update for collision shapes to admins!",
+                );
+            }
         }
     }
 
@@ -123,10 +125,7 @@ impl DynamicGameModule {
 
     pub fn remove_script(&mut self, resource_path: &ResourcePath) {
         for world in self.world_map.values_mut() {
-            world
-                .ecs
-                .borrow_mut()
-                .remove_script_on_all_entities(resource_path);
+            world.ecs.remove_script_on_all_entities(resource_path);
         }
     }
 
@@ -159,20 +158,15 @@ impl DynamicGameModule {
         actor_id: &ActorId,
         input: GuestInput,
     ) {
-        if let Some(world_id) = guest_to_world_map.get(actor_id) {
+        let world_ids_of_admin_or_guest = guest_to_world_map
+            .get(actor_id)
+            .into_iter()
+            .chain(admin_to_world_map.hashset(actor_id).into_iter().flatten());
+
+        for world_id in world_ids_of_admin_or_guest {
             if let Some(world) = world_map.get_mut(world_id) {
-                world
-                    .actor_api
-                    .borrow_mut()
-                    .set_actor_input(*actor_id, input.clone());
-            }
-        } else if let Some(world_ids) = admin_to_world_map.hashset(actor_id) {
-            for world_id in world_ids {
-                if let Some(world) = world_map.get_mut(world_id) {
-                    world
-                        .actor_api
-                        .borrow_mut()
-                        .set_actor_input(*actor_id, input.clone());
+                if let Some(mut actor_api) = world.actor_api.try_borrow_mut() {
+                    actor_api.set_actor_input(*actor_id, input.clone());
                 }
             }
         }
@@ -213,9 +207,8 @@ impl DynamicGameModule {
 
     fn send_scope_updates_to_admins(&mut self) {
         for world in self.world_map.values_mut() {
-            let entities = &mut world.ecs.borrow_mut().entities;
             if self.world_to_admin.len(&world.world_id) > 0 {
-                for (entity, game_node_script) in entities.game_node_script.iter_mut() {
+                for (entity, game_node_script) in world.ecs.entity_scripts.iter_mut() {
                     if let Some(scope_update) = game_node_script.update_scope_cache() {
                         debug!("Sending scope update to admins: {:?}", scope_update);
                         let scope_update_event = ModuleInstanceEvent {
@@ -241,26 +234,30 @@ impl DynamicGameModule {
     }
 
     pub fn get_position_updates(world: &mut World) -> Vec<(Entity, Real, Real, Real)> {
-        let entities = &mut world.ecs.borrow_mut().entities;
-        let transforms = &mut entities.transforms;
-        entities
-            .dirty
-            .drain()
-            .filter_map(|(entity, dirty)| {
-                if dirty {
-                    transforms.get(&entity).map(|transform| {
-                        (
-                            entity,
-                            transform.position.0,
-                            transform.position.1,
-                            transform.rotation,
-                        )
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect()
+        if let Some(mut shared) = world.ecs.shared.try_borrow_mut() {
+            let entities = &mut shared.entities;
+            let transforms = &mut entities.transforms;
+            entities
+                .dirty
+                .drain()
+                .filter_map(|(entity, dirty)| {
+                    if dirty {
+                        transforms.get(&entity).map(|transform| {
+                            (
+                                entity,
+                                transform.position.0,
+                                transform.position.1,
+                                transform.rotation,
+                            )
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 
     pub fn actor_disconnected(&mut self, actor_id: &ActorId) {
@@ -320,72 +317,74 @@ impl DynamicGameModule {
         game_node: GameNodeKind,
     ) {
         if let Some(world) = self.world_map.get_mut(world_id) {
-            let entity = world.add_entity(parent_entity, &game_node);
-            if let Some(game_node) =
-                GameNodeKind::get_game_node_kind_from_ecs(&entity, &world.ecs.borrow_mut())
-            {
-                let add_entity_event = ModuleInstanceEvent {
-                    world_id: None,
-                    module_id: self.module_id.clone(),
-                    instance_id: self.instance_id.clone(),
-                    event_type: GameSystemToGuestEvent::AddEntity(parent_entity, game_node),
-                };
+            if let Some(entity) = world.add_entity(parent_entity, &game_node) {
+                if let Some(game_node) =
+                    GameNodeKind::get_game_node_kind_from_ecs(&entity, &world.ecs)
+                {
+                    let add_entity_event = ModuleInstanceEvent {
+                        world_id: None,
+                        module_id: self.module_id.clone(),
+                        instance_id: self.instance_id.clone(),
+                        event_type: GameSystemToGuestEvent::AddEntity(parent_entity, game_node),
+                    };
 
-                Self::send_event_to_actors(
-                    world_id,
-                    &mut self.module_communication,
-                    &self.world_to_guest,
-                    &self.world_to_admin,
-                    add_entity_event,
-                    "Could not send entity add event",
-                );
-            } else {
-                error!("Could not create game node from entity!!");
+                    Self::send_event_to_actors(
+                        world_id,
+                        &mut self.module_communication,
+                        &self.world_to_guest,
+                        &self.world_to_admin,
+                        add_entity_event,
+                        "Could not send entity add event",
+                    );
+                } else {
+                    error!("Could not create game node from entity!!");
+                }
             }
         }
     }
 
     pub fn update_world_map(&mut self, world_id: &WorldId, layer_kind: &LayerKind, chunk: &Chunk) {
         if let Some(world) = self.world_map.get_mut(world_id) {
-            let mut physics = world.physics.borrow_mut();
-            world.terrain_manager.write_chunk(
-                chunk,
-                layer_kind,
-                &self.gid_to_collision_shape_map,
-                &mut physics,
-            );
+            if let Some(mut physics) = world.physics.try_borrow_mut() {
+                world.terrain_manager.write_chunk(
+                    chunk,
+                    layer_kind,
+                    &self.gid_to_collision_shape_map,
+                    &mut physics,
+                );
 
-            let terrain_update = ModuleInstanceEvent {
-                world_id: None,
-                module_id: self.module_id.clone(),
-                instance_id: self.instance_id.clone(),
-                event_type: GameSystemToGuestEvent::ShowTerrain(vec![(
-                    layer_kind.clone(),
-                    vec![chunk.clone()],
-                )]),
-            };
-            Self::send_event_to_actors(
-                world_id,
-                &mut self.module_communication,
-                &self.world_to_guest,
-                &self.world_to_admin,
-                terrain_update,
-                "Could not send terrain update",
-            );
-            Self::send_event_to_admins(
-                world_id,
-                &mut self.module_communication,
-                &self.world_to_admin,
-                ModuleInstanceEvent {
+                let terrain_update = ModuleInstanceEvent {
+                    world_id: None,
                     module_id: self.module_id.clone(),
                     instance_id: self.instance_id.clone(),
-                    world_id: Some(world_id.clone()),
-                    event_type: GameSystemToGuestEvent::ShowTerrainCollisionLines(
-                        world.terrain_manager.get_lines_as_vert_vec(),
-                    ),
-                },
-                "Could not send terrain collision line update to admins!",
-            );
+                    event_type: GameSystemToGuestEvent::ShowTerrain(vec![(
+                        layer_kind.clone(),
+                        vec![chunk.clone()],
+                    )]),
+                };
+                Self::send_event_to_actors(
+                    world_id,
+                    &mut self.module_communication,
+                    &self.world_to_guest,
+                    &self.world_to_admin,
+                    terrain_update,
+                    "Could not send terrain update",
+                );
+                Self::send_event_to_admins(
+                    world_id,
+                    &mut self.module_communication,
+                    &self.world_to_admin,
+                    ModuleInstanceEvent {
+                        module_id: self.module_id.clone(),
+                        instance_id: self.instance_id.clone(),
+                        world_id: Some(world_id.clone()),
+                        event_type: GameSystemToGuestEvent::ShowTerrainCollisionLines(
+                            world.terrain_manager.get_lines_as_vert_vec(),
+                        ),
+                    },
+                    "Could not send terrain collision line update to admins!",
+                );
+            }
         } else {
             error!("Could not update chunk in world {:?}", world_id);
         }
@@ -569,7 +568,7 @@ impl DynamicGameModule {
 
                 Self::send_current_script_scopes(sender, &instance_id, actor_id, &module_id, world);
             }
-            if let Some(scene) = build_scene_from_ecs(&world.ecs.borrow()) {
+            if let Some(scene) = build_scene_from_ecs(&world.ecs) {
                 send_and_log_error(
                     sender,
                     GuestEvent {
@@ -602,7 +601,7 @@ impl DynamicGameModule {
         module_id: &ModuleId,
         world: &World,
     ) {
-        for (entity, game_node_script) in world.ecs.borrow().entities.game_node_script.iter() {
+        for (entity, game_node_script) in world.ecs.entity_scripts.iter() {
             let initial_scope = game_node_script.scope_cache.clone();
             let scope_update_event = ModuleInstanceEvent {
                 world_id: Some(world.world_id.clone()),

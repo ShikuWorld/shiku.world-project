@@ -339,13 +339,7 @@ impl GameInstanceManager {
                 for game_instance in self.game_instances.values_mut() {
                     for world in game_instance.dynamic_module.world_map.values_mut() {
                         let mut script_reset = false;
-                        for game_node_script in world
-                            .ecs
-                            .borrow_mut()
-                            .entities
-                            .game_node_script
-                            .values_mut()
-                        {
+                        for game_node_script in world.ecs.entity_scripts.values_mut() {
                             debug!("Checking script path: {:?}", script_resource_path);
                             if game_node_script.path == *script_resource_path {
                                 debug!("Resetting script from new ast!");

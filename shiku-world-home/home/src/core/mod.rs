@@ -1,3 +1,4 @@
+use std::cell::{RefCell, RefMut};
 use std::collections::hash_map::Values;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -5,6 +6,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::path::Path;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use flume::Sender;
 use log::{debug, error};
@@ -157,6 +159,31 @@ fn cantor_pair(x: i32, y: i32) -> CantorPair {
     let xx = to_natural(x);
     let yy = to_natural(y);
     (xx + yy) * (xx + yy + 1) / 2 + yy
+}
+
+#[derive(Debug)]
+pub struct ApiShare<T>(Rc<RefCell<T>>);
+
+impl<T> ApiShare<T> {
+    fn try_borrow_mut(&self) -> Option<RefMut<T>> {
+        match self.0.try_borrow_mut() {
+            Ok(borrow) => Some(borrow),
+            Err(err) => {
+                error!("Could not borrow: {:?}", err);
+                None
+            }
+        }
+    }
+
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<T> ApiShare<T> {
+    pub fn new(inner: T) -> Self {
+        Self(Rc::new(RefCell::new(inner)))
+    }
 }
 
 #[cfg(test)]

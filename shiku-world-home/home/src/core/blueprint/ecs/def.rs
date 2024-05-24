@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::prelude::{ColliderHandle, Real};
@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use smartstring::{LazyCompact, SmartString};
 use ts_rs::TS;
 
+use crate::core::ApiShare;
 use remove_entity::RemoveEntity;
 
 use crate::core::blueprint::def::{BlueprintError, Gid, LayerKind, ResourcePath};
@@ -25,7 +26,16 @@ pub struct ECS {
     pub scene_name: String,
     pub scene_resource_path: ResourcePath,
     pub scene_id: SceneId,
+    pub entities: HashSet<Entity>,
+    pub entity_scripts: HashMap<Entity, GameNodeScript>,
+    pub shared: ApiShare<ECSShared>,
+}
+
+#[derive(Debug)]
+pub struct ECSShared {
     pub entities: EntityMaps,
+    pub added_entities: Vec<(Entity, Option<ResourcePath>)>,
+    pub removed_entities: Vec<Entity>,
     pub entity_counter: NodeInstanceId,
 }
 
@@ -112,7 +122,6 @@ pub enum GameNodeScriptError {
 
 #[derive(Debug, RemoveEntity)]
 pub struct EntityMaps {
-    pub game_node_script: HashMap<Entity, GameNodeScript>,
     pub game_node_id: HashMap<Entity, GameNodeId>,
     pub game_node_name: HashMap<Entity, String>,
     pub game_node_children: HashMap<Entity, Vec<Entity>>,

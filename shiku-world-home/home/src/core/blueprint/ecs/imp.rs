@@ -1,33 +1,40 @@
+use std::cell::{BorrowMutError, RefCell, RefMut};
 use std::cmp::PartialEq;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::rc::Rc;
 
+use crate::core::ApiShare;
 use log::{debug, error};
-use rapier2d::math;
+use rapier2d::dynamics::RigidBodyHandle;
+use rapier2d::geometry::ColliderHandle;
 use rhai::{Dynamic, Engine, ImmutableString, Scope, AST};
-use smartstring::{LazyCompact, SmartString, SmartStringMode};
+use smartstring::{SmartString, SmartStringMode};
 
 use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::def::{
-    DynamicMap, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, GameNodeScript,
+    DynamicMap, ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, GameNodeScript,
     GameNodeScriptError, GameNodeScriptFunctions, ScopeCacheValue, ECS,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
-    GameNodeKind, GameNodeKindClean, Node2DKind, Node2DKindClean, RenderKind, RenderKindClean,
-    Scene, SceneId, Script,
+    Collider, ColliderKind, ColliderShape, GameNodeKind, GameNodeKindClean, Node2DKind,
+    Node2DKindClean, RenderKind, RenderKindClean, RigidBodyType, Scene, SceneId, Script, Transform,
 };
 use crate::core::guest::ActorId;
+use crate::core::rapier_simulation::def::RapierSimulation;
 
 impl From<&Scene> for ECS {
     fn from(scene: &Scene) -> Self {
         let mut new_ecs = ECS::new();
-        new_ecs.scene_root = Entity(new_ecs.entity_counter);
-        new_ecs.scene_name.clone_from(&scene.name);
-        new_ecs.scene_resource_path.clone_from(&scene.resource_path);
-        new_ecs.scene_id.clone_from(&scene.id);
+        if let Some(mut shared) = new_ecs.shared.try_borrow_mut() {
+            new_ecs.scene_root = Entity(shared.entity_counter);
+            new_ecs.scene_name.clone_from(&scene.name);
+            new_ecs.scene_resource_path.clone_from(&scene.resource_path);
+            new_ecs.scene_id.clone_from(&scene.id);
 
-        let engine = Engine::new();
-        Self::add_entity(&scene.root_node, &mut new_ecs, &engine);
+            let engine = Engine::new();
+            Self::add_entity_from_game_node(&scene.root_node, &mut shared, &engine);
+        }
         new_ecs
     }
 }
@@ -39,53 +46,224 @@ impl ECS {
             scene_name: String::default(),
             scene_resource_path: ResourcePath::default(),
             scene_id: SceneId::default(),
-            entity_counter: 0,
-            entities: EntityMaps {
-                game_node_script: HashMap::new(),
-                game_node_id: HashMap::new(),
-                game_node_name: HashMap::new(),
-                game_node_children: HashMap::new(),
-                game_node_kind: HashMap::new(),
-                node_2d_kind: HashMap::new(),
-                node_2d_instance_path: HashMap::new(),
-                node_2d_entity_instance_parent: HashMap::new(),
-                render_kind: HashMap::new(),
-                render_offset: HashMap::new(),
-                render_layer: HashMap::new(),
-                render_gid: HashMap::new(),
-                transforms: HashMap::new(),
-                rigid_body_velocity: HashMap::new(),
-                rigid_body_type: HashMap::new(),
-                rigid_body_handle: HashMap::new(),
-                collider: HashMap::new(),
-                collider_handle: HashMap::new(),
-                dirty: HashMap::new(),
-            },
+            entity_scripts: HashMap::new(),
+            entities: HashSet::new(),
+            shared: ApiShare::new(ECSShared {
+                entities: EntityMaps {
+                    game_node_id: HashMap::new(),
+                    game_node_name: HashMap::new(),
+                    game_node_children: HashMap::new(),
+                    game_node_kind: HashMap::new(),
+                    node_2d_kind: HashMap::new(),
+                    node_2d_instance_path: HashMap::new(),
+                    node_2d_entity_instance_parent: HashMap::new(),
+                    render_kind: HashMap::new(),
+                    render_offset: HashMap::new(),
+                    render_layer: HashMap::new(),
+                    render_gid: HashMap::new(),
+                    transforms: HashMap::new(),
+                    rigid_body_velocity: HashMap::new(),
+                    rigid_body_type: HashMap::new(),
+                    rigid_body_handle: HashMap::new(),
+                    collider: HashMap::new(),
+                    collider_handle: HashMap::new(),
+                    dirty: HashMap::new(),
+                },
+                added_entities: Vec::new(),
+                removed_entities: Vec::new(),
+                entity_counter: 0,
+            }),
+        }
+    }
+
+    pub fn create_initial_rigid_bodies(&mut self, physics: &mut RapierSimulation) {
+        if let Some(mut shared) = self.shared.try_borrow_mut() {
+            for (original_entity, rigid_body_type) in shared.entities.rigid_body_type.clone() {
+                Self::add_rigid_body_for_entity(
+                    &original_entity,
+                    &rigid_body_type,
+                    &mut shared,
+                    physics,
+                );
+            }
+        }
+    }
+
+    pub fn add_rigid_body_for_entity(
+        original_entity: &Entity,
+        rigid_body_type: &RigidBodyType,
+        shared: &mut ECSShared,
+        physics: &mut RapierSimulation,
+    ) {
+        let mut possible_instance_entity = original_entity;
+        debug!("Trying parent entity: {:?}", original_entity);
+        if let Some(parent_entity) = shared
+            .entities
+            .node_2d_entity_instance_parent
+            .get(original_entity)
+        {
+            debug!("Found parent entity: {:?}", parent_entity);
+            possible_instance_entity = parent_entity;
+        }
+        if let Some(transform) = shared.entities.transforms.get(possible_instance_entity) {
+            debug!("Adding rigid body for entity: {:?}", original_entity);
+            let rigid_body_handle =
+                Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
+            shared
+                .entities
+                .rigid_body_handle
+                .insert(*original_entity, rigid_body_handle);
+        }
+    }
+
+    fn create_rigid_body_from_type(
+        rigid_body_type: &RigidBodyType,
+        transform: &Transform,
+        physics: &mut RapierSimulation,
+    ) -> RigidBodyHandle {
+        match rigid_body_type {
+            RigidBodyType::Dynamic => {
+                physics.add_dynamic_rigid_body(transform.position.0, transform.position.1)
+            }
+            RigidBodyType::Fixed => {
+                physics.add_fixed_rigid_body(transform.position.0, transform.position.1)
+            }
+            RigidBodyType::KinematicPositionBased => physics
+                .add_kinematic_position_based_rigid_body(
+                    transform.position.0,
+                    transform.position.1,
+                ),
+            RigidBodyType::KinematicVelocityBased => physics
+                .add_kinematic_velocity_based_rigid_body(
+                    transform.position.0,
+                    transform.position.1,
+                ),
+        }
+    }
+
+    pub fn attach_colliders_to_entity(
+        entity: &Entity,
+        ecs: &mut ECSShared,
+        physics: &mut RapierSimulation,
+    ) {
+        if let (Some(children), Some(rigid_body_handle)) = (
+            ecs.entities.game_node_children.get(entity),
+            ecs.entities.rigid_body_handle.get(entity),
+        ) {
+            for child_entity in children {
+                if let Some(child_collider) = ecs.entities.collider.get(child_entity) {
+                    let child_collider_handle =
+                        Self::create_collider(child_collider, rigid_body_handle, physics);
+                    ecs.entities
+                        .collider_handle
+                        .insert(*child_entity, child_collider_handle);
+                    debug!("Successfully attached collider 1");
+                }
+            }
+        }
+    }
+
+    pub fn attach_collider_to_its_entity(
+        parent_entity: &Entity,
+        child_entity: &Entity,
+        shared: &mut ECSShared,
+        physics: &mut RapierSimulation,
+    ) {
+        if let (Some(child_collider), Some(parent_rigid_body_handle)) = (
+            shared.entities.collider.get(child_entity),
+            shared.entities.rigid_body_handle.get(parent_entity),
+        ) {
+            let child_collider_handle =
+                Self::create_collider(child_collider, parent_rigid_body_handle, physics);
+            shared
+                .entities
+                .collider_handle
+                .insert(*child_entity, child_collider_handle);
+            debug!("Successfully attached collider 2");
+        }
+    }
+
+    pub fn attach_initial_colliders_to_rigid_bodies(&mut self, physics: &mut RapierSimulation) {
+        if let Some(mut shared) = self.shared.try_borrow_mut() {
+            Self::_attach_initial_colliders_to_rigid_bodies(&mut shared, physics);
+        }
+    }
+
+    fn _attach_initial_colliders_to_rigid_bodies(
+        shared: &mut ECSShared,
+        physics: &mut RapierSimulation,
+    ) {
+        for (parent_entity, children) in &shared.entities.game_node_children {
+            if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(parent_entity) {
+                for child_entity in children {
+                    if let Some(child_collider) = shared.entities.collider.get(child_entity) {
+                        let child_collider_handle =
+                            Self::create_collider(child_collider, rigid_body_handle, physics);
+                        shared
+                            .entities
+                            .collider_handle
+                            .insert(*child_entity, child_collider_handle);
+                        debug!("Successfully attached collider 2");
+                    }
+                }
+            }
+        }
+    }
+
+    fn create_collider(
+        collider: &Collider,
+        rigid_body_handle: &RigidBodyHandle,
+        physics: &mut RapierSimulation,
+    ) -> ColliderHandle {
+        let is_sensor = match collider.kind {
+            ColliderKind::Solid => false,
+            ColliderKind::Sensor => true,
+        };
+        match collider.shape {
+            ColliderShape::Ball(radius) => {
+                physics.create_ball_collider(radius, *rigid_body_handle, is_sensor)
+            }
+            ColliderShape::CapsuleX(half_y, radius) => {
+                physics.create_capsule_x_collider(half_y, radius, *rigid_body_handle, is_sensor)
+            }
+            ColliderShape::CapsuleY(half_x, radius) => {
+                physics.create_capsule_y_collider(half_x, radius, *rigid_body_handle, is_sensor)
+            }
+            ColliderShape::Cuboid(half_x, half_y) => {
+                physics.create_cuboid_collider(half_x, half_y, *rigid_body_handle, is_sensor)
+            }
         }
     }
 
     pub fn add_child_to_entity(
         parent_entity: Entity,
         child: &GameNodeKind,
-        ecs: &mut ECS,
+        shared: &mut ECSShared,
         engine: &Engine,
     ) -> Entity {
-        let child_entity = Entity(ecs.entity_counter);
-        ecs.entities
+        let child_entity = Entity(shared.entity_counter);
+        shared
+            .entities
             .game_node_children
             .entry(parent_entity)
             .or_default()
             .push(child_entity);
-        if let Some(Node2DKindClean::Instance) = ecs.entities.node_2d_kind.get(&parent_entity) {
-            ecs.entities
+        if let Some(Node2DKindClean::Instance) = shared.entities.node_2d_kind.get(&parent_entity) {
+            shared
+                .entities
                 .node_2d_entity_instance_parent
                 .insert(child_entity, parent_entity);
         }
-        Self::add_entity(child, ecs, engine)
+        Self::add_entity_from_game_node(child, shared, engine)
     }
 
-    fn add_entity(node_kind: &GameNodeKind, ecs: &mut ECS, engine: &Engine) -> Entity {
+    fn add_entity_from_game_node(
+        node_kind: &GameNodeKind,
+        ecs: &mut ECSShared,
+        engine: &Engine,
+    ) -> Entity {
         let entity = Entity(ecs.entity_counter);
+        let mut script_path = None;
         ecs.entity_counter += 1;
         match node_kind {
             GameNodeKind::Node2D(node_2d) => {
@@ -93,19 +271,7 @@ impl ECS {
                     .game_node_kind
                     .insert(entity, GameNodeKindClean::Node2D);
                 ecs.entities.game_node_id.insert(entity, node_2d.id.clone());
-                if let Some(resource_path) = &node_2d.script {
-                    match GameNodeScript::new(entity, engine, resource_path.clone()) {
-                        Ok(mut game_node_script) => {
-                            game_node_script.update_scope_from_script(engine);
-                            ecs.entities
-                                .game_node_script
-                                .insert(entity, game_node_script);
-                        }
-                        Err(e) => {
-                            error!("Error creating script in apply entity update: {:?}", e);
-                        }
-                    }
-                }
+                script_path = node_2d.script.clone();
                 ecs.entities.game_node_children.insert(entity, Vec::new());
                 ecs.entities
                     .game_node_name
@@ -171,6 +337,7 @@ impl ECS {
                 }
             }
         }
+        ecs.added_entities.push((entity.clone(), script_path));
         if let Some(instance_root_node) = Self::get_node_2d_instance_root_node(node_kind) {
             debug!("# Adding instance root node");
             Self::add_child_to_entity(entity, &instance_root_node, ecs, engine);
@@ -201,11 +368,81 @@ impl ECS {
     }
 
     pub fn remove_script_on_all_entities(&mut self, resource_path: &ResourcePath) {
-        self.entities
-            .game_node_script
+        self.entity_scripts
             .retain(|_, script| script.path != *resource_path);
     }
 
+    pub fn apply_entity_update(&mut self, entity_update: EntityUpdate, engine: &Engine) {
+        if let Some(mut shared) = self.shared.try_borrow_mut() {
+            Self::apply_entity_update_s(
+                &mut self.entity_scripts,
+                &mut shared,
+                entity_update,
+                engine,
+            );
+        }
+    }
+
+    pub fn apply_entity_update_s(
+        entity_scripts: &mut HashMap<Entity, GameNodeScript>,
+        shared: &mut ECSShared,
+        entity_update: EntityUpdate,
+        engine: &Engine,
+    ) {
+        let entities = &mut shared.entities;
+        let entity = entity_update.id;
+        match entity_update.kind {
+            EntityUpdateKind::InstancePath(_) => {
+                error!("Instances should not exist on themselves inside ECS for now!");
+            }
+            EntityUpdateKind::Transform(transform) => {
+                entities.transforms.insert(entity, transform);
+            }
+            EntityUpdateKind::Name(name) => {
+                entities.game_node_name.insert(entity, name);
+            }
+            EntityUpdateKind::ScriptPath(script_path_option) => match script_path_option {
+                Some(script_path) => match GameNodeScript::new(entity, engine, script_path) {
+                    Ok(game_node_script) => {
+                        entity_scripts.insert(entity, game_node_script);
+                    }
+                    Err(e) => {
+                        error!("Error creating script in apply entity update: {:?}", e);
+                    }
+                },
+                None => {
+                    entity_scripts.remove(&entity);
+                }
+            },
+            EntityUpdateKind::RigidBodyType(rigid_body_type) => {
+                entities.rigid_body_type.insert(entity, rigid_body_type);
+            }
+            EntityUpdateKind::PositionRotation((x, y, r)) => {
+                if let Some(transform) = entities.transforms.get_mut(&entity) {
+                    transform.position = (x, y);
+                    transform.rotation = r;
+                }
+            }
+            EntityUpdateKind::Gid(gid) => {
+                entities.render_gid.insert(entity, gid);
+            }
+            EntityUpdateKind::UpdateScriptScope(scope_key, scope_value) => {
+                if let Some(game_node_script) = entity_scripts.get_mut(&entity) {
+                    game_node_script.update_scope(scope_key, scope_value);
+                }
+            }
+            EntityUpdateKind::SetScriptScope(scope_cache) => {
+                if let Some(game_node_script) = entity_scripts.get_mut(&entity) {
+                    for (key, value) in scope_cache {
+                        game_node_script.update_scope(key, value);
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl ECSShared {
     pub fn get_instance_root_entity(&self, entity: &Entity) -> Option<&Entity> {
         if let Some(Node2DKindClean::Instance) = self.entities.node_2d_kind.get(entity) {
             return self
@@ -215,62 +452,6 @@ impl ECS {
                 .and_then(|children| children.first());
         }
         None
-    }
-
-    pub fn apply_entity_update(&mut self, entity_update: EntityUpdate, engine: &Engine) {
-        let entity = entity_update.id;
-        match entity_update.kind {
-            EntityUpdateKind::InstancePath(_) => {
-                error!("Instances should not exist on themselves inside ECS for now!");
-            }
-            EntityUpdateKind::Transform(transform) => {
-                self.entities.transforms.insert(entity, transform);
-            }
-            EntityUpdateKind::Name(name) => {
-                self.entities.game_node_name.insert(entity, name);
-            }
-            EntityUpdateKind::ScriptPath(script_path_option) => match script_path_option {
-                Some(script_path) => match GameNodeScript::new(entity, engine, script_path) {
-                    Ok(game_node_script) => {
-                        self.entities
-                            .game_node_script
-                            .insert(entity, game_node_script);
-                    }
-                    Err(e) => {
-                        error!("Error creating script in apply entity update: {:?}", e);
-                    }
-                },
-                None => {
-                    self.entities.game_node_script.remove(&entity);
-                }
-            },
-            EntityUpdateKind::RigidBodyType(rigid_body_type) => {
-                self.entities
-                    .rigid_body_type
-                    .insert(entity, rigid_body_type);
-            }
-            EntityUpdateKind::PositionRotation((x, y, r)) => {
-                if let Some(transform) = self.entities.transforms.get_mut(&entity) {
-                    transform.position = (x, y);
-                    transform.rotation = r;
-                }
-            }
-            EntityUpdateKind::Gid(gid) => {
-                self.entities.render_gid.insert(entity, gid);
-            }
-            EntityUpdateKind::UpdateScriptScope(scope_key, scope_value) => {
-                if let Some(game_node_script) = self.entities.game_node_script.get_mut(&entity) {
-                    game_node_script.update_scope(scope_key, scope_value);
-                }
-            }
-            EntityUpdateKind::SetScriptScope(scope_cache) => {
-                if let Some(game_node_script) = self.entities.game_node_script.get_mut(&entity) {
-                    for (key, value) in scope_cache {
-                        game_node_script.update_scope(key, value);
-                    }
-                }
-            }
-        }
     }
 }
 
