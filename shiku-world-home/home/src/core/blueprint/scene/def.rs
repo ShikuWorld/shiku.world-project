@@ -114,6 +114,17 @@ pub struct Transform {
     pub rotation: Real,
 }
 
+impl Default for Transform {
+    fn default() -> Self {
+        Self {
+            position: (0.0, 0.0),
+            scale: (1.0, 1.0),
+            velocity: (0.0, 0.0),
+            rotation: 0.0,
+        }
+    }
+}
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct RigidBody {

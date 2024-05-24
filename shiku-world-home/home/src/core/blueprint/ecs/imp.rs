@@ -79,9 +79,18 @@ impl ECS {
     pub fn create_initial_rigid_bodies(&mut self, physics: &mut RapierSimulation) {
         if let Some(mut shared) = self.shared.try_borrow_mut() {
             for (original_entity, rigid_body_type) in shared.entities.rigid_body_type.clone() {
+                let possible_instance_entity =
+                    { Self::get_instance_entity_if_exists(&original_entity, &shared) };
+                let transform = shared
+                    .entities
+                    .transforms
+                    .get(&possible_instance_entity)
+                    .cloned()
+                    .unwrap_or_else(|| Transform::default());
                 Self::add_rigid_body_for_entity(
                     &original_entity,
                     &rigid_body_type,
+                    &transform,
                     &mut shared,
                     physics,
                 );
@@ -92,28 +101,28 @@ impl ECS {
     pub fn add_rigid_body_for_entity(
         original_entity: &Entity,
         rigid_body_type: &RigidBodyType,
+        transform: &Transform,
         shared: &mut ECSShared,
         physics: &mut RapierSimulation,
     ) {
-        let mut possible_instance_entity = original_entity;
-        debug!("Trying parent entity: {:?}", original_entity);
+        let rigid_body_handle =
+            Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
+        shared
+            .entities
+            .rigid_body_handle
+            .insert(*original_entity, rigid_body_handle);
+    }
+
+    fn get_instance_entity_if_exists(original_entity: &Entity, shared: &ECSShared) -> Entity {
         if let Some(parent_entity) = shared
             .entities
             .node_2d_entity_instance_parent
             .get(original_entity)
         {
-            debug!("Found parent entity: {:?}", parent_entity);
-            possible_instance_entity = parent_entity;
+            return *parent_entity;
         }
-        if let Some(transform) = shared.entities.transforms.get(possible_instance_entity) {
-            debug!("Adding rigid body for entity: {:?}", original_entity);
-            let rigid_body_handle =
-                Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
-            shared
-                .entities
-                .rigid_body_handle
-                .insert(*original_entity, rigid_body_handle);
-        }
+
+        *original_entity
     }
 
     fn create_rigid_body_from_type(
@@ -372,14 +381,21 @@ impl ECS {
             .retain(|_, script| script.path != *resource_path);
     }
 
-    pub fn apply_entity_update(&mut self, entity_update: EntityUpdate, engine: &Engine) {
+    pub fn update(&mut self) {
         if let Some(mut shared) = self.shared.try_borrow_mut() {
-            Self::apply_entity_update_s(
-                &mut self.entity_scripts,
-                &mut shared,
-                entity_update,
-                engine,
-            );
+            for (new_entity, resource_path) in shared
+                .added_entities
+                .drain(..)
+                .filter_map(|(e, p)| p.map(|r| (e, r)))
+            {
+                self.entity_scripts.insert(
+                    new_entity,
+                    GameNodeScript::new(new_entity, &Engine::new(), resource_path).unwrap(),
+                );
+            }
+            for (new_entity) in shared.removed_entities.drain(..) {
+                self.entity_scripts.remove(&new_entity);
+            }
         }
     }
 

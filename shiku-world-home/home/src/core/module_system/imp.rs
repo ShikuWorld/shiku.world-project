@@ -210,7 +210,6 @@ impl DynamicGameModule {
             if self.world_to_admin.len(&world.world_id) > 0 {
                 for (entity, game_node_script) in world.ecs.entity_scripts.iter_mut() {
                     if let Some(scope_update) = game_node_script.update_scope_cache() {
-                        debug!("Sending scope update to admins: {:?}", scope_update);
                         let scope_update_event = ModuleInstanceEvent {
                             world_id: None,
                             module_id: self.module_id.clone(),

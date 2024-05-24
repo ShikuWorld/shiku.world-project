@@ -8,7 +8,7 @@ use crate::core::blueprint::ecs::def::{
     ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind};
+use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
 use crate::core::guest::ActorId;
 use crate::core::module::GuestInput;
 use crate::core::module_system::error::CreateWorldError;
@@ -109,16 +109,7 @@ impl World {
         let ecs_shared = ecs.shared.clone();
         let get_rigid_body_handle = move |entity: Entity| -> Dynamic {
             if let Some(shared) = ecs_shared.try_borrow_mut() {
-                if let Some(rigid_body_entity) = shared
-                    .entities
-                    .game_node_children
-                    .get(&entity)
-                    .and_then(|children| {
-                        children
-                            .iter()
-                            .find(|child| shared.entities.rigid_body_handle.contains_key(child))
-                    })
-                {
+                if let Some(rigid_body_entity) = shared.entities.rigid_body_handle.get(&entity) {
                     return Dynamic::from(*rigid_body_entity);
                 }
             }
@@ -129,17 +120,37 @@ impl World {
 
         let physics_clone = physics_share.clone();
         let ecs_shared = ecs.shared.clone();
-        let apply_force_to_rigid_body = move |entity: Entity, force_x: Real, force_y: Real| {
+        let add_force_to_rigid_body = move |entity: Entity, force_x: f64, force_y: f64| {
             if let (Some(mut physics), Some(shared)) =
                 (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
             {
                 if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity) {
-                    physics.s_apply_force(*rigid_body_handle, Vector::new(force_x, force_y));
+                    physics.s_apply_force(
+                        *rigid_body_handle,
+                        Vector::new(force_x as Real, force_y as Real),
+                    );
                 }
             }
         };
-        FuncRegistration::new("apply_force_to_rigid_body")
-            .set_into_module(&mut module, apply_force_to_rigid_body);
+        FuncRegistration::new("add_force_to_rigid_body")
+            .set_into_module(&mut module, add_force_to_rigid_body);
+
+        let physics_clone = physics_share.clone();
+        let ecs_shared = ecs.shared.clone();
+        let apply_impulse_to_rigid_body = move |entity: Entity, force_x: f64, force_y: f64| {
+            if let (Some(mut physics), Some(shared)) =
+                (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
+            {
+                if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity) {
+                    physics.apply_impulse(
+                        *rigid_body_handle,
+                        Vector::new(force_x as Real, force_y as Real),
+                    );
+                }
+            }
+        };
+        FuncRegistration::new("apply_impulse_to_rigid_body")
+            .set_into_module(&mut module, apply_impulse_to_rigid_body);
 
         engine.register_static_module("shiku::physics", module.into());
     }
@@ -177,10 +188,10 @@ impl World {
                 Self::update_positions(&mut physics, &mut shared);
             }
         }
-
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call_update(&self.script_engine);
         }
+        self.ecs.update();
     }
 
     fn update_positions(physics: &mut RapierSimulation, shared: &mut ECSShared) {
@@ -240,9 +251,16 @@ impl World {
                             .entities
                             .rigid_body_type
                             .insert(*entity, rigid_body_type.clone());
+                        let transform = shared
+                            .entities
+                            .transforms
+                            .get(entity)
+                            .cloned()
+                            .unwrap_or_default();
                         ECS::add_rigid_body_for_entity(
                             entity,
-                            &rigid_body_type,
+                            rigid_body_type,
+                            &transform,
                             &mut shared,
                             &mut physics,
                         );
@@ -281,9 +299,11 @@ impl World {
             let entity =
                 ECS::add_child_to_entity(parent_entity, child, &mut shared, &self.script_engine);
             if let Some(rigid_body_type) = shared.entities.rigid_body_type.get(&entity).cloned() {
+                let transform = Transform::default();
                 ECS::add_rigid_body_for_entity(
                     &entity,
                     &rigid_body_type,
+                    &transform,
                     &mut shared,
                     &mut physics,
                 );

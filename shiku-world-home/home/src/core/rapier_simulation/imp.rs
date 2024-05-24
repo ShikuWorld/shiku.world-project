@@ -112,7 +112,7 @@ impl RapierSimulation {
         }
     }
 
-    pub fn apply_force(
+    pub fn add_force(
         rigid_body_set: &mut RigidBodySet,
         body_handle: RigidBodyHandle,
         force: Vector<Real>,
@@ -345,6 +345,7 @@ impl RapierSimulation {
     pub fn add_dynamic_rigid_body(&mut self, pos_x: Real, pos_y: Real) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::dynamic()
             .translation(Vector::new(pos_x, pos_y))
+            .linear_damping(0.5)
             .build();
 
         self.bodies.insert(rigid_body)
