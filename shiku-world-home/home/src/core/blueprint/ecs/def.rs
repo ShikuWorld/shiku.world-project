@@ -125,6 +125,7 @@ pub struct EntityMaps {
     pub game_node_id: HashMap<Entity, GameNodeId>,
     pub game_node_name: HashMap<Entity, String>,
     pub game_node_children: HashMap<Entity, Vec<Entity>>,
+    pub game_node_parent: HashMap<Entity, Entity>,
     pub game_node_kind: HashMap<Entity, GameNodeKindClean>,
     pub node_2d_kind: HashMap<Entity, Node2DKindClean>,
     pub node_2d_instance_path: HashMap<Entity, ResourcePath>,
@@ -159,6 +160,7 @@ pub enum EntityUpdateKind {
     UpdateScriptScope(String, ScopeCacheValue),
     SetScriptScope(HashMap<String, ScopeCacheValue>),
     RigidBodyType(RigidBodyType),
+    Collider(Collider),
     PositionRotation((Real, Real, Real)),
     Gid(Gid),
 }

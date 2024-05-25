@@ -361,6 +361,20 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             "There should ve no InstancePath updates from the backend at this point",
           );
         })
+        .with({ Collider: P.select() }, (collider) => {
+          if (!game_node.data.transform) {
+            console.error(
+              "Tried to update rigid body without a transform, wtf?",
+            );
+            return;
+          }
+          const node_2d = game_node.data as Node2D;
+          if (!("Collider" in node_2d.kind)) {
+            console.error("Could not upate collider");
+            return;
+          }
+          node_2d.kind.Collider = collider;
+        })
         .with(
           { UpdateScriptScope: P.select() },
           ([_scope_key, _scope_value]) => {

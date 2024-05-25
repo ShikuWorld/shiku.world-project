@@ -162,6 +162,13 @@ impl GameNodeKind {
                     n.data.transform.rotation = r;
                 }
             }
+            EntityUpdateKind::Collider(collider) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    if let Node2DKind::Collider(c) = &mut n.data.kind {
+                        *c = collider;
+                    }
+                }
+            }
             EntityUpdateKind::Gid(gid) => {
                 if let GameNodeKind::Node2D(n) = self {
                     if let Node2DKind::Render(r) = &mut n.data.kind {

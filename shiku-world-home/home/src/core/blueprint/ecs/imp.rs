@@ -7,6 +7,7 @@ use crate::core::ApiShare;
 use log::{debug, error};
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::geometry::ColliderHandle;
+use rapier2d::math::Vector;
 use rhai::{Dynamic, Engine, ImmutableString, Scope, AST};
 use smartstring::{SmartString, SmartStringMode};
 
@@ -57,6 +58,7 @@ impl ECS {
                     node_2d_kind: HashMap::new(),
                     node_2d_instance_path: HashMap::new(),
                     node_2d_entity_instance_parent: HashMap::new(),
+                    game_node_parent: HashMap::new(),
                     render_kind: HashMap::new(),
                     render_offset: HashMap::new(),
                     render_layer: HashMap::new(),
@@ -257,6 +259,10 @@ impl ECS {
             .entry(parent_entity)
             .or_default()
             .push(child_entity);
+        shared
+            .entities
+            .game_node_parent
+            .insert(child_entity, parent_entity);
         if let Some(Node2DKindClean::Instance) = shared.entities.node_2d_kind.get(&parent_entity) {
             shared
                 .entities
@@ -402,20 +408,68 @@ impl ECS {
     pub fn apply_entity_update_s(
         entity_scripts: &mut HashMap<Entity, GameNodeScript>,
         shared: &mut ECSShared,
+        physics: &mut RapierSimulation,
         entity_update: EntityUpdate,
         engine: &Engine,
     ) {
-        let entities = &mut shared.entities;
         let entity = entity_update.id;
+
         match entity_update.kind {
             EntityUpdateKind::InstancePath(_) => {
                 error!("Instances should not exist on themselves inside ECS for now!");
             }
+            EntityUpdateKind::Collider(collider) => {
+                shared.entities.collider.insert(entity, collider.clone());
+                if let Some(collider_handle) = shared.entities.collider_handle.get(&entity).cloned()
+                {
+                    if let Some(parent) =
+                        shared
+                            .entities
+                            .game_node_parent
+                            .get(&entity)
+                            .and_then(|parent| {
+                                if shared.entities.rigid_body_handle.contains_key(parent) {
+                                    Some(*parent)
+                                } else {
+                                    None
+                                }
+                            })
+                    {
+                        physics.remove_collider(collider_handle);
+                        shared.entities.collider_handle.remove(&entity);
+                        ECS::attach_collider_to_its_entity(&parent, &entity, shared, physics);
+                    }
+                }
+            }
             EntityUpdateKind::Transform(transform) => {
-                entities.transforms.insert(entity, transform);
+                if let Some(rigid_body_handle) =
+                    shared.entities.rigid_body_handle.get(&entity_update.id)
+                {
+                    physics.set_translation_and_rotation_for_rigid_body(
+                        Vector::new(transform.position.0, transform.position.1),
+                        transform.rotation,
+                        *rigid_body_handle,
+                    );
+                } else {
+                    shared.entities.transforms.insert(entity, transform);
+                }
+            }
+            EntityUpdateKind::PositionRotation((x, y, r)) => {
+                if let Some(rigid_body_handle) =
+                    shared.entities.rigid_body_handle.get(&entity_update.id)
+                {
+                    physics.set_translation_and_rotation_for_rigid_body(
+                        Vector::new(x, y),
+                        r,
+                        *rigid_body_handle,
+                    );
+                } else if let Some(transform) = shared.entities.transforms.get_mut(&entity) {
+                    transform.position = (x, y);
+                    transform.rotation = r;
+                }
             }
             EntityUpdateKind::Name(name) => {
-                entities.game_node_name.insert(entity, name);
+                shared.entities.game_node_name.insert(entity, name);
             }
             EntityUpdateKind::ScriptPath(script_path_option) => match script_path_option {
                 Some(script_path) => match GameNodeScript::new(entity, engine, script_path) {
@@ -431,16 +485,33 @@ impl ECS {
                 }
             },
             EntityUpdateKind::RigidBodyType(rigid_body_type) => {
-                entities.rigid_body_type.insert(entity, rigid_body_type);
-            }
-            EntityUpdateKind::PositionRotation((x, y, r)) => {
-                if let Some(transform) = entities.transforms.get_mut(&entity) {
-                    transform.position = (x, y);
-                    transform.rotation = r;
+                shared
+                    .entities
+                    .rigid_body_type
+                    .insert(entity, rigid_body_type.clone());
+                if let Some(rigid_body_handle) =
+                    shared.entities.rigid_body_handle.get(&entity_update.id)
+                {
+                    physics.remove_rigid_body(*rigid_body_handle);
+                    shared.entities.rigid_body_handle.remove(&entity);
+                    let transform = shared
+                        .entities
+                        .transforms
+                        .get(&entity)
+                        .cloned()
+                        .unwrap_or_default();
+                    ECS::add_rigid_body_for_entity(
+                        &entity,
+                        &rigid_body_type,
+                        &transform,
+                        shared,
+                        physics,
+                    );
+                    ECS::attach_colliders_to_entity(&entity, shared, physics);
                 }
             }
             EntityUpdateKind::Gid(gid) => {
-                entities.render_gid.insert(entity, gid);
+                shared.entities.render_gid.insert(entity, gid);
             }
             EntityUpdateKind::UpdateScriptScope(scope_key, scope_value) => {
                 if let Some(game_node_script) = entity_scripts.get_mut(&entity) {

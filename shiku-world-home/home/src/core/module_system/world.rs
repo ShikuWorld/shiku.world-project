@@ -4,9 +4,7 @@ use rapier2d::prelude::*;
 use rhai::{Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
 use crate::core::blueprint::def::{GameMap, Gid, TerrainParams};
-use crate::core::blueprint::ecs::def::{
-    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS,
-};
+use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpdate, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
 use crate::core::guest::ActorId;
@@ -224,70 +222,13 @@ impl World {
             self.ecs.shared.try_borrow_mut(),
             self.physics.try_borrow_mut(),
         ) {
-            if let Some(rigid_body_handle) =
-                shared.entities.rigid_body_handle.get(&entity_update.id)
-            {
-                let entity = &entity_update.id;
-                match &entity_update.kind {
-                    EntityUpdateKind::Transform(transform) => {
-                        physics.set_translation_and_rotation_for_rigid_body(
-                            Vector::new(transform.position.0, transform.position.1),
-                            transform.rotation,
-                            *rigid_body_handle,
-                        );
-                    }
-                    EntityUpdateKind::PositionRotation((x, y, r)) => {
-                        physics.set_translation_and_rotation_for_rigid_body(
-                            Vector::new(*x, *y),
-                            *r,
-                            *rigid_body_handle,
-                        );
-                    }
-                    EntityUpdateKind::RigidBodyType(rigid_body_type) => {
-                        physics.remove_rigid_body(*rigid_body_handle);
-                        shared.entities.rigid_body_handle.remove(entity);
-
-                        shared
-                            .entities
-                            .rigid_body_type
-                            .insert(*entity, rigid_body_type.clone());
-                        let transform = shared
-                            .entities
-                            .transforms
-                            .get(entity)
-                            .cloned()
-                            .unwrap_or_default();
-                        ECS::add_rigid_body_for_entity(
-                            entity,
-                            rigid_body_type,
-                            &transform,
-                            &mut shared,
-                            &mut physics,
-                        );
-                        ECS::attach_colliders_to_entity(entity, &mut shared, &mut physics);
-                    }
-                    EntityUpdateKind::Gid(_)
-                    | EntityUpdateKind::Name(_)
-                    | EntityUpdateKind::UpdateScriptScope(_, _)
-                    | EntityUpdateKind::SetScriptScope(_)
-                    | EntityUpdateKind::InstancePath(_)
-                    | EntityUpdateKind::ScriptPath(_) => {
-                        ECS::apply_entity_update_s(
-                            &mut self.ecs.entity_scripts,
-                            &mut shared,
-                            entity_update,
-                            &self.script_engine,
-                        );
-                    }
-                }
-            } else {
-                ECS::apply_entity_update_s(
-                    &mut self.ecs.entity_scripts,
-                    &mut shared,
-                    entity_update,
-                    &self.script_engine,
-                );
-            }
+            ECS::apply_entity_update_s(
+                &mut self.ecs.entity_scripts,
+                &mut shared,
+                &mut physics,
+                entity_update,
+                &self.script_engine,
+            );
         }
     }
 

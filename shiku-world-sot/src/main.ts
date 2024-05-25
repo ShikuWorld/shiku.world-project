@@ -24,14 +24,13 @@ if (SpeechRecognition) {
 
   // This event is triggered when the speech recognition service returns a result
   recognition.onresult = function (event) {
-    // Get the current result
-    const current = event.resultIndex;
+    let result = '';
 
-    // Get the transcript of the current result
-    const transcript = event.results[current][0].transcript;
-    console.log(event.results);
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      result += event.results[i][0].transcript + ' ';
+    }
     if (app_container) {
-      app_container.innerHTML = transcript;
+      app_container.innerHTML = result;
     }
   };
 } else {
