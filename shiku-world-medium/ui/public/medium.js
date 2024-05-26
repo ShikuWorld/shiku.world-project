@@ -40896,10 +40896,11 @@ ${e3}`);
 
   // client/game-instance.ts
   var collision_graphic_colors = [
-    "#FF0000",
     "#FFD400",
     "#3CB44B",
+    "#ff8d00",
     "#46F0F0",
+    "#ffffff",
     "#F032E6"
   ];
   var GameInstance = class {

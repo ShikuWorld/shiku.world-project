@@ -17,10 +17,11 @@ import { Container, Graphics } from "pixi.js";
 import { RENDER_SCALE } from "@/shared/index";
 
 const collision_graphic_colors = [
-  "#FF0000",
   "#FFD400",
   "#3CB44B",
+  "#ff8d00",
   "#46F0F0",
+  "#ffffff",
   "#F032E6",
 ];
 export type GameInstanceMap = {

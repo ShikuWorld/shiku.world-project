@@ -18,7 +18,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["lib-dom"]
+    "types": ["jest","lib-dom"]
   },
   "include": ["src"]
 }
