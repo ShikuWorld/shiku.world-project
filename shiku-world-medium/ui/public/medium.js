@@ -40299,24 +40299,54 @@ ${e3}`);
       }).with({ RigidBody: _.select() }, (rigid_body) => {
         console.log("rb", rigid_body);
       }).with({ Collider: _.select() }, (collider) => {
-        N2(collider.shape).with({ Ball: _.select() }, (radius) => {
-          const graphics = new Graphics().circle(0, 0, radius * RENDER_SCALE).stroke({
-            color: "#ff0000",
-            width: 1
-          });
-          container.addChild(graphics);
-        }).with({ CapsuleX: _.select() }, ([_half_y, _radius]) => {
-        }).with({ CapsuleY: _.select() }, ([_half_x, _radius]) => {
-        }).with({ Cuboid: _.select() }, ([a3, b3]) => {
-          const graphics = new Graphics().rect(0, 0, a3, b3).stroke({
-            color: "#ff0000",
-            width: 1
-          });
-          container.addChild(graphics);
-        }).exhaustive();
+        const [graphics, pivot_x, pivot_y] = create_collider_graphic(collider);
+        container.addChild(graphics);
+        container.pivot.x = pivot_x * RENDER_SCALE;
+        container.pivot.y = pivot_y * RENDER_SCALE;
       }).exhaustive();
     }).exhaustive();
     return container;
+  }
+  function create_collider_graphic(collider) {
+    return N2(collider.shape).with({ Ball: _.select() }, (radius) => {
+      const graphics = new Graphics().circle(0, 0, radius * RENDER_SCALE).stroke({
+        color: "#ff0000",
+        width: 1
+      });
+      return [graphics, 0, 0];
+    }).with(
+      { CapsuleX: _.select() },
+      ([_half_y, _radius]) => {
+        const graphics = new Graphics().circle(0, 0, RENDER_SCALE).stroke({
+          color: "#ff0000",
+          width: 1
+        });
+        return [graphics, 1, 1];
+      }
+    ).with(
+      { CapsuleY: _.select() },
+      ([_half_x, _radius]) => {
+        const graphics = new Graphics().circle(0, 0, RENDER_SCALE).stroke({
+          color: "#ff0000",
+          width: 1
+        });
+        return [graphics, 1, 1];
+      }
+    ).with(
+      { Cuboid: _.select() },
+      ([a3, b3]) => {
+        const graphics = new Graphics().rect(
+          -a3 * RENDER_SCALE,
+          -b3 * RENDER_SCALE,
+          a3 * 2 * RENDER_SCALE,
+          b3 * 2 * RENDER_SCALE
+        ).stroke({
+          color: "#ff0000",
+          width: 1
+        });
+        return [graphics, 0, 0];
+      }
+    ).exhaustive();
   }
 
   // client/api/index.ts
@@ -40325,6 +40355,7 @@ ${e3}`);
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
       create_display_object,
+      create_collider_graphic,
       set_blueprint_renderer: (blueprint_render_data) => {
         set_blueprint_render(render_system, instances, blueprint_render_data);
       },
@@ -40917,8 +40948,7 @@ ${e3}`);
           this.id,
           this.world_id,
           scene,
-          resource_manager,
-          create_display_object
+          resource_manager
         );
         const root_container = window.medium_gui.game_instances.get_root_container(
           this.id,

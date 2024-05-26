@@ -3,7 +3,7 @@ import { Entity } from "@/editor/blueprints/Entity";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { Scene } from "@/editor/blueprints/Scene";
 import { Container } from "pixi.js";
-import { create_display_object, ResourceManager } from "@/client/resources";
+import { ResourceManager } from "@/client/resources";
 import {
   get_generic_game_node,
   use_resources_store,
@@ -73,7 +73,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       const render_graph_data = this.render_graph_from_scene(
         scene,
         resource_module,
-        window.medium.create_display_object,
       );
       state.blueprint_render = {
         scene_resource_path,
@@ -151,7 +150,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       world_id: string,
       instance_scene: Scene,
       resource_manager: ResourceManager,
-      create_display_object_cb: typeof create_display_object,
     ) {
       const game_instance_data = this.get_game_instance_data(
         instance_id,
@@ -164,13 +162,11 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       game_instance_data.render_graph_data = this.render_graph_from_scene(
         instance_scene,
         resource_manager,
-        create_display_object_cb,
       );
     },
     render_graph_from_scene(
       scene: Scene,
       resource_manager: ResourceManager,
-      create_display_object_cb: typeof create_display_object,
     ): RenderGraphData {
       const game_node_root = get_generic_game_node(scene.root_node);
       const render_graph_data: RenderGraphData = {
@@ -178,7 +174,10 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           node_id: render_key(game_node_root),
           children: [],
           container: markRaw(
-            create_display_object_cb(scene.root_node, resource_manager),
+            window.medium.create_display_object(
+              scene.root_node,
+              resource_manager,
+            ),
           ),
           parent: null,
         },
@@ -196,7 +195,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         render_graph_data.render_root,
         scene.root_node,
         resource_manager,
-        create_display_object_cb,
       );
       return render_graph_data;
     },
@@ -235,7 +233,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         parent_id,
         node_to_insert,
         resource_manager,
-        window.medium.create_display_object,
       );
     },
     apply_entity_update_for_instance(
@@ -373,7 +370,15 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             console.error("Could not upate collider");
             return;
           }
+          console.log("updating collider", collider);
           node_2d.kind.Collider = collider;
+
+          const [graphics, pivot_x, pivot_y] =
+            window.medium.create_collider_graphic(collider);
+          render_node.container.removeChildAt(0);
+          render_node.container.addChildAt(graphics, 0);
+          render_node.container.x = pivot_x;
+          render_node.container.y = pivot_y;
         })
         .with(
           { UpdateScriptScope: P.select() },
@@ -391,7 +396,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       parent_node_id: string | number,
       node_to_insert: GameNodeKind,
       resource_manager: ResourceManager,
-      create_display_object_cb: typeof create_display_object,
     ) {
       const parent_node_render_node =
         render_graph_data.entity_node_to_render_node_map[parent_node_id];
@@ -407,7 +411,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         parent_node_render_node,
         node_to_insert,
         resource_manager,
-        create_display_object_cb,
       );
       get_generic_game_node(parent_node_game_node).children.push(
         node_to_insert,
@@ -418,7 +421,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         parent_node_render_node,
         node_to_insert,
         resource_manager,
-        create_display_object_cb,
       );
     },
     remove_child_from_render_graph(
@@ -465,11 +467,10 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       parent: Node,
       game_node_to_add: GameNodeKind,
       resource_manager: ResourceManager,
-      create_display_object_cb: typeof create_display_object,
     ) {
       const generic_game_node = get_generic_game_node(game_node_to_add);
       const new_node_container = markRaw(
-        create_display_object_cb(game_node_to_add, resource_manager),
+        window.medium.create_display_object(game_node_to_add, resource_manager),
       );
       const parent_container = parent.container;
       const new_node: Node = {
@@ -493,7 +494,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       parent: Node,
       game_node: GameNodeKind,
       resource_manager: ResourceManager,
-      create_display_object_cb: typeof create_display_object,
     ) {
       const generic_game_node = get_generic_game_node(game_node);
       let game_node_children = generic_game_node.children;
@@ -514,7 +514,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           parent,
           game_node_child,
           resource_manager,
-          create_display_object_cb,
         );
         this.generate_render_graph(
           entity_node_to_render_node_map,
@@ -522,7 +521,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           new_node,
           game_node_child,
           resource_manager,
-          create_display_object_cb,
         );
       }
     },

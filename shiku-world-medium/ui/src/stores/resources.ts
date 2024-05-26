@@ -223,7 +223,6 @@ export const use_resources_store = defineStore("resources", () => {
                 parent_node_id,
                 game_node,
                 resource_manager,
-                window.medium.create_display_object,
               );
             }
           },

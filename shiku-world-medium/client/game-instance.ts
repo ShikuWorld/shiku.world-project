@@ -8,13 +8,14 @@ import { MediumDataStorage } from "@/client/communication/api/bindings/MediumDat
 import { get_plugin } from "@/client/plugins";
 import { MousePluginType } from "../plugins/mouse-input";
 import { MenuSystem } from "@/client/menu";
-import { create_display_object, ResourceManager } from "@/client/resources";
+import { ResourceManager } from "@/client/resources";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { set_container_to_viewport_coordinate } from "@/client/camera";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { update_grid } from "@/client/renderer/grid";
 import { Container, Graphics } from "pixi.js";
 import { RENDER_SCALE } from "@/shared/index";
+
 const collision_graphic_colors = [
   "#FF0000",
   "#FFD400",
@@ -87,7 +88,6 @@ export class GameInstance {
           this.world_id,
           scene,
           resource_manager,
-          create_display_object,
         );
         const root_container =
           window.medium_gui.game_instances.get_root_container(

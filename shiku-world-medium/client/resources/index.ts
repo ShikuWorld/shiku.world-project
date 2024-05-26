@@ -20,6 +20,7 @@ import { LoadResource } from "@/client/communication/api/bindings/LoadResource";
 import { GidMap } from "@/editor/blueprints/GidMap";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { RENDER_SCALE } from "@/shared/index";
+import { Collider } from "@/editor/blueprints/Collider";
 
 export interface Graphics {
   textures: Texture[];
@@ -251,6 +252,7 @@ export function create_display_object(
       container.x = game_node.data.transform.position[0] * RENDER_SCALE;
       container.y = game_node.data.transform.position[1] * RENDER_SCALE;
       container.rotation = game_node.data.transform.rotation;
+
       match(game_node.data.kind)
         .with({ Node2D: P.select() }, { Instance: P.select() }, () => {
           //container.addChild(new Text(game_node.name, { fill: "white" }));
@@ -275,31 +277,73 @@ export function create_display_object(
           console.log("rb", rigid_body);
         })
         .with({ Collider: P.select() }, (collider) => {
-          match(collider.shape)
-            .with({ Ball: P.select() }, (radius) => {
-              const graphics = new PixijsGraphics()
-                .circle(0, 0, radius * RENDER_SCALE)
-                .stroke({
-                  color: "#ff0000",
-                  width: 1,
-                });
-              container.addChild(graphics);
-            })
-            .with({ CapsuleX: P.select() }, ([_half_y, _radius]) => {})
-            .with({ CapsuleY: P.select() }, ([_half_x, _radius]) => {})
-            .with({ Cuboid: P.select() }, ([a, b]) => {
-              const graphics = new PixijsGraphics().rect(0, 0, a, b).stroke({
-                color: "#ff0000",
-                width: 1,
-              });
-              container.addChild(graphics);
-            })
-            .exhaustive();
+          const [graphics, pivot_x, pivot_y] =
+            create_collider_graphic(collider);
+          container.addChild(graphics);
+          container.pivot.x = pivot_x * RENDER_SCALE;
+          container.pivot.y = pivot_y * RENDER_SCALE;
         })
         .exhaustive();
     })
     .exhaustive();
   return container;
+}
+
+export function create_collider_graphic(
+  collider: Collider,
+): [PixijsGraphics, number, number] {
+  return match(collider.shape)
+    .with({ Ball: P.select() }, (radius): [PixijsGraphics, number, number] => {
+      const graphics = new PixijsGraphics()
+        .circle(0, 0, radius * RENDER_SCALE)
+        .stroke({
+          color: "#ff0000",
+          width: 1,
+        });
+      return [graphics, 0, 0];
+    })
+    .with(
+      { CapsuleX: P.select() },
+      ([_half_y, _radius]): [PixijsGraphics, number, number] => {
+        const graphics = new PixijsGraphics()
+          .circle(0, 0, RENDER_SCALE)
+          .stroke({
+            color: "#ff0000",
+            width: 1,
+          });
+        return [graphics, 1, 1];
+      },
+    )
+    .with(
+      { CapsuleY: P.select() },
+      ([_half_x, _radius]): [PixijsGraphics, number, number] => {
+        const graphics = new PixijsGraphics()
+          .circle(0, 0, RENDER_SCALE)
+          .stroke({
+            color: "#ff0000",
+            width: 1,
+          });
+        return [graphics, 1, 1];
+      },
+    )
+    .with(
+      { Cuboid: P.select() },
+      ([a, b]): [PixijsGraphics, number, number] => {
+        const graphics = new PixijsGraphics()
+          .rect(
+            -a * RENDER_SCALE,
+            -b * RENDER_SCALE,
+            a * 2 * RENDER_SCALE,
+            b * 2 * RENDER_SCALE,
+          )
+          .stroke({
+            color: "#ff0000",
+            width: 1,
+          });
+        return [graphics, 0, 0];
+      },
+    )
+    .exhaustive();
 }
 
 /*

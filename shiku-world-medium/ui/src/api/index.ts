@@ -1,37 +1,25 @@
-import { Container } from "pixi.js";
+import { Container, Graphics } from "pixi.js";
+import { CommunicationState } from "@/client/communication";
+import { Isometry } from "@/client/entities";
 
 export const use_medium_api = (): typeof window.medium =>
   window.medium
     ? window.medium
     : {
-        twitch_login: () => Promise.resolve(),
-        get_resource_manager: () => undefined,
-        create_display_object: () => new Container(),
+        create_collider_graphic: () => [new Graphics(), 1, 2],
         create_container: () => new Container(),
         set_blueprint_renderer: () => {},
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        communication_state: {} as any,
-        set_camera_iso: (instance_id, world_id, iso) => {
-          console.log(
-            `set_camera_iso not implemented ${instance_id}, ${world_id}, ${iso}`,
-          );
-        },
-        set_camera_zoom: (instance_id, world_id) => {
-          console.log(
-            `set_camera_zoom not implemented ${instance_id}, ${world_id}`,
-          );
-        },
-        get_camera_iso: (instance_id, world_id) => {
-          console.log(
-            `get_camera_iso not implemented ${instance_id}, ${world_id}`,
-          );
-          return { x: 0, y: 0, rotation: 0 };
-        },
-        get_camera_zoom: (instance_id, world_id) => {
-          console.log(
-            `get_camera_zoom not implemented ${instance_id}, ${world_id}`,
-          );
-          return 0;
-        },
-        swap_main_render_instance: () => {},
+        create_display_object: () => new Container(),
+        get_resource_manager: (_: string) => undefined,
+        swap_main_render_instance: (_a: string, _b: string) => {},
+        communication_state: {} as CommunicationState,
+        get_camera_iso: (_a: string, _b: string) => ({
+          x: 0,
+          y: 0,
+          rotation: 0,
+        }),
+        get_camera_zoom: (_a: string, _b: string) => 0,
+        set_camera_iso: (_a: string, _b: string, _c: Isometry) => {},
+        set_camera_zoom: (_a: string, _b: string, _c: number) => {},
+        twitch_login: (_: CommunicationState) => Promise.resolve(),
       };

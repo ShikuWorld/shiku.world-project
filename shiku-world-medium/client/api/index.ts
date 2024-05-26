@@ -2,7 +2,11 @@ import { login } from "../menu/twitch";
 import { CommunicationState } from "../communication";
 import { GameInstanceMap } from "@/client/game-instance";
 import { RenderSystem } from "@/client/renderer";
-import { create_display_object, ResourceManagerMap } from "@/client/resources";
+import {
+  create_collider_graphic,
+  create_display_object,
+  ResourceManagerMap,
+} from "@/client/resources";
 import { Container } from "pixi.js";
 import { set_blueprint_render } from "@/client/renderer/create_game_renderer";
 
@@ -17,6 +21,7 @@ export const setup_medium_api = (
       login(communication_state),
     communication_state: communication_state,
     create_display_object,
+    create_collider_graphic,
     set_blueprint_renderer: (blueprint_render_data) => {
       set_blueprint_render(render_system, instances, blueprint_render_data);
     },

@@ -12,8 +12,11 @@ import {
   GameInstancesStore,
   use_game_instances_store,
 } from "@/editor/stores/game-instances";
-import { ResourceManager } from "@/client/resources";
-import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
+import {
+  create_collider_graphic,
+  create_display_object,
+  ResourceManager,
+} from "@/client/resources";
 import { Container } from "pixi.js";
 
 declare global {
@@ -26,10 +29,8 @@ declare global {
       set_blueprint_renderer: (
         blueprint_render_data: GameInstancesStore["blueprint_render"],
       ) => void;
-      create_display_object: (
-        node: GameNodeKind,
-        resource_manager: ResourceManager,
-      ) => Container;
+      create_display_object: typeof create_display_object;
+      create_collider_graphic: typeof create_collider_graphic;
       create_container: () => Container;
       set_camera_iso: (
         instance_id: string,
