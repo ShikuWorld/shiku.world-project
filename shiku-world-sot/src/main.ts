@@ -1,9 +1,16 @@
 import './style.css';
+import { TextWriter } from './text-writer.ts';
 
 const app_container = document.querySelector<HTMLDivElement>('#app');
 
+if (!app_container) {
+  throw new Error('App container not found');
+}
+
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
+
+const text_writer = new TextWriter(app_container);
 
 // Check if the Web Speech API is available
 function start_speech_recognition() {
@@ -26,19 +33,11 @@ function start_speech_recognition() {
     // This event is triggered when the speech recognition service returns a result
     recognition.onresult = function (event) {
       let current_result = '';
-
       for (let i = event.resultIndex; i < event.results.length; i++) {
         current_result += event.results[i][0].transcript + ' ';
       }
       current_result = current_result.trim().replace('  ', ' ');
-      current_result.split('').forEach((char, index) => {
-        const span = document.createElement('span');
-        span.textContent = char;
-        span.style.animationDelay = `${index * 0.05}s`;
-        if (app_container) {
-          app_container.appendChild(span);
-        }
-      });
+      text_writer.write_text(current_result, event.resultIndex, 'default');
     };
 
     recognition.onend = function () {

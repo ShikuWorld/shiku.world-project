@@ -14,11 +14,37 @@
             font-weight:400;
             font-style: normal;
         }
+        #app {
+            width: 100%;
+            height: 200px;
+        }
+        #app p {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-content: flex-start;
+            justify-content: flex-start;
+        }
         #app span {
-            opacity: 0;
             display: inline-block;
             white-space: break-spaces;
-            animation: fadeIn 0.1s forwards;
+        }
+
+        #app span.default {
+            opacity: 0;
+            animation: fadeIn 0.25s forwards;
+        }
+
+        #app span.shake {
+            animation: tilt-shaking 2s 3 forwards;
+        }
+
+        @keyframes tilt-shaking {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(10deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-10deg); }
+            100% { transform: rotate(0deg); }
         }
 
         @keyframes fadeIn {

@@ -7,11 +7,6 @@ const config: Config = {
   },
   testMatch: ['**/*.spec.ts'],
   testEnvironment: 'jsdom',
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.test.json',
-    },
-  },
 };
 
 export default config;
