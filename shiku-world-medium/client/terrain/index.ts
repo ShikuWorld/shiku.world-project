@@ -38,7 +38,7 @@ export class TerrainManager {
     if (!this._chunk_map.has(layer_kind)) {
       this._chunk_map.set(layer_kind, new Map());
     }
-
+    console.log("Adding chunk", chunk.position, "to layer", layer_kind);
     const chunk_map = this._chunk_map.get(layer_kind)!;
     const chunk_key = this._cantorPair(chunk.position[0], chunk.position[1]);
     if (!chunk_map.has(chunk_key)) {

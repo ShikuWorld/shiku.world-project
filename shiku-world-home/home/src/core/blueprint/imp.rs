@@ -13,7 +13,7 @@ use crate::core::blueprint::def::{
     Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::blueprint::scene::def::CollisionShape;
+use crate::core::blueprint::scene::def::{CollisionShape, Scene, Script};
 use crate::core::{cantor_pair, get_out_dir, safe_unwrap};
 
 impl Module {
@@ -259,5 +259,49 @@ impl GameMap {
             .entry(layer_kind)
             .or_default()
             .insert(cantor_pair(chunk.position.0, chunk.position.1), chunk);
+    }
+}
+
+impl From<&Script> for BlueprintResource {
+    fn from(value: &Script) -> Self {
+        BlueprintResource {
+            file_name: format!("{}.script.json", value.name),
+            dir: value.resource_path.clone(),
+            path: format!("{}/{}.script.json", value.resource_path, value.name),
+            kind: ResourceKind::Script,
+        }
+    }
+}
+
+impl From<&Scene> for BlueprintResource {
+    fn from(scene: &Scene) -> Self {
+        BlueprintResource {
+            file_name: format!("{}.scene.json", scene.name),
+            dir: scene.resource_path.clone(),
+            path: format!("{}/{}.scene.json", scene.resource_path, scene.name),
+            kind: ResourceKind::Scene,
+        }
+    }
+}
+
+impl From<&GameMap> for BlueprintResource {
+    fn from(value: &GameMap) -> Self {
+        BlueprintResource {
+            file_name: format!("{}.map.json", value.name),
+            dir: value.resource_path.clone(),
+            path: format!("{}/{}.map.json", value.resource_path, value.name),
+            kind: ResourceKind::Map,
+        }
+    }
+}
+
+impl From<&Tileset> for BlueprintResource {
+    fn from(value: &Tileset) -> Self {
+        BlueprintResource {
+            file_name: format!("{}.tileset.json", value.name),
+            dir: value.resource_path.clone(),
+            path: format!("{}/{}.tileset.json", value.resource_path, value.name),
+            kind: ResourceKind::Tileset,
+        }
     }
 }

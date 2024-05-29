@@ -306,11 +306,11 @@ export const use_resources_store = defineStore("resources", () => {
     create_map_server(map: GameMap) {
       send_admin_event({ CreateMap: [map.module_id, map] });
     },
-    create_scene_server(scene: Scene) {
-      send_admin_event({ CreateScene: scene });
+    create_scene_server(module_id: string, scene: Scene) {
+      send_admin_event({ CreateScene: [module_id, scene] });
     },
-    create_script_server(script: Script) {
-      send_admin_event({ CreateScript: script });
+    create_script_server(module_id: string, script: Script) {
+      send_admin_event({ CreateScript: [module_id, script] });
     },
     update_script_server(script: Script) {
       send_admin_event({ UpdateScript: script });
@@ -382,8 +382,8 @@ export const use_resources_store = defineStore("resources", () => {
     delete_map_server(map: GameMap) {
       send_admin_event({ DeleteMap: [map.module_id, map] });
     },
-    create_tileset_server(tileset: Tileset) {
-      send_admin_event({ CreateTileset: tileset });
+    create_tileset_server(module_id: string, tileset: Tileset) {
+      send_admin_event({ CreateTileset: [module_id, tileset] });
     },
     update_tileset_server(resource_path: string, tile_update: TilesetUpdate) {
       send_admin_event({ UpdateTileset: [resource_path, tile_update] });

@@ -113,7 +113,7 @@ export async function create_game_renderer(): Promise<RenderSystem> {
   };
 }
 
-const create_dummy_pic = async (color: string): Promise<ImageBitmap> => {
+export const create_dummy_pic = async (color: string): Promise<ImageBitmap> => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) {

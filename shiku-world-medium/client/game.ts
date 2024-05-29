@@ -52,7 +52,7 @@ export async function start_medium() {
         }
       });
     }
-
+    console.log(resource_manager_map);
     return resource_manager_map[module_id];
   }
 

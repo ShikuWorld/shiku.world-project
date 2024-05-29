@@ -21,6 +21,7 @@ import { GidMap } from "@/editor/blueprints/GidMap";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { RENDER_SCALE } from "@/shared/index";
 import { Collider } from "@/editor/blueprints/Collider";
+import { create_dummy_pic } from "@/client/renderer/create_game_renderer";
 
 export interface Graphics {
   textures: Texture[];
@@ -66,7 +67,7 @@ export class ResourceManager {
     }
   }
 
-  load_resource_bundle(
+  async load_resource_bundle(
     module_id: string,
     instance_id: string,
     resource_bundle: ResourceBundle,
@@ -78,14 +79,14 @@ export class ResourceManager {
       {} as { [path: string]: LoadResource },
     );
     for (const asset of resource_bundle.assets) {
-      match(asset.kind)
-        .with("Image", () => {
-          this.image_texture_map[asset.path] = Texture.from(
-            this.dummy_texture_loading.source,
-          );
+      await match(asset.kind)
+        .with("Image", async () => {
+          const loading = Texture.from(await create_dummy_pic("#FF00ff"));
+          this.image_texture_map[asset.path] = Texture.from(loading.source);
           this.image_texture_map[asset.path].source.update();
+          return Promise.resolve();
         })
-        .with("Unknown", () => {})
+        .with("Unknown", async () => Promise.resolve())
         .exhaustive();
     }
     Assets.addBundle(
@@ -105,6 +106,7 @@ export class ResourceManager {
         }
         match(path_to_resource_map[path].kind)
           .with("Image", () => {
+            console.log(path, this.image_texture_map, load_resource);
             this.image_texture_map[path].source.resource = (
               loaded_resource as Texture
             ).source.resource;
@@ -181,6 +183,7 @@ export class ResourceManager {
   }
 
   get_graphics_data_by_gid(gid: number): Graphics {
+    console.log(gid, this.graphic_id_map);
     if (!this.graphic_id_map[gid]) {
       const [tileset, start_gid] = this._get_tileset_by_gid(gid);
 

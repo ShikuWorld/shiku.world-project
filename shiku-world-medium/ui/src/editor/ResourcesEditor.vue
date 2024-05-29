@@ -27,7 +27,7 @@
         </v-btn>
         <v-menu activator="#menu-activator">
           <v-list>
-            <v-list-item>
+            <v-list-item v-if="selected_module">
               <v-list-item-title @click="create_tileset_dialog = true"
                 >Tileset</v-list-item-title
               >
@@ -37,12 +37,12 @@
                 >Map</v-list-item-title
               >
             </v-list-item>
-            <v-list-item>
+            <v-list-item v-if="selected_module">
               <v-list-item-title @click="create_scene_dialog = true"
                 >Scene</v-list-item-title
               >
             </v-list-item>
-            <v-list-item>
+            <v-list-item v-if="selected_module">
               <v-list-item-title @click="create_script_dialog = true"
                 >Script</v-list-item-title
               >
@@ -179,7 +179,7 @@ function ensure_resources_are_loaded() {
 
 function save_tileset(tileset: Tileset) {
   create_tileset_dialog.value = false;
-  create_tileset_server(tileset);
+  create_tileset_server(selected_module_id.value, tileset);
 }
 
 function save_map(game_map: GameMap) {
@@ -189,12 +189,12 @@ function save_map(game_map: GameMap) {
 
 function save_scene(scene: Scene) {
   create_scene_dialog.value = false;
-  create_scene_server(scene);
+  create_scene_server(selected_module_id.value, scene);
 }
 
 function save_script(script: Script) {
   create_script_dialog.value = false;
-  create_script_server(script);
+  create_script_server(selected_module_id.value, script);
 }
 </script>
 <style></style>

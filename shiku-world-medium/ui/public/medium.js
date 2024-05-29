@@ -40140,20 +40140,19 @@ ${e3}`);
         this.tile_set_map[`${tileset.resource_path}/${tileset.name}.tileset.json`] = tileset;
       }
     }
-    load_resource_bundle(module_id, instance_id, resource_bundle, dispatch_resource_bundle_complete = false) {
+    async load_resource_bundle(module_id, instance_id, resource_bundle, dispatch_resource_bundle_complete = false) {
       const bundle_id = `${module_id}-${resource_bundle.name}`;
       const path_to_resource_map = resource_bundle.assets.reduce(
         (acc, r3) => ({ ...acc, [r3.path]: r3 }),
         {}
       );
       for (const asset of resource_bundle.assets) {
-        N2(asset.kind).with("Image", () => {
-          this.image_texture_map[asset.path] = Texture.from(
-            this.dummy_texture_loading.source
-          );
+        await N2(asset.kind).with("Image", async () => {
+          const loading = Texture.from(await create_dummy_pic("#FF00ff"));
+          this.image_texture_map[asset.path] = Texture.from(loading.source);
           this.image_texture_map[asset.path].source.update();
-        }).with("Unknown", () => {
-        }).exhaustive();
+          return Promise.resolve();
+        }).with("Unknown", async () => Promise.resolve()).exhaustive();
       }
       Assets.addBundle(
         bundle_id,
@@ -40171,6 +40170,7 @@ ${e3}`);
             continue;
           }
           N2(path_to_resource_map[path2].kind).with("Image", () => {
+            console.log(path2, this.image_texture_map, load_resource);
             this.image_texture_map[path2].source.resource = loaded_resource.source.resource;
             this.image_texture_map[path2].source.update();
           }).with("Unknown", () => {
@@ -40231,6 +40231,7 @@ ${e3}`);
       return sprite;
     }
     get_graphics_data_by_gid(gid) {
+      console.log(gid, this.graphic_id_map);
       if (!this.graphic_id_map[gid]) {
         const [tileset, start_gid] = this._get_tileset_by_gid(gid);
         const id_in_tileset = gid - start_gid;
@@ -40744,6 +40745,7 @@ ${e3}`);
       if (!this._chunk_map.has(layer_kind)) {
         this._chunk_map.set(layer_kind, /* @__PURE__ */ new Map());
       }
+      console.log("Adding chunk", chunk.position, "to layer", layer_kind);
       const chunk_map = this._chunk_map.get(layer_kind);
       const chunk_key = this._cantorPair(chunk.position[0], chunk.position[1]);
       if (!chunk_map.has(chunk_key)) {
@@ -41154,6 +41156,7 @@ ${e3}`);
           }
         });
       }
+      console.log(resource_manager_map);
       return resource_manager_map[module_id];
     }
     initialize_input_plugins(guest_input);

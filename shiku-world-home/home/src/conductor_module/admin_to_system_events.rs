@@ -16,7 +16,8 @@ use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
 use crate::core::blueprint::def::{
-    BlueprintResource, BlueprintService, Conductor, ResourceKind, ResourceLoaded, Tileset,
+    BlueprintResource, BlueprintService, Conductor, Module, ModuleId, ResourceKind, ResourceLoaded,
+    Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::CollisionShape;
@@ -26,7 +27,7 @@ use crate::core::module::{
     SceneNodeUpdate, TilesetUpdate,
 };
 use crate::core::module_system::def::DynamicGameModule;
-use crate::core::module_system::game_instance::GameInstance;
+use crate::core::module_system::game_instance::{GameInstance, GameInstanceManager};
 use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
@@ -48,6 +49,69 @@ pub async fn handle_admin_to_system_event(
     let mut send_editor_event = |event: EditorEvent| {
         send_communication_event(CommunicationEvent::EditorEvent(event));
     };
+
+    let mut update_module_resources =
+        |module: &mut GameInstanceManager, resources: Vec<BlueprintResource>| {
+            match BlueprintService::generate_gid_map(&resources) {
+                Ok(gid_map) => {
+                    resource_module.send_resource_event_to(
+                        ResourceEvent::UpdateGidMap(gid_map.clone()),
+                        module.module_blueprint.id.clone(),
+                        module.get_active_actor_ids(),
+                    );
+                    module.module_blueprint.gid_map = gid_map;
+                    ConductorModule::update_resource_to_module_map(
+                        resource_to_module_map,
+                        &module.module_blueprint.id,
+                        &module.module_blueprint.resources,
+                        &resources,
+                    );
+                    module.update_scripts_from_resources(&resources);
+
+                    for resource in &resources {
+                        if !module
+                            .module_blueprint
+                            .resources
+                            .iter()
+                            .any(|r| r.path == resource.path)
+                        {
+                            loading_resources_from_blueprint_resource(resource)
+                                .into_iter()
+                                .for_each(|resource| {
+                                    debug!("Registering new resource {:?}", resource);
+                                    resource_module.register_resource_for_module(
+                                        module.module_blueprint.id.clone(),
+                                        resource,
+                                    )
+                                });
+                        }
+                    }
+
+                    module.module_blueprint.resources = resources;
+                }
+                Err(err) => error!("Could not generate gid map! {:?}", err),
+            }
+        };
+
+    let mut update_module_with_resource =
+        |module_id: ModuleId, blueprint_resource: BlueprintResource| {
+            if let Some(module) = module_map.get_mut(&module_id) {
+                let mut new_resources = module.module_blueprint.resources.clone();
+                new_resources.push(blueprint_resource);
+                update_module_resources(module, new_resources);
+                match Blueprint::save_module(&module.module_blueprint) {
+                    Ok(()) => {
+                        send_editor_event(EditorEvent::UpdatedModule(
+                            module_id,
+                            module.module_blueprint.clone(),
+                        ));
+                    }
+                    Err(err) => {
+                        error!("Could not save module {:?}", err);
+                    }
+                }
+            }
+        };
 
     match event {
         AdminToSystemEvent::ControlInput(module_id, instance_id, guest_input) => {
@@ -111,7 +175,9 @@ pub async fn handle_admin_to_system_event(
                                                     game_instance_id.clone(),
                                                     Some(world_id.clone()),
                                                     ResourceBundle {
-                                                        name: "Default".into(),
+                                                        name: format!(
+                                                            "{module_id}InitialResources"
+                                                        ),
                                                         assets,
                                                     },
                                                     terrain_params,
@@ -230,37 +296,21 @@ pub async fn handle_admin_to_system_event(
             }
         }
         AdminToSystemEvent::CreateMap(module_id, mut map) => {
-            if let Some(module) = module_map.get_mut(&module_id) {
-                map.world_id = Uuid::new_v4().to_string();
-                match Blueprint::create_map(&map) {
-                    Ok(()) => {
-                        module.module_blueprint.resources.push(BlueprintResource {
-                            file_name: format!("{}.map.json", map.name),
-                            dir: map.resource_path.clone(),
-                            path: format!("{}/{}.map.json", map.resource_path, map.name),
-                            kind: ResourceKind::Map,
-                        });
-                        match Blueprint::save_module(&module.module_blueprint) {
-                            Ok(()) => {
-                                module
-                                    .create_world(&map)
-                                    .values()
-                                    .filter(|f| f.is_err())
-                                    .for_each(|err| error!("{:?}", err));
-                                send_editor_event(EditorEvent::UpdatedModule(
-                                    module_id,
-                                    module.module_blueprint.clone(),
-                                ));
-                                send_editor_event(EditorEvent::SetMap(map));
-                            }
-                            Err(err) => {
-                                error!("Could not save module {:?}", err);
-                            }
-                        }
+            map.world_id = Uuid::new_v4().to_string();
+            match Blueprint::create_map(&map) {
+                Ok(()) => {
+                    update_module_with_resource(module_id.clone(), BlueprintResource::from(&map));
+                    if let Some(module) = module_map.get_mut(&module_id) {
+                        module
+                            .create_world(&map)
+                            .values()
+                            .filter(|f| f.is_err())
+                            .for_each(|err| error!("{:?}", err));
                     }
-                    Err(err) => {
-                        error!("Could not create map {:?}", err);
-                    }
+                    send_editor_event(EditorEvent::SetMap(map));
+                }
+                Err(err) => {
+                    error!("Could not create tileset {:?}", err);
                 }
             }
         }
@@ -335,12 +385,17 @@ pub async fn handle_admin_to_system_event(
                     .collect(),
             ));
         }
-        AdminToSystemEvent::CreateTileset(tileset) => match Blueprint::create_tileset(&tileset) {
-            Ok(()) => {
-                send_editor_event(EditorEvent::CreatedTileset(tileset));
+        AdminToSystemEvent::CreateTileset(module_id, tileset) => {
+            match Blueprint::create_tileset(&tileset) {
+                Ok(()) => {
+                    update_module_with_resource(module_id, BlueprintResource::from(&tileset));
+                    send_editor_event(EditorEvent::CreatedTileset(tileset));
+                }
+                Err(err) => {
+                    error!("Could not create tileset {:?}", err);
+                }
             }
-            Err(err) => error!("Could not create tileset: {:?}", err),
-        },
+        }
         AdminToSystemEvent::UpdateTileset(resource_path, tileset_update) => {
             if let Ok(mut tileset) = Blueprint::load_tileset(resource_path.clone().into()) {
                 match tileset_update {
@@ -396,12 +451,17 @@ pub async fn handle_admin_to_system_event(
             }
             Err(err) => error!("Could not delete tileset: {:?}", err),
         },
-        AdminToSystemEvent::CreateScene(scene) => match Blueprint::create_scene(&scene) {
-            Ok(()) => {
-                send_editor_event(EditorEvent::CreatedScene(scene));
+        AdminToSystemEvent::CreateScene(module_id, scene) => {
+            match Blueprint::create_scene(&scene) {
+                Ok(()) => {
+                    update_module_with_resource(module_id, BlueprintResource::from(&scene));
+                    send_editor_event(EditorEvent::CreatedScene(scene));
+                }
+                Err(err) => {
+                    error!("Could not create tileset {:?}", err);
+                }
             }
-            Err(err) => error!("Could not create scene: {:?}", err),
-        },
+        }
         AdminToSystemEvent::UpdateSceneNode(scene_node_update) => match scene_node_update {
             SceneNodeUpdate::UpdateData(resource_path, path, game_node_id, entity_update) => {
                 match Blueprint::load_scene(resource_path.clone().into()) {
@@ -487,45 +547,7 @@ pub async fn handle_admin_to_system_event(
                     module.module_blueprint.main_map = main_map;
                 }
                 if let Some(resources) = module_update.resources {
-                    match BlueprintService::generate_gid_map(&resources) {
-                        Ok(gid_map) => {
-                            resource_module.send_resource_event_to(
-                                ResourceEvent::UpdateGidMap(gid_map.clone()),
-                                module_id.clone(),
-                                module.get_active_actor_ids(),
-                            );
-                            module.module_blueprint.gid_map = gid_map;
-                            ConductorModule::update_resource_to_module_map(
-                                resource_to_module_map,
-                                &module_id,
-                                &module.module_blueprint.resources,
-                                &resources,
-                            );
-                            module.update_scripts_from_resources(&resources);
-
-                            for resource in &resources {
-                                if !module
-                                    .module_blueprint
-                                    .resources
-                                    .iter()
-                                    .any(|r| r.path == resource.path)
-                                {
-                                    loading_resources_from_blueprint_resource(resource)
-                                        .into_iter()
-                                        .for_each(|resource| {
-                                            debug!("Registering new resource {:?}", resource);
-                                            resource_module.register_resource_for_module(
-                                                module_id.clone(),
-                                                resource,
-                                            )
-                                        });
-                                }
-                            }
-
-                            module.module_blueprint.resources = resources;
-                        }
-                        Err(err) => error!("Could not generate gid map! {:?}", err),
-                    }
+                    update_module_resources(module, resources);
                 }
                 if let Some(insert_points) = module_update.insert_points {
                     debug!("Updating insert points");
@@ -600,14 +622,17 @@ pub async fn handle_admin_to_system_event(
                 }
             }
         }
-        AdminToSystemEvent::CreateScript(script) => match Blueprint::create_script(&script) {
-            Ok(()) => {
-                send_editor_event(EditorEvent::CreatedScript(script));
+        AdminToSystemEvent::CreateScript(module_id, script) => {
+            match Blueprint::create_script(&script) {
+                Ok(()) => {
+                    update_module_with_resource(module_id, BlueprintResource::from(&script));
+                    send_editor_event(EditorEvent::CreatedScript(script));
+                }
+                Err(err) => {
+                    error!("Could not create tileset {:?}", err);
+                }
             }
-            Err(err) => {
-                debug!("Could not create script: {:?}", err);
-            }
-        },
+        }
         AdminToSystemEvent::UpdateScript(script) => {
             let mut is_script_compiling = true;
             let script_resource_path =
