@@ -370,7 +370,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             console.error("Could not upate collider");
             return;
           }
-          console.log("updating collider", collider);
           node_2d.kind.Collider = collider;
 
           const [graphics, pivot_x, pivot_y] =

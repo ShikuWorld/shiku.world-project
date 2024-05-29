@@ -106,7 +106,6 @@ export class ResourceManager {
         }
         match(path_to_resource_map[path].kind)
           .with("Image", () => {
-            console.log(path, this.image_texture_map, load_resource);
             this.image_texture_map[path].source.resource = (
               loaded_resource as Texture
             ).source.resource;

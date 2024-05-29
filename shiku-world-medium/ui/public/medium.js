@@ -40170,7 +40170,6 @@ ${e3}`);
             continue;
           }
           N2(path_to_resource_map[path2].kind).with("Image", () => {
-            console.log(path2, this.image_texture_map, load_resource);
             this.image_texture_map[path2].source.resource = loaded_resource.source.resource;
             this.image_texture_map[path2].source.update();
           }).with("Unknown", () => {
@@ -40745,7 +40744,6 @@ ${e3}`);
       if (!this._chunk_map.has(layer_kind)) {
         this._chunk_map.set(layer_kind, /* @__PURE__ */ new Map());
       }
-      console.log("Adding chunk", chunk.position, "to layer", layer_kind);
       const chunk_map = this._chunk_map.get(layer_kind);
       const chunk_key = this._cantorPair(chunk.position[0], chunk.position[1]);
       if (!chunk_map.has(chunk_key)) {
@@ -40965,7 +40963,6 @@ ${e3}`);
         }
         this.renderer.layer_map.ObjectsBelow.addChild(root_container);
       }).with({ UpdateEntity: _.select() }, (entity_update) => {
-        console.log("UpdateEntity", entity_update);
         window.medium_gui.game_instances.apply_entity_update_for_instance(
           this.id,
           this.world_id,
@@ -41156,7 +41153,6 @@ ${e3}`);
           }
         });
       }
-      console.log(resource_manager_map);
       return resource_manager_map[module_id];
     }
     initialize_input_plugins(guest_input);
