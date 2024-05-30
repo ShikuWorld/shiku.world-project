@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rapier2d::prelude::*;
 use rhai::{Dynamic, Engine, FuncRegistration, Module as RhaiModule};
@@ -26,6 +26,7 @@ pub struct World {
 }
 
 pub struct ActorApi {
+    active_users: HashSet<ActorId>,
     actor_inputs: HashMap<ActorId, GuestInput>,
 }
 
@@ -64,6 +65,7 @@ impl World {
         Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
         let actor_api = ApiShare::new(ActorApi {
             actor_inputs: HashMap::new(),
+            active_users: HashSet::new(),
         });
         Self::setup_input_scripting_api(&mut script_engine, &actor_api);
         Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
@@ -174,6 +176,22 @@ impl World {
                     }
                 }
                 false
+            },
+        );
+        let actor_api_share_clone = actor_api_share.clone();
+        FuncRegistration::new("get_active_actors").set_into_module(
+            &mut module,
+            move || -> Vec<ActorId> {
+                actor_api_share_clone
+                    .try_borrow_mut()
+                    .map(|actor_api| {
+                        actor_api
+                            .active_users
+                            .iter()
+                            .cloned()
+                            .collect::<Vec<ActorId>>()
+                    })
+                    .unwrap_or_default()
             },
         );
         engine.register_static_module("shiku::input", module.into());

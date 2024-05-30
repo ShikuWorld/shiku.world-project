@@ -190,7 +190,6 @@ impl ECS {
                 .entities
                 .collider_handle
                 .insert(*child_entity, child_collider_handle);
-            debug!("Successfully attached collider 2");
         }
     }
 
@@ -728,12 +727,22 @@ impl GameNodeScript {
         }
     }
 
+    pub fn call_script_reload(&mut self, engine: &Engine) {
+        if self.game_node_script_functions.script_reload {
+            match engine.call_fn::<()>(&mut self.scope, &self.ast, "script_reload", ()) {
+                Ok(()) => {}
+                Err(e) => error!("Error calling script_reload function: {:?}", e),
+            }
+        }
+    }
+
     fn get_game_node_script_functions_from_ast(ast: &AST) -> GameNodeScriptFunctions {
         let mut functions = GameNodeScriptFunctions {
             init: false,
             update: false,
             actor_joined: false,
             actor_left: false,
+            script_reload: false,
         };
         for fun in ast.iter_functions() {
             match fun.name {
@@ -741,6 +750,7 @@ impl GameNodeScript {
                 "update" => functions.update = true,
                 "actor_joined" => functions.actor_joined = true,
                 "actor_left" => functions.actor_left = true,
+                "script_reload" => functions.script_reload = true,
                 _ => {}
             }
         }

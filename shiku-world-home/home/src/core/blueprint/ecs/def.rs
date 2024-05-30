@@ -110,6 +110,7 @@ pub struct GameNodeScriptFunctions {
     pub update: bool,
     pub actor_joined: bool,
     pub actor_left: bool,
+    pub script_reload: bool,
 }
 
 pub type DynamicMap = BTreeMap<SmartString<LazyCompact>, Dynamic>;

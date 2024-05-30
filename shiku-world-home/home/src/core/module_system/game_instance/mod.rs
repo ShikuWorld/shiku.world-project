@@ -346,6 +346,7 @@ impl GameInstanceManager {
                                 script_reset = true;
                                 game_node_script
                                     .reset_from_new_ast(&world.script_engine, ast.clone());
+                                game_node_script.call_script_reload(&world.script_engine);
                             }
                         }
                         if script_reset {
