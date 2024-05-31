@@ -211,6 +211,24 @@ impl ModuleUpdate {
     }
 }
 
+pub trait JsonResource {
+    fn get_resource_type(&self) -> &'static str;
+    fn get_resource_kind(&self) -> ResourceKind;
+    fn get_full_resource_path(&self) -> String {
+        format!(
+            "{}/{}.{}.json",
+            self.get_resource_dir(),
+            self.get_name(),
+            self.get_resource_type()
+        )
+    }
+    fn get_file_name(&self) -> String {
+        format!("{}.{}.json", self.get_name(), self.get_resource_type())
+    }
+    fn get_name(&self) -> &str;
+    fn get_resource_dir(&self) -> &str;
+}
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct GameMap {

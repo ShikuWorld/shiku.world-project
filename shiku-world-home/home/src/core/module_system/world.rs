@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use rapier2d::prelude::*;
 use rhai::{Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
-use crate::core::blueprint::def::{GameMap, Gid, TerrainParams};
+use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpdate, ECS};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
@@ -18,6 +18,7 @@ pub type WorldId = String;
 
 pub struct World {
     pub world_id: WorldId,
+    pub game_map_path: ResourcePath,
     pub physics: ApiShare<RapierSimulation>,
     pub actor_api: ApiShare<ActorApi>,
     pub terrain_manager: TerrainManager,
@@ -72,6 +73,47 @@ impl World {
         Ok(World {
             world_id: game_map.world_id.clone(),
             physics: physics_share,
+            game_map_path: game_map.get_full_resource_path(),
+            actor_api,
+            terrain_manager,
+            ecs,
+            script_engine,
+        })
+    }
+
+    pub fn reset(
+        &mut self,
+        game_map: &GameMap,
+        collision_shape_map: &HashMap<Gid, CollisionShape>,
+    ) -> Result<World, CreateWorldError> {
+        let world_scene = Blueprint::load_scene(game_map.main_scene.clone().into())?;
+        let mut ecs = ECS::from(&world_scene);
+        let mut physics = RapierSimulation::new();
+        let terrain_manager = TerrainManager::new(
+            TerrainParams {
+                chunk_size: game_map.chunk_size,
+                tile_height: game_map.tile_height,
+                tile_width: game_map.tile_width,
+            },
+            game_map.terrain.clone(),
+            collision_shape_map,
+            &mut physics,
+        );
+        Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
+
+        let mut script_engine = Engine::new();
+        let physics_share = ApiShare::new(physics);
+        Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
+        let actor_api = ApiShare::new(ActorApi {
+            actor_inputs: HashMap::new(),
+            active_users: HashSet::new(),
+        });
+        Self::setup_input_scripting_api(&mut script_engine, &actor_api);
+        Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
+        Ok(World {
+            world_id: game_map.world_id.clone(),
+            physics: physics_share,
+            game_map_path: game_map.get_full_resource_path(),
             actor_api,
             terrain_manager,
             ecs,

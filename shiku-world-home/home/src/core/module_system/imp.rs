@@ -1,18 +1,14 @@
-use diesel::row::NamedRow;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
-
 use flume::Sender;
 use log::{debug, error};
 use rapier2d::math::Real;
+use std::collections::HashMap;
 use tokio::time::Instant;
 
 use crate::core::blueprint::def::{
     BlueprintService, Chunk, GameMap, Gid, LayerKind, Module, ModuleId, ResourcePath, TerrainParams,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
-use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Scene};
+use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind};
 use crate::core::blueprint::scene::imp::build_scene_from_ecs;
 use crate::core::guest::ActorId;
 use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
@@ -23,8 +19,7 @@ use crate::core::module::{
 };
 use crate::core::module::{GuestInput, GuestToModuleEvent};
 use crate::core::module_system::def::{
-    AdminMap, DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication,
-    ModuleGuest,
+    DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication, ModuleGuest,
 };
 use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::{AstCache, GameInstanceId};
@@ -121,6 +116,14 @@ impl DynamicGameModule {
         self.world_to_admin.init(game_map.world_id.clone());
         self.world_to_guest.init(game_map.world_id.clone());
         Ok(game_map.world_id.clone())
+    }
+
+    pub fn reset_world(&mut self, world_id: &WorldId) -> Result<WorldId, CreateWorldError> {
+        if let Some(world_map) = self.world_map.get_mut(world_id) {
+            debug!("{:?}", world_map.world_id);
+        }
+
+        Ok(world_id.clone())
     }
 
     pub fn remove_script(&mut self, resource_path: &ResourcePath) {

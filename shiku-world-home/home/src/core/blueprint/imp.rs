@@ -9,8 +9,8 @@ use walkdir::WalkDir;
 
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, BlueprintService, Chunk, Conductor, FileBrowserFileKind,
-    FileBrowserResult, GameMap, Gid, GidMap, LayerKind, Module, ResourceKind, ResourceLoaded,
-    Tileset,
+    FileBrowserResult, GameMap, Gid, GidMap, JsonResource, LayerKind, MapUpdate, Module,
+    ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, Scene, Script};
@@ -262,46 +262,88 @@ impl GameMap {
     }
 }
 
-impl From<&Script> for BlueprintResource {
-    fn from(value: &Script) -> Self {
-        BlueprintResource {
-            file_name: format!("{}.script.json", value.name),
-            dir: value.resource_path.clone(),
-            path: format!("{}/{}.script.json", value.resource_path, value.name),
-            kind: ResourceKind::Script,
-        }
+impl JsonResource for GameMap {
+    fn get_resource_type(&self) -> &'static str {
+        "map"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::Map
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        &self.resource_path
     }
 }
 
-impl From<&Scene> for BlueprintResource {
-    fn from(scene: &Scene) -> Self {
-        BlueprintResource {
-            file_name: format!("{}.scene.json", scene.name),
-            dir: scene.resource_path.clone(),
-            path: format!("{}/{}.scene.json", scene.resource_path, scene.name),
-            kind: ResourceKind::Scene,
-        }
+impl JsonResource for Script {
+    fn get_resource_type(&self) -> &'static str {
+        "script"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::Script
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        &self.resource_path
     }
 }
 
-impl From<&GameMap> for BlueprintResource {
-    fn from(value: &GameMap) -> Self {
-        BlueprintResource {
-            file_name: format!("{}.map.json", value.name),
-            dir: value.resource_path.clone(),
-            path: format!("{}/{}.map.json", value.resource_path, value.name),
-            kind: ResourceKind::Map,
-        }
+impl JsonResource for Scene {
+    fn get_resource_type(&self) -> &'static str {
+        "scene"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::Scene
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        &self.resource_path
     }
 }
 
-impl From<&Tileset> for BlueprintResource {
-    fn from(value: &Tileset) -> Self {
+impl JsonResource for Tileset {
+    fn get_resource_type(&self) -> &'static str {
+        "tileset"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::Tileset
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        &self.resource_path
+    }
+}
+
+impl JsonResource for MapUpdate {
+    fn get_resource_type(&self) -> &'static str {
+        "map"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::Map
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        &self.resource_path
+    }
+}
+
+impl<T: JsonResource> From<&T> for BlueprintResource {
+    fn from(value: &T) -> Self {
         BlueprintResource {
-            file_name: format!("{}.tileset.json", value.name),
-            dir: value.resource_path.clone(),
-            path: format!("{}/{}.tileset.json", value.resource_path, value.name),
-            kind: ResourceKind::Tileset,
+            file_name: value.get_file_name(),
+            dir: value.get_resource_dir().into(),
+            path: value.get_full_resource_path(),
+            kind: value.get_resource_kind(),
         }
     }
 }

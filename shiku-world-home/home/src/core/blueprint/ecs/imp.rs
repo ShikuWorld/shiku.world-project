@@ -88,7 +88,7 @@ impl ECS {
                     .transforms
                     .get(&possible_instance_entity)
                     .cloned()
-                    .unwrap_or_else(|| Transform::default());
+                    .unwrap_or_default();
                 Self::add_rigid_body_for_entity(
                     &original_entity,
                     &rigid_body_type,

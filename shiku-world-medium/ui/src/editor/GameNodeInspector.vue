@@ -1,5 +1,8 @@
 <template>
   <div class="node-container">
+    <v-btn v-if="instance_resource_path" @click="save_back_to_instance_scene"
+      >Update Blueprint</v-btn
+    >
     <component
       :is="node_component"
       v-bind="{ game_node, is_instance }"
@@ -75,12 +78,26 @@ const { node, path, scene_resource_path, is_instance } = toRefs(props);
 
 const node_type = computed(() => get_game_node_type(node.value));
 const game_node = computed(() => get_generic_game_node(node.value));
-const { update_instance_node, update_data_in_scene_node_on_server } =
-  use_resources_store();
+const instance_resource_path = computed(() => {
+  return game_node.value && game_node.value.instance_resource_path
+    ? game_node.value.instance_resource_path
+    : null;
+});
+const {
+  update_instance_node,
+  update_data_in_scene_node_on_server,
+  update_scene_root_with_node,
+} = use_resources_store();
 
 const { game_instance_data_map } = storeToRefs(use_game_instances_store());
 const { selected_module_id, current_main_instance } =
   storeToRefs(use_editor_store());
+
+const save_back_to_instance_scene = () => {
+  if (instance_resource_path.value) {
+    update_scene_root_with_node(instance_resource_path.value, node.value);
+  }
+};
 
 const scope_cache = computed<Array<[string, string, string | number]> | null>(
   () => {

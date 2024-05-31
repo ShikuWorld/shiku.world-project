@@ -16,11 +16,11 @@ use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
 use crate::core::blueprint::def::{
-    BlueprintResource, BlueprintService, Conductor, Module, ModuleId, ResourceKind, ResourceLoaded,
-    Tileset,
+    BlueprintResource, BlueprintService, Conductor, JsonResource, Module, ModuleId, ResourceKind,
+    ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
-use crate::core::blueprint::scene::def::CollisionShape;
+use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind};
 use crate::core::guest::{ActorId, Admin};
 use crate::core::module::{
     AdminLeftSuccessState, AdminToSystemEvent, CommunicationEvent, EditorEvent, GuestToModuleEvent,
@@ -114,6 +114,38 @@ pub async fn handle_admin_to_system_event(
         };
 
     match event {
+        AdminToSystemEvent::ResetGameWorld(module_id, instance_id, world_id) => {
+            if let Some(module) = module_map.get_mut(&module_id) {
+                if let Some(instance) = module.game_instances.get_mut(&instance_id) {
+                    instance.dynamic_module.reset_world(&world_id);
+                }
+            }
+        }
+        AdminToSystemEvent::OverwriteSceneRoot(resource_path, mut root_node) => {
+            match Blueprint::load_scene(resource_path.into()) {
+                Ok(mut scene) => {
+                    if let (
+                        GameNodeKind::Node2D(ref mut old_node),
+                        GameNodeKind::Node2D(ref mut new_node),
+                    ) = (&mut scene.root_node, &mut root_node)
+                    {
+                        new_node.data.transform = old_node.data.transform.clone();
+                    }
+                    scene.root_node = root_node;
+                    match Blueprint::save_scene(&scene) {
+                        Ok(()) => {
+                            send_editor_event(EditorEvent::SetScene(scene));
+                        }
+                        Err(err) => {
+                            error!("Could not save scene {:?}", err);
+                        }
+                    }
+                }
+                Err(err) => {
+                    error!("Could not load scene {:?}", err);
+                }
+            }
+        }
         AdminToSystemEvent::ControlInput(module_id, instance_id, guest_input) => {
             if let Some(module) = module_map.get_mut(&module_id) {
                 if let Some(instance) = module.game_instances.get_mut(&instance_id) {
@@ -241,7 +273,7 @@ pub async fn handle_admin_to_system_event(
             }
         }
         AdminToSystemEvent::UpdateMap(map_update) => {
-            let map_path = format!("{}/{}.map.json", map_update.resource_path, map_update.name);
+            let map_path = map_update.get_full_resource_path();
             match Blueprint::load_map(PathBuf::from(map_path)) {
                 Ok(mut map) => {
                     if let Some((layer, chunk)) = map_update.chunk.clone() {
@@ -270,7 +302,7 @@ pub async fn handle_admin_to_system_event(
             if let Some(module) = module_map.get_mut(&module_id) {
                 match Blueprint::delete_map(&map) {
                     Ok(()) => {
-                        let map_path = format!("{}/{}", map.resource_path, map.name);
+                        let map_path = map.get_full_resource_path();
                         module
                             .module_blueprint
                             .resources
@@ -635,8 +667,7 @@ pub async fn handle_admin_to_system_event(
         }
         AdminToSystemEvent::UpdateScript(script) => {
             let mut is_script_compiling = true;
-            let script_resource_path =
-                format!("{}/{}.script.json", script.resource_path, script.name);
+            let script_resource_path = script.get_full_resource_path();
             for module_id in resource_to_module_map
                 .entry(script_resource_path.clone())
                 .or_default()
@@ -660,8 +691,7 @@ pub async fn handle_admin_to_system_event(
             }
         }
         AdminToSystemEvent::DeleteScript(script) => {
-            let script_resource_path =
-                format!("{}/{}.script.json", script.resource_path, script.name);
+            let script_resource_path = script.get_full_resource_path();
             for module_id in resource_to_module_map
                 .entry(script_resource_path.clone())
                 .or_default()

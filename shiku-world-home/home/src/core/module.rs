@@ -113,6 +113,8 @@ pub enum AdminToSystemEvent {
     CreateScene(ModuleId, Scene),
     UpdateSceneNode(SceneNodeUpdate),
     UpdateInstancedNode(ModuleId, GameInstanceId, WorldId, EntityUpdate),
+    ResetGameWorld(ModuleId, GameInstanceId, WorldId),
+    OverwriteSceneRoot(ResourcePath, GameNodeKind),
     RemoveInstanceNode(ModuleId, GameInstanceId, WorldId, Entity),
     AddNodeToInstanceNode(ModuleId, GameInstanceId, WorldId, Entity, GameNodeKind),
     DeleteScene(Scene),

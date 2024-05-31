@@ -250,6 +250,11 @@ impl GameNodeKind {
                                 .get(possible_instance_entity)
                                 .map(|s| s.path.clone()),
                             entity_id: Some(*possible_instance_entity),
+                            instance_resource_path: shared
+                                .entities
+                                .node_2d_instance_path
+                                .get(original_entity)
+                                .cloned(),
                             children,
                             data: Node2D {
                                 transform: transform.clone(),

@@ -9,8 +9,8 @@ use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, Chunk, GameMap, Gid, LayerKind, ModuleId, ResourceKind,
-    TerrainParams,
+    BlueprintError, BlueprintResource, Chunk, GameMap, Gid, JsonResource, LayerKind, ModuleId,
+    ResourceKind, TerrainParams,
 };
 use crate::core::blueprint::def::{Module, ResourcePath};
 use crate::core::blueprint::resource_loader::Blueprint;
@@ -74,8 +74,7 @@ impl AstCache {
     ) -> Result<(), ParseError> {
         debug!("{:?}", &script.content);
         engine.compile(&script.content).map(|ast| {
-            let script_resource_path =
-                format!("{}/{}.script.json", script.resource_path, script.name);
+            let script_resource_path = script.get_full_resource_path();
 
             self.init.remove(&script_resource_path);
             self.update.remove(&script_resource_path);

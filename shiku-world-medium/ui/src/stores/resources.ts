@@ -342,6 +342,11 @@ export const use_resources_store = defineStore("resources", () => {
         },
       });
     },
+    update_scene_root_with_node(resource_path: string, node: GameNodeKind) {
+      send_admin_event({
+        OverwriteSceneRoot: [resource_path, node],
+      });
+    },
     add_child_to_scene_on_server(
       resource_path: string,
       path: number[],
@@ -472,6 +477,7 @@ export function create_game_node(
         name: game_node_type,
         id: uuidv4(),
         entity_id: null,
+        instance_resource_path: null,
         data: {
           transform: {
             position: [0, 0],

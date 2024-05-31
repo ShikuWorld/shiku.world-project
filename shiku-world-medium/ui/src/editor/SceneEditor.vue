@@ -189,6 +189,7 @@ function on_instance_modal_save() {
         name: instance_name.value,
         id: uuidv4(),
         entity_id: null,
+        instance_resource_path: null,
         data: {
           kind: { Instance: instance_path.value },
           transform: {
