@@ -101,6 +101,7 @@ export class GameInstance {
           );
           return;
         }
+        this.renderer.layer_map.ObjectsBelow.removeChildren();
         this.renderer.layer_map.ObjectsBelow.addChild(root_container);
       })
       .with({ UpdateEntity: P.select() }, (entity_update) => {

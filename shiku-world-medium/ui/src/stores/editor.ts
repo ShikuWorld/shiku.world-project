@@ -192,6 +192,11 @@ export const use_editor_store = defineStore("editor", () => {
         StopInspectingWorld: [module_id, game_instance_id, world_id],
       });
     },
+    reset_world(module_id: string, instance_id: string, world_id: string) {
+      send_admin_event({
+        ResetGameWorld: [module_id, instance_id, world_id],
+      });
+    },
     save_conductor_server(conductor: Conductor) {
       send_admin_event({ UpdateConductor: conductor });
     },

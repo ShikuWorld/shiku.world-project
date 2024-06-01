@@ -182,7 +182,6 @@ export class ResourceManager {
   }
 
   get_graphics_data_by_gid(gid: number): Graphics {
-    console.log(gid, this.graphic_id_map);
     if (!this.graphic_id_map[gid]) {
       const [tileset, start_gid] = this._get_tileset_by_gid(gid);
 

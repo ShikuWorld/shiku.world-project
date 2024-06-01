@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::prelude::{ColliderHandle, Real};
-use rhai::{Dynamic, ParseError, Scope, AST};
+use rhai::Dynamic;
 use serde::{Deserialize, Serialize};
 use smartstring::{LazyCompact, SmartString};
 use ts_rs::TS;
@@ -10,7 +10,8 @@ use ts_rs::TS;
 use crate::core::ApiShare;
 use remove_entity::RemoveEntity;
 
-use crate::core::blueprint::def::{BlueprintError, Gid, LayerKind, ResourcePath};
+use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
+use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
 use crate::core::blueprint::scene::def::{
     Collider, GameNodeId, GameNodeKindClean, Node2DKindClean, NodeInstanceId, RenderKindClean,
     RigidBodyType, SceneId, Transform,
@@ -39,87 +40,7 @@ pub struct ECSShared {
     pub entity_counter: NodeInstanceId,
 }
 
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
-pub enum ScopeCacheValue {
-    String(String),
-    Number(f64),
-    Integer(i64),
-    Map(HashMap<String, ScopeCacheValue>),
-}
-
-impl ScopeCacheValue {
-    pub(crate) fn equals_dynamic_value(
-        scope_cache_value: &ScopeCacheValue,
-        dynamic_value: &Dynamic,
-    ) -> bool {
-        match scope_cache_value {
-            ScopeCacheValue::String(value) => {
-                if let Some(dynamic_value) = dynamic_value.read_lock::<String>() {
-                    *value == *dynamic_value
-                } else {
-                    false
-                }
-            }
-            ScopeCacheValue::Number(value) => {
-                if let Some(dynamic_value) = dynamic_value.read_lock::<f64>() {
-                    (value - *dynamic_value).abs() < 0.0001_f64
-                } else {
-                    false
-                }
-            }
-            ScopeCacheValue::Integer(value) => {
-                if let Some(dynamic_value) = dynamic_value.read_lock::<i64>() {
-                    *value == *dynamic_value
-                } else {
-                    false
-                }
-            }
-            ScopeCacheValue::Map(scope_cache_map) => {
-                if let Some(dynamic_map) = dynamic_value.read_lock::<DynamicMap>() {
-                    scope_cache_map.iter().all(|(key, cache_val)| {
-                        let smart_string: SmartString<LazyCompact> = key.into();
-                        match dynamic_map.get(&smart_string) {
-                            Some(dyn_val) => {
-                                ScopeCacheValue::equals_dynamic_value(cache_val, dyn_val)
-                            }
-                            None => false,
-                        }
-                    })
-                } else {
-                    false
-                }
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct GameNodeScript {
-    pub path: ResourcePath,
-    pub ast: AST,
-    pub entity: Entity,
-    pub scope_cache: HashMap<String, ScopeCacheValue>,
-    pub scope: Scope<'static>,
-    pub(crate) game_node_script_functions: GameNodeScriptFunctions,
-}
-
-#[derive(Debug)]
-pub struct GameNodeScriptFunctions {
-    pub init: bool,
-    pub update: bool,
-    pub actor_joined: bool,
-    pub actor_left: bool,
-    pub script_reload: bool,
-}
-
 pub type DynamicMap = BTreeMap<SmartString<LazyCompact>, Dynamic>;
-
-#[derive(Debug)]
-pub enum GameNodeScriptError {
-    BlueprintError(BlueprintError),
-    CompileError(ParseError),
-}
 
 #[derive(Debug, RemoveEntity)]
 pub struct EntityMaps {

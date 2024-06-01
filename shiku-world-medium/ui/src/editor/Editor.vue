@@ -63,6 +63,7 @@
             @world_click="select_as_main_instance"
           />
         </v-expansion-panel>
+        <v-btn @click="reset_selected_world">Reset selected world</v-btn>
         <v-btn @click="load_map_palette">Map palette</v-btn>
       </v-expansion-panels>
     </div>
@@ -165,10 +166,26 @@ const {
   set_selected_scene,
   remove_entity_server,
   add_entity_server,
+  reset_world,
 } = use_editor_store();
 const rhai_editor = ref<typeof RhaiEditor>();
 const selected_script_resource_path = ref<string | null>();
 const { game_instance_exists } = use_game_instances_store();
+
+const reset_selected_world = function () {
+  if (
+    selected_module_id.value &&
+    current_main_instance.value &&
+    current_main_instance.value.instance_id &&
+    current_main_instance.value.world_id
+  ) {
+    reset_world(
+      selected_module_id.value,
+      current_main_instance.value.instance_id,
+      current_main_instance.value.world_id,
+    );
+  }
+};
 
 const { game_instance_data_map } = storeToRefs(use_game_instances_store());
 

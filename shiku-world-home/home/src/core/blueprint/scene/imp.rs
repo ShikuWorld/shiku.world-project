@@ -2,7 +2,8 @@ use log::{debug, error};
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityUpdateKind, GameNodeScript, ECS};
+use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityUpdateKind, ECS};
+use crate::core::blueprint::ecs::game_node_script::GameNodeScript;
 use crate::core::blueprint::scene::def::{
     GameNode, GameNodeKind, GameNodeKindClean, Node2D, Node2DDud, Node2DKind, Node2DKindClean,
     Render, RenderKind, RenderKindClean, RigidBody, Scene,
@@ -218,18 +219,18 @@ impl GameNodeKind {
         entity_scripts: &HashMap<Entity, GameNodeScript>,
         shared: &ECSShared,
     ) -> Option<GameNodeKind> {
-        let mut possible_instance_entity = original_entity;
-        if let Some(root_entity) = shared.get_instance_root_entity(possible_instance_entity) {
-            possible_instance_entity = root_entity;
+        let mut possible_instance_root = original_entity;
+        if let Some(root_entity) = shared.get_instance_root_entity(possible_instance_root) {
+            possible_instance_root = root_entity;
         }
         if let (Some(node_kind), Some(node_id), Some(node_name), Some(node_children)) = (
-            shared.entities.game_node_kind.get(possible_instance_entity),
-            shared.entities.game_node_id.get(possible_instance_entity),
+            shared.entities.game_node_kind.get(possible_instance_root),
+            shared.entities.game_node_id.get(possible_instance_root),
             shared.entities.game_node_name.get(original_entity),
             shared
                 .entities
                 .game_node_children
-                .get(possible_instance_entity),
+                .get(possible_instance_root),
         ) {
             let children: Vec<GameNodeKind> = node_children
                 .iter()
@@ -240,16 +241,16 @@ impl GameNodeKind {
             match node_kind {
                 GameNodeKindClean::Node2D => {
                     if let (Some(node_2d_kind), Some(transform)) = (
-                        get_render_node_2d_kind_from_ecs(possible_instance_entity, &shared),
-                        shared.entities.transforms.get(original_entity),
+                        get_render_node_2d_kind_from_ecs(possible_instance_root, &shared),
+                        shared.entities.transforms.get(possible_instance_root),
                     ) {
                         return Some(GameNodeKind::Node2D(GameNode {
                             id: node_id.clone(),
                             name: node_name.clone(),
                             script: entity_scripts
-                                .get(possible_instance_entity)
+                                .get(possible_instance_root)
                                 .map(|s| s.path.clone()),
-                            entity_id: Some(*possible_instance_entity),
+                            entity_id: Some(*possible_instance_root),
                             instance_resource_path: shared
                                 .entities
                                 .node_2d_instance_path

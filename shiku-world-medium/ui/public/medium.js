@@ -40230,7 +40230,6 @@ ${e3}`);
       return sprite;
     }
     get_graphics_data_by_gid(gid) {
-      console.log(gid, this.graphic_id_map);
       if (!this.graphic_id_map[gid]) {
         const [tileset, start_gid] = this._get_tileset_by_gid(gid);
         const id_in_tileset = gid - start_gid;
@@ -40961,6 +40960,7 @@ ${e3}`);
           );
           return;
         }
+        this.renderer.layer_map.ObjectsBelow.removeChildren();
         this.renderer.layer_map.ObjectsBelow.addChild(root_container);
       }).with({ UpdateEntity: _.select() }, (entity_update) => {
         window.medium_gui.game_instances.apply_entity_update_for_instance(

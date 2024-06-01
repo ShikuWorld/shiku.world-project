@@ -19,6 +19,7 @@ pub struct TerrainPolyLine {
     pub id: PolyLineId,
     pub body_handle: RigidBodyHandle,
     pub collider_handle: ColliderHandle,
+    pub original_vertices: VecDeque<Vertex>,
     pub vertices: Vec<Point2<Real>>,
     pub tiles: HashSet<TilePosition>,
 }
@@ -145,6 +146,25 @@ impl TerrainManager {
             polyline_bookkeeping,
             pixel_to_meter_conversion,
         }
+    }
+
+    pub fn re_add_polylines(&mut self, physics: &mut RapierSimulation) {
+        let mut new_lines = HashMap::new();
+        for (id, polyline) in self.polyline_bookkeeping.lines.drain() {
+            new_lines.insert(
+                id,
+                Self::add_poly_to_physics(
+                    TerrainPolyLineBuilder {
+                        tiles: polyline.tiles,
+                        id: polyline.id,
+                        vertices: polyline.original_vertices,
+                    },
+                    physics,
+                    self.pixel_to_meter_conversion,
+                ),
+            );
+        }
+        self.polyline_bookkeeping.lines = new_lines;
     }
 
     pub fn update_collision_shape(
@@ -452,7 +472,7 @@ impl TerrainManager {
         physics: &mut RapierSimulation,
         pixel_to_meter_conversion: Real,
     ) -> TerrainPolyLine {
-        let mut vec = Vec::from(polyline_builder.vertices);
+        let mut vec = Vec::from(polyline_builder.vertices.clone());
         vec.dedup();
         let vertices: Vec<Point2<Real>> = vec
             .into_iter()
@@ -467,6 +487,7 @@ impl TerrainManager {
         TerrainPolyLine {
             id: polyline_builder.id,
             vertices,
+            original_vertices: polyline_builder.vertices,
             tiles: polyline_builder.tiles,
             body_handle,
             collider_handle,

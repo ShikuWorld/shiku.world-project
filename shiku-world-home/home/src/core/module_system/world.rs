@@ -5,11 +5,12 @@ use rhai::{Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpdate, ECS};
+use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
 use crate::core::guest::ActorId;
 use crate::core::module::GuestInput;
-use crate::core::module_system::error::CreateWorldError;
+use crate::core::module_system::error::{CreateWorldError, ResetWorldError};
 use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::ApiShare;
@@ -68,7 +69,7 @@ impl World {
             actor_inputs: HashMap::new(),
             active_users: HashSet::new(),
         });
-        Self::setup_input_scripting_api(&mut script_engine, &actor_api);
+        Self::setup_actor_api(&mut script_engine, &actor_api);
         Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
         Ok(World {
             world_id: game_map.world_id.clone(),
@@ -81,55 +82,63 @@ impl World {
         })
     }
 
-    pub fn reset(
-        &mut self,
-        game_map: &GameMap,
-        collision_shape_map: &HashMap<Gid, CollisionShape>,
-    ) -> Result<World, CreateWorldError> {
+    pub fn update(&mut self) {
+        if let Some(mut physics) = self.physics.try_borrow_mut() {
+            physics.update();
+            if let Some(mut shared) = self.ecs.shared.try_borrow_mut() {
+                Self::update_positions(&mut physics, &mut shared);
+            }
+        }
+        for game_node_script in self.ecs.entity_scripts.values_mut() {
+            game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
+        }
+        self.ecs.process_added_and_removed_entities();
+    }
+
+    pub fn reset(&mut self) -> Result<(), ResetWorldError> {
+        let game_map = Blueprint::load_map(self.game_map_path.clone().into())?;
         let world_scene = Blueprint::load_scene(game_map.main_scene.clone().into())?;
+
         let mut ecs = ECS::from(&world_scene);
         let mut physics = RapierSimulation::new();
-        let terrain_manager = TerrainManager::new(
-            TerrainParams {
-                chunk_size: game_map.chunk_size,
-                tile_height: game_map.tile_height,
-                tile_width: game_map.tile_width,
-            },
-            game_map.terrain.clone(),
-            collision_shape_map,
-            &mut physics,
-        );
         Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
-
-        let mut script_engine = Engine::new();
+        self.terrain_manager.re_add_polylines(&mut physics);
         let physics_share = ApiShare::new(physics);
+        let mut script_engine = Engine::new();
         Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
-        let actor_api = ApiShare::new(ActorApi {
-            actor_inputs: HashMap::new(),
-            active_users: HashSet::new(),
-        });
-        Self::setup_input_scripting_api(&mut script_engine, &actor_api);
+        Self::setup_actor_api(&mut script_engine, &self.actor_api);
+        ecs.process_added_and_removed_entities();
         Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
-        Ok(World {
-            world_id: game_map.world_id.clone(),
-            physics: physics_share,
-            game_map_path: game_map.get_full_resource_path(),
-            actor_api,
-            terrain_manager,
-            ecs,
-            script_engine,
-        })
+        self.ecs = ecs;
+        self.physics = physics_share;
+        self.script_engine = script_engine;
+
+        Ok(())
     }
 
-    pub fn actor_joined_world(&mut self, actor_id: &ActorId) {
+    pub fn actor_joined_world(&mut self, actor_id: ActorId) {
+        if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
+            actor_api.active_users.insert(actor_id);
+        }
         for game_node_script in self.ecs.entity_scripts.values_mut() {
-            game_node_script.call_actor_joined(&self.script_engine, actor_id);
+            game_node_script.call(
+                GameNodeScriptFunction::ActorJoined,
+                &self.script_engine,
+                (actor_id,),
+            );
         }
     }
 
-    pub fn actor_left_world(&mut self, actor_id: &ActorId) {
+    pub fn actor_left_world(&mut self, actor_id: ActorId) {
+        if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
+            actor_api.active_users.remove(&actor_id);
+        }
         for game_node_script in self.ecs.entity_scripts.values_mut() {
-            game_node_script.call_actor_left(&self.script_engine, actor_id);
+            game_node_script.call(
+                GameNodeScriptFunction::ActorLeft,
+                &self.script_engine,
+                (actor_id,),
+            );
         }
     }
 
@@ -197,7 +206,7 @@ impl World {
         engine.register_static_module("shiku::physics", module.into());
     }
 
-    fn setup_input_scripting_api(engine: &mut Engine, actor_api_share: &ApiShare<ActorApi>) {
+    fn setup_actor_api(engine: &mut Engine, actor_api_share: &ApiShare<ActorApi>) {
         let mut module = RhaiModule::new();
         let actor_api_share_clone = actor_api_share.clone();
         FuncRegistration::new("is_key_down").set_into_module(
@@ -223,7 +232,7 @@ impl World {
         let actor_api_share_clone = actor_api_share.clone();
         FuncRegistration::new("get_active_actors").set_into_module(
             &mut module,
-            move || -> Vec<ActorId> {
+            move || -> Vec<Dynamic> {
                 actor_api_share_clone
                     .try_borrow_mut()
                     .map(|actor_api| {
@@ -231,25 +240,13 @@ impl World {
                             .active_users
                             .iter()
                             .cloned()
-                            .collect::<Vec<ActorId>>()
+                            .map(Dynamic::from)
+                            .collect::<Vec<Dynamic>>()
                     })
                     .unwrap_or_default()
             },
         );
-        engine.register_static_module("shiku::input", module.into());
-    }
-
-    pub fn update(&mut self) {
-        if let Some(mut physics) = self.physics.try_borrow_mut() {
-            physics.update();
-            if let Some(mut shared) = self.ecs.shared.try_borrow_mut() {
-                Self::update_positions(&mut physics, &mut shared);
-            }
-        }
-        for game_node_script in self.ecs.entity_scripts.values_mut() {
-            game_node_script.call_update(&self.script_engine);
-        }
-        self.ecs.update();
+        engine.register_static_module("shiku::actors", module.into());
     }
 
     fn update_positions(physics: &mut RapierSimulation, shared: &mut ECSShared) {
@@ -268,7 +265,7 @@ impl World {
 
     fn call_init_func_on_game_nodes(script_engine: &Engine, ecs: &mut ECS) {
         for game_node_script in ecs.entity_scripts.values_mut() {
-            game_node_script.call_init(script_engine);
+            game_node_script.call(GameNodeScriptFunction::Init, script_engine, ());
         }
     }
 

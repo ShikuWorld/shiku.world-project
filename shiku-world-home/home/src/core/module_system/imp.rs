@@ -21,7 +21,7 @@ use crate::core::module::{GuestInput, GuestToModuleEvent};
 use crate::core::module_system::def::{
     DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication, ModuleGuest,
 };
-use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
+use crate::core::module_system::error::{CreateWorldError, DestroyWorldError, ResetWorldError};
 use crate::core::module_system::game_instance::{AstCache, GameInstanceId};
 use crate::core::module_system::world::{World, WorldId};
 use crate::core::{send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
@@ -118,12 +118,12 @@ impl DynamicGameModule {
         Ok(game_map.world_id.clone())
     }
 
-    pub fn reset_world(&mut self, world_id: &WorldId) -> Result<WorldId, CreateWorldError> {
-        if let Some(world_map) = self.world_map.get_mut(world_id) {
-            debug!("{:?}", world_map.world_id);
+    pub fn reset_world(&mut self, world_id: &WorldId) -> Result<(), ResetWorldError> {
+        if let Some(world) = self.world_map.get_mut(world_id) {
+            return world.reset();
         }
 
-        Ok(world_id.clone())
+        Err(ResetWorldError::CouldNotFindWorld)
     }
 
     pub fn remove_script(&mut self, resource_path: &ResourcePath) {
@@ -497,6 +497,7 @@ impl DynamicGameModule {
                             world_id,
                             module.id.clone(),
                             false,
+                            true,
                         );
                     }
                 }
@@ -512,6 +513,7 @@ impl DynamicGameModule {
         admin_id: ActorId,
         world_id: &WorldId,
         module_id: ModuleId,
+        send_terrain: bool,
     ) {
         Self::send_initial_world_events(
             &mut self
@@ -524,6 +526,7 @@ impl DynamicGameModule {
             world_id,
             module_id,
             true,
+            send_terrain,
         );
     }
 
@@ -535,21 +538,24 @@ impl DynamicGameModule {
         world_id: &WorldId,
         module_id: ModuleId,
         is_admin: bool,
+        send_terrain: bool,
     ) {
-        if let Some(initial_terrain_event) = Self::get_initial_terrain_event(
-            world_map,
-            module_id.clone(),
-            instance_id.clone(),
-            world_id,
-            is_admin,
-        ) {
-            send_and_log_error(
-                sender,
-                GuestEvent {
-                    guest_id: actor_id,
-                    event_type: initial_terrain_event,
-                },
-            );
+        if send_terrain {
+            if let Some(initial_terrain_event) = Self::get_initial_terrain_event(
+                world_map,
+                module_id.clone(),
+                instance_id.clone(),
+                world_id,
+                is_admin,
+            ) {
+                send_and_log_error(
+                    sender,
+                    GuestEvent {
+                        guest_id: actor_id,
+                        event_type: initial_terrain_event,
+                    },
+                );
+            }
         }
         if let Some(world) = world_map.get(world_id) {
             if is_admin {
@@ -660,7 +666,7 @@ impl DynamicGameModule {
         });
 
         if let Some(world) = self.world_map.get_mut(&world_id) {
-            world.actor_joined_world(&admin.id);
+            world.actor_joined_world(admin.id);
         }
 
         Ok(EnterSuccessState::Entered)
@@ -678,7 +684,7 @@ impl DynamicGameModule {
             self.admin_to_world.remove(&admin.id);
         }
         if let Some(world) = self.world_map.get_mut(&world_id) {
-            world.actor_left_world(&admin.id);
+            world.actor_left_world(admin.id);
         }
 
         Ok(LeaveSuccessState::Left)

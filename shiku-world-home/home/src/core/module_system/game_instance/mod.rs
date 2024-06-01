@@ -13,6 +13,7 @@ use crate::core::blueprint::def::{
     ResourceKind, TerrainParams,
 };
 use crate::core::blueprint::def::{Module, ResourcePath};
+use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, Script};
 use crate::core::guest::{ActorId, Admin, Guest, ModuleEnterSlot};
@@ -345,7 +346,11 @@ impl GameInstanceManager {
                                 script_reset = true;
                                 game_node_script
                                     .reset_from_new_ast(&world.script_engine, ast.clone());
-                                game_node_script.call_script_reload(&world.script_engine);
+                                game_node_script.call(
+                                    GameNodeScriptFunction::ScriptReload,
+                                    &world.script_engine,
+                                    (),
+                                );
                             }
                         }
                         if script_reset {

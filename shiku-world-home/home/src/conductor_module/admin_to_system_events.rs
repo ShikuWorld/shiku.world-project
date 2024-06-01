@@ -27,6 +27,7 @@ use crate::core::module::{
     SceneNodeUpdate, TilesetUpdate,
 };
 use crate::core::module_system::def::DynamicGameModule;
+use crate::core::module_system::error::ResetWorldError;
 use crate::core::module_system::game_instance::{GameInstance, GameInstanceManager};
 use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
@@ -117,7 +118,22 @@ pub async fn handle_admin_to_system_event(
         AdminToSystemEvent::ResetGameWorld(module_id, instance_id, world_id) => {
             if let Some(module) = module_map.get_mut(&module_id) {
                 if let Some(instance) = module.game_instances.get_mut(&instance_id) {
-                    instance.dynamic_module.reset_world(&world_id);
+                    match instance.dynamic_module.reset_world(&world_id) {
+                        Ok(()) => {
+                            instance.dynamic_module.send_initial_world_events_admin(
+                                admin.id,
+                                &world_id,
+                                module_id.clone(),
+                                false,
+                            );
+                        }
+                        Err(err) => {
+                            error!(
+                                "Could not reset world {:?} {:?} {:?}: {:?}",
+                                module_id, instance_id, world_id, err
+                            );
+                        }
+                    }
                 }
             }
         }
@@ -171,6 +187,7 @@ pub async fn handle_admin_to_system_event(
                     admin.id,
                     &world_id,
                     module_id.clone(),
+                    true,
                 );
             }
         }
