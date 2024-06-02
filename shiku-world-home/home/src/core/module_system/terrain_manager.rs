@@ -56,6 +56,7 @@ struct TerrainGridTile {
 impl TerrainGridTile {
     pub fn vertex_in_polygon(vertices: &RingVec<Vertex>, (x, y): Vertex) -> bool {
         let num_vertices = vertices.len() as isize;
+        let mut intersection_points = HashSet::new();
         let mut inside = false;
 
         let (mut p1_x, mut p1_y) = vertices[0];
@@ -71,12 +72,18 @@ impl TerrainGridTile {
                 if x == x_intersection {
                     return true;
                 }
-                if p1_x == p2_x || x < x_intersection {
+                if (p1_x == p2_x || x < x_intersection)
+                    && intersection_points.insert((x_intersection, y))
+                {
                     inside = !inside;
                 }
             }
             p1_x = p2_x;
             p1_y = p2_y;
+        }
+
+        if inside {
+            println!("Point {:?} is inside polygon {:?}", (x, y), vertices);
         }
 
         inside
@@ -465,6 +472,10 @@ impl TerrainManager {
 
             open_edge_option = polyline_bookkeeping.open_edges.keys().next().copied();
         }
+        debug!(
+            "Finished calculating polylines {:?}",
+            polyline_bookkeeping.lines
+        );
     }
 
     fn add_poly_to_physics(
@@ -509,7 +520,6 @@ impl TerrainManager {
                 if e.1 == next_edge.0 && !t.edge_to_polyline_map.contains_key(&next_edge) {
                     return Some((next_edge, e_i + 1));
                 }
-
                 None
             }
         } else {
@@ -518,7 +528,6 @@ impl TerrainManager {
                 if e.0 == next_edge.1 && !t.edge_to_polyline_map.contains_key(&next_edge) {
                     return Some((next_edge, e_i - 1));
                 }
-
                 None
             }
         };
@@ -651,6 +660,7 @@ impl TerrainManager {
         (x, y): &TilePosition,
         terrain_grid: &HashMap<TilePosition, TerrainGridTile>,
     ) -> bool {
+        debug!("Checking edge {:?} on tile {:?}", edge, (x, y));
         let left_touching = terrain_grid
             .get(&(x - 1, *y))
             .map(|tile| Self::is_surface_touching_polygon(edge, tile))
@@ -667,6 +677,17 @@ impl TerrainManager {
             .get(&(*x, y + 1))
             .map(|tile| Self::is_surface_touching_polygon(edge, tile))
             .unwrap_or_default();
+        if left_touching || right_touching || top_touching || bottom_touch {
+            debug!(
+                "Edge {:?} on tile {:?} is touching left: {}, right: {}, top: {}, bottom: {}",
+                edge,
+                (x, y),
+                left_touching,
+                right_touching,
+                top_touching,
+                bottom_touch
+            );
+        }
 
         !left_touching && !right_touching && !top_touching && !bottom_touch
     }
@@ -810,5 +831,12 @@ mod tests {
         assert!(TerrainGridTile::vertex_in_polygon(&vertices, (0, 4)));
         assert!(!TerrainGridTile::vertex_in_polygon(&vertices, (7, 3)));
         assert!(!TerrainGridTile::vertex_in_polygon(&vertices, (3, 4)));
+    }
+
+    #[test]
+    fn test_terrain_bug_1() {
+        let vertices = RingVec::from(vec![(32, 2), (32, 16), (16, 16), (16, 3)]);
+
+        assert!(!TerrainGridTile::vertex_in_polygon(&vertices, (0, 3)));
     }
 }

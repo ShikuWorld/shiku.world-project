@@ -345,6 +345,8 @@ impl RapierSimulation {
     pub fn add_dynamic_rigid_body(&mut self, pos_x: Real, pos_y: Real) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::dynamic()
             .translation(Vector::new(pos_x, pos_y))
+            .ccd_enabled(true)
+            .can_sleep(false)
             .linear_damping(0.5)
             .build();
 
