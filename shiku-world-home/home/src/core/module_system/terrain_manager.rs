@@ -55,6 +55,18 @@ struct TerrainGridTile {
 
 impl TerrainGridTile {
     pub fn vertex_in_polygon(vertices: &RingVec<Vertex>, (x, y): Vertex) -> bool {
+        println!(
+            "Checking if point {:?} is inside polygon {:?}",
+            (x, y),
+            vertices
+        );
+        let min_x = *vertices.data.iter().map(|(x, _)| x).min().unwrap();
+        let max_x = *vertices.data.iter().map(|(x, _)| x).max().unwrap();
+
+        if x < min_x || x > max_x {
+            return false;
+        }
+
         let num_vertices = vertices.len() as isize;
         let mut intersection_points = HashSet::new();
         let mut inside = false;
@@ -64,17 +76,25 @@ impl TerrainGridTile {
         for i in 1..=num_vertices {
             p2_x = vertices[i].0;
             p2_y = vertices[i].1;
+            println!("current_edge: {:?} - {:?}", (p1_x, p1_y), (p2_x, p2_y));
             if y >= p1_y.min(p2_y) && y <= p1_y.max(p2_y) && x <= p1_x.max(p2_x) {
                 if p2_y == p1_y && y == p1_y {
+                    println!("parallel");
                     return x >= p1_x.min(p2_x) && x <= p1_x.max(p2_x);
                 }
                 let x_intersection = ((y - p1_y) * (p2_x - p1_x)) / (p2_y - p1_y) + p1_x;
                 if x == x_intersection {
+                    println!("exactly on x inter");
                     return true;
                 }
+                if intersection_points.contains(&(x_intersection, y)) {
+                    println!("already intersected");
+                }
+
                 if (p1_x == p2_x || x < x_intersection)
                     && intersection_points.insert((x_intersection, y))
                 {
+                    println!("inserting intersection point {:?}", (x_intersection, y));
                     inside = !inside;
                 }
             }
@@ -834,9 +854,16 @@ mod tests {
     }
 
     #[test]
-    fn test_terrain_bug_1() {
+    fn vertex_in_polygon_bug_2() {
         let vertices = RingVec::from(vec![(32, 2), (32, 16), (16, 16), (16, 3)]);
 
         assert!(!TerrainGridTile::vertex_in_polygon(&vertices, (0, 3)));
+    }
+
+    #[test]
+    fn vertex_in_polygon_bug_3() {
+        let vertices = RingVec::from(vec![(16, 0), (29, 0), (29, 9), (16, 15)]);
+
+        assert!(!TerrainGridTile::vertex_in_polygon(&vertices, (0, 15)));
     }
 }
