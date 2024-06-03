@@ -40348,6 +40348,132 @@ ${e3}`);
     ).exhaustive();
   }
 
+  // client/renderer/grid.ts
+  function adjust_selected_tile_size(renderer, brush) {
+    if (renderer.grid) {
+      const height = brush.length;
+      const width = brush[0].length;
+      renderer.grid.grid_container.removeChild(renderer.grid.selected_tile);
+      renderer.grid.selected_tile = new Graphics().rect(
+        0,
+        0,
+        renderer.terrain_params.tile_width * width,
+        renderer.terrain_params.tile_height * height
+      ).fill({
+        color: "#9999ff",
+        alpha: 0.5
+      });
+      renderer.grid.grid_container.addChild(renderer.grid.selected_tile);
+    }
+  }
+  function show_grid(renderer_system, renderer) {
+    if (!renderer.grid) {
+      const textureSource = new TextureSource({
+        width: renderer.terrain_params.tile_width,
+        height: renderer.terrain_params.tile_height
+      });
+      const renderTexture = new RenderTexture({ source: textureSource });
+      const graphics = new Graphics().rect(0, 0, 1, renderer.terrain_params.tile_height).rect(0, 0, renderer.terrain_params.tile_width, 1).fill({
+        color: "#ffffff",
+        alpha: 0.5
+      });
+      renderer_system.renderer.render({
+        target: renderTexture,
+        container: graphics
+      });
+      const selected_tile = new Graphics().rect(
+        0,
+        0,
+        renderer.terrain_params.tile_width,
+        renderer.terrain_params.tile_height
+      ).fill({
+        color: "#9999ff",
+        alpha: 0.5
+      });
+      const grid = {
+        sprite: new TilingSprite({
+          texture: renderTexture,
+          height: renderer.terrain_params.tile_height * 100,
+          width: renderer.terrain_params.tile_width * 100
+        }),
+        grid_container: new Container(),
+        scaling: { x: 1, y: 1 },
+        last_mouse_move_position: { x: 0, y: 0 },
+        selected_tile
+      };
+      let middle_click_start = null;
+      grid.grid_container.addChild(grid.sprite);
+      grid.grid_container.interactive = true;
+      grid.grid_container.on("pointerdown", (mouse_event) => {
+        N2(mouse_event.button).with(0, () => {
+          const [x3, y3] = [
+            -(grid.sprite.tilePosition.x - grid.selected_tile.x) / renderer.terrain_params.tile_width,
+            -(grid.sprite.tilePosition.y - grid.selected_tile.y) / renderer.terrain_params.tile_height
+          ];
+          window.medium_gui.editor.select_tile_position({ x: x3, y: y3 - 1 });
+        }).with(1, () => {
+          middle_click_start = {
+            click_start: { x: mouse_event.x, y: mouse_event.y },
+            camera_iso_start: { ...renderer.camera.camera_isometry }
+          };
+        }).otherwise(() => {
+        });
+      });
+      grid.grid_container.on("pointerup", (mouse_event) => {
+        N2(mouse_event.button).with(1, () => {
+          middle_click_start = null;
+        }).otherwise(() => {
+        });
+      });
+      grid.grid_container.addChild(selected_tile);
+      renderer_system.global_mouse_position.sub((mouse_event) => {
+        if (middle_click_start) {
+          const diff = {
+            x: mouse_event.x - middle_click_start.click_start.x,
+            y: mouse_event.y - middle_click_start.click_start.y
+          };
+          renderer.camera.update_camera_position({
+            x: middle_click_start.camera_iso_start.x - diff.x,
+            y: middle_click_start.camera_iso_start.y - diff.y,
+            rotation: middle_click_start.camera_iso_start.rotation
+          });
+        }
+        grid.last_mouse_move_position = mouse_event;
+        update_tile_position(renderer);
+      });
+      renderer.grid = grid;
+    }
+    renderer.main_container.addChild(renderer.grid.grid_container);
+  }
+  function update_tile_position(renderer) {
+    const grid = renderer.grid;
+    if (!grid) {
+      return;
+    }
+    const localPosition = grid.grid_container.toLocal(grid.sprite.tilePosition);
+    const diff = {
+      x: localPosition.x - grid.last_mouse_move_position.x,
+      y: localPosition.y - grid.last_mouse_move_position.y
+    };
+    grid.selected_tile.x = localPosition.x - Math.floor(
+      (diff.x + renderer.terrain_params.tile_width) / renderer.terrain_params.tile_width
+    ) * renderer.terrain_params.tile_width;
+    grid.selected_tile.y = localPosition.y - Math.floor(
+      (diff.y + renderer.terrain_params.tile_height) / renderer.terrain_params.tile_height
+    ) * renderer.terrain_params.tile_height;
+  }
+  function update_grid(camera_isometry, renderer) {
+    if (renderer.grid) {
+      const new_iso = camera_iso_to_scaled_viewport(camera_isometry, {
+        y_pscaling: renderer.grid.scaling.y,
+        x_pscaling: renderer.grid.scaling.x
+      });
+      renderer.grid.sprite.tilePosition.x = new_iso.x;
+      renderer.grid.sprite.tilePosition.y = new_iso.y;
+      update_tile_position(renderer);
+    }
+  }
+
   // client/api/index.ts
   var setup_medium_api = (communication_state, instances, resource_manager_map, render_system) => {
     window.medium = {
@@ -40357,6 +40483,14 @@ ${e3}`);
       create_collider_graphic,
       set_blueprint_renderer: (blueprint_render_data) => {
         set_blueprint_render(render_system, instances, blueprint_render_data);
+      },
+      adjust_brush_hover: (instance_id, world_id, brush) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          adjust_selected_tile_size(
+            instances[instance_id][world_id].renderer,
+            brush
+          );
+        }
       },
       create_container: () => new Container(),
       get_resource_manager: (module_id) => {
@@ -40783,115 +40917,6 @@ ${e3}`);
       return (xx + yy) * (xx + yy + 1) / 2 + yy;
     }
   };
-
-  // client/renderer/grid.ts
-  function show_grid(renderer_system, renderer) {
-    if (!renderer.grid) {
-      const textureSource = new TextureSource({
-        width: renderer.terrain_params.tile_width,
-        height: renderer.terrain_params.tile_height
-      });
-      const renderTexture = new RenderTexture({ source: textureSource });
-      const graphics = new Graphics().rect(0, 0, 1, renderer.terrain_params.tile_height).rect(0, 0, renderer.terrain_params.tile_width, 1).fill({
-        color: "#ffffff",
-        alpha: 0.5
-      });
-      renderer_system.renderer.render({
-        target: renderTexture,
-        container: graphics
-      });
-      const selected_tile = new Graphics().rect(
-        0,
-        0,
-        renderer.terrain_params.tile_width,
-        renderer.terrain_params.tile_height
-      ).fill({
-        color: "#9999ff",
-        alpha: 0.5
-      });
-      const grid = {
-        sprite: new TilingSprite({
-          texture: renderTexture,
-          height: renderer.terrain_params.tile_height * 100,
-          width: renderer.terrain_params.tile_width * 100
-        }),
-        grid_container: new Container(),
-        scaling: { x: 1, y: 1 },
-        last_mouse_move_position: { x: 0, y: 0 },
-        selected_tile
-      };
-      let middle_click_start = null;
-      grid.grid_container.addChild(grid.sprite);
-      grid.grid_container.interactive = true;
-      grid.grid_container.on("pointerdown", (mouse_event) => {
-        N2(mouse_event.button).with(0, () => {
-          const [x3, y3] = [
-            -(grid.sprite.tilePosition.x - grid.selected_tile.x) / renderer.terrain_params.tile_width,
-            -(grid.sprite.tilePosition.y - grid.selected_tile.y) / renderer.terrain_params.tile_height
-          ];
-          window.medium_gui.editor.select_tile_position({ x: x3, y: y3 - 1 });
-        }).with(1, () => {
-          middle_click_start = {
-            click_start: { x: mouse_event.x, y: mouse_event.y },
-            camera_iso_start: { ...renderer.camera.camera_isometry }
-          };
-        }).otherwise(() => {
-        });
-      });
-      grid.grid_container.on("pointerup", (mouse_event) => {
-        N2(mouse_event.button).with(1, () => {
-          middle_click_start = null;
-        }).otherwise(() => {
-        });
-      });
-      grid.grid_container.addChild(selected_tile);
-      renderer_system.global_mouse_position.sub((mouse_event) => {
-        if (middle_click_start) {
-          const diff = {
-            x: mouse_event.x - middle_click_start.click_start.x,
-            y: mouse_event.y - middle_click_start.click_start.y
-          };
-          renderer.camera.update_camera_position({
-            x: middle_click_start.camera_iso_start.x - diff.x,
-            y: middle_click_start.camera_iso_start.y - diff.y,
-            rotation: middle_click_start.camera_iso_start.rotation
-          });
-        }
-        grid.last_mouse_move_position = mouse_event;
-        update_tile_position(renderer);
-      });
-      renderer.grid = grid;
-    }
-    renderer.main_container.addChild(renderer.grid.grid_container);
-  }
-  function update_tile_position(renderer) {
-    const grid = renderer.grid;
-    if (!grid) {
-      return;
-    }
-    const localPosition = grid.grid_container.toLocal(grid.sprite.tilePosition);
-    const diff = {
-      x: localPosition.x - grid.last_mouse_move_position.x,
-      y: localPosition.y - grid.last_mouse_move_position.y
-    };
-    grid.selected_tile.x = localPosition.x - Math.floor(
-      (diff.x + renderer.terrain_params.tile_width) / renderer.terrain_params.tile_width
-    ) * renderer.terrain_params.tile_width;
-    grid.selected_tile.y = localPosition.y - Math.floor(
-      (diff.y + renderer.terrain_params.tile_height) / renderer.terrain_params.tile_height
-    ) * renderer.terrain_params.tile_height;
-  }
-  function update_grid(camera_isometry, renderer) {
-    if (renderer.grid) {
-      const new_iso = camera_iso_to_scaled_viewport(camera_isometry, {
-        y_pscaling: renderer.grid.scaling.y,
-        x_pscaling: renderer.grid.scaling.x
-      });
-      renderer.grid.sprite.tilePosition.x = new_iso.x;
-      renderer.grid.sprite.tilePosition.y = new_iso.y;
-      update_tile_position(renderer);
-    }
-  }
 
   // client/game-instance.ts
   var collision_graphic_colors = [

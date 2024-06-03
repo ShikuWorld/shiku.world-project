@@ -7,6 +7,11 @@ export const use_medium_api = (): typeof window.medium =>
     ? window.medium
     : {
         create_collider_graphic: () => [new Graphics(), 1, 2],
+        adjust_grid_tile_size: (
+          _instance_id: string,
+          _world_id: string,
+          _size: number,
+        ) => {},
         create_container: () => new Container(),
         set_blueprint_renderer: () => {},
         create_display_object: () => new Container(),

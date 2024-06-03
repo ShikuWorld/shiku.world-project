@@ -10,6 +10,29 @@ import { Isometry } from "@/client/entities";
 import { camera_iso_to_scaled_viewport } from "@/client/camera";
 import { match } from "ts-pattern";
 
+export function adjust_selected_tile_size(
+  renderer: InstanceRendering,
+  brush: number[][],
+) {
+  if (renderer.grid) {
+    const height = brush.length;
+    const width = brush[0].length;
+    renderer.grid.grid_container.removeChild(renderer.grid.selected_tile);
+    renderer.grid.selected_tile = new Graphics()
+      .rect(
+        0,
+        0,
+        renderer.terrain_params.tile_width * width,
+        renderer.terrain_params.tile_height * height,
+      )
+      .fill({
+        color: "#9999ff",
+        alpha: 0.5,
+      });
+    renderer.grid.grid_container.addChild(renderer.grid.selected_tile);
+  }
+}
+
 export function show_grid(
   renderer_system: RenderSystem,
   renderer: InstanceRendering,

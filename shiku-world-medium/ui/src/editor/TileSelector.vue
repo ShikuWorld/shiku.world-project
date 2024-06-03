@@ -9,6 +9,12 @@
         variant="flat"
         :active="eraser_active"
       ></v-btn>
+      <v-select
+        label="Size"
+        :model-value="selected_brush_size"
+        @update:model-value="set_selected_brush_size"
+        :items="brush_sizes"
+      ></v-select>
     </div>
     <v-tabs v-model="tab" bg-color="primary">
       <v-tab
@@ -42,10 +48,53 @@ import { Point, tileset_key, use_editor_store } from "@/editor/stores/editor";
 import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
 import { mdiEraserVariant } from "@mdi/js";
 import { storeToRefs } from "pinia";
+import { match } from "ts-pattern";
 
+type BrushSize = "1x1" | "2x2" | "3x3" | "5x5";
 const { set_tile_brush } = use_editor_store();
 const { tile_brush } = storeToRefs(use_editor_store());
 const tab = ref<string>();
+const selected_brush_size = ref<BrushSize>("1x1");
+const brush_sizes: BrushSize[] = ["1x1", "2x2", "3x3", "5x5"];
+function set_selected_brush_size(size: BrushSize) {
+  selected_brush_size.value = size;
+  if (gids_inside_brush.value.length === 1) {
+    const single_gid = gids_inside_brush.value[0];
+    set_tile_brush(
+      create_brush_with_gid(single_gid, brush_size_as_number.value),
+    );
+  }
+}
+
+const gids_inside_brush = computed(() => {
+  const gids = new Set<number>();
+  for (const row of tile_brush.value) {
+    for (const gid of row) {
+      gids.add(gid);
+    }
+  }
+  return Array.from(gids);
+});
+
+const brush_size_as_number = computed(() =>
+  match(selected_brush_size.value)
+    .with("1x1", () => 1)
+    .with("2x2", () => 2)
+    .with("3x3", () => 3)
+    .with("5x5", () => 5)
+    .exhaustive(),
+);
+
+function create_brush_with_gid(gid: number, size: number): number[][] {
+  const brush: number[][] = [];
+  for (let i = 0; i < size; i++) {
+    brush.push([]);
+    for (let j = 0; j < size; j++) {
+      brush[i].push(gid);
+    }
+  }
+  return brush;
+}
 
 const props = defineProps<{ tilesets: Tileset[] }>();
 const { tilesets } = toRefs(props);
@@ -76,11 +125,12 @@ function on_tile_selection(
   g_ids: number[][],
   _tileset_key: string,
 ) {
+  selected_brush_size.value = "1x1";
   set_tile_brush(g_ids);
 }
 
 function reset_brush() {
-  set_tile_brush([[0]]);
+  set_tile_brush(create_brush_with_gid(0, brush_size_as_number.value));
 }
 
 watch(tilesets, () => {

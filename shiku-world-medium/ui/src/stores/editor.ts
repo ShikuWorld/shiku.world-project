@@ -64,6 +64,16 @@ export const use_editor_store = defineStore("editor", () => {
   const actions = {
     set_tile_brush(brush: number[][]) {
       state.tile_brush = brush;
+      if (
+        state.current_main_instance.instance_id &&
+        state.current_main_instance.world_id
+      ) {
+        window.medium.adjust_brush_hover(
+          state.current_main_instance.instance_id,
+          state.current_main_instance.world_id,
+          brush,
+        );
+      }
     },
     select_tile_position(tile_position: { x: number; y: number }) {
       state.selected_tile_position = tile_position;

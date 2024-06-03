@@ -29,6 +29,11 @@ declare global {
       set_blueprint_renderer: (
         blueprint_render_data: GameInstancesStore["blueprint_render"],
       ) => void;
+      adjust_brush_hover: (
+        instance_id: string,
+        world_id: string,
+        brush: number[][],
+      ) => void;
       create_display_object: typeof create_display_object;
       create_collider_graphic: typeof create_collider_graphic;
       create_container: () => Container;

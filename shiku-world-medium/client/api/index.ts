@@ -9,6 +9,7 @@ import {
 } from "@/client/resources";
 import { Container } from "pixi.js";
 import { set_blueprint_render } from "@/client/renderer/create_game_renderer";
+import { adjust_selected_tile_size } from "@/client/renderer/grid";
 
 export const setup_medium_api = (
   communication_state: CommunicationState,
@@ -24,6 +25,18 @@ export const setup_medium_api = (
     create_collider_graphic,
     set_blueprint_renderer: (blueprint_render_data) => {
       set_blueprint_render(render_system, instances, blueprint_render_data);
+    },
+    adjust_brush_hover: (
+      instance_id: string,
+      world_id: string,
+      brush: number[][],
+    ) => {
+      if (instances[instance_id] && instances[instance_id][world_id]) {
+        adjust_selected_tile_size(
+          instances[instance_id][world_id].renderer,
+          brush,
+        );
+      }
     },
     create_container: () => new Container(),
     get_resource_manager: (module_id) => {
