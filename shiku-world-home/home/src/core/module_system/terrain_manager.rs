@@ -68,7 +68,6 @@ impl TerrainGridTile {
         }
 
         let num_vertices = vertices.len() as isize;
-        let mut intersection_points = HashSet::new();
         let mut inside = false;
 
         let (mut p1_x, mut p1_y) = vertices[0];
@@ -87,13 +86,8 @@ impl TerrainGridTile {
                     println!("exactly on x inter");
                     return true;
                 }
-                if intersection_points.contains(&(x_intersection, y)) {
-                    println!("already intersected");
-                }
 
-                if (p1_x == p2_x || x < x_intersection)
-                    && intersection_points.insert((x_intersection, y))
-                {
+                if p1_x == p2_x || x < x_intersection {
                     println!("inserting intersection point {:?}", (x_intersection, y));
                     inside = !inside;
                 }

@@ -57,6 +57,7 @@ export class ResourceManager {
   ) {
     this.dummy_texture_tileset_missing = renderer.dummy_texture_tileset_missing;
     this.dummy_texture_loading = renderer.dummy_texture_loading;
+    this.graphic_id_map["0"] = { textures: [Texture.EMPTY], frame_objects: [] };
   }
 
   set_tileset_map(tilesets: Tileset[]) {
@@ -186,7 +187,6 @@ export class ResourceManager {
       const [tileset, start_gid] = this._get_tileset_by_gid(gid);
 
       const id_in_tileset = gid - start_gid;
-
       this.graphic_id_map[gid] = this._calculate_graphics(
         id_in_tileset,
         tileset,
@@ -229,7 +229,7 @@ export class ResourceManager {
         return graphics;
       }
       const x = ((id - 1) % tileset.columns) * tileset.tile_width;
-      const y = Math.floor(id / tileset.columns) * tileset.tile_height;
+      const y = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
       const texture = new Texture({
         source: texture_source,
         frame: new Rectangle(x, y, tileset.tile_width, tileset.tile_height),

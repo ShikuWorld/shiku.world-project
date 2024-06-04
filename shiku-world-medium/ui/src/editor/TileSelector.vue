@@ -15,6 +15,12 @@
         @update:model-value="set_selected_brush_size"
         :items="brush_sizes"
       ></v-select>
+      <v-select
+        label="Layer"
+        :model-value="selected_tile_layer"
+        @update:model-value="set_selected_tile_layer"
+        :items="tile_layers"
+      ></v-select>
     </div>
     <v-tabs v-model="tab" bg-color="primary">
       <v-tab
@@ -49,13 +55,41 @@ import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
 import { mdiEraserVariant } from "@mdi/js";
 import { storeToRefs } from "pinia";
 import { match } from "ts-pattern";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 type BrushSize = "1x1" | "2x2" | "3x3" | "5x5";
-const { set_tile_brush } = use_editor_store();
-const { tile_brush } = storeToRefs(use_editor_store());
+const { set_tile_brush, set_selected_tile_layer } = use_editor_store();
+const { tile_brush, selected_tile_layer } = storeToRefs(use_editor_store());
 const tab = ref<string>();
 const selected_brush_size = ref<BrushSize>("1x1");
 const brush_sizes: BrushSize[] = ["1x1", "2x2", "3x3", "5x5"];
+const tile_layers: LayerKind[] = [
+  "BG10",
+  "BG09",
+  "BG08",
+  "BG07",
+  "BG06",
+  "BG05",
+  "BG04",
+  "BG03",
+  "BG02",
+  "BG01",
+  "BG00",
+  "ObjectsBelow",
+  "Terrain",
+  "ObjectsFront",
+  "FG00",
+  "FG01",
+  "FG02",
+  "FG03",
+  "FG04",
+  "FG05",
+  "FG06",
+  "FG07",
+  "FG08",
+  "FG09",
+  "FG10",
+];
 function set_selected_brush_size(size: BrushSize) {
   selected_brush_size.value = size;
   if (gids_inside_brush.value.length === 1) {

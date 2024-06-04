@@ -40125,6 +40125,7 @@ ${e3}`);
       this._base_url = _base_url;
       this.dummy_texture_tileset_missing = renderer.dummy_texture_tileset_missing;
       this.dummy_texture_loading = renderer.dummy_texture_loading;
+      this.graphic_id_map["0"] = { textures: [Texture.EMPTY], frame_objects: [] };
     }
     image_texture_map = {};
     graphic_id_map = {};
@@ -40265,7 +40266,7 @@ ${e3}`);
           return graphics;
         }
         const x3 = (id - 1) % tileset.columns * tileset.tile_width;
-        const y3 = Math.floor(id / tileset.columns) * tileset.tile_height;
+        const y3 = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
         const texture = new Texture({
           source: texture_source,
           frame: new Rectangle(x3, y3, tileset.tile_width, tileset.tile_height)

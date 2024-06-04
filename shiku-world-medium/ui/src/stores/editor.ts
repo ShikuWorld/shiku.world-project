@@ -9,6 +9,7 @@ import { use_game_instances_store } from "@/editor/stores/game-instances";
 import { use_resources_store } from "@/editor/stores/resources";
 import { Entity } from "@/editor/blueprints/Entity";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 export type Point = { y: number; x: number };
 
@@ -28,6 +29,7 @@ export interface EditorStore {
   selected_tileset_path: string;
   selected_tile_id: number;
   selected_tile_position: Point;
+  selected_tile_layer: LayerKind;
   selected_scene_props: {
     scene_path: string | null;
     transparency: number;
@@ -50,6 +52,7 @@ export const use_editor_store = defineStore("editor", () => {
     open_resource_paths: [],
     selected_resource_tab: 0,
     edit_module_id: "",
+    selected_tile_layer: "Terrain",
     current_map_index: 0,
     current_main_instance: {},
     selected_tile_position: { x: 0, y: 0 },
@@ -62,7 +65,11 @@ export const use_editor_store = defineStore("editor", () => {
   });
 
   const actions = {
+    set_selected_tile_layer(layer: LayerKind) {
+      state.selected_tile_layer = layer;
+    },
     set_tile_brush(brush: number[][]) {
+      console.log(brush);
       state.tile_brush = brush;
       if (
         state.current_main_instance.instance_id &&

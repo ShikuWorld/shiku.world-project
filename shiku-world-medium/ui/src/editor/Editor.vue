@@ -156,6 +156,7 @@ const {
   module_instance_map,
   current_main_instance,
   selected_tile_position,
+  selected_tile_layer,
   tile_brush,
   selected_scene_props,
 } = storeToRefs(use_editor_store());
@@ -429,7 +430,7 @@ const selected_game_node_path = computed(() => {
 
 watch(selected_tile_position, () =>
   on_tile_click(
-    "Terrain",
+    selected_tile_layer.value,
     selected_tile_position.value.x,
     selected_tile_position.value.y + 1,
   ),
