@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use tokio::time::Instant;
 
 use crate::core::blueprint::def::{
-    BlueprintService, Chunk, GameMap, Gid, LayerKind, Module, ModuleId, ResourcePath, TerrainParams,
+    BlueprintService, Chunk, GameMap, Gid, LayerKind, LayerParralaxMap, Module, ModuleId,
+    ResourcePath, TerrainParams,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind};
@@ -135,6 +136,47 @@ impl DynamicGameModule {
     pub fn get_terrain_params(&self, world_id: &WorldId) -> Option<TerrainParams> {
         if let Some(world) = self.world_map.get(world_id) {
             return Some(world.terrain_manager.params.clone());
+        }
+        None
+    }
+
+    pub fn save_and_send_parallax_update_to_actors(
+        &mut self,
+        world_id: &WorldId,
+        (layer_kind, (x, y)): &(LayerKind, (f32, f32)),
+    ) {
+        if let Some(world) = self.world_map.get_mut(world_id) {
+            world
+                .terrain_manager
+                .layer_parallax
+                .insert(layer_kind.clone(), (*x, *y));
+            Self::send_event_to_actors(
+                world_id,
+                &mut self.module_communication,
+                &self.world_to_guest,
+                &self.world_to_admin,
+                ModuleInstanceEvent {
+                    module_id: self.module_id.clone(),
+                    instance_id: self.instance_id.clone(),
+                    world_id: Some(world_id.clone()),
+                    event_type: GameSystemToGuestEvent::SetParallax(
+                        world
+                            .terrain_manager
+                            .layer_parallax
+                            .clone()
+                            .into_iter()
+                            .map(|(layer_kind, (x, y))| (layer_kind.clone(), x, y))
+                            .collect(),
+                    ),
+                },
+                "Could not send parallax update",
+            );
+        }
+    }
+
+    pub fn get_parallax(&self, world_id: &WorldId) -> Option<LayerParralaxMap> {
+        if let Some(world) = self.world_map.get(world_id) {
+            return Some(world.terrain_manager.layer_parallax.clone());
         }
         None
     }

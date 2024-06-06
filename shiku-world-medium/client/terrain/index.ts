@@ -5,6 +5,20 @@ import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { Chunk } from "@/editor/blueprints/Chunk";
 
+export function to_natural(num: number): number {
+  if (num < 0) {
+    return -2 * num - 1;
+  } else {
+    return 2 * num;
+  }
+}
+
+export function cantor_pair(x: number, y: number): number {
+  const xx = to_natural(x);
+  const yy = to_natural(y);
+  return ((xx + yy) * (xx + yy + 1)) / 2 + yy;
+}
+
 export function create_terrain_manager(
   terrain_params: TerrainParams,
 ): TerrainManager {
@@ -39,7 +53,7 @@ export class TerrainManager {
       this._chunk_map.set(layer_kind, new Map());
     }
     const chunk_map = this._chunk_map.get(layer_kind)!;
-    const chunk_key = this._cantorPair(chunk.position[0], chunk.position[1]);
+    const chunk_key = cantor_pair(chunk.position[0], chunk.position[1]);
     if (!chunk_map.has(chunk_key)) {
       const chunk_map_entry = {
         container: new Container(),
@@ -90,19 +104,5 @@ export class TerrainManager {
 
       chunk_map_entry.container.addChild(sprite);
     }
-  }
-
-  private _toNatural(num: number): number {
-    if (num < 0) {
-      return -2 * num - 1;
-    } else {
-      return 2 * num;
-    }
-  }
-
-  private _cantorPair(x: number, y: number): number {
-    const xx = this._toNatural(x);
-    const yy = this._toNatural(y);
-    return ((xx + yy) * (xx + yy + 1)) / 2 + yy;
   }
 }

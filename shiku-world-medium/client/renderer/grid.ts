@@ -65,14 +65,14 @@ export function show_grid(
         color: "#9999ff",
         alpha: 0.5,
       });
-    const grid = {
+    const grid: InstanceRendering["grid"] = {
       sprite: new TilingSprite({
         texture: renderTexture,
         height: renderer.terrain_params.tile_height * 100,
         width: renderer.terrain_params.tile_width * 100,
       }),
       grid_container: new Container(),
-      scaling: { x: 1, y: 1 },
+      p_scaling: { x: 1, y: 1 },
       last_mouse_move_position: { x: 0, y: 0 },
       selected_tile,
     };
@@ -163,8 +163,8 @@ export function update_grid(
 ) {
   if (renderer.grid) {
     const new_iso = camera_iso_to_scaled_viewport(camera_isometry, {
-      y_pscaling: renderer.grid.scaling.y,
-      x_pscaling: renderer.grid.scaling.x,
+      y_pscaling: renderer.grid.p_scaling.y,
+      x_pscaling: renderer.grid.p_scaling.x,
     });
     renderer.grid.sprite.tilePosition.x = new_iso.x;
     renderer.grid.sprite.tilePosition.y = new_iso.y;

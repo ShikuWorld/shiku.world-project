@@ -1,6 +1,7 @@
 use flume::{unbounded, Receiver, Sender};
 use rapier2d::prelude::Real;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use thiserror::Error;
 use ts_rs::TS;
 
@@ -275,6 +276,7 @@ pub enum CommunicationEvent {
         Option<WorldId>,
         ResourceBundle,
         TerrainParams,
+        Vec<(LayerKind, f32, f32)>,
         Vec<Tileset>,
         GidMap,
     ),
@@ -315,7 +317,7 @@ pub enum GameSystemToGuestEvent {
     CloseMenu(String),
     UpdateDataStore(String),
     ShowTerrain(Vec<(LayerKind, Vec<Chunk>)>),
-    SetParallax(Vec<(LayerName, (Real, Real))>),
+    SetParallax(Vec<(LayerKind, f32, f32)>),
     ShowTerrainCollisionLines(Vec<Vec<(Real, Real)>>),
     ShowScene(Scene),
     UpdateEntity(EntityUpdate),

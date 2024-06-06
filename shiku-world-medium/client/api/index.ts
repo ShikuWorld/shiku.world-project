@@ -10,6 +10,7 @@ import {
 import { Container } from "pixi.js";
 import { set_blueprint_render } from "@/client/renderer/create_game_renderer";
 import { adjust_selected_tile_size } from "@/client/renderer/grid";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 export const setup_medium_api = (
   communication_state: CommunicationState,
@@ -21,6 +22,21 @@ export const setup_medium_api = (
     twitch_login: (communication_state: CommunicationState) =>
       login(communication_state),
     communication_state: communication_state,
+    sync_grid_with_layer_p_scaling: (
+      instance_id: string,
+      world_id: string,
+      layer_kind: LayerKind,
+    ) => {
+      if (instances[instance_id] && instances[instance_id][world_id]) {
+        const renderer = instances[instance_id][world_id].renderer;
+        if (renderer.grid) {
+          renderer.grid.p_scaling = {
+            x: renderer.layer_map[layer_kind].x_pscaling,
+            y: renderer.layer_map[layer_kind].y_pscaling,
+          };
+        }
+      }
+    },
     create_display_object,
     create_collider_graphic,
     set_blueprint_renderer: (blueprint_render_data) => {

@@ -452,6 +452,7 @@ function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
         resource_path: game_map.resource_path,
         chunk: [layer_kind, updated_chunk],
         scene: null,
+        layer_parallax: null,
       });
     }
   }

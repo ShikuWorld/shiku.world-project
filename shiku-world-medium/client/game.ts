@@ -127,6 +127,7 @@ export async function start_medium() {
             w_id,
             resource_bundle,
             terrain_params,
+            parralax_map,
             tilesets,
             gid_map,
           ]) => {
@@ -159,6 +160,14 @@ export async function start_medium() {
                 instances[instance_id][world_id].renderer
                   .main_container_wrapper,
               );
+            }
+            for (const [layer_kind, x, y] of parralax_map) {
+              instances[instance_id][world_id].renderer.layer_map[
+                layer_kind
+              ].x_pscaling = x;
+              instances[instance_id][world_id].renderer.layer_map[
+                layer_kind
+              ].y_pscaling = y;
             }
             if (is_admin) {
               show_grid(

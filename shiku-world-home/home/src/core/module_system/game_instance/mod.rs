@@ -9,8 +9,8 @@ use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, Chunk, GameMap, Gid, JsonResource, LayerKind, ModuleId,
-    ResourceKind, TerrainParams,
+    BlueprintError, BlueprintResource, Chunk, GameMap, Gid, JsonResource, Layer, LayerKind,
+    LayerParralaxMap, ModuleId, ResourceKind, TerrainParams,
 };
 use crate::core::blueprint::def::{Module, ResourcePath};
 use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
@@ -129,6 +129,18 @@ impl GameInstanceManager {
         manager.register_resources(resource_module);
 
         Ok((manager, input_sender, output_receiver))
+    }
+
+    pub fn save_and_send_parallax_update_to_actors(
+        &mut self,
+        world_id: &WorldId,
+        parallax: &(LayerKind, (f32, f32)),
+    ) {
+        for game_instance in self.game_instances.values_mut() {
+            game_instance
+                .dynamic_module
+                .save_and_send_parallax_update_to_actors(world_id, parallax);
+        }
     }
 
     pub fn update_gid_collision_shape_map(
@@ -487,27 +499,48 @@ impl GameInstanceManager {
         self.create_new_game_instance()
     }
 
-    pub fn get_terrain_params_for_guest(
+    pub fn get_terrain_info_for_guest(
         &self,
         guest_id: &ActorId,
         game_instance_id: &GameInstanceId,
-    ) -> Option<TerrainParams> {
+    ) -> Option<(TerrainParams, LayerParralaxMap)> {
         if let Some(instance) = self.game_instances.get(game_instance_id) {
             if let Some(world_id) = instance.dynamic_module.guest_to_world.get(guest_id) {
-                return instance.dynamic_module.get_terrain_params(world_id);
+                return instance.dynamic_module.get_terrain_params(world_id).map(
+                    |terrain_params| {
+                        (
+                            terrain_params,
+                            instance
+                                .dynamic_module
+                                .get_parallax(world_id)
+                                .unwrap_or_default(),
+                        )
+                    },
+                );
             }
         }
         None
     }
 
-    pub fn get_terrain_params_for_admin(
+    pub fn get_terrain_info_for_admin(
         &self,
         _guest_id: &ActorId,
         game_instance_id: &GameInstanceId,
         world_id: &WorldId,
-    ) -> Option<TerrainParams> {
+    ) -> Option<(TerrainParams, LayerParralaxMap)> {
         if let Some(instance) = self.game_instances.get(game_instance_id) {
-            return instance.dynamic_module.get_terrain_params(world_id);
+            return instance
+                .dynamic_module
+                .get_terrain_params(world_id)
+                .map(|terrain_params| {
+                    (
+                        terrain_params,
+                        instance
+                            .dynamic_module
+                            .get_parallax(world_id)
+                            .unwrap_or_default(),
+                    )
+                });
         }
         None
     }

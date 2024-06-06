@@ -25,6 +25,8 @@ import {
 } from "@/editor/stores/game-instances";
 import { TilesetUpdate } from "@/client/communication/api/bindings/TilesetUpdate";
 import { Script } from "@/editor/blueprints/Script";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { cantor_pair, TerrainManager } from "@/client/terrain";
 
 export type Point = { y: number; x: number };
 
@@ -113,16 +115,36 @@ export const use_resources_store = defineStore("resources", () => {
         [map_key(game_map)]: game_map,
       };
     },
-    update_map(
-      map_update: Partial<GameMap> & { resource_path: string; name: string },
-    ) {
+    update_map(map_update: MapUpdate) {
       const key = map_key(map_update);
       const game_map = state.game_map_map[key];
       if (game_map) {
+        const update: Partial<GameMap> = {
+          name: map_update.name,
+          resource_path: map_update.resource_path,
+          main_scene: map_update.scene ?? undefined,
+        };
+        (Object.keys(update) as Array<keyof GameMap>).forEach(
+          (key) => update[key] === undefined && delete update[key],
+        );
+
         state.game_map_map = {
           ...state.game_map_map,
-          [key]: { ...game_map, ...map_update },
+          [key]: {
+            ...game_map,
+            ...update,
+          },
         };
+        if (map_update.chunk) {
+          const [layer_kind, chunk] = map_update.chunk;
+          state.game_map_map[key].terrain[layer_kind][
+            cantor_pair(chunk.position[0], chunk.position[1])
+          ] = chunk;
+        }
+        if (map_update.layer_parallax) {
+          const [layer_kind, [x, y]] = map_update.layer_parallax;
+          state.game_map_map[key].layer_parallax[layer_kind] = [x, y];
+        }
       }
     },
     delete_map(game_map: GameMap) {
@@ -374,8 +396,9 @@ export const use_resources_store = defineStore("resources", () => {
       send_admin_event({ DeleteScene: scene });
     },
     update_map_server(
-      map_update: Partial<MapUpdate> &
-        Pick<MapUpdate, "resource_path" | "name" | "scene">,
+      map_update: Partial<Omit<MapUpdate, "layer_parallax">> & {
+        layer_parallax: [LayerKind, [number, number]] | null;
+      } & Pick<MapUpdate, "resource_path" | "name" | "scene">,
     ) {
       send_admin_event({
         UpdateMap: {

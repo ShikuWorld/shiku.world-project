@@ -159,6 +159,7 @@ export class ResourceManager {
         this.set_tileset_map(tilesets);
       })
       .with({ UpdateGidMap: P.select() }, (gid_map) => {
+        console.log("gid_map", gid_map);
         this.gid_map = gid_map;
       })
       .with("UnLoadResources", () => console.log("unload"))

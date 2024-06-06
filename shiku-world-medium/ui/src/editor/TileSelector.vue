@@ -18,9 +18,29 @@
       <v-select
         label="Layer"
         :model-value="selected_tile_layer"
-        @update:model-value="set_selected_tile_layer"
+        @update:model-value="select_tile_layer"
         :items="tile_layers"
       ></v-select>
+      <v-number-input
+        label="Parralax X"
+        control-variant="stacked"
+        :step="0.01"
+        :model-value="parralax_x"
+        @update:model-value="
+          (new_value) =>
+            set_parralax(selected_tile_layer, Number(new_value), parralax_y)
+        "
+      ></v-number-input>
+      <v-number-input
+        label="Parralax Y"
+        control-variant="stacked"
+        :step="0.01"
+        :model-value="parralax_y"
+        @update:model-value="
+          (new_value) =>
+            set_parralax(selected_tile_layer, parralax_x, Number(new_value))
+        "
+      ></v-number-input>
     </div>
     <v-tabs v-model="tab" bg-color="primary">
       <v-tab
@@ -51,16 +71,80 @@
 import { computed, onMounted, ref, toRefs, watch } from "vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
 import { Point, tileset_key, use_editor_store } from "@/editor/stores/editor";
+import { VNumberInput } from "vuetify/labs/VNumberInput";
 import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
 import { mdiEraserVariant } from "@mdi/js";
 import { storeToRefs } from "pinia";
 import { match } from "ts-pattern";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { GameMap } from "@/editor/blueprints/GameMap";
+import { use_resources_store } from "@/editor/stores/resources";
 
 type BrushSize = "1x1" | "2x2" | "3x3" | "5x5";
 const { set_tile_brush, set_selected_tile_layer } = use_editor_store();
-const { tile_brush, selected_tile_layer } = storeToRefs(use_editor_store());
+const { tile_brush, selected_tile_layer, current_main_instance } =
+  storeToRefs(use_editor_store());
+const { update_map_server } = use_resources_store();
+const { game_map_map } = storeToRefs(use_resources_store());
+
+const current_main_map = computed<GameMap | undefined>(() => {
+  if (current_main_instance.value?.world_id && game_map_map.value) {
+    return Object.values(game_map_map.value).find(
+      (m) => m.world_id === current_main_instance.value.world_id,
+    );
+  }
+  return undefined;
+});
+
+function select_tile_layer(layer: LayerKind) {
+  set_selected_tile_layer(layer);
+  update_main_instance_grid_p_scaling(layer);
+}
+
+function update_main_instance_grid_p_scaling(layer: LayerKind) {
+  if (
+    current_main_instance.value &&
+    current_main_instance.value.instance_id &&
+    current_main_instance.value.world_id
+  ) {
+    window.medium.sync_grid_with_layer_p_scaling(
+      current_main_instance.value.instance_id,
+      current_main_instance.value.world_id,
+      layer,
+    );
+  }
+}
+
 const tab = ref<string>();
+function set_parralax(
+  layer: LayerKind,
+  parralax_x: number,
+  parralax_y: number,
+) {
+  if (current_main_map.value) {
+    update_map_server({
+      name: current_main_map.value.name,
+      resource_path: current_main_map.value.resource_path,
+      chunk: null,
+      scene: null,
+      layer_parallax: [layer, [parralax_x, parralax_y]],
+    });
+    update_main_instance_grid_p_scaling(selected_tile_layer.value);
+  }
+}
+
+const parralax_x = computed(() => {
+  if (current_main_map.value) {
+    return current_main_map.value.layer_parallax[selected_tile_layer.value][0];
+  }
+  return 1.0;
+});
+const parralax_y = computed(() => {
+  if (current_main_map.value) {
+    return current_main_map.value.layer_parallax[selected_tile_layer.value][1];
+  }
+  return 1.0;
+});
 const selected_brush_size = ref<BrushSize>("1x1");
 const brush_sizes: BrushSize[] = ["1x1", "2x2", "3x3", "5x5"];
 const tile_layers: LayerKind[] = [

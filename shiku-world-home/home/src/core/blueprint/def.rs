@@ -114,6 +114,8 @@ pub struct TerrainParams {
     pub tile_height: u32,
 }
 
+pub type LayerParralaxMap = HashMap<LayerKind, (f32, f32)>;
+
 impl Tileset {
     pub fn get_image_paths(&self) -> Vec<ResourcePath> {
         if let Some(image) = &self.image {
@@ -241,6 +243,7 @@ pub struct GameMap {
     pub tile_height: u32,
     pub main_scene: ResourcePath,
     pub terrain: HashMap<LayerKind, HashMap<u32, Chunk>>,
+    pub layer_parallax: HashMap<LayerKind, (f32, f32)>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -250,6 +253,7 @@ pub struct MapUpdate {
     pub resource_path: ResourcePath,
     pub chunk: Option<(LayerKind, Chunk)>,
     pub scene: Option<ResourcePath>,
+    pub layer_parallax: Option<(LayerKind, (f32, f32))>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

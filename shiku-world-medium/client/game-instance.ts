@@ -176,20 +176,11 @@ export class GameInstance {
                                                                         .exhaustive();
                                                                     }
                                                                   })*/
-      .with({ SetParallax: P.select() }, (_layer_parallax) => {
-        /*for (const key in this.renderer.mainContainer) {
-                                                                                          const parallax_container =
-                                                                                            this.renderer.layerContainer[key as LayerName];
-                                                                                          parallax_container.y_pscaling = 1.0;
-                                                                                          parallax_container.x_pscaling = 1.0;
-                                                                                        }
-                                                                                        for (const [layer_name, parallax] of layer_parallax) {
-                                                                                          if (layer_name === "Menu") {
-                                                                                            continue;
-                                                                                          }
-                                                                                          this.renderer.layerContainer[layer_name].x_pscaling = parallax[0];
-                                                                                          this.renderer.layerContainer[layer_name].y_pscaling = parallax[1];
-                                                                                        }*/
+      .with({ SetParallax: P.select() }, (parralax_map) => {
+        for (const [layer_kind, x, y] of parralax_map) {
+          this.renderer.layer_map[layer_kind].x_pscaling = x;
+          this.renderer.layer_map[layer_kind].y_pscaling = y;
+        }
       })
       .with({ PositionEvent: P.select() }, (entities) => {
         for (const [entity, x, y, r] of entities) {
@@ -207,7 +198,6 @@ export class GameInstance {
         }
       })
       .with({ ShowTerrainCollisionLines: P.select() }, (lines) => {
-        console.log(lines);
         this.draw_terrain_collisions(lines);
       })
       .exhaustive();

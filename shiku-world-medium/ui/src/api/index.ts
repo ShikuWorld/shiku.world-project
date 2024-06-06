@@ -1,6 +1,7 @@
 import { Container, Graphics } from "pixi.js";
 import { CommunicationState } from "@/client/communication";
 import { Isometry } from "@/client/entities";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 export const use_medium_api = (): typeof window.medium =>
   window.medium
@@ -11,6 +12,11 @@ export const use_medium_api = (): typeof window.medium =>
           _instance_id: string,
           _world_id: string,
           _brush: number[][],
+        ) => {},
+        sync_grid_with_layer_p_scaling: (
+          _instance_id: string,
+          _world_id: string,
+          _layer_kind: LayerKind,
         ) => {},
         create_container: () => new Container(),
         set_blueprint_renderer: () => {},

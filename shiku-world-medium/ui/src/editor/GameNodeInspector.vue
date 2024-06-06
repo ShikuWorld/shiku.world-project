@@ -25,22 +25,24 @@
             (new_value) => scope_update(scope_key, new_value, scope_type)
           "
         ></v-text-field>
-        <v-text-field
+        <v-number-input
           v-if="scope_type === 'Number'"
-          type="number"
+          control-variant="stacked"
+          :step="0.1"
           :model-value="scope_value"
           @update:model-value="
             (new_value) => scope_update(scope_key, new_value, scope_type)
           "
-        ></v-text-field>
-        <v-text-field
+        ></v-number-input>
+        <v-number-input
           v-if="scope_type === 'Integer'"
-          type="number"
+          control-variant="stacked"
+          :step="1"
           :model-value="scope_value"
           @update:model-value="
             (new_value) => scope_update(scope_key, new_value, scope_type)
           "
-        ></v-text-field>
+        ></v-number-input>
       </div>
     </div>
   </div>
@@ -57,6 +59,7 @@
 <script lang="ts" setup>
 import { computed, defineAsyncComponent, toRefs } from "vue";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
+import { VNumberInput } from "vuetify/labs/VNumberInput";
 import {
   get_game_node_type,
   get_generic_game_node,

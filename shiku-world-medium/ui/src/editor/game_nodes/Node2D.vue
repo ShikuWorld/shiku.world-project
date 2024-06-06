@@ -15,8 +15,9 @@
     ></v-select>
     <v-label class="form-label">Transform</v-label>
     <v-label class="form-label">Position</v-label>
-    <v-text-field
-      type="number"
+    <v-number-input
+      control-variant="stacked"
+      :step="0.1"
       :prepend-icon="mdiAlphaXBox"
       :hide-details="true"
       density="compact"
@@ -28,10 +29,11 @@
             game_node.data.transform.position[1],
           ])
       "
-    ></v-text-field>
-    <v-text-field
+    ></v-number-input>
+    <v-number-input
       :prepend-icon="mdiAlphaYBox"
-      type="number"
+      control-variant="stacked"
+      :step="0.1"
       :hide-details="true"
       density="compact"
       :model-value="game_node.data.transform.position[1]"
@@ -42,17 +44,18 @@
             Number(newValue),
           ])
       "
-    ></v-text-field>
+    ></v-number-input>
     <v-label class="form-label">Rotation</v-label>
-    <v-text-field
-      type="number"
+    <v-number-input
+      control-variant="stacked"
+      :step="0.01"
       density="compact"
       :hide-details="true"
       :model-value="game_node.data.transform.rotation"
       @update:model-value="
         (newValue) => update_transform('rotation', Number(newValue))
       "
-    ></v-text-field>
+    ></v-number-input>
   </div>
   <div v-if="node_2d_type !== 'Node2D'">
     <component
@@ -65,6 +68,7 @@
 </template>
 <script lang="ts" setup>
 import { computed, defineAsyncComponent, toRefs } from "vue";
+import { VNumberInput } from "vuetify/labs/VNumberInput";
 import { Node2D } from "@/editor/blueprints/Node2D";
 import { GameNode } from "@/editor/blueprints/GameNode";
 import { mdiAlphaXBox, mdiAlphaYBox } from "@mdi/js";

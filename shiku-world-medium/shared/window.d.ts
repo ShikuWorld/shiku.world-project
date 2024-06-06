@@ -18,6 +18,7 @@ import {
   ResourceManager,
 } from "@/client/resources";
 import { Container } from "pixi.js";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 declare global {
   interface Window {
@@ -28,6 +29,11 @@ declare global {
       get_resource_manager: (module_id: string) => ResourceManager | undefined;
       set_blueprint_renderer: (
         blueprint_render_data: GameInstancesStore["blueprint_render"],
+      ) => void;
+      sync_grid_with_layer_p_scaling: (
+        instance_id: string,
+        world_id: string,
+        layer_kind: LayerKind,
       ) => void;
       adjust_brush_hover: (
         instance_id: string,

@@ -123,6 +123,7 @@ impl PolylineBookkeeping {
 pub struct TerrainManager {
     pub layer_data: HashMap<LayerKind, HashMap<CantorPair, Chunk>>,
     pub params: TerrainParams,
+    pub layer_parallax: HashMap<LayerKind, (f32, f32)>,
     pub polyline_bookkeeping: PolylineBookkeeping,
     pub pixel_to_meter_conversion: Real,
 }
@@ -131,6 +132,7 @@ impl TerrainManager {
     pub fn new(
         params: TerrainParams,
         layer_data: HashMap<LayerKind, HashMap<CantorPair, Chunk>>,
+        parallax_map: HashMap<LayerKind, (f32, f32)>,
         collision_shape_map: &HashMap<Gid, CollisionShape>,
         physics: &mut RapierSimulation,
     ) -> TerrainManager {
@@ -163,6 +165,7 @@ impl TerrainManager {
 
         TerrainManager {
             params,
+            layer_parallax: parallax_map,
             layer_data,
             polyline_bookkeeping,
             pixel_to_meter_conversion,

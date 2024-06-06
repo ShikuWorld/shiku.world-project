@@ -5,8 +5,7 @@ import type { Entity } from "../blueprints/Entity";
 import type { EntityUpdate } from "../blueprints/EntityUpdate";
 import type { GameNodeKind } from "../blueprints/GameNodeKind";
 import type { LayerKind } from "../blueprints/LayerKind";
-import type { LayerName } from "./LayerName";
 import type { MouseInputSchema } from "./MouseInputSchema";
 import type { Scene } from "../blueprints/Scene";
 
-export type GameSystemToGuestEvent = { OpenMenu: string } | { CloseMenu: string } | { UpdateDataStore: string } | { ShowTerrain: Array<[LayerKind, Array<Chunk>]> } | { SetParallax: Array<[LayerName, [number, number]]> } | { ShowTerrainCollisionLines: Array<Array<[number, number]>> } | { ShowScene: Scene } | { UpdateEntity: EntityUpdate } | { RemoveEntity: Entity } | { AddEntity: [Entity, GameNodeKind] } | { SetMouseInputSchema: MouseInputSchema } | { SetCamera: [string, CameraSettings] } | { PositionEvent: Array<[Entity, number, number, number]> };
+export type GameSystemToGuestEvent = { OpenMenu: string } | { CloseMenu: string } | { UpdateDataStore: string } | { ShowTerrain: Array<[LayerKind, Array<Chunk>]> } | { SetParallax: Array<[LayerKind, number, number]> } | { ShowTerrainCollisionLines: Array<Array<[number, number]>> } | { ShowScene: Scene } | { UpdateEntity: EntityUpdate } | { RemoveEntity: Entity } | { AddEntity: [Entity, GameNodeKind] } | { SetMouseInputSchema: MouseInputSchema } | { SetCamera: [string, CameraSettings] } | { PositionEvent: Array<[Entity, number, number, number]> };

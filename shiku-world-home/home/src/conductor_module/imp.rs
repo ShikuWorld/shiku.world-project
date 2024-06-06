@@ -16,7 +16,7 @@ use crate::conductor_module::errors::{
 };
 use crate::conductor_module::game_instances::create_game_instance_manager;
 use crate::core::blueprint::def::{
-    BlueprintResource, BlueprintService, GidMap, ModuleId, ResourceKind, ResourcePath,
+    BlueprintResource, BlueprintService, GidMap, LayerKind, ModuleId, ResourceKind, ResourcePath,
     TerrainParams, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
@@ -339,8 +339,8 @@ impl ConductorModule {
                                 "Error sending reconnect event",
                             );
                             if let Some(module) = self.module_map.get(current_module_id) {
-                                if let Some(terrain_params) = module
-                                    .get_terrain_params_for_guest(&guest.id, current_instance_id)
+                                if let Some((terrain_params, layer_parralax)) = module
+                                    .get_terrain_info_for_guest(&guest.id, current_instance_id)
                                 {
                                     match BlueprintService::load_module_tilesets(
                                         &module.module_blueprint.resources,
@@ -352,6 +352,10 @@ impl ConductorModule {
                                             current_module_id,
                                             current_instance_id,
                                             terrain_params,
+                                            layer_parralax
+                                                .into_iter()
+                                                .map(|(kind, (x, y))| (kind, x, y))
+                                                .collect(),
                                             tilesets,
                                             module.module_blueprint.gid_map.clone(),
                                         ),
@@ -605,8 +609,8 @@ impl ConductorModule {
                 guest.current_instance_id = Some(instance_id.clone());
                 guest.pending_module_exit = None;
                 resource_module.activate_module_resource_updates(module_name.clone(), &guest.id);
-                if let Some(terrain_params) =
-                    module.get_terrain_params_for_guest(&guest.id, &instance_id)
+                if let Some((terrain_params, layer_parralax)) =
+                    module.get_terrain_info_for_guest(&guest.id, &instance_id)
                 {
                     match BlueprintService::load_module_tilesets(&module.module_blueprint.resources)
                     {
@@ -617,6 +621,10 @@ impl ConductorModule {
                             &module_name,
                             &instance_id,
                             terrain_params,
+                            layer_parralax
+                                .into_iter()
+                                .map(|(kind, (x, y))| (kind, x, y))
+                                .collect(),
                             tilesets,
                             module.module_blueprint.gid_map.clone(),
                         ),
@@ -648,6 +656,7 @@ impl ConductorModule {
         module_id: &ModuleId,
         instance_id: &GameInstanceId,
         terrain_params: TerrainParams,
+        parallax_params: Vec<(LayerKind, f32, f32)>,
         tilesets: Vec<Tileset>,
         gid_map: GidMap,
     ) {
@@ -665,6 +674,7 @@ impl ConductorModule {
                         assets: resources,
                     },
                     terrain_params,
+                    parallax_params,
                     tilesets,
                     gid_map,
                 ),

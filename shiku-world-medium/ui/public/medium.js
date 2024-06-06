@@ -1703,13 +1703,14 @@ Deprecated since v${version}`);
               const child = this.children[i3];
               if (!child)
                 continue;
-              if (this.renderGroup) {
-                this.renderGroup.removeChild(child);
-              }
               removed.push(child);
               child.parent = null;
             }
             removeItems(this.children, beginIndex, end);
+            const renderGroup = this.renderGroup || this.parentRenderGroup;
+            if (renderGroup) {
+              renderGroup.removeChildren(removed);
+            }
             for (let i3 = 0; i3 < removed.length; ++i3) {
               this.emit("childRemoved", removed[i3], this, i3);
               removed[i3].emit("removed", this);
@@ -1802,8 +1803,9 @@ Deprecated since v${version}`);
           child.didChange = true;
           child.didViewUpdate = false;
           child._updateFlags = 15;
-          if (this.renderGroup) {
-            this.renderGroup.addChild(child);
+          const renderGroup = this.renderGroup || this.parentRenderGroup;
+          if (renderGroup) {
+            renderGroup.addChild(child);
           }
           if (this.sortableChildren)
             this.sortDirty = true;
@@ -1842,11 +1844,9 @@ Deprecated since v${version}`);
     "node_modules/pixi.js/lib/filters/FilterEffect.mjs"() {
       "use strict";
       FilterEffect = class {
-        constructor(options) {
+        constructor() {
           this.pipe = "filter";
           this.priority = 1;
-          this.filters = options?.filters;
-          this.filterArea = options?.filterArea;
         }
         destroy() {
           for (let i3 = 0; i3 < this.filters.length; i3++) {
@@ -2064,10 +2064,9 @@ Deprecated since v${version}`);
       "use strict";
       init_FilterEffect();
       init_MaskEffectManager();
-      init_PoolGroup();
       effectsMixin = {
-        _mask: null,
-        _filters: null,
+        _maskEffect: null,
+        _filterEffect: null,
         /**
          * @todo Needs docs.
          * @memberof scene.Container#
@@ -2086,8 +2085,9 @@ Deprecated since v${version}`);
             return;
           this.effects.push(effect);
           this.effects.sort((a3, b3) => a3.priority - b3.priority);
-          if (this.renderGroup) {
-            this.renderGroup.structureDidChange = true;
+          const renderGroup = this.renderGroup || this.parentRenderGroup;
+          if (renderGroup) {
+            renderGroup.structureDidChange = true;
           }
           this._updateIsSimple();
         },
@@ -2102,26 +2102,24 @@ Deprecated since v${version}`);
           if (index === -1)
             return;
           this.effects.splice(index, 1);
-          if (!this.isRenderGroupRoot && this.renderGroup) {
-            this.renderGroup.structureDidChange = true;
+          if (this.parentRenderGroup) {
+            this.parentRenderGroup.structureDidChange = true;
           }
           this._updateIsSimple();
         },
         set mask(value) {
-          this._mask || (this._mask = { mask: null, effect: null });
-          if (this._mask.mask === value)
+          const effect = this._maskEffect;
+          if (effect?.mask === value)
             return;
-          if (this._mask.effect) {
-            this.removeEffect(this._mask.effect);
-            MaskEffectManager.returnMaskEffect(this._mask.effect);
-            this._mask.effect = null;
+          if (effect) {
+            this.removeEffect(effect);
+            MaskEffectManager.returnMaskEffect(effect);
+            this._maskEffect = null;
           }
-          this._mask.mask = value;
           if (value === null || value === void 0)
             return;
-          const effect = MaskEffectManager.getMaskEffect(value);
-          this._mask.effect = effect;
-          this.addEffect(effect);
+          this._maskEffect = MaskEffectManager.getMaskEffect(value);
+          this.addEffect(this._maskEffect);
         },
         /**
          * Sets a mask for the displayObject. A mask is an object that limits the visibility of an
@@ -2145,34 +2143,25 @@ Deprecated since v${version}`);
          * @memberof scene.Container#
          */
         get mask() {
-          return this._mask?.mask;
+          return this._maskEffect?.mask;
         },
         set filters(value) {
           if (!Array.isArray(value) && value)
             value = [value];
+          const effect = this._filterEffect || (this._filterEffect = new FilterEffect());
           value = value;
-          this._filters || (this._filters = { filters: null, effect: null, filterArea: null });
           const hasFilters = value?.length > 0;
-          const didChange = this._filters.effect && !hasFilters || !this._filters.effect && hasFilters;
+          const hadFilters = effect.filters?.length > 0;
+          const didChange = hasFilters !== hadFilters;
           value = Array.isArray(value) ? value.slice(0) : value;
-          this._filters.filters = Object.freeze(value);
+          effect.filters = Object.freeze(value);
           if (didChange) {
             if (hasFilters) {
-              const effect = BigPool.get(FilterEffect);
-              this._filters.effect = effect;
               this.addEffect(effect);
             } else {
-              const effect = this._filters.effect;
               this.removeEffect(effect);
-              effect.filterArea = null;
-              effect.filters = null;
-              this._filters.effect = null;
-              BigPool.return(effect);
+              effect.filters = value ?? null;
             }
-          }
-          if (hasFilters) {
-            this._filters.effect.filters = value;
-            this._filters.effect.filterArea = this.filterArea;
           }
         },
         /**
@@ -2182,11 +2171,11 @@ Deprecated since v${version}`);
          * @memberof scene.Container#
          */
         get filters() {
-          return this._filters?.filters;
+          return this._filterEffect?.filters;
         },
         set filterArea(value) {
-          this._filters || (this._filters = { filters: null, effect: null, filterArea: null });
-          this._filters.filterArea = value;
+          this._filterEffect || (this._filterEffect = new FilterEffect());
+          this._filterEffect.filterArea = value;
         },
         /**
          * The area the filter is applied to. This is used as more of an optimization
@@ -2196,7 +2185,7 @@ Deprecated since v${version}`);
          * @memberof scene.Container#
          */
         get filterArea() {
-          return this._filters?.filterArea;
+          return this._filterEffect?.filterArea;
         }
       };
     }
@@ -3205,7 +3194,7 @@ Deprecated since v${version}`);
       onRenderMixin = {
         _onRender: null,
         set onRender(func) {
-          const renderGroup = this.renderGroup;
+          const renderGroup = this.renderGroup || this.parentRenderGroup;
           if (!func) {
             if (this._onRender) {
               renderGroup?.removeOnRender(this);
@@ -3293,8 +3282,8 @@ Deprecated since v${version}`);
             this.parent.sortableChildren = true;
             this.parent.sortDirty = true;
           }
-          if (this.renderGroup && !this.isRenderGroupRoot) {
-            this.renderGroup.structureDidChange = true;
+          if (this.parentRenderGroup) {
+            this.parentRenderGroup.structureDidChange = true;
           }
         },
         /**
@@ -3430,7 +3419,6 @@ Deprecated since v${version}`);
           this.canBundle = false;
           this.renderGroupParent = null;
           this.renderGroupChildren = [];
-          this._children = [];
           this.worldTransform = new Matrix();
           this.worldColorAlpha = 4294967295;
           this.worldColor = 16777215;
@@ -3442,7 +3430,13 @@ Deprecated since v${version}`);
           this.instructionSet = new InstructionSet();
           this._onRenderContainers = [];
           this.root = root;
-          this.addChild(root);
+          if (root._onRender)
+            this.addOnRender(root);
+          root.didChange = true;
+          const children = root.children;
+          for (let i3 = 0; i3 < children.length; i3++) {
+            this.addChild(children[i3]);
+          }
         }
         get localTransform() {
           return this.root.localTransform;
@@ -3452,13 +3446,9 @@ Deprecated since v${version}`);
             renderGroupChild.renderGroupParent._removeRenderGroupChild(renderGroupChild);
           }
           renderGroupChild.renderGroupParent = this;
-          this.onChildUpdate(renderGroupChild.root);
           this.renderGroupChildren.push(renderGroupChild);
         }
         _removeRenderGroupChild(renderGroupChild) {
-          if (renderGroupChild.root.didChange) {
-            this._removeChildFromUpdate(renderGroupChild.root);
-          }
           const index = this.renderGroupChildren.indexOf(renderGroupChild);
           if (index > -1) {
             this.renderGroupChildren.splice(index, 1);
@@ -3467,31 +3457,22 @@ Deprecated since v${version}`);
         }
         addChild(child) {
           this.structureDidChange = true;
-          if (child !== this.root) {
-            this._children.push(child);
-            child.updateTick = -1;
-            if (child.parent === this.root) {
-              child.relativeRenderGroupDepth = 1;
-            } else {
-              child.relativeRenderGroupDepth = child.parent.relativeRenderGroupDepth + 1;
-            }
-            if (child._onRender) {
-              this.addOnRender(child);
-            }
-          }
-          if (child.renderGroup) {
-            if (child.renderGroup.root === child) {
-              this.addRenderGroupChild(child.renderGroup);
-              return;
-            }
+          child.parentRenderGroup = this;
+          child.updateTick = -1;
+          if (child.parent === this.root) {
+            child.relativeRenderGroupDepth = 1;
           } else {
-            child.renderGroup = this;
-            child.didChange = true;
+            child.relativeRenderGroupDepth = child.parent.relativeRenderGroupDepth + 1;
           }
+          child.didChange = true;
+          this.onChildUpdate(child);
+          if (child.renderGroup) {
+            this.addRenderGroupChild(child.renderGroup);
+            return;
+          }
+          if (child._onRender)
+            this.addOnRender(child);
           const children = child.children;
-          if (!child.isRenderGroupRoot) {
-            this.onChildUpdate(child);
-          }
           for (let i3 = 0; i3 < children.length; i3++) {
             this.addChild(children[i3]);
           }
@@ -3499,23 +3480,23 @@ Deprecated since v${version}`);
         removeChild(child) {
           this.structureDidChange = true;
           if (child._onRender) {
-            this.removeOnRender(child);
+            if (!child.renderGroup) {
+              this.removeOnRender(child);
+            }
           }
-          if (child.renderGroup.root !== child) {
-            const children = child.children;
-            for (let i3 = 0; i3 < children.length; i3++) {
-              this.removeChild(children[i3]);
-            }
-            if (child.didChange) {
-              child.renderGroup._removeChildFromUpdate(child);
-            }
-            child.renderGroup = null;
-          } else {
+          child.parentRenderGroup = null;
+          if (child.renderGroup) {
             this._removeRenderGroupChild(child.renderGroup);
+            return;
           }
-          const index = this._children.indexOf(child);
-          if (index > -1) {
-            this._children.splice(index, 1);
+          const children = child.children;
+          for (let i3 = 0; i3 < children.length; i3++) {
+            this.removeChild(children[i3]);
+          }
+        }
+        removeChildren(children) {
+          for (let i3 = 0; i3 < children.length; i3++) {
+            this.removeChild(children[i3]);
           }
         }
         onChildUpdate(child) {
@@ -3538,17 +3519,6 @@ Deprecated since v${version}`);
         onChildViewUpdate(child) {
           this.childrenRenderablesToUpdate.list[this.childrenRenderablesToUpdate.index++] = child;
         }
-        _removeChildFromUpdate(child) {
-          const childrenToUpdate = this.childrenToUpdate[child.relativeRenderGroupDepth];
-          if (!childrenToUpdate) {
-            return;
-          }
-          const index = childrenToUpdate.list.indexOf(child);
-          if (index > -1) {
-            childrenToUpdate.list.splice(index, 1);
-          }
-          childrenToUpdate.index--;
-        }
         get isRenderable() {
           return this.root.localDisplayStatus === 7 && this.worldAlpha > 0;
         }
@@ -3567,6 +3537,32 @@ Deprecated since v${version}`);
           for (let i3 = 0; i3 < this._onRenderContainers.length; i3++) {
             this._onRenderContainers[i3]._onRender();
           }
+        }
+        destroy() {
+          this.renderGroupParent = null;
+          this.root = null;
+          this.childrenRenderablesToUpdate = null;
+          this.childrenToUpdate = null;
+          this.renderGroupChildren = null;
+          this._onRenderContainers = null;
+          this.instructionSet = null;
+        }
+        getChildren(out2 = []) {
+          const children = this.root.children;
+          for (let i3 = 0; i3 < children.length; i3++) {
+            this._getChildren(children[i3], out2);
+          }
+          return out2;
+        }
+        _getChildren(container, out2 = []) {
+          out2.push(container);
+          if (container.renderGroup)
+            return out2;
+          const children = container.children;
+          for (let i3 = 0; i3 < children.length; i3++) {
+            this._getChildren(children[i3], out2);
+          }
+          return out2;
         }
       };
     }
@@ -3619,8 +3615,9 @@ Deprecated since v${version}`);
           super();
           this.uid = uid("renderable");
           this._updateFlags = 15;
-          this.isRenderGroupRoot = false;
           this.renderGroup = null;
+          this.parentRenderGroup = null;
+          this.parentRenderGroupIndex = 0;
           this.didChange = false;
           this.didViewUpdate = false;
           this.relativeRenderGroupDepth = 0;
@@ -3691,8 +3688,8 @@ Deprecated since v${version}`);
           if (child.parent === this) {
             this.children.splice(this.children.indexOf(child), 1);
             this.children.push(child);
-            if (this.renderGroup && !this.isRenderGroupRoot) {
-              this.renderGroup.structureDidChange = true;
+            if (this.parentRenderGroup) {
+              this.parentRenderGroup.structureDidChange = true;
             }
             return child;
           }
@@ -3706,11 +3703,13 @@ Deprecated since v${version}`);
           child.didChange = true;
           child.didViewUpdate = false;
           child._updateFlags = 15;
-          if (this.renderGroup) {
-            this.renderGroup.addChild(child);
+          const renderGroup = this.renderGroup || this.parentRenderGroup;
+          if (renderGroup) {
+            renderGroup.addChild(child);
           }
           this.emit("childAdded", child, this, this.children.length - 1);
           child.emit("added", this);
+          this._didChangeId += 1 << 12;
           if (child._zIndex !== 0) {
             child.depthOfChildModified();
           }
@@ -3731,9 +3730,12 @@ Deprecated since v${version}`);
           const child = children[0];
           const index = this.children.indexOf(child);
           if (index > -1) {
+            this._didChangeId += 1 << 12;
             this.children.splice(index, 1);
             if (this.renderGroup) {
               this.renderGroup.removeChild(child);
+            } else if (this.parentRenderGroup) {
+              this.parentRenderGroup.removeChild(child);
             }
             child.parent = null;
             this.emit("childRemoved", child, this, index);
@@ -3752,17 +3754,12 @@ Deprecated since v${version}`);
           if (this.didChange)
             return;
           this.didChange = true;
-          if (this.isRenderGroupRoot) {
-            const renderGroupParent = this.renderGroup.renderGroupParent;
-            if (renderGroupParent) {
-              renderGroupParent.onChildUpdate(this);
-            }
-          } else if (this.renderGroup) {
-            this.renderGroup.onChildUpdate(this);
+          if (this.parentRenderGroup) {
+            this.parentRenderGroup.onChildUpdate(this);
           }
         }
         set isRenderGroup(value) {
-          if (this.isRenderGroupRoot && value === false) {
+          if (this.renderGroup && value === false) {
             throw new Error("[Pixi] cannot undo a render group just yet");
           }
           if (value) {
@@ -3774,38 +3771,26 @@ Deprecated since v${version}`);
          * This means that it will be rendered as a separate pass, with its own set of instructions
          */
         get isRenderGroup() {
-          return this.isRenderGroupRoot;
+          return !!this.renderGroup;
         }
         /** This enables the container to be rendered as a render group. */
         enableRenderGroup() {
-          if (this.renderGroup && this.renderGroup.root === this)
+          if (this.renderGroup)
             return;
-          this.isRenderGroupRoot = true;
-          const parentRenderGroup = this.renderGroup;
+          const parentRenderGroup = this.parentRenderGroup;
           if (parentRenderGroup) {
             parentRenderGroup.removeChild(this);
           }
           this.renderGroup = new RenderGroup(this);
           if (parentRenderGroup) {
-            for (let i3 = 0; i3 < parentRenderGroup.renderGroupChildren.length; i3++) {
-              const childRenderGroup = parentRenderGroup.renderGroupChildren[i3];
-              let parent = childRenderGroup.root;
-              while (parent) {
-                if (parent === this) {
-                  this.renderGroup.addRenderGroupChild(childRenderGroup);
-                  break;
-                }
-                parent = parent.parent;
-              }
-            }
-            parentRenderGroup.addRenderGroupChild(this.renderGroup);
+            parentRenderGroup.addChild(this);
           }
           this._updateIsSimple();
           this.groupTransform = Matrix.IDENTITY;
         }
         /** @ignore */
         _updateIsSimple() {
-          this.isSimple = !this.isRenderGroupRoot && this.effects.length === 0;
+          this.isSimple = !this.renderGroup && this.effects.length === 0;
         }
         /**
          * Current transform of the object based on world (parent) factors.
@@ -3814,11 +3799,9 @@ Deprecated since v${version}`);
         get worldTransform() {
           this._worldTransform || (this._worldTransform = new Matrix());
           if (this.renderGroup) {
-            if (this.isRenderGroupRoot) {
-              this._worldTransform.copyFrom(this.renderGroup.worldTransform);
-            } else {
-              this._worldTransform.appendFrom(this.relativeGroupTransform, this.renderGroup.worldTransform);
-            }
+            this._worldTransform.copyFrom(this.renderGroup.worldTransform);
+          } else if (this.parentRenderGroup) {
+            this._worldTransform.appendFrom(this.relativeGroupTransform, this.parentRenderGroup.worldTransform);
           }
           return this._worldTransform;
         }
@@ -4096,8 +4079,8 @@ Deprecated since v${version}`);
         set blendMode(value) {
           if (this.localBlendMode === value)
             return;
-          if (this.renderGroup && !this.isRenderGroupRoot) {
-            this.renderGroup.structureDidChange = true;
+          if (this.parentRenderGroup) {
+            this.parentRenderGroup.structureDidChange = true;
           }
           this._updateFlags |= UPDATE_BLEND;
           this.localBlendMode = value;
@@ -4119,8 +4102,8 @@ Deprecated since v${version}`);
           const valueNumber = value ? 1 : 0;
           if ((this.localDisplayStatus & 2) >> 1 === valueNumber)
             return;
-          if (this.renderGroup && !this.isRenderGroupRoot) {
-            this.renderGroup.structureDidChange = true;
+          if (this.parentRenderGroup) {
+            this.parentRenderGroup.structureDidChange = true;
           }
           this._updateFlags |= UPDATE_VISIBLE;
           this.localDisplayStatus ^= 2;
@@ -4135,8 +4118,8 @@ Deprecated since v${version}`);
           const valueNumber = value ? 1 : 0;
           if ((this.localDisplayStatus & 4) >> 2 === valueNumber)
             return;
-          if (this.renderGroup && !this.isRenderGroupRoot) {
-            this.renderGroup.structureDidChange = true;
+          if (this.parentRenderGroup) {
+            this.parentRenderGroup.structureDidChange = true;
           }
           this._updateFlags |= UPDATE_VISIBLE;
           this.localDisplayStatus ^= 4;
@@ -4152,8 +4135,8 @@ Deprecated since v${version}`);
             return;
           this._updateFlags |= UPDATE_VISIBLE;
           this.localDisplayStatus ^= 1;
-          if (this.renderGroup && !this.isRenderGroupRoot) {
-            this.renderGroup.structureDidChange = true;
+          if (this.parentRenderGroup) {
+            this.parentRenderGroup.structureDidChange = true;
           }
           this._onUpdate();
         }
@@ -4179,10 +4162,11 @@ Deprecated since v${version}`);
           if (this.destroyed)
             return;
           this.destroyed = true;
+          const oldChildren = this.removeChildren(0, this.children.length);
           this.removeFromParent();
           this.parent = null;
-          this._mask = null;
-          this._filters = null;
+          this._maskEffect = null;
+          this._filterEffect = null;
           this.effects = null;
           this._position = null;
           this._scale = null;
@@ -4191,12 +4175,13 @@ Deprecated since v${version}`);
           this.emit("destroyed", this);
           this.removeAllListeners();
           const destroyChildren = typeof options === "boolean" ? options : options?.children;
-          const oldChildren = this.removeChildren(0, this.children.length);
           if (destroyChildren) {
             for (let i3 = 0; i3 < oldChildren.length; ++i3) {
               oldChildren[i3].destroy(options);
             }
           }
+          this.renderGroup?.destroy();
+          this.renderGroup = null;
         }
       };
       Container.mixin(childrenHelperMixin);
@@ -6112,7 +6097,7 @@ Deprecated since v${version}`);
           return int === "static" || int === "dynamic";
         }
         _interactivePrune(container) {
-          if (!container || !container.visible || !container.renderable) {
+          if (!container || !container.visible || !container.renderable || !container.includeInBuild || !container.measurable) {
             return true;
           }
           if (container.eventMode === "none") {
@@ -6127,7 +6112,7 @@ Deprecated since v${version}`);
          * Checks whether the container or any of its children cannot pass the hit test at all.
          *
          * {@link EventBoundary}'s implementation uses the {@link Container.hitArea hitArea}
-         * and {@link Container._mask} for pruning.
+         * and {@link Container._maskEffect} for pruning.
          * @param container - The container to prune.
          * @param location - The location to test for overlap.
          */
@@ -7807,7 +7792,6 @@ Deprecated since v${version}`);
         },
         getCanvasRenderingContext2D: () => CanvasRenderingContext2D,
         getWebGLRenderingContext: () => WebGLRenderingContext,
-        getWebGL2RenderingContext: () => WebGL2RenderingContext,
         getNavigator: () => navigator,
         getBaseUrl: () => document.baseURI ?? window.location.href,
         getFontFaceSet: () => document.fonts,
@@ -9240,6 +9224,7 @@ Deprecated since v${version}`);
           this._resourceType = "textureSampler";
           this._touched = 0;
           this._maxAnisotropy = 1;
+          this.destroyed = false;
           options = { ..._TextureStyle2.defaultOptions, ...options };
           this.addressMode = options.addressMode;
           this.addressModeU = options.addressModeU ?? this.addressModeU;
@@ -9304,7 +9289,9 @@ Deprecated since v${version}`);
         }
         /** Destroys the style */
         destroy() {
+          this.destroyed = true;
           this.emit("destroy", this);
+          this.emit("change", this);
           this.removeAllListeners();
         }
       };
@@ -9461,6 +9448,7 @@ Deprecated since v${version}`);
         destroy() {
           this.destroyed = true;
           this.emit("destroy", this);
+          this.emit("change", this);
           if (this._style) {
             this._style.destroy();
             this._style = null;
@@ -9586,10 +9574,10 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/BufferSource.mjs
+  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/BufferImageSource.mjs
   var BufferImageSource;
-  var init_BufferSource = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/BufferSource.mjs"() {
+  var init_BufferImageSource = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/BufferImageSource.mjs"() {
       "use strict";
       init_Extensions();
       init_TextureSource();
@@ -9737,7 +9725,7 @@ Deprecated since v${version}`);
       init_uid();
       init_deprecation();
       init_NOOP();
-      init_BufferSource();
+      init_BufferImageSource();
       init_TextureSource();
       init_TextureMatrix();
       Texture = class extends eventemitter3_default {
@@ -10116,6 +10104,10 @@ Deprecated since v${version}`);
         },
         /** Resolve the resolution of the asset. */
         resolver: {
+          extension: {
+            type: ExtensionType.ResolveParser,
+            name: "resolveSpritesheet"
+          },
           test: (value) => {
             const tempURL = value.split("?")[0];
             const split = tempURL.split(".");
@@ -10142,7 +10134,8 @@ Deprecated since v${version}`);
           name: "spritesheetLoader",
           extension: {
             type: ExtensionType.LoadParser,
-            priority: LoaderParserPriority.Normal
+            priority: LoaderParserPriority.Normal,
+            name: "spritesheetLoader"
           },
           async testParse(asset, options) {
             return path.extname(options.src).toLowerCase() === ".json" && !!asset.frames;
@@ -10259,7 +10252,7 @@ Deprecated since v${version}`);
           if (options instanceof Texture) {
             options = { texture: options };
           }
-          const { texture, anchor, roundPixels, width, height, ...rest } = options;
+          const { texture = Texture.EMPTY, anchor, roundPixels, width, height, ...rest } = options;
           super({
             label: "Sprite",
             ...rest
@@ -10279,8 +10272,11 @@ Deprecated since v${version}`);
               }
             }
           );
-          if (anchor)
+          if (anchor) {
             this.anchor = anchor;
+          } else if (texture.defaultAnchor) {
+            this.anchor = texture.defaultAnchor;
+          }
           this.texture = texture;
           this.allowChildren = false;
           this.roundPixels = roundPixels ?? false;
@@ -10312,6 +10308,12 @@ Deprecated since v${version}`);
           if (value.dynamic)
             value.on("update", this.onViewUpdate, this);
           this._texture = value;
+          if (this._width) {
+            this._setWidth(this._width, this._texture.orig.width);
+          }
+          if (this._height) {
+            this._setHeight(this._height, this._texture.orig.height);
+          }
           this.onViewUpdate();
         }
         /** The texture that the sprite is using. */
@@ -10368,8 +10370,9 @@ Deprecated since v${version}`);
           if (this.didViewUpdate)
             return;
           this.didViewUpdate = true;
-          if (this.renderGroup) {
-            this.renderGroup.onChildViewUpdate(this);
+          const renderGroup = this.renderGroup || this.parentRenderGroup;
+          if (renderGroup) {
+            renderGroup.onChildViewUpdate(this);
           }
         }
         _updateBounds() {
@@ -10443,6 +10446,7 @@ Deprecated since v${version}`);
         }
         set width(value) {
           this._setWidth(value, this._texture.orig.width);
+          this._width = value;
         }
         /** The height of the sprite, setting this will actually modify the scale to achieve the value set. */
         get height() {
@@ -10450,6 +10454,7 @@ Deprecated since v${version}`);
         }
         set height(value) {
           this._setHeight(value, this._texture.orig.height);
+          this._height = value;
         }
         /**
          * Retrieves the size of the Sprite as a [Size]{@link Size} object.
@@ -10868,7 +10873,7 @@ Deprecated since v${version}`);
           if (this.destroyed) {
             this._videoFrameRequestCallbackHandle = null;
           } else {
-            this._videoFrameRequestCallbackHandle = this.source.requestVideoFrameCallback(
+            this._videoFrameRequestCallbackHandle = this.resource.requestVideoFrameCallback(
               this._videoFrameRequestCallback
             );
           }
@@ -11060,20 +11065,20 @@ Deprecated since v${version}`);
          */
         _configureAutoUpdate() {
           if (this._autoUpdate && this._isSourcePlaying()) {
-            if (!this._updateFPS && this.source.requestVideoFrameCallback) {
+            if (!this._updateFPS && this.resource.requestVideoFrameCallback) {
               if (this._isConnectedToTicker) {
                 Ticker.shared.remove(this.updateFrame, this);
                 this._isConnectedToTicker = false;
                 this._msToNextUpdate = 0;
               }
               if (this._videoFrameRequestCallbackHandle === null) {
-                this._videoFrameRequestCallbackHandle = this.source.requestVideoFrameCallback(
+                this._videoFrameRequestCallbackHandle = this.resource.requestVideoFrameCallback(
                   this._videoFrameRequestCallback
                 );
               }
             } else {
               if (this._videoFrameRequestCallbackHandle !== null) {
-                this.source.cancelVideoFrameCallback(this._videoFrameRequestCallbackHandle);
+                this.resource.cancelVideoFrameCallback(this._videoFrameRequestCallbackHandle);
                 this._videoFrameRequestCallbackHandle = null;
               }
               if (!this._isConnectedToTicker) {
@@ -11084,7 +11089,7 @@ Deprecated since v${version}`);
             }
           } else {
             if (this._videoFrameRequestCallbackHandle !== null) {
-              this.source.cancelVideoFrameCallback(this._videoFrameRequestCallbackHandle);
+              this.resource.cancelVideoFrameCallback(this._videoFrameRequestCallbackHandle);
               this._videoFrameRequestCallbackHandle = null;
             }
             if (this._isConnectedToTicker) {
@@ -11290,7 +11295,7 @@ Deprecated since v${version}`);
       init_AlphaMask();
       init_ColorMask();
       init_StencilMask();
-      init_BufferSource();
+      init_BufferImageSource();
       init_CanvasSource();
       init_ImageSource();
       init_VideoSource();
@@ -11344,6 +11349,7 @@ Deprecated since v${version}`);
           this._touched = 0;
           this._updateID = 1;
           this.shrinkToFit = true;
+          this.destroyed = false;
           if (data instanceof Array) {
             data = new Float32Array(data);
           }
@@ -11420,7 +11426,9 @@ Deprecated since v${version}`);
         }
         /** Destroys the buffer */
         destroy() {
+          this.destroyed = true;
           this.emit("destroy", this);
+          this.emit("change", this);
           this._data = null;
           this.descriptor = null;
           this.removeAllListeners();
@@ -11766,20 +11774,53 @@ Deprecated since v${version}`);
           }
           this.resources = null;
         }
-        onResourceChange() {
+        onResourceChange(resource) {
           this._dirty = true;
-          this._updateKey();
+          if (resource.destroyed) {
+            const resources = this.resources;
+            for (const i3 in resources) {
+              if (resources[i3] === resource) {
+                resources[i3] = null;
+              }
+            }
+          } else {
+            this._updateKey();
+          }
         }
       };
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/batcher/shared/const.mjs
-  var MAX_TEXTURES;
-  var init_const4 = __esm({
-    "node_modules/pixi.js/lib/rendering/batcher/shared/const.mjs"() {
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.mjs
+  function getTestContext() {
+    if (!context || context?.isContextLost()) {
+      const canvas = DOMAdapter.get().createCanvas();
+      context = canvas.getContext("webgl", {});
+    }
+    return context;
+  }
+  var context;
+  var init_getTestContext = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.mjs"() {
       "use strict";
-      MAX_TEXTURES = 16;
+      init_adapter();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/maxRecommendedTextures.mjs
+  function maxRecommendedTextures() {
+    if (maxRecommendedTexturesCache)
+      return maxRecommendedTexturesCache;
+    const gl = getTestContext();
+    maxRecommendedTexturesCache = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    return maxRecommendedTexturesCache;
+  }
+  var maxRecommendedTexturesCache;
+  var init_maxRecommendedTextures = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/maxRecommendedTextures.mjs"() {
+      "use strict";
+      init_getTestContext();
+      maxRecommendedTexturesCache = null;
     }
   });
 
@@ -11794,7 +11835,9 @@ Deprecated since v${version}`);
   function generateTextureBatchBindGroup(textures, key) {
     const bindGroupResources = {};
     let bindIndex = 0;
-    for (let i3 = 0; i3 < MAX_TEXTURES; i3++) {
+    if (!maxTextures)
+      maxTextures = maxRecommendedTextures();
+    for (let i3 = 0; i3 < maxTextures; i3++) {
       const texture = i3 < textures.length ? textures[i3] : Texture.EMPTY.source;
       bindGroupResources[bindIndex++] = texture.source;
       bindGroupResources[bindIndex++] = texture.style;
@@ -11803,14 +11846,15 @@ Deprecated since v${version}`);
     cachedGroups[key] = bindGroup;
     return bindGroup;
   }
-  var cachedGroups;
+  var cachedGroups, maxTextures;
   var init_getTextureBatchBindGroup = __esm({
     "node_modules/pixi.js/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs"() {
       "use strict";
       init_BindGroup();
       init_Texture();
-      init_const4();
+      init_maxRecommendedTextures();
       cachedGroups = {};
+      maxTextures = 0;
     }
   });
 
@@ -11941,7 +11985,7 @@ Deprecated since v${version}`);
 
   // node_modules/pixi.js/lib/rendering/renderers/shared/state/const.mjs
   var BLEND_TO_NPM, STENCIL_MODES;
-  var init_const5 = __esm({
+  var init_const4 = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/shared/state/const.mjs"() {
       "use strict";
       BLEND_TO_NPM = {
@@ -11970,7 +12014,7 @@ Deprecated since v${version}`);
   var init_getAdjustedBlendModeBlend = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/shared/state/getAdjustedBlendModeBlend.mjs"() {
       "use strict";
-      init_const5();
+      init_const4();
     }
   });
 
@@ -12007,8 +12051,8 @@ Deprecated since v${version}`);
       init_ViewableBuffer();
       init_fastCopy();
       init_getAdjustedBlendModeBlend();
+      init_maxRecommendedTextures();
       init_BatchTextureArray();
-      init_const4();
       Batch = class {
         constructor() {
           this.renderPipeId = "batch";
@@ -12042,6 +12086,7 @@ Deprecated since v${version}`);
           const { vertexSize, indexSize } = options;
           this.attributeBuffer = new ViewableBuffer(vertexSize * this._vertexSize * 4);
           this.indexBuffer = new Uint16Array(indexSize);
+          this._maxTextures = maxRecommendedTextures();
         }
         begin() {
           this.batchIndex = 0;
@@ -12106,6 +12151,7 @@ Deprecated since v${version}`);
           let start = this._batchIndexStart;
           let action = "startBatch";
           let batch = this._batchPool[this._batchPoolIndex++] || new Batch();
+          const maxTextures2 = this._maxTextures;
           for (let i3 = this.elementStart; i3 < this.elementSize; ++i3) {
             const element = elements[i3];
             elements[i3] = null;
@@ -12122,7 +12168,7 @@ Deprecated since v${version}`);
               continue;
             }
             source2._batchTick = BATCH_TICK;
-            if (textureBatch.count >= MAX_TEXTURES || blendModeChange) {
+            if (textureBatch.count >= maxTextures2 || blendModeChange) {
               this._finishBatch(
                 batch,
                 start,
@@ -12302,38 +12348,26 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/scene/container/utils/mixHexColors.mjs
-  function mixHexColors(color1, color2, ratio) {
+  // node_modules/pixi.js/lib/scene/container/utils/multiplyHexColors.mjs
+  function multiplyHexColors(color1, color2) {
+    if (color1 === 16777215 || !color2)
+      return color2;
+    if (color2 === 16777215 || !color1)
+      return color1;
     const r1 = color1 >> 16 & 255;
     const g1 = color1 >> 8 & 255;
     const b1 = color1 & 255;
     const r22 = color2 >> 16 & 255;
     const g22 = color2 >> 8 & 255;
     const b22 = color2 & 255;
-    const r3 = r1 + (r22 - r1) * ratio;
-    const g3 = g1 + (g22 - g1) * ratio;
-    const b3 = b1 + (b22 - b1) * ratio;
+    const r3 = r1 * r22 / 255;
+    const g3 = g1 * g22 / 255;
+    const b3 = b1 * b22 / 255;
     return (r3 << 16) + (g3 << 8) + b3;
   }
-  var init_mixHexColors = __esm({
-    "node_modules/pixi.js/lib/scene/container/utils/mixHexColors.mjs"() {
+  var init_multiplyHexColors = __esm({
+    "node_modules/pixi.js/lib/scene/container/utils/multiplyHexColors.mjs"() {
       "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/container/utils/mixColors.mjs
-  function mixColors(localBGRColor, parentBGRColor) {
-    if (localBGRColor === WHITE_BGR || parentBGRColor === WHITE_BGR) {
-      return localBGRColor + parentBGRColor - WHITE_BGR;
-    }
-    return mixHexColors(localBGRColor, parentBGRColor, 0.5);
-  }
-  var WHITE_BGR;
-  var init_mixColors = __esm({
-    "node_modules/pixi.js/lib/scene/container/utils/mixColors.mjs"() {
-      "use strict";
-      init_mixHexColors();
-      WHITE_BGR = 16777215;
     }
   });
 
@@ -12342,7 +12376,7 @@ Deprecated since v${version}`);
   var init_BatchableGraphics = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/BatchableGraphics.mjs"() {
       "use strict";
-      init_mixColors();
+      init_multiplyHexColors();
       BatchableGraphics = class {
         constructor() {
           this.batcher = null;
@@ -12372,7 +12406,7 @@ Deprecated since v${version}`);
           const rgb = this.color;
           const bgr = rgb >> 16 | rgb & 65280 | (rgb & 255) << 16;
           if (this.applyTransform) {
-            const argb = mixColors(bgr, graphics.groupColor) + (this.alpha * graphics.groupAlpha * 255 << 24);
+            const argb = multiplyHexColors(bgr, graphics.groupColor) + (this.alpha * graphics.groupAlpha * 255 << 24);
             const wt = graphics.groupTransform;
             const textureIdAndRound = textureId << 16 | this.roundPixels & 65535;
             const a3 = wt.a;
@@ -12568,7 +12602,7 @@ Deprecated since v${version}`);
 
   // node_modules/pixi.js/lib/scene/graphics/shared/const.mjs
   var closePointEps, curveEps;
-  var init_const6 = __esm({
+  var init_const5 = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/const.mjs"() {
       "use strict";
       closePointEps = 1e-4;
@@ -12961,7 +12995,7 @@ Deprecated since v${version}`);
     "node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildLine.mjs"() {
       "use strict";
       init_Point();
-      init_const6();
+      init_const5();
       init_getOrientationOfPoints();
     }
   });
@@ -13666,7 +13700,7 @@ Deprecated since v${version}`);
       const texture = style.texture;
       if (texture !== Texture.WHITE) {
         const textureMatrix = style.matrix;
-        if (matrix) {
+        if (matrix && textureMatrix) {
           textureMatrix.append(matrix.clone().invert());
         }
         buildUvs(vertices, 2, vertOffset, uvs, uvsOffset, 2, vertices.length / 2 - vertOffset, textureMatrix);
@@ -13763,7 +13797,6 @@ Deprecated since v${version}`);
           this._activeBatchers = [];
           this._gpuContextHash = {};
           this._graphicsDataContextHash = /* @__PURE__ */ Object.create(null);
-          this._needsContextNeedsRebuild = [];
         }
         /**
          * Runner init called, update the default options
@@ -13838,17 +13871,13 @@ Deprecated since v${version}`);
         }
         _initContext(context2) {
           const gpuContext = new GpuGraphicsContext();
+          gpuContext.context = context2;
           this._gpuContextHash[context2.uid] = gpuContext;
-          context2.on("update", this.onGraphicsContextUpdate, this);
           context2.on("destroy", this.onGraphicsContextDestroy, this);
           return this._gpuContextHash[context2.uid];
         }
-        onGraphicsContextUpdate(context2) {
-          this._needsContextNeedsRebuild.push(context2);
-        }
         onGraphicsContextDestroy(context2) {
           this._cleanGraphicsContextData(context2);
-          context2.off("update", this.onGraphicsContextUpdate, this);
           context2.off("destroy", this.onGraphicsContextDestroy, this);
           this._gpuContextHash[context2.uid] = null;
         }
@@ -13867,12 +13896,11 @@ Deprecated since v${version}`);
           }
         }
         destroy() {
-          for (const context2 of this._needsContextNeedsRebuild) {
-            if (this._gpuContextHash[context2.uid]) {
-              this.onGraphicsContextDestroy(context2);
+          for (const i3 in this._gpuContextHash) {
+            if (this._gpuContextHash[i3]) {
+              this.onGraphicsContextDestroy(this._gpuContextHash[i3].context);
             }
           }
-          this._needsContextNeedsRebuild.length = 0;
         }
       };
       _GraphicsContextSystem.extension = {
@@ -14176,10 +14204,12 @@ Deprecated since v${version}`);
             batchClone.roundPixels = roundPixels;
             return batchClone;
           });
+          if (this._graphicsBatchesHash[graphics.uid] === void 0) {
+            graphics.on("destroyed", () => {
+              this.destroyRenderable(graphics);
+            });
+          }
           this._graphicsBatchesHash[graphics.uid] = batches;
-          graphics.on("destroyed", () => {
-            this.destroyRenderable(graphics);
-          });
           return batches;
         }
         _removeBatchForRenderable(graphicsUid) {
@@ -14239,6 +14269,34 @@ Deprecated since v${version}`);
       "use strict";
       idCounts = /* @__PURE__ */ Object.create(null);
       idHash2 = /* @__PURE__ */ Object.create(null);
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/types.mjs
+  var UNIFORM_TYPES_VALUES, UNIFORM_TYPES_MAP;
+  var init_types = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/types.mjs"() {
+      "use strict";
+      UNIFORM_TYPES_VALUES = [
+        "f32",
+        "i32",
+        "vec2<f32>",
+        "vec3<f32>",
+        "vec4<f32>",
+        "mat2x2<f32>",
+        "mat3x3<f32>",
+        "mat4x4<f32>",
+        "mat3x2<f32>",
+        "mat4x2<f32>",
+        "mat2x3<f32>",
+        "mat4x3<f32>",
+        "mat2x4<f32>",
+        "mat3x4<f32>"
+      ];
+      UNIFORM_TYPES_MAP = UNIFORM_TYPES_VALUES.reduce((acc, type) => {
+        acc[type] = true;
+        return acc;
+      }, {});
     }
   });
 
@@ -14307,6 +14365,7 @@ Deprecated since v${version}`);
       "use strict";
       init_uid();
       init_createIdFromString();
+      init_types();
       init_getDefaultUniformValue();
       _UniformGroup = class _UniformGroup2 {
         /**
@@ -14321,6 +14380,7 @@ Deprecated since v${version}`);
           this._resourceId = uid("resource");
           this.isUniformGroup = true;
           this._dirtyId = 0;
+          this.destroyed = false;
           options = { ..._UniformGroup2.defaultOptions, ...options };
           this.uniformStructures = uniformStructures;
           const uniforms = {};
@@ -14328,6 +14388,9 @@ Deprecated since v${version}`);
             const uniformData = uniformStructures[i3];
             uniformData.name = i3;
             uniformData.size = uniformData.size ?? 1;
+            if (!UNIFORM_TYPES_MAP[uniformData.type]) {
+              throw new Error(`Uniform type ${uniformData.type} is not supported. Supported uniform types are: ${UNIFORM_TYPES_VALUES.join(", ")}`);
+            }
             uniformData.value ?? (uniformData.value = getDefaultUniformValue(uniformData.type, uniformData.size));
             uniforms[i3] = uniformData.value;
           }
@@ -14748,13 +14811,7 @@ Deprecated since v${version}`);
           if (gpuText.texture) {
             this._renderer.canvasText.decreaseReferenceCount(gpuText.currentKey);
           }
-          const resolution = text.resolution ?? this._renderer.resolution;
-          gpuText.texture = batchableSprite.texture = this._renderer.canvasText.getTexture(
-            text.text,
-            resolution,
-            text._style,
-            text._getKey()
-          );
+          gpuText.texture = batchableSprite.texture = this._renderer.canvasText.getManagedTexture(text);
           gpuText.currentKey = text._getKey();
           batchableSprite.texture = gpuText.texture;
         }
@@ -15026,575 +15083,6 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/scene/text/utils/getPo2TextureFromSource.mjs
-  function getPo2TextureFromSource(image, width, height, resolution) {
-    const bounds = tempBounds2;
-    bounds.minX = 0;
-    bounds.minY = 0;
-    bounds.maxX = image.width / resolution | 0;
-    bounds.maxY = image.height / resolution | 0;
-    const texture = TexturePool.getOptimalTexture(
-      bounds.width,
-      bounds.height,
-      resolution,
-      false
-    );
-    texture.source.uploadMethodId = "image";
-    texture.source.resource = image;
-    texture.source.alphaMode = "premultiply-alpha-on-upload";
-    texture.frame.width = width / resolution;
-    texture.frame.height = height / resolution;
-    texture.source.emit("update", texture.source);
-    texture.updateUvs();
-    return texture;
-  }
-  var tempBounds2;
-  var init_getPo2TextureFromSource = __esm({
-    "node_modules/pixi.js/lib/scene/text/utils/getPo2TextureFromSource.mjs"() {
-      "use strict";
-      init_TexturePool();
-      init_Bounds();
-      tempBounds2 = new Bounds();
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text/canvas/utils/fontStringFromTextStyle.mjs
-  function fontStringFromTextStyle(style) {
-    const fontSizeString = typeof style.fontSize === "number" ? `${style.fontSize}px` : style.fontSize;
-    let fontFamilies = style.fontFamily;
-    if (!Array.isArray(style.fontFamily)) {
-      fontFamilies = style.fontFamily.split(",");
-    }
-    for (let i3 = fontFamilies.length - 1; i3 >= 0; i3--) {
-      let fontFamily = fontFamilies[i3].trim();
-      if (!/([\"\'])[^\'\"]+\1/.test(fontFamily) && !genericFontFamilies.includes(fontFamily)) {
-        fontFamily = `"${fontFamily}"`;
-      }
-      fontFamilies[i3] = fontFamily;
-    }
-    return `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${fontSizeString} ${fontFamilies.join(",")}`;
-  }
-  var genericFontFamilies;
-  var init_fontStringFromTextStyle = __esm({
-    "node_modules/pixi.js/lib/scene/text/canvas/utils/fontStringFromTextStyle.mjs"() {
-      "use strict";
-      genericFontFamilies = [
-        "serif",
-        "sans-serif",
-        "monospace",
-        "cursive",
-        "fantasy",
-        "system-ui"
-      ];
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text/canvas/CanvasTextMetrics.mjs
-  var contextSettings, _CanvasTextMetrics, CanvasTextMetrics;
-  var init_CanvasTextMetrics = __esm({
-    "node_modules/pixi.js/lib/scene/text/canvas/CanvasTextMetrics.mjs"() {
-      "use strict";
-      init_adapter();
-      init_fontStringFromTextStyle();
-      contextSettings = {
-        // TextMetrics requires getImageData readback for measuring fonts.
-        willReadFrequently: true
-      };
-      _CanvasTextMetrics = class _CanvasTextMetrics2 {
-        /**
-         * Checking that we can use modern canvas 2D API.
-         *
-         * Note: This is an unstable API, Chrome < 94 use `textLetterSpacing`, later versions use `letterSpacing`.
-         * @see TextMetrics.experimentalLetterSpacing
-         * @see https://developer.mozilla.org/en-US/docs/Web/API/ICanvasRenderingContext2D/letterSpacing
-         * @see https://developer.chrome.com/origintrials/#/view_trial/3585991203293757441
-         */
-        static get experimentalLetterSpacingSupported() {
-          let result = _CanvasTextMetrics2._experimentalLetterSpacingSupported;
-          if (result !== void 0) {
-            const proto = DOMAdapter.get().getCanvasRenderingContext2D().prototype;
-            result = _CanvasTextMetrics2._experimentalLetterSpacingSupported = "letterSpacing" in proto || "textLetterSpacing" in proto;
-          }
-          return result;
-        }
-        /**
-         * @param text - the text that was measured
-         * @param style - the style that was measured
-         * @param width - the measured width of the text
-         * @param height - the measured height of the text
-         * @param lines - an array of the lines of text broken by new lines and wrapping if specified in style
-         * @param lineWidths - an array of the line widths for each line matched to `lines`
-         * @param lineHeight - the measured line height for this style
-         * @param maxLineWidth - the maximum line width for all measured lines
-         * @param {FontMetrics} fontProperties - the font properties object from TextMetrics.measureFont
-         */
-        constructor(text, style, width, height, lines, lineWidths, lineHeight, maxLineWidth, fontProperties) {
-          this.text = text;
-          this.style = style;
-          this.width = width;
-          this.height = height;
-          this.lines = lines;
-          this.lineWidths = lineWidths;
-          this.lineHeight = lineHeight;
-          this.maxLineWidth = maxLineWidth;
-          this.fontProperties = fontProperties;
-        }
-        /**
-         * Measures the supplied string of text and returns a Rectangle.
-         * @param text - The text to measure.
-         * @param style - The text style to use for measuring
-         * @param canvas - optional specification of the canvas to use for measuring.
-         * @param wordWrap
-         * @returns Measured width and height of the text.
-         */
-        static measureText(text = " ", style, canvas = _CanvasTextMetrics2._canvas, wordWrap = style.wordWrap) {
-          const textKey = `${text}:${style.styleKey}`;
-          if (_CanvasTextMetrics2._measurementCache[textKey])
-            return _CanvasTextMetrics2._measurementCache[textKey];
-          const font = fontStringFromTextStyle(style);
-          const fontProperties = _CanvasTextMetrics2.measureFont(font);
-          if (fontProperties.fontSize === 0) {
-            fontProperties.fontSize = style.fontSize;
-            fontProperties.ascent = style.fontSize;
-          }
-          const context2 = _CanvasTextMetrics2.__context;
-          context2.font = font;
-          const outputText = wordWrap ? _CanvasTextMetrics2._wordWrap(text, style, canvas) : text;
-          const lines = outputText.split(/(?:\r\n|\r|\n)/);
-          const lineWidths = new Array(lines.length);
-          let maxLineWidth = 0;
-          for (let i3 = 0; i3 < lines.length; i3++) {
-            const lineWidth = _CanvasTextMetrics2._measureText(lines[i3], style.letterSpacing, context2);
-            lineWidths[i3] = lineWidth;
-            maxLineWidth = Math.max(maxLineWidth, lineWidth);
-          }
-          const strokeWidth = style._stroke?.width || 0;
-          let width = maxLineWidth + strokeWidth;
-          if (style.dropShadow) {
-            width += style.dropShadow.distance;
-          }
-          const lineHeight = style.lineHeight || fontProperties.fontSize + strokeWidth;
-          let height = Math.max(lineHeight, fontProperties.fontSize + strokeWidth * 2) + (lines.length - 1) * (lineHeight + style.leading);
-          if (style.dropShadow) {
-            height += style.dropShadow.distance;
-          }
-          const measurements = new _CanvasTextMetrics2(
-            text,
-            style,
-            width,
-            height,
-            lines,
-            lineWidths,
-            lineHeight + style.leading,
-            maxLineWidth,
-            fontProperties
-          );
-          return measurements;
-        }
-        static _measureText(text, letterSpacing, context2) {
-          let useExperimentalLetterSpacing = false;
-          if (_CanvasTextMetrics2.experimentalLetterSpacingSupported) {
-            if (_CanvasTextMetrics2.experimentalLetterSpacing) {
-              context2.letterSpacing = `${letterSpacing}px`;
-              context2.textLetterSpacing = `${letterSpacing}px`;
-              useExperimentalLetterSpacing = true;
-            } else {
-              context2.letterSpacing = "0px";
-              context2.textLetterSpacing = "0px";
-            }
-          }
-          let width = context2.measureText(text).width;
-          if (width > 0) {
-            if (useExperimentalLetterSpacing) {
-              width -= letterSpacing;
-            } else {
-              width += (_CanvasTextMetrics2.graphemeSegmenter(text).length - 1) * letterSpacing;
-            }
-          }
-          return width;
-        }
-        /**
-         * Applies newlines to a string to have it optimally fit into the horizontal
-         * bounds set by the Text object's wordWrapWidth property.
-         * @param text - String to apply word wrapping to
-         * @param style - the style to use when wrapping
-         * @param canvas - optional specification of the canvas to use for measuring.
-         * @returns New string with new lines applied where required
-         */
-        static _wordWrap(text, style, canvas = _CanvasTextMetrics2._canvas) {
-          const context2 = canvas.getContext("2d", contextSettings);
-          let width = 0;
-          let line = "";
-          let lines = "";
-          const cache = /* @__PURE__ */ Object.create(null);
-          const { letterSpacing, whiteSpace } = style;
-          const collapseSpaces = _CanvasTextMetrics2._collapseSpaces(whiteSpace);
-          const collapseNewlines = _CanvasTextMetrics2._collapseNewlines(whiteSpace);
-          let canPrependSpaces = !collapseSpaces;
-          const wordWrapWidth = style.wordWrapWidth + letterSpacing;
-          const tokens = _CanvasTextMetrics2._tokenize(text);
-          for (let i3 = 0; i3 < tokens.length; i3++) {
-            let token = tokens[i3];
-            if (_CanvasTextMetrics2._isNewline(token)) {
-              if (!collapseNewlines) {
-                lines += _CanvasTextMetrics2._addLine(line);
-                canPrependSpaces = !collapseSpaces;
-                line = "";
-                width = 0;
-                continue;
-              }
-              token = " ";
-            }
-            if (collapseSpaces) {
-              const currIsBreakingSpace = _CanvasTextMetrics2.isBreakingSpace(token);
-              const lastIsBreakingSpace = _CanvasTextMetrics2.isBreakingSpace(line[line.length - 1]);
-              if (currIsBreakingSpace && lastIsBreakingSpace) {
-                continue;
-              }
-            }
-            const tokenWidth = _CanvasTextMetrics2._getFromCache(token, letterSpacing, cache, context2);
-            if (tokenWidth > wordWrapWidth) {
-              if (line !== "") {
-                lines += _CanvasTextMetrics2._addLine(line);
-                line = "";
-                width = 0;
-              }
-              if (_CanvasTextMetrics2.canBreakWords(token, style.breakWords)) {
-                const characters = _CanvasTextMetrics2.wordWrapSplit(token);
-                for (let j3 = 0; j3 < characters.length; j3++) {
-                  let char = characters[j3];
-                  let lastChar = char;
-                  let k3 = 1;
-                  while (characters[j3 + k3]) {
-                    const nextChar = characters[j3 + k3];
-                    if (!_CanvasTextMetrics2.canBreakChars(lastChar, nextChar, token, j3, style.breakWords)) {
-                      char += nextChar;
-                    } else {
-                      break;
-                    }
-                    lastChar = nextChar;
-                    k3++;
-                  }
-                  j3 += k3 - 1;
-                  const characterWidth = _CanvasTextMetrics2._getFromCache(char, letterSpacing, cache, context2);
-                  if (characterWidth + width > wordWrapWidth) {
-                    lines += _CanvasTextMetrics2._addLine(line);
-                    canPrependSpaces = false;
-                    line = "";
-                    width = 0;
-                  }
-                  line += char;
-                  width += characterWidth;
-                }
-              } else {
-                if (line.length > 0) {
-                  lines += _CanvasTextMetrics2._addLine(line);
-                  line = "";
-                  width = 0;
-                }
-                const isLastToken = i3 === tokens.length - 1;
-                lines += _CanvasTextMetrics2._addLine(token, !isLastToken);
-                canPrependSpaces = false;
-                line = "";
-                width = 0;
-              }
-            } else {
-              if (tokenWidth + width > wordWrapWidth) {
-                canPrependSpaces = false;
-                lines += _CanvasTextMetrics2._addLine(line);
-                line = "";
-                width = 0;
-              }
-              if (line.length > 0 || !_CanvasTextMetrics2.isBreakingSpace(token) || canPrependSpaces) {
-                line += token;
-                width += tokenWidth;
-              }
-            }
-          }
-          lines += _CanvasTextMetrics2._addLine(line, false);
-          return lines;
-        }
-        /**
-         * Convienience function for logging each line added during the wordWrap method.
-         * @param line    - The line of text to add
-         * @param newLine - Add new line character to end
-         * @returns A formatted line
-         */
-        static _addLine(line, newLine = true) {
-          line = _CanvasTextMetrics2._trimRight(line);
-          line = newLine ? `${line}
-` : line;
-          return line;
-        }
-        /**
-         * Gets & sets the widths of calculated characters in a cache object
-         * @param key            - The key
-         * @param letterSpacing  - The letter spacing
-         * @param cache          - The cache
-         * @param context        - The canvas context
-         * @returns The from cache.
-         */
-        static _getFromCache(key, letterSpacing, cache, context2) {
-          let width = cache[key];
-          if (typeof width !== "number") {
-            width = _CanvasTextMetrics2._measureText(key, letterSpacing, context2) + letterSpacing;
-            cache[key] = width;
-          }
-          return width;
-        }
-        /**
-         * Determines whether we should collapse breaking spaces.
-         * @param whiteSpace - The TextStyle property whiteSpace
-         * @returns Should collapse
-         */
-        static _collapseSpaces(whiteSpace) {
-          return whiteSpace === "normal" || whiteSpace === "pre-line";
-        }
-        /**
-         * Determines whether we should collapse newLine chars.
-         * @param whiteSpace - The white space
-         * @returns should collapse
-         */
-        static _collapseNewlines(whiteSpace) {
-          return whiteSpace === "normal";
-        }
-        /**
-         * Trims breaking whitespaces from string.
-         * @param text - The text
-         * @returns Trimmed string
-         */
-        static _trimRight(text) {
-          if (typeof text !== "string") {
-            return "";
-          }
-          for (let i3 = text.length - 1; i3 >= 0; i3--) {
-            const char = text[i3];
-            if (!_CanvasTextMetrics2.isBreakingSpace(char)) {
-              break;
-            }
-            text = text.slice(0, -1);
-          }
-          return text;
-        }
-        /**
-         * Determines if char is a newline.
-         * @param char - The character
-         * @returns True if newline, False otherwise.
-         */
-        static _isNewline(char) {
-          if (typeof char !== "string") {
-            return false;
-          }
-          return _CanvasTextMetrics2._newlines.includes(char.charCodeAt(0));
-        }
-        /**
-         * Determines if char is a breaking whitespace.
-         *
-         * It allows one to determine whether char should be a breaking whitespace
-         * For example certain characters in CJK langs or numbers.
-         * It must return a boolean.
-         * @param char - The character
-         * @param [_nextChar] - The next character
-         * @returns True if whitespace, False otherwise.
-         */
-        static isBreakingSpace(char, _nextChar) {
-          if (typeof char !== "string") {
-            return false;
-          }
-          return _CanvasTextMetrics2._breakingSpaces.includes(char.charCodeAt(0));
-        }
-        /**
-         * Splits a string into words, breaking-spaces and newLine characters
-         * @param text - The text
-         * @returns A tokenized array
-         */
-        static _tokenize(text) {
-          const tokens = [];
-          let token = "";
-          if (typeof text !== "string") {
-            return tokens;
-          }
-          for (let i3 = 0; i3 < text.length; i3++) {
-            const char = text[i3];
-            const nextChar = text[i3 + 1];
-            if (_CanvasTextMetrics2.isBreakingSpace(char, nextChar) || _CanvasTextMetrics2._isNewline(char)) {
-              if (token !== "") {
-                tokens.push(token);
-                token = "";
-              }
-              tokens.push(char);
-              continue;
-            }
-            token += char;
-          }
-          if (token !== "") {
-            tokens.push(token);
-          }
-          return tokens;
-        }
-        /**
-         * Overridable helper method used internally by TextMetrics, exposed to allow customizing the class's behavior.
-         *
-         * It allows one to customise which words should break
-         * Examples are if the token is CJK or numbers.
-         * It must return a boolean.
-         * @param _token - The token
-         * @param breakWords - The style attr break words
-         * @returns Whether to break word or not
-         */
-        static canBreakWords(_token, breakWords) {
-          return breakWords;
-        }
-        /**
-         * Overridable helper method used internally by TextMetrics, exposed to allow customizing the class's behavior.
-         *
-         * It allows one to determine whether a pair of characters
-         * should be broken by newlines
-         * For example certain characters in CJK langs or numbers.
-         * It must return a boolean.
-         * @param _char - The character
-         * @param _nextChar - The next character
-         * @param _token - The token/word the characters are from
-         * @param _index - The index in the token of the char
-         * @param _breakWords - The style attr break words
-         * @returns whether to break word or not
-         */
-        static canBreakChars(_char, _nextChar, _token, _index, _breakWords) {
-          return true;
-        }
-        /**
-         * Overridable helper method used internally by TextMetrics, exposed to allow customizing the class's behavior.
-         *
-         * It is called when a token (usually a word) has to be split into separate pieces
-         * in order to determine the point to break a word.
-         * It must return an array of characters.
-         * @param token - The token to split
-         * @returns The characters of the token
-         * @see CanvasTextMetrics.graphemeSegmenter
-         */
-        static wordWrapSplit(token) {
-          return _CanvasTextMetrics2.graphemeSegmenter(token);
-        }
-        /**
-         * Calculates the ascent, descent and fontSize of a given font-style
-         * @param font - String representing the style of the font
-         * @returns Font properties object
-         */
-        static measureFont(font) {
-          if (_CanvasTextMetrics2._fonts[font]) {
-            return _CanvasTextMetrics2._fonts[font];
-          }
-          const context2 = _CanvasTextMetrics2._context;
-          context2.font = font;
-          const metrics = context2.measureText(_CanvasTextMetrics2.METRICS_STRING + _CanvasTextMetrics2.BASELINE_SYMBOL);
-          const properties = {
-            ascent: metrics.actualBoundingBoxAscent,
-            descent: metrics.actualBoundingBoxDescent,
-            fontSize: metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
-          };
-          _CanvasTextMetrics2._fonts[font] = properties;
-          return properties;
-        }
-        /**
-         * Clear font metrics in metrics cache.
-         * @param {string} [font] - font name. If font name not set then clear cache for all fonts.
-         */
-        static clearMetrics(font = "") {
-          if (font) {
-            delete _CanvasTextMetrics2._fonts[font];
-          } else {
-            _CanvasTextMetrics2._fonts = {};
-          }
-        }
-        /**
-         * Cached canvas element for measuring text
-         * TODO: this should be private, but isn't because of backward compat, will fix later.
-         * @ignore
-         */
-        static get _canvas() {
-          if (!_CanvasTextMetrics2.__canvas) {
-            let canvas;
-            try {
-              const c3 = new OffscreenCanvas(0, 0);
-              const context2 = c3.getContext("2d", contextSettings);
-              if (context2?.measureText) {
-                _CanvasTextMetrics2.__canvas = c3;
-                return c3;
-              }
-              canvas = DOMAdapter.get().createCanvas();
-            } catch (ex) {
-              canvas = DOMAdapter.get().createCanvas();
-            }
-            canvas.width = canvas.height = 10;
-            _CanvasTextMetrics2.__canvas = canvas;
-          }
-          return _CanvasTextMetrics2.__canvas;
-        }
-        /**
-         * TODO: this should be private, but isn't because of backward compat, will fix later.
-         * @ignore
-         */
-        static get _context() {
-          if (!_CanvasTextMetrics2.__context) {
-            _CanvasTextMetrics2.__context = _CanvasTextMetrics2._canvas.getContext("2d", contextSettings);
-          }
-          return _CanvasTextMetrics2.__context;
-        }
-      };
-      _CanvasTextMetrics.METRICS_STRING = "|\xC9q\xC5";
-      _CanvasTextMetrics.BASELINE_SYMBOL = "M";
-      _CanvasTextMetrics.BASELINE_MULTIPLIER = 1.4;
-      _CanvasTextMetrics.HEIGHT_MULTIPLIER = 2;
-      _CanvasTextMetrics.graphemeSegmenter = (() => {
-        if (typeof Intl?.Segmenter === "function") {
-          const segmenter = new Intl.Segmenter();
-          return (s3) => [...segmenter.segment(s3)].map((x3) => x3.segment);
-        }
-        return (s3) => [...s3];
-      })();
-      _CanvasTextMetrics.experimentalLetterSpacing = false;
-      _CanvasTextMetrics._fonts = {};
-      _CanvasTextMetrics._newlines = [
-        10,
-        // line feed
-        13
-        // carriage return
-      ];
-      _CanvasTextMetrics._breakingSpaces = [
-        9,
-        // character tabulation
-        32,
-        // space
-        8192,
-        // en quad
-        8193,
-        // em quad
-        8194,
-        // en space
-        8195,
-        // em space
-        8196,
-        // three-per-em space
-        8197,
-        // four-per-em space
-        8198,
-        // six-per-em space
-        8200,
-        // punctuation space
-        8201,
-        // thin space
-        8202,
-        // hair space
-        8287,
-        // medium mathematical space
-        12288
-        // ideographic space
-      ];
-      _CanvasTextMetrics._measurementCache = {};
-      CanvasTextMetrics = _CanvasTextMetrics;
-    }
-  });
-
   // node_modules/pixi.js/lib/scene/graphics/shared/fill/FillGradient.mjs
   var _FillGradient, FillGradient;
   var init_FillGradient = __esm({
@@ -15611,6 +15099,7 @@ Deprecated since v${version}`);
           this.uid = uid("fillGradient");
           this.type = "linear";
           this.gradientStops = [];
+          this._styleKey = null;
           this.x0 = x0;
           this.y0 = y0;
           this.x1 = x1;
@@ -15618,6 +15107,7 @@ Deprecated since v${version}`);
         }
         addColorStop(offset, color) {
           this.gradientStops.push({ offset, color: Color.shared.setValue(color).toHex() });
+          this._styleKey = null;
           return this;
         }
         // TODO move to the system!
@@ -15653,6 +15143,16 @@ Deprecated since v${version}`);
           m3.rotate(-angle);
           m3.scale(256 / dist, 1);
           this.transform = m3;
+          this._styleKey = null;
+        }
+        get styleKey() {
+          if (this._styleKey) {
+            return this._styleKey;
+          }
+          const stops = this.gradientStops.map((stop) => `${stop.offset}-${stop.color}`).join("-");
+          const texture = this.texture.uid;
+          const transform2 = this.transform.toArray().join("-");
+          return `fill-gradient-${this.uid}-${stops}-${texture}-${transform2}-${this.x0}-${this.y0}-${this.x1}-${this.y1}`;
         }
       };
       _FillGradient.defaultTextureSize = 256;
@@ -15689,6 +15189,7 @@ Deprecated since v${version}`);
         constructor(texture, repetition) {
           this.uid = uid("fillPattern");
           this.transform = new Matrix();
+          this._styleKey = null;
           this.texture = texture;
           this.transform.scale(
             1 / texture.frame.width,
@@ -15707,377 +15208,13 @@ Deprecated since v${version}`);
             1 / texture.frame.width,
             1 / texture.frame.height
           );
+          this._styleKey = null;
         }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text/canvas/utils/getCanvasFillStyle.mjs
-  function getCanvasFillStyle(fillStyle, context2) {
-    if (fillStyle.texture === Texture.WHITE && !fillStyle.fill) {
-      return Color.shared.setValue(fillStyle.color).toHex();
-    } else if (!fillStyle.fill) {
-      const pattern = context2.createPattern(fillStyle.texture.source.resource, "repeat");
-      const tempMatrix6 = fillStyle.matrix.copyTo(Matrix.shared);
-      tempMatrix6.scale(fillStyle.texture.frame.width, fillStyle.texture.frame.height);
-      pattern.setTransform(tempMatrix6);
-      return pattern;
-    } else if (fillStyle.fill instanceof FillPattern) {
-      const fillPattern = fillStyle.fill;
-      const pattern = context2.createPattern(fillPattern.texture.source.resource, "repeat");
-      const tempMatrix6 = fillPattern.transform.copyTo(Matrix.shared);
-      tempMatrix6.scale(
-        fillPattern.texture.frame.width,
-        fillPattern.texture.frame.height
-      );
-      pattern.setTransform(tempMatrix6);
-      return pattern;
-    } else if (fillStyle.fill instanceof FillGradient) {
-      const fillGradient = fillStyle.fill;
-      if (fillGradient.type === "linear") {
-        const gradient = context2.createLinearGradient(
-          fillGradient.x0,
-          fillGradient.y0,
-          fillGradient.x1,
-          fillGradient.y1
-        );
-        fillGradient.gradientStops.forEach((stop) => {
-          gradient.addColorStop(stop.offset, Color.shared.setValue(stop.color).toHex());
-        });
-        return gradient;
-      }
-    }
-    warn("FillStyle not recognised", fillStyle);
-    return "red";
-  }
-  var init_getCanvasFillStyle = __esm({
-    "node_modules/pixi.js/lib/scene/text/canvas/utils/getCanvasFillStyle.mjs"() {
-      "use strict";
-      init_Color();
-      init_Matrix();
-      init_Texture();
-      init_warn();
-      init_FillGradient();
-      init_FillPattern();
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text/canvas/CanvasTextSystem.mjs
-  var CanvasTextSystem;
-  var init_CanvasTextSystem = __esm({
-    "node_modules/pixi.js/lib/scene/text/canvas/CanvasTextSystem.mjs"() {
-      "use strict";
-      init_Color();
-      init_Extensions();
-      init_pow2();
-      init_CanvasPool();
-      init_TexturePool();
-      init_getCanvasBoundingBox();
-      init_getPo2TextureFromSource();
-      init_CanvasTextMetrics();
-      init_fontStringFromTextStyle();
-      init_getCanvasFillStyle();
-      CanvasTextSystem = class {
-        constructor() {
-          this._activeTextures = {};
-        }
-        getTextureSize(text, resolution, style) {
-          const measured = CanvasTextMetrics.measureText(text || " ", style);
-          let width = Math.ceil(Math.ceil(Math.max(1, measured.width) + style.padding * 2) * resolution);
-          let height = Math.ceil(Math.ceil(Math.max(1, measured.height) + style.padding * 2) * resolution);
-          width = Math.ceil(width - 1e-6);
-          height = Math.ceil(height - 1e-6);
-          width = nextPow2(width);
-          height = nextPow2(height);
-          return { width, height };
-        }
-        getTexture(text, resolution, style, textKey) {
-          if (this._activeTextures[textKey]) {
-            this._increaseReferenceCount(textKey);
-            return this._activeTextures[textKey].texture;
-          }
-          const measured = CanvasTextMetrics.measureText(text || " ", style);
-          const width = Math.ceil(Math.ceil(Math.max(1, measured.width) + style.padding * 2) * resolution);
-          const height = Math.ceil(Math.ceil(Math.max(1, measured.height) + style.padding * 2) * resolution);
-          const canvasAndContext = CanvasPool.getOptimalCanvasAndContext(width, height);
-          const { canvas } = canvasAndContext;
-          this.renderTextToCanvas(text, style, resolution, canvasAndContext);
-          const texture = getPo2TextureFromSource(canvas, width, height, resolution);
-          if (style.trim) {
-            const trimmed = getCanvasBoundingBox(canvas, resolution);
-            texture.frame.copyFrom(trimmed);
-            texture.updateUvs();
-          }
-          this._activeTextures[textKey] = {
-            canvasAndContext,
-            texture,
-            usageCount: 1
-          };
-          return texture;
-        }
-        _increaseReferenceCount(textKey) {
-          this._activeTextures[textKey].usageCount++;
-        }
-        decreaseReferenceCount(textKey) {
-          const activeTexture = this._activeTextures[textKey];
-          activeTexture.usageCount--;
-          if (activeTexture.usageCount === 0) {
-            CanvasPool.returnCanvasAndContext(activeTexture.canvasAndContext);
-            TexturePool.returnTexture(activeTexture.texture);
-            const source2 = activeTexture.texture.source;
-            source2.resource = null;
-            source2.uploadMethodId = "unknown";
-            source2.alphaMode = "no-premultiply-alpha";
-            this._activeTextures[textKey] = null;
-          }
-        }
-        getReferenceCount(textKey) {
-          return this._activeTextures[textKey].usageCount;
-        }
-        /**
-         * Renders text to its canvas, and updates its texture.
-         *
-         * By default this is used internally to ensure the texture is correct before rendering,
-         * but it can be used called externally, for example from this class to 'pre-generate' the texture from a piece of text,
-         * and then shared across multiple Sprites.
-         * @param text
-         * @param style
-         * @param resolution
-         * @param canvasAndContext
-         */
-        renderTextToCanvas(text, style, resolution, canvasAndContext) {
-          const { canvas, context: context2 } = canvasAndContext;
-          const font = fontStringFromTextStyle(style);
-          const measured = CanvasTextMetrics.measureText(text || " ", style);
-          const lines = measured.lines;
-          const lineHeight = measured.lineHeight;
-          const lineWidths = measured.lineWidths;
-          const maxLineWidth = measured.maxLineWidth;
-          const fontProperties = measured.fontProperties;
-          const height = canvas.height;
-          context2.resetTransform();
-          context2.scale(resolution, resolution);
-          context2.clearRect(0, 0, measured.width + 4, measured.height + 4);
-          if (style._stroke?.width) {
-            const strokeStyle = style._stroke;
-            context2.lineWidth = strokeStyle.width;
-            context2.miterLimit = strokeStyle.miterLimit;
-            context2.lineJoin = strokeStyle.join;
-            context2.lineCap = strokeStyle.cap;
-          }
-          context2.font = font;
-          let linePositionX;
-          let linePositionY;
-          const passesCount = style.dropShadow ? 2 : 1;
-          for (let i3 = 0; i3 < passesCount; ++i3) {
-            const isShadowPass = style.dropShadow && i3 === 0;
-            const dsOffsetText = isShadowPass ? Math.ceil(Math.max(1, height) + style.padding * 2) : 0;
-            const dsOffsetShadow = dsOffsetText * resolution;
-            if (isShadowPass) {
-              context2.fillStyle = "black";
-              context2.strokeStyle = "black";
-              const shadowOptions = style.dropShadow;
-              const dropShadowColor = shadowOptions.color;
-              const dropShadowAlpha = shadowOptions.alpha;
-              context2.shadowColor = Color.shared.setValue(dropShadowColor).setAlpha(dropShadowAlpha).toRgbaString();
-              const dropShadowBlur = shadowOptions.blur * resolution;
-              const dropShadowDistance = shadowOptions.distance * resolution;
-              context2.shadowBlur = dropShadowBlur;
-              context2.shadowOffsetX = Math.cos(shadowOptions.angle) * dropShadowDistance;
-              context2.shadowOffsetY = Math.sin(shadowOptions.angle) * dropShadowDistance + dsOffsetShadow;
-            } else {
-              context2.globalAlpha = style._fill?.alpha ?? 1;
-              context2.fillStyle = style._fill ? getCanvasFillStyle(style._fill, context2) : null;
-              if (style._stroke?.width) {
-                context2.strokeStyle = getCanvasFillStyle(style._stroke, context2);
-              }
-              context2.shadowColor = "black";
-            }
-            let linePositionYShift = (lineHeight - fontProperties.fontSize) / 2;
-            if (lineHeight - fontProperties.fontSize < 0) {
-              linePositionYShift = 0;
-            }
-            const strokeWidth = style._stroke?.width ?? 0;
-            for (let i22 = 0; i22 < lines.length; i22++) {
-              linePositionX = strokeWidth / 2;
-              linePositionY = strokeWidth / 2 + i22 * lineHeight + fontProperties.ascent + linePositionYShift;
-              if (style.align === "right") {
-                linePositionX += maxLineWidth - lineWidths[i22];
-              } else if (style.align === "center") {
-                linePositionX += (maxLineWidth - lineWidths[i22]) / 2;
-              }
-              if (style._stroke) {
-                this._drawLetterSpacing(
-                  lines[i22],
-                  style,
-                  canvasAndContext,
-                  linePositionX + style.padding,
-                  linePositionY + style.padding - dsOffsetText,
-                  true
-                );
-              }
-              if (style._fill !== void 0) {
-                this._drawLetterSpacing(
-                  lines[i22],
-                  style,
-                  canvasAndContext,
-                  linePositionX + style.padding,
-                  linePositionY + style.padding - dsOffsetText
-                );
-              }
-            }
-          }
-        }
-        /**
-         * Render the text with letter-spacing.
-         * @param text - The text to draw
-         * @param style
-         * @param canvasAndContext
-         * @param x - Horizontal position to draw the text
-         * @param y - Vertical position to draw the text
-         * @param isStroke - Is this drawing for the outside stroke of the
-         *  text? If not, it's for the inside fill
-         */
-        _drawLetterSpacing(text, style, canvasAndContext, x3, y3, isStroke = false) {
-          const { context: context2 } = canvasAndContext;
-          const letterSpacing = style.letterSpacing;
-          let useExperimentalLetterSpacing = false;
-          if (CanvasTextMetrics.experimentalLetterSpacingSupported) {
-            if (CanvasTextMetrics.experimentalLetterSpacing) {
-              context2.letterSpacing = `${letterSpacing}px`;
-              context2.textLetterSpacing = `${letterSpacing}px`;
-              useExperimentalLetterSpacing = true;
-            } else {
-              context2.letterSpacing = "0px";
-              context2.textLetterSpacing = "0px";
-            }
-          }
-          if (letterSpacing === 0 || useExperimentalLetterSpacing) {
-            if (isStroke) {
-              context2.strokeText(text, x3, y3);
-            } else {
-              context2.fillText(text, x3, y3);
-            }
-            return;
-          }
-          let currentPosition = x3;
-          const stringArray = CanvasTextMetrics.graphemeSegmenter(text);
-          let previousWidth = context2.measureText(text).width;
-          let currentWidth = 0;
-          for (let i3 = 0; i3 < stringArray.length; ++i3) {
-            const currentChar = stringArray[i3];
-            if (isStroke) {
-              context2.strokeText(currentChar, currentPosition, y3);
-            } else {
-              context2.fillText(currentChar, currentPosition, y3);
-            }
-            let textStr = "";
-            for (let j3 = i3 + 1; j3 < stringArray.length; ++j3) {
-              textStr += stringArray[j3];
-            }
-            currentWidth = context2.measureText(textStr).width;
-            currentPosition += previousWidth - currentWidth + letterSpacing;
-            previousWidth = currentWidth;
-          }
-        }
-        destroy() {
-          this._activeTextures = null;
-        }
-      };
-      CanvasTextSystem.extension = {
-        type: [
-          ExtensionType.WebGLSystem,
-          ExtensionType.WebGPUSystem,
-          ExtensionType.CanvasSystem
-        ],
-        name: "canvasText"
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text/init.mjs
-  var init_init8 = __esm({
-    "node_modules/pixi.js/lib/scene/text/init.mjs"() {
-      "use strict";
-      init_Extensions();
-      init_CanvasTextPipe();
-      init_CanvasTextSystem();
-      extensions.add(CanvasTextSystem);
-      extensions.add(CanvasTextPipe);
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text-bitmap/AbstractBitmapFont.mjs
-  var AbstractBitmapFont;
-  var init_AbstractBitmapFont = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/AbstractBitmapFont.mjs"() {
-      "use strict";
-      init_eventemitter3();
-      init_deprecation();
-      AbstractBitmapFont = class extends eventemitter3_default {
-        constructor() {
-          super(...arguments);
-          this.chars = /* @__PURE__ */ Object.create(null);
-          this.lineHeight = 0;
-          this.fontFamily = "";
-          this.fontMetrics = { fontSize: 0, ascent: 0, descent: 0 };
-          this.baseLineOffset = 0;
-          this.distanceField = { type: "none", range: 0 };
-          this.pages = [];
-          this.baseMeasurementFontSize = 100;
-          this.baseRenderedFontSize = 100;
-        }
-        /**
-         * The name of the font face.
-         * @deprecated since 8.0.0 Use `fontFamily` instead.
-         */
-        get font() {
-          deprecation(v8_0_0, "BitmapFont.font is deprecated, please use BitmapFont.fontFamily instead.");
-          return this.fontFamily;
-        }
-        /**
-         * The map of base page textures (i.e., sheets of glyphs).
-         * @deprecated since 8.0.0 Use `pages` instead.
-         */
-        get pageTextures() {
-          deprecation(v8_0_0, "BitmapFont.pageTextures is deprecated, please use BitmapFont.pages instead.");
-          return this.pages;
-        }
-        /**
-         * The size of the font face in pixels.
-         * @deprecated since 8.0.0 Use `fontMetrics.fontSize` instead.
-         */
-        get size() {
-          deprecation(v8_0_0, "BitmapFont.size is deprecated, please use BitmapFont.fontMetrics.fontSize instead.");
-          return this.fontMetrics.fontSize;
-        }
-        /**
-         * The kind of distance field for this font or "none".
-         * @deprecated since 8.0.0 Use `distanceField.type` instead.
-         */
-        get distanceFieldRange() {
-          deprecation(v8_0_0, "BitmapFont.distanceFieldRange is deprecated, please use BitmapFont.distanceField.range instead.");
-          return this.distanceField.range;
-        }
-        /**
-         * The range of the distance field in pixels.
-         * @deprecated since 8.0.0 Use `distanceField.range` instead.
-         */
-        get distanceFieldType() {
-          deprecation(v8_0_0, "BitmapFont.distanceFieldType is deprecated, please use BitmapFont.distanceField.type instead.");
-          return this.distanceField.type;
-        }
-        destroy(destroyTextures = false) {
-          this.emit("destroy", this);
-          this.removeAllListeners();
-          for (const i3 in this.chars) {
-            this.chars[i3].texture.destroy();
-          }
-          this.chars = null;
-          if (destroyTextures) {
-            this.pages.forEach((page) => page.texture.destroy(true));
-            this.pages = null;
-          }
+        get styleKey() {
+          if (this._styleKey)
+            return this._styleKey;
+          this._styleKey = `fill-pattern-${this.uid}-${this.texture.uid}-${this.transform.toArray().join("-")}`;
+          return this._styleKey;
         }
       };
     }
@@ -16613,7 +15750,8 @@ Deprecated since v${version}`);
           const halfStrokeWidth = strokeWidth / 2;
           const halfStrokeWidthSqrd = halfStrokeWidth * halfStrokeWidth;
           const { points } = this;
-          for (let i3 = 0; i3 < points.length; i3 += 2) {
+          const iterationLength = points.length - (this.closePath ? 0 : 2);
+          for (let i3 = 0; i3 < iterationLength; i3 += 2) {
             const x1 = points[i3];
             const y1 = points[i3 + 1];
             const x22 = points[(i3 + 2) % points.length];
@@ -18592,55 +17730,43 @@ Deprecated since v${version}`);
   });
 
   // node_modules/pixi.js/lib/scene/graphics/shared/utils/convertFillInputToFillStyle.mjs
-  function convertFillInputToFillStyle(value, defaultStyle) {
-    if (value === void 0 || value === null) {
-      return null;
-    }
-    let fillStyleToParse;
-    let styleToMerge;
-    if (value?.fill) {
-      styleToMerge = value.fill;
-      fillStyleToParse = { ...defaultStyle, ...value };
-    } else {
-      styleToMerge = value;
-      fillStyleToParse = defaultStyle;
-    }
-    if (Color.isColorLike(styleToMerge)) {
-      const temp = Color.shared.setValue(styleToMerge ?? 0);
-      const opts = {
-        ...fillStyleToParse,
-        color: temp.toNumber(),
-        alpha: temp.alpha === 1 ? fillStyleToParse.alpha : temp.alpha,
-        texture: Texture.WHITE
-      };
-      return opts;
-    } else if (styleToMerge instanceof FillPattern) {
-      const pattern = styleToMerge;
-      return {
-        ...fillStyleToParse,
-        color: 16777215,
-        texture: pattern.texture,
-        matrix: pattern.transform,
-        fill: fillStyleToParse.fill ?? null
-      };
-    } else if (styleToMerge instanceof FillGradient) {
-      const gradient = styleToMerge;
-      gradient.buildLinearGradient();
-      return {
-        ...fillStyleToParse,
-        color: 16777215,
-        texture: gradient.texture,
-        matrix: gradient.transform
-      };
-    }
+  function isColorLike(value) {
+    return Color.isColorLike(value);
+  }
+  function isFillPattern(value) {
+    return value instanceof FillPattern;
+  }
+  function isFillGradient(value) {
+    return value instanceof FillGradient;
+  }
+  function handleColorLike(fill, value, defaultStyle) {
+    const temp = Color.shared.setValue(value ?? 0);
+    fill.color = temp.toNumber();
+    fill.alpha = temp.alpha === 1 ? defaultStyle.alpha : temp.alpha;
+    fill.texture = Texture.WHITE;
+    return { ...defaultStyle, ...fill };
+  }
+  function handleFillPattern(fill, value, defaultStyle) {
+    fill.fill = value;
+    fill.color = 16777215;
+    fill.texture = value.texture;
+    fill.matrix = value.transform;
+    return { ...defaultStyle, ...fill };
+  }
+  function handleFillGradient(fill, value, defaultStyle) {
+    value.buildLinearGradient();
+    fill.fill = value;
+    fill.color = 16777215;
+    fill.texture = value.texture;
+    fill.matrix = value.transform;
+    return { ...defaultStyle, ...fill };
+  }
+  function handleFillObject(value, defaultStyle) {
     const style = { ...defaultStyle, ...value };
     if (style.texture) {
       if (style.texture !== Texture.WHITE) {
         const m3 = style.matrix?.invert() || new Matrix();
-        m3.scale(
-          1 / style.texture.frame.width,
-          1 / style.texture.frame.height
-        );
+        m3.scale(1 / style.texture.frame.width, 1 / style.texture.frame.height);
         style.matrix = m3;
       }
       const sourceStyle = style.texture.source.style;
@@ -18653,6 +17779,40 @@ Deprecated since v${version}`);
     style.color = color.toNumber();
     style.matrix = style.matrix ? style.matrix.clone() : null;
     return style;
+  }
+  function toFillStyle(value, defaultStyle) {
+    if (value === void 0 || value === null) {
+      return null;
+    }
+    const fill = {};
+    const objectStyle = value;
+    if (isColorLike(value)) {
+      return handleColorLike(fill, value, defaultStyle);
+    } else if (isFillPattern(value)) {
+      return handleFillPattern(fill, value, defaultStyle);
+    } else if (isFillGradient(value)) {
+      return handleFillGradient(fill, value, defaultStyle);
+    } else if (objectStyle.fill && isFillPattern(objectStyle.fill)) {
+      return handleFillPattern(objectStyle, objectStyle.fill, defaultStyle);
+    } else if (objectStyle.fill && isFillGradient(objectStyle.fill)) {
+      return handleFillGradient(objectStyle, objectStyle.fill, defaultStyle);
+    }
+    return handleFillObject(objectStyle, defaultStyle);
+  }
+  function toStrokeStyle(value, defaultStyle) {
+    const { width, alignment, miterLimit, cap, join, ...rest } = defaultStyle;
+    const fill = toFillStyle(value, rest);
+    if (!fill) {
+      return null;
+    }
+    return {
+      width,
+      alignment,
+      miterLimit,
+      cap,
+      join,
+      ...fill
+    };
   }
   var init_convertFillInputToFillStyle = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/utils/convertFillInputToFillStyle.mjs"() {
@@ -18724,7 +17884,7 @@ Deprecated since v${version}`);
           return this._fillStyle;
         }
         set fillStyle(value) {
-          this._fillStyle = convertFillInputToFillStyle(value, _GraphicsContext2.defaultFillStyle);
+          this._fillStyle = toFillStyle(value, _GraphicsContext2.defaultFillStyle);
         }
         /**
          * The current stroke style of the graphics context. Similar to fill styles, stroke styles can encompass colors, gradients, patterns, or more detailed configurations via a StrokeStyle object.
@@ -18733,7 +17893,7 @@ Deprecated since v${version}`);
           return this._strokeStyle;
         }
         set strokeStyle(value) {
-          this._strokeStyle = convertFillInputToFillStyle(value, _GraphicsContext2.defaultStrokeStyle);
+          this._strokeStyle = toStrokeStyle(value, _GraphicsContext2.defaultStrokeStyle);
         }
         /**
          * Sets the current fill style of the graphics context. The fill style can be a color, gradient,
@@ -18743,7 +17903,7 @@ Deprecated since v${version}`);
          * @returns The instance of the current GraphicsContext for method chaining.
          */
         setFillStyle(style) {
-          this._fillStyle = convertFillInputToFillStyle(style, _GraphicsContext2.defaultFillStyle);
+          this._fillStyle = toFillStyle(style, _GraphicsContext2.defaultFillStyle);
           return this;
         }
         /**
@@ -18754,7 +17914,7 @@ Deprecated since v${version}`);
          * @returns The instance of the current GraphicsContext for method chaining.
          */
         setStrokeStyle(style) {
-          this._strokeStyle = convertFillInputToFillStyle(style, _GraphicsContext2.defaultStrokeStyle);
+          this._strokeStyle = toFillStyle(style, _GraphicsContext2.defaultStrokeStyle);
           return this;
         }
         texture(texture, tint, dx, dy, dw, dh) {
@@ -18798,7 +17958,7 @@ Deprecated since v${version}`);
               deprecation(v8_0_0, "GraphicsContext.fill(color, alpha) is deprecated, use GraphicsContext.fill({ color, alpha }) instead");
               style = { color: style, alpha };
             }
-            this._fillStyle = convertFillInputToFillStyle(style, _GraphicsContext2.defaultFillStyle);
+            this._fillStyle = toFillStyle(style, _GraphicsContext2.defaultFillStyle);
           }
           this.instructions.push({
             action: "fill",
@@ -18817,7 +17977,7 @@ Deprecated since v${version}`);
         }
         /**
          * Strokes the current path with the current stroke style. This method can take an optional
-         * FillStyleInputs parameter to define the stroke's appearance, including its color, width, and other properties.
+         * FillInput parameter to define the stroke's appearance, including its color, width, and other properties.
          * @param style - (Optional) The stroke style to apply. Can be defined as a simple color or a more complex style object. If omitted, uses the current stroke style.
          * @returns The instance of the current GraphicsContext for method chaining.
          */
@@ -18832,7 +17992,7 @@ Deprecated since v${version}`);
           if (!path2)
             return this;
           if (style != null) {
-            this._strokeStyle = convertFillInputToFillStyle(style, _GraphicsContext2.defaultStrokeStyle);
+            this._strokeStyle = toStrokeStyle(style, _GraphicsContext2.defaultStrokeStyle);
           }
           this.instructions.push({
             action: "stroke",
@@ -19313,6 +18473,7 @@ Deprecated since v${version}`);
          * @returns The instance of the current GraphicsContext for method chaining.
          */
         clear() {
+          this._activePath.clear();
           this.instructions.length = 0;
           this.resetTransform();
           this.onUpdate();
@@ -19477,11 +18638,12 @@ Deprecated since v${version}`);
     const key = [];
     let index = 0;
     for (let i3 = 0; i3 < valuesToIterateForKeys.length; i3++) {
-      const prop = valuesToIterateForKeys[i3];
+      const prop = `_${valuesToIterateForKeys[i3]}`;
       key[index++] = style[prop];
     }
     index = addFillStyleKey(style._fill, key, index);
     index = addStokeStyleKey(style._stroke, key, index);
+    index = addDropShadowKey(style.dropShadow, key, index);
     return key.join("-");
   }
   function addFillStyleKey(fillStyle, key, index) {
@@ -19489,7 +18651,7 @@ Deprecated since v${version}`);
       return index;
     key[index++] = fillStyle.color;
     key[index++] = fillStyle.alpha;
-    key[index++] = fillStyle.fill?.uid;
+    key[index++] = fillStyle.fill?.styleKey;
     return index;
   }
   function addStokeStyleKey(strokeStyle, key, index) {
@@ -19503,28 +18665,39 @@ Deprecated since v${version}`);
     key[index++] = strokeStyle.miterLimit;
     return index;
   }
+  function addDropShadowKey(dropShadow, key, index) {
+    if (!dropShadow)
+      return index;
+    key[index++] = dropShadow.alpha;
+    key[index++] = dropShadow.angle;
+    key[index++] = dropShadow.blur;
+    key[index++] = dropShadow.distance;
+    key[index++] = Color.shared.setValue(dropShadow.color).toNumber();
+    return index;
+  }
   var valuesToIterateForKeys;
   var init_generateTextStyleKey = __esm({
     "node_modules/pixi.js/lib/scene/text/utils/generateTextStyleKey.mjs"() {
       "use strict";
+      init_Color();
       valuesToIterateForKeys = [
-        "_fontFamily",
-        "_fontStyle",
-        "_fontSize",
-        "_fontVariant",
-        "_fontWeight",
-        "_breakWords",
-        "_align",
-        "_leading",
-        "_letterSpacing",
-        "_lineHeight",
-        "_textBaseline",
-        "_whiteSpace",
-        "_wordWrap",
-        "_wordWrapWidth",
-        "_padding",
-        "_cssOverrides",
-        "_trim"
+        "align",
+        "breakWords",
+        "cssOverrides",
+        "fontFamily",
+        "fontSize",
+        "fontStyle",
+        "fontVariant",
+        "fontWeight",
+        "leading",
+        "letterSpacing",
+        "lineHeight",
+        "padding",
+        "textBaseline",
+        "trim",
+        "whiteSpace",
+        "wordWrap",
+        "wordWrapWidth"
       ];
     }
   });
@@ -19542,20 +18715,38 @@ Deprecated since v${version}`);
         distance: oldStyle.dropShadowDistance ?? defaults.distance
       };
     }
-    if (oldStyle.strokeThickness) {
+    if (oldStyle.strokeThickness !== void 0) {
       deprecation(v8_0_0, "strokeThickness is now a part of stroke");
       const color = oldStyle.stroke;
+      let obj = {};
+      if (Color.isColorLike(color)) {
+        obj.color = color;
+      } else if (color instanceof FillGradient || color instanceof FillPattern) {
+        obj.fill = color;
+      } else if (Object.hasOwnProperty.call(color, "color") || Object.hasOwnProperty.call(color, "fill")) {
+        obj = color;
+      } else {
+        throw new Error("Invalid stroke value.");
+      }
       style.stroke = {
-        color,
+        ...obj,
         width: oldStyle.strokeThickness
       };
     }
-    if (Array.isArray(oldStyle.fill)) {
+    if (Array.isArray(oldStyle.fillGradientStops)) {
       deprecation(v8_0_0, "gradient fill is now a fill pattern: `new FillGradient(...)`");
-      const gradientFill = new FillGradient(0, 0, 0, style.fontSize * 1.7);
-      const fills = oldStyle.fill.map((color) => Color.shared.setValue(color).toNumber());
+      let fontSize;
+      if (style.fontSize == null) {
+        style.fontSize = TextStyle.defaultTextStyle.fontSize;
+      } else if (typeof style.fontSize === "string") {
+        fontSize = parseInt(style.fontSize, 10);
+      } else {
+        fontSize = style.fontSize;
+      }
+      const gradientFill = new FillGradient(0, 0, 0, fontSize * 1.7);
+      const fills = oldStyle.fillGradientStops.map((color) => Color.shared.setValue(color).toNumber());
       fills.forEach((number, index) => {
-        const ratio = oldStyle.fillGradientStops[index] ?? index / fills.length;
+        const ratio = index / (fills.length - 1);
         gradientFill.addColorStop(ratio, number);
       });
       style.fill = {
@@ -19571,6 +18762,7 @@ Deprecated since v${version}`);
       init_Color();
       init_deprecation();
       init_FillGradient();
+      init_FillPattern();
       init_GraphicsContext();
       init_convertFillInputToFillStyle();
       init_generateTextStyleKey();
@@ -19610,14 +18802,9 @@ Deprecated since v${version}`);
         }
         set dropShadow(value) {
           if (value !== null && typeof value === "object") {
-            this._dropShadow = {
-              ..._TextStyle2.defaultDropShadow,
-              ...value
-            };
+            this._dropShadow = this._createProxy({ ..._TextStyle2.defaultDropShadow, ...value });
           } else {
-            this._dropShadow = value ? {
-              ..._TextStyle2.defaultDropShadow
-            } : null;
+            this._dropShadow = value ? this._createProxy({ ..._TextStyle2.defaultDropShadow }) : null;
           }
           this.update();
         }
@@ -19770,7 +18957,15 @@ Deprecated since v${version}`);
           if (value === this._originalFill)
             return;
           this._originalFill = value;
-          this._fill = convertFillInputToFillStyle(
+          if (this._isFillStyle(value)) {
+            this._originalFill = this._createProxy({ ...GraphicsContext.defaultFillStyle, ...value }, () => {
+              this._fill = toFillStyle(
+                { ...this._originalFill },
+                GraphicsContext.defaultFillStyle
+              );
+            });
+          }
+          this._fill = toFillStyle(
             value === 0 ? "black" : value,
             GraphicsContext.defaultFillStyle
           );
@@ -19784,7 +18979,15 @@ Deprecated since v${version}`);
           if (value === this._originalStroke)
             return;
           this._originalStroke = value;
-          this._stroke = convertFillInputToFillStyle(value, GraphicsContext.defaultStrokeStyle);
+          if (this._isFillStyle(value)) {
+            this._originalStroke = this._createProxy({ ...GraphicsContext.defaultStrokeStyle, ...value }, () => {
+              this._stroke = toStrokeStyle(
+                { ...this._originalStroke },
+                GraphicsContext.defaultStrokeStyle
+              );
+            });
+          }
+          this._stroke = toStrokeStyle(value, GraphicsContext.defaultStrokeStyle);
           this.update();
         }
         _generateKey() {
@@ -19813,7 +19016,7 @@ Deprecated since v${version}`);
           return new _TextStyle2({
             align: this.align,
             breakWords: this.breakWords,
-            dropShadow: this.dropShadow,
+            dropShadow: this._dropShadow ? { ...this._dropShadow } : null,
             fill: this._fill,
             fontFamily: this.fontFamily,
             fontSize: this.fontSize,
@@ -19861,6 +19064,19 @@ Deprecated since v${version}`);
           this.dropShadow = null;
           this._originalStroke = null;
           this._originalFill = null;
+        }
+        _createProxy(value, cb) {
+          return new Proxy(value, {
+            set: (target, property, newValue) => {
+              target[property] = newValue;
+              cb?.(property, newValue);
+              this.update();
+              return true;
+            }
+          });
+        }
+        _isFillStyle(value) {
+          return (value ?? null) !== null && !(Color.isColorLike(value) || value instanceof FillGradient || value instanceof FillPattern);
         }
       };
       _TextStyle.defaultDropShadow = {
@@ -19949,945 +19165,897 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/scene/text-bitmap/utils/resolveCharacters.mjs
-  function resolveCharacters(chars) {
-    if (chars === "") {
-      return [];
-    }
-    if (typeof chars === "string") {
-      chars = [chars];
-    }
-    const result = [];
-    for (let i3 = 0, j3 = chars.length; i3 < j3; i3++) {
-      const item = chars[i3];
-      if (Array.isArray(item)) {
-        if (item.length !== 2) {
-          throw new Error(`[BitmapFont]: Invalid character range length, expecting 2 got ${item.length}.`);
-        }
-        if (item[0].length === 0 || item[1].length === 0) {
-          throw new Error("[BitmapFont]: Invalid character delimiter.");
-        }
-        const startCode = item[0].charCodeAt(0);
-        const endCode = item[1].charCodeAt(0);
-        if (endCode < startCode) {
-          throw new Error("[BitmapFont]: Invalid character range.");
-        }
-        for (let i22 = startCode, j22 = endCode; i22 <= j22; i22++) {
-          result.push(String.fromCharCode(i22));
-        }
-      } else {
-        result.push(...Array.from(item));
-      }
-    }
-    if (result.length === 0) {
-      throw new Error("[BitmapFont]: Empty set when resolving characters.");
-    }
-    return result;
+  // node_modules/pixi.js/lib/scene/text/utils/getPo2TextureFromSource.mjs
+  function getPo2TextureFromSource(image, width, height, resolution) {
+    const bounds = tempBounds2;
+    bounds.minX = 0;
+    bounds.minY = 0;
+    bounds.maxX = image.width / resolution | 0;
+    bounds.maxY = image.height / resolution | 0;
+    const texture = TexturePool.getOptimalTexture(
+      bounds.width,
+      bounds.height,
+      resolution,
+      false
+    );
+    texture.source.uploadMethodId = "image";
+    texture.source.resource = image;
+    texture.source.alphaMode = "premultiply-alpha-on-upload";
+    texture.frame.width = width / resolution;
+    texture.frame.height = height / resolution;
+    texture.source.emit("update", texture.source);
+    texture.updateUvs();
+    return texture;
   }
-  var init_resolveCharacters = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/utils/resolveCharacters.mjs"() {
+  var tempBounds2;
+  var init_getPo2TextureFromSource = __esm({
+    "node_modules/pixi.js/lib/scene/text/utils/getPo2TextureFromSource.mjs"() {
       "use strict";
+      init_TexturePool();
+      init_Bounds();
+      tempBounds2 = new Bounds();
     }
   });
 
-  // node_modules/pixi.js/lib/scene/text-bitmap/DynamicBitmapFont.mjs
-  var DynamicBitmapFont;
-  var init_DynamicBitmapFont = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/DynamicBitmapFont.mjs"() {
+  // node_modules/pixi.js/lib/scene/text/canvas/utils/fontStringFromTextStyle.mjs
+  function fontStringFromTextStyle(style) {
+    const fontSizeString = typeof style.fontSize === "number" ? `${style.fontSize}px` : style.fontSize;
+    let fontFamilies = style.fontFamily;
+    if (!Array.isArray(style.fontFamily)) {
+      fontFamilies = style.fontFamily.split(",");
+    }
+    for (let i3 = fontFamilies.length - 1; i3 >= 0; i3--) {
+      let fontFamily = fontFamilies[i3].trim();
+      if (!/([\"\'])[^\'\"]+\1/.test(fontFamily) && !genericFontFamilies.includes(fontFamily)) {
+        fontFamily = `"${fontFamily}"`;
+      }
+      fontFamilies[i3] = fontFamily;
+    }
+    return `${style.fontStyle} ${style.fontVariant} ${style.fontWeight} ${fontSizeString} ${fontFamilies.join(",")}`;
+  }
+  var genericFontFamilies;
+  var init_fontStringFromTextStyle = __esm({
+    "node_modules/pixi.js/lib/scene/text/canvas/utils/fontStringFromTextStyle.mjs"() {
+      "use strict";
+      genericFontFamilies = [
+        "serif",
+        "sans-serif",
+        "monospace",
+        "cursive",
+        "fantasy",
+        "system-ui"
+      ];
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/text/canvas/CanvasTextMetrics.mjs
+  var contextSettings, _CanvasTextMetrics, CanvasTextMetrics;
+  var init_CanvasTextMetrics = __esm({
+    "node_modules/pixi.js/lib/scene/text/canvas/CanvasTextMetrics.mjs"() {
+      "use strict";
+      init_adapter();
+      init_fontStringFromTextStyle();
+      contextSettings = {
+        // TextMetrics requires getImageData readback for measuring fonts.
+        willReadFrequently: true
+      };
+      _CanvasTextMetrics = class _CanvasTextMetrics2 {
+        /**
+         * Checking that we can use modern canvas 2D API.
+         *
+         * Note: This is an unstable API, Chrome < 94 use `textLetterSpacing`, later versions use `letterSpacing`.
+         * @see TextMetrics.experimentalLetterSpacing
+         * @see https://developer.mozilla.org/en-US/docs/Web/API/ICanvasRenderingContext2D/letterSpacing
+         * @see https://developer.chrome.com/origintrials/#/view_trial/3585991203293757441
+         */
+        static get experimentalLetterSpacingSupported() {
+          let result = _CanvasTextMetrics2._experimentalLetterSpacingSupported;
+          if (result !== void 0) {
+            const proto = DOMAdapter.get().getCanvasRenderingContext2D().prototype;
+            result = _CanvasTextMetrics2._experimentalLetterSpacingSupported = "letterSpacing" in proto || "textLetterSpacing" in proto;
+          }
+          return result;
+        }
+        /**
+         * @param text - the text that was measured
+         * @param style - the style that was measured
+         * @param width - the measured width of the text
+         * @param height - the measured height of the text
+         * @param lines - an array of the lines of text broken by new lines and wrapping if specified in style
+         * @param lineWidths - an array of the line widths for each line matched to `lines`
+         * @param lineHeight - the measured line height for this style
+         * @param maxLineWidth - the maximum line width for all measured lines
+         * @param {FontMetrics} fontProperties - the font properties object from TextMetrics.measureFont
+         */
+        constructor(text, style, width, height, lines, lineWidths, lineHeight, maxLineWidth, fontProperties) {
+          this.text = text;
+          this.style = style;
+          this.width = width;
+          this.height = height;
+          this.lines = lines;
+          this.lineWidths = lineWidths;
+          this.lineHeight = lineHeight;
+          this.maxLineWidth = maxLineWidth;
+          this.fontProperties = fontProperties;
+        }
+        /**
+         * Measures the supplied string of text and returns a Rectangle.
+         * @param text - The text to measure.
+         * @param style - The text style to use for measuring
+         * @param canvas - optional specification of the canvas to use for measuring.
+         * @param wordWrap
+         * @returns Measured width and height of the text.
+         */
+        static measureText(text = " ", style, canvas = _CanvasTextMetrics2._canvas, wordWrap = style.wordWrap) {
+          const textKey = `${text}:${style.styleKey}`;
+          if (_CanvasTextMetrics2._measurementCache[textKey])
+            return _CanvasTextMetrics2._measurementCache[textKey];
+          const font = fontStringFromTextStyle(style);
+          const fontProperties = _CanvasTextMetrics2.measureFont(font);
+          if (fontProperties.fontSize === 0) {
+            fontProperties.fontSize = style.fontSize;
+            fontProperties.ascent = style.fontSize;
+          }
+          const context2 = _CanvasTextMetrics2.__context;
+          context2.font = font;
+          const outputText = wordWrap ? _CanvasTextMetrics2._wordWrap(text, style, canvas) : text;
+          const lines = outputText.split(/(?:\r\n|\r|\n)/);
+          const lineWidths = new Array(lines.length);
+          let maxLineWidth = 0;
+          for (let i3 = 0; i3 < lines.length; i3++) {
+            const lineWidth = _CanvasTextMetrics2._measureText(lines[i3], style.letterSpacing, context2);
+            lineWidths[i3] = lineWidth;
+            maxLineWidth = Math.max(maxLineWidth, lineWidth);
+          }
+          const strokeWidth = style._stroke?.width || 0;
+          let width = maxLineWidth + strokeWidth;
+          if (style.dropShadow) {
+            width += style.dropShadow.distance;
+          }
+          const lineHeight = style.lineHeight || fontProperties.fontSize + strokeWidth;
+          let height = Math.max(lineHeight, fontProperties.fontSize + strokeWidth * 2) + (lines.length - 1) * (lineHeight + style.leading);
+          if (style.dropShadow) {
+            height += style.dropShadow.distance;
+          }
+          const measurements = new _CanvasTextMetrics2(
+            text,
+            style,
+            width,
+            height,
+            lines,
+            lineWidths,
+            lineHeight + style.leading,
+            maxLineWidth,
+            fontProperties
+          );
+          return measurements;
+        }
+        static _measureText(text, letterSpacing, context2) {
+          let useExperimentalLetterSpacing = false;
+          if (_CanvasTextMetrics2.experimentalLetterSpacingSupported) {
+            if (_CanvasTextMetrics2.experimentalLetterSpacing) {
+              context2.letterSpacing = `${letterSpacing}px`;
+              context2.textLetterSpacing = `${letterSpacing}px`;
+              useExperimentalLetterSpacing = true;
+            } else {
+              context2.letterSpacing = "0px";
+              context2.textLetterSpacing = "0px";
+            }
+          }
+          let width = context2.measureText(text).width;
+          if (width > 0) {
+            if (useExperimentalLetterSpacing) {
+              width -= letterSpacing;
+            } else {
+              width += (_CanvasTextMetrics2.graphemeSegmenter(text).length - 1) * letterSpacing;
+            }
+          }
+          return width;
+        }
+        /**
+         * Applies newlines to a string to have it optimally fit into the horizontal
+         * bounds set by the Text object's wordWrapWidth property.
+         * @param text - String to apply word wrapping to
+         * @param style - the style to use when wrapping
+         * @param canvas - optional specification of the canvas to use for measuring.
+         * @returns New string with new lines applied where required
+         */
+        static _wordWrap(text, style, canvas = _CanvasTextMetrics2._canvas) {
+          const context2 = canvas.getContext("2d", contextSettings);
+          let width = 0;
+          let line = "";
+          let lines = "";
+          const cache = /* @__PURE__ */ Object.create(null);
+          const { letterSpacing, whiteSpace } = style;
+          const collapseSpaces = _CanvasTextMetrics2._collapseSpaces(whiteSpace);
+          const collapseNewlines = _CanvasTextMetrics2._collapseNewlines(whiteSpace);
+          let canPrependSpaces = !collapseSpaces;
+          const wordWrapWidth = style.wordWrapWidth + letterSpacing;
+          const tokens = _CanvasTextMetrics2._tokenize(text);
+          for (let i3 = 0; i3 < tokens.length; i3++) {
+            let token = tokens[i3];
+            if (_CanvasTextMetrics2._isNewline(token)) {
+              if (!collapseNewlines) {
+                lines += _CanvasTextMetrics2._addLine(line);
+                canPrependSpaces = !collapseSpaces;
+                line = "";
+                width = 0;
+                continue;
+              }
+              token = " ";
+            }
+            if (collapseSpaces) {
+              const currIsBreakingSpace = _CanvasTextMetrics2.isBreakingSpace(token);
+              const lastIsBreakingSpace = _CanvasTextMetrics2.isBreakingSpace(line[line.length - 1]);
+              if (currIsBreakingSpace && lastIsBreakingSpace) {
+                continue;
+              }
+            }
+            const tokenWidth = _CanvasTextMetrics2._getFromCache(token, letterSpacing, cache, context2);
+            if (tokenWidth > wordWrapWidth) {
+              if (line !== "") {
+                lines += _CanvasTextMetrics2._addLine(line);
+                line = "";
+                width = 0;
+              }
+              if (_CanvasTextMetrics2.canBreakWords(token, style.breakWords)) {
+                const characters = _CanvasTextMetrics2.wordWrapSplit(token);
+                for (let j3 = 0; j3 < characters.length; j3++) {
+                  let char = characters[j3];
+                  let lastChar = char;
+                  let k3 = 1;
+                  while (characters[j3 + k3]) {
+                    const nextChar = characters[j3 + k3];
+                    if (!_CanvasTextMetrics2.canBreakChars(lastChar, nextChar, token, j3, style.breakWords)) {
+                      char += nextChar;
+                    } else {
+                      break;
+                    }
+                    lastChar = nextChar;
+                    k3++;
+                  }
+                  j3 += k3 - 1;
+                  const characterWidth = _CanvasTextMetrics2._getFromCache(char, letterSpacing, cache, context2);
+                  if (characterWidth + width > wordWrapWidth) {
+                    lines += _CanvasTextMetrics2._addLine(line);
+                    canPrependSpaces = false;
+                    line = "";
+                    width = 0;
+                  }
+                  line += char;
+                  width += characterWidth;
+                }
+              } else {
+                if (line.length > 0) {
+                  lines += _CanvasTextMetrics2._addLine(line);
+                  line = "";
+                  width = 0;
+                }
+                const isLastToken = i3 === tokens.length - 1;
+                lines += _CanvasTextMetrics2._addLine(token, !isLastToken);
+                canPrependSpaces = false;
+                line = "";
+                width = 0;
+              }
+            } else {
+              if (tokenWidth + width > wordWrapWidth) {
+                canPrependSpaces = false;
+                lines += _CanvasTextMetrics2._addLine(line);
+                line = "";
+                width = 0;
+              }
+              if (line.length > 0 || !_CanvasTextMetrics2.isBreakingSpace(token) || canPrependSpaces) {
+                line += token;
+                width += tokenWidth;
+              }
+            }
+          }
+          lines += _CanvasTextMetrics2._addLine(line, false);
+          return lines;
+        }
+        /**
+         * Convienience function for logging each line added during the wordWrap method.
+         * @param line    - The line of text to add
+         * @param newLine - Add new line character to end
+         * @returns A formatted line
+         */
+        static _addLine(line, newLine = true) {
+          line = _CanvasTextMetrics2._trimRight(line);
+          line = newLine ? `${line}
+` : line;
+          return line;
+        }
+        /**
+         * Gets & sets the widths of calculated characters in a cache object
+         * @param key            - The key
+         * @param letterSpacing  - The letter spacing
+         * @param cache          - The cache
+         * @param context        - The canvas context
+         * @returns The from cache.
+         */
+        static _getFromCache(key, letterSpacing, cache, context2) {
+          let width = cache[key];
+          if (typeof width !== "number") {
+            width = _CanvasTextMetrics2._measureText(key, letterSpacing, context2) + letterSpacing;
+            cache[key] = width;
+          }
+          return width;
+        }
+        /**
+         * Determines whether we should collapse breaking spaces.
+         * @param whiteSpace - The TextStyle property whiteSpace
+         * @returns Should collapse
+         */
+        static _collapseSpaces(whiteSpace) {
+          return whiteSpace === "normal" || whiteSpace === "pre-line";
+        }
+        /**
+         * Determines whether we should collapse newLine chars.
+         * @param whiteSpace - The white space
+         * @returns should collapse
+         */
+        static _collapseNewlines(whiteSpace) {
+          return whiteSpace === "normal";
+        }
+        /**
+         * Trims breaking whitespaces from string.
+         * @param text - The text
+         * @returns Trimmed string
+         */
+        static _trimRight(text) {
+          if (typeof text !== "string") {
+            return "";
+          }
+          for (let i3 = text.length - 1; i3 >= 0; i3--) {
+            const char = text[i3];
+            if (!_CanvasTextMetrics2.isBreakingSpace(char)) {
+              break;
+            }
+            text = text.slice(0, -1);
+          }
+          return text;
+        }
+        /**
+         * Determines if char is a newline.
+         * @param char - The character
+         * @returns True if newline, False otherwise.
+         */
+        static _isNewline(char) {
+          if (typeof char !== "string") {
+            return false;
+          }
+          return _CanvasTextMetrics2._newlines.includes(char.charCodeAt(0));
+        }
+        /**
+         * Determines if char is a breaking whitespace.
+         *
+         * It allows one to determine whether char should be a breaking whitespace
+         * For example certain characters in CJK langs or numbers.
+         * It must return a boolean.
+         * @param char - The character
+         * @param [_nextChar] - The next character
+         * @returns True if whitespace, False otherwise.
+         */
+        static isBreakingSpace(char, _nextChar) {
+          if (typeof char !== "string") {
+            return false;
+          }
+          return _CanvasTextMetrics2._breakingSpaces.includes(char.charCodeAt(0));
+        }
+        /**
+         * Splits a string into words, breaking-spaces and newLine characters
+         * @param text - The text
+         * @returns A tokenized array
+         */
+        static _tokenize(text) {
+          const tokens = [];
+          let token = "";
+          if (typeof text !== "string") {
+            return tokens;
+          }
+          for (let i3 = 0; i3 < text.length; i3++) {
+            const char = text[i3];
+            const nextChar = text[i3 + 1];
+            if (_CanvasTextMetrics2.isBreakingSpace(char, nextChar) || _CanvasTextMetrics2._isNewline(char)) {
+              if (token !== "") {
+                tokens.push(token);
+                token = "";
+              }
+              tokens.push(char);
+              continue;
+            }
+            token += char;
+          }
+          if (token !== "") {
+            tokens.push(token);
+          }
+          return tokens;
+        }
+        /**
+         * Overridable helper method used internally by TextMetrics, exposed to allow customizing the class's behavior.
+         *
+         * It allows one to customise which words should break
+         * Examples are if the token is CJK or numbers.
+         * It must return a boolean.
+         * @param _token - The token
+         * @param breakWords - The style attr break words
+         * @returns Whether to break word or not
+         */
+        static canBreakWords(_token, breakWords) {
+          return breakWords;
+        }
+        /**
+         * Overridable helper method used internally by TextMetrics, exposed to allow customizing the class's behavior.
+         *
+         * It allows one to determine whether a pair of characters
+         * should be broken by newlines
+         * For example certain characters in CJK langs or numbers.
+         * It must return a boolean.
+         * @param _char - The character
+         * @param _nextChar - The next character
+         * @param _token - The token/word the characters are from
+         * @param _index - The index in the token of the char
+         * @param _breakWords - The style attr break words
+         * @returns whether to break word or not
+         */
+        static canBreakChars(_char, _nextChar, _token, _index, _breakWords) {
+          return true;
+        }
+        /**
+         * Overridable helper method used internally by TextMetrics, exposed to allow customizing the class's behavior.
+         *
+         * It is called when a token (usually a word) has to be split into separate pieces
+         * in order to determine the point to break a word.
+         * It must return an array of characters.
+         * @param token - The token to split
+         * @returns The characters of the token
+         * @see CanvasTextMetrics.graphemeSegmenter
+         */
+        static wordWrapSplit(token) {
+          return _CanvasTextMetrics2.graphemeSegmenter(token);
+        }
+        /**
+         * Calculates the ascent, descent and fontSize of a given font-style
+         * @param font - String representing the style of the font
+         * @returns Font properties object
+         */
+        static measureFont(font) {
+          if (_CanvasTextMetrics2._fonts[font]) {
+            return _CanvasTextMetrics2._fonts[font];
+          }
+          const context2 = _CanvasTextMetrics2._context;
+          context2.font = font;
+          const metrics = context2.measureText(_CanvasTextMetrics2.METRICS_STRING + _CanvasTextMetrics2.BASELINE_SYMBOL);
+          const properties = {
+            ascent: metrics.actualBoundingBoxAscent,
+            descent: metrics.actualBoundingBoxDescent,
+            fontSize: metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent
+          };
+          _CanvasTextMetrics2._fonts[font] = properties;
+          return properties;
+        }
+        /**
+         * Clear font metrics in metrics cache.
+         * @param {string} [font] - font name. If font name not set then clear cache for all fonts.
+         */
+        static clearMetrics(font = "") {
+          if (font) {
+            delete _CanvasTextMetrics2._fonts[font];
+          } else {
+            _CanvasTextMetrics2._fonts = {};
+          }
+        }
+        /**
+         * Cached canvas element for measuring text
+         * TODO: this should be private, but isn't because of backward compat, will fix later.
+         * @ignore
+         */
+        static get _canvas() {
+          if (!_CanvasTextMetrics2.__canvas) {
+            let canvas;
+            try {
+              const c3 = new OffscreenCanvas(0, 0);
+              const context2 = c3.getContext("2d", contextSettings);
+              if (context2?.measureText) {
+                _CanvasTextMetrics2.__canvas = c3;
+                return c3;
+              }
+              canvas = DOMAdapter.get().createCanvas();
+            } catch (ex) {
+              canvas = DOMAdapter.get().createCanvas();
+            }
+            canvas.width = canvas.height = 10;
+            _CanvasTextMetrics2.__canvas = canvas;
+          }
+          return _CanvasTextMetrics2.__canvas;
+        }
+        /**
+         * TODO: this should be private, but isn't because of backward compat, will fix later.
+         * @ignore
+         */
+        static get _context() {
+          if (!_CanvasTextMetrics2.__context) {
+            _CanvasTextMetrics2.__context = _CanvasTextMetrics2._canvas.getContext("2d", contextSettings);
+          }
+          return _CanvasTextMetrics2.__context;
+        }
+      };
+      _CanvasTextMetrics.METRICS_STRING = "|\xC9q\xC5";
+      _CanvasTextMetrics.BASELINE_SYMBOL = "M";
+      _CanvasTextMetrics.BASELINE_MULTIPLIER = 1.4;
+      _CanvasTextMetrics.HEIGHT_MULTIPLIER = 2;
+      _CanvasTextMetrics.graphemeSegmenter = (() => {
+        if (typeof Intl?.Segmenter === "function") {
+          const segmenter = new Intl.Segmenter();
+          return (s3) => [...segmenter.segment(s3)].map((x3) => x3.segment);
+        }
+        return (s3) => [...s3];
+      })();
+      _CanvasTextMetrics.experimentalLetterSpacing = false;
+      _CanvasTextMetrics._fonts = {};
+      _CanvasTextMetrics._newlines = [
+        10,
+        // line feed
+        13
+        // carriage return
+      ];
+      _CanvasTextMetrics._breakingSpaces = [
+        9,
+        // character tabulation
+        32,
+        // space
+        8192,
+        // en quad
+        8193,
+        // em quad
+        8194,
+        // en space
+        8195,
+        // em space
+        8196,
+        // three-per-em space
+        8197,
+        // four-per-em space
+        8198,
+        // six-per-em space
+        8200,
+        // punctuation space
+        8201,
+        // thin space
+        8202,
+        // hair space
+        8287,
+        // medium mathematical space
+        12288
+        // ideographic space
+      ];
+      _CanvasTextMetrics._measurementCache = {};
+      CanvasTextMetrics = _CanvasTextMetrics;
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/text/canvas/utils/getCanvasFillStyle.mjs
+  function getCanvasFillStyle(fillStyle, context2) {
+    if (fillStyle.texture === Texture.WHITE && !fillStyle.fill) {
+      return Color.shared.setValue(fillStyle.color).toHex();
+    } else if (!fillStyle.fill) {
+      const pattern = context2.createPattern(fillStyle.texture.source.resource, "repeat");
+      const tempMatrix6 = fillStyle.matrix.copyTo(Matrix.shared);
+      tempMatrix6.scale(fillStyle.texture.frame.width, fillStyle.texture.frame.height);
+      pattern.setTransform(tempMatrix6);
+      return pattern;
+    } else if (fillStyle.fill instanceof FillPattern) {
+      const fillPattern = fillStyle.fill;
+      const pattern = context2.createPattern(fillPattern.texture.source.resource, "repeat");
+      const tempMatrix6 = fillPattern.transform.copyTo(Matrix.shared);
+      tempMatrix6.scale(
+        fillPattern.texture.frame.width,
+        fillPattern.texture.frame.height
+      );
+      pattern.setTransform(tempMatrix6);
+      return pattern;
+    } else if (fillStyle.fill instanceof FillGradient) {
+      const fillGradient = fillStyle.fill;
+      if (fillGradient.type === "linear") {
+        const gradient = context2.createLinearGradient(
+          fillGradient.x0,
+          fillGradient.y0,
+          fillGradient.x1,
+          fillGradient.y1
+        );
+        fillGradient.gradientStops.forEach((stop) => {
+          gradient.addColorStop(stop.offset, Color.shared.setValue(stop.color).toHex());
+        });
+        return gradient;
+      }
+    }
+    warn("FillStyle not recognised", fillStyle);
+    return "red";
+  }
+  var init_getCanvasFillStyle = __esm({
+    "node_modules/pixi.js/lib/scene/text/canvas/utils/getCanvasFillStyle.mjs"() {
       "use strict";
       init_Color();
-      init_Rectangle();
-      init_CanvasPool();
-      init_ImageSource();
+      init_Matrix();
       init_Texture();
+      init_warn();
+      init_FillGradient();
+      init_FillPattern();
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/text/canvas/CanvasTextSystem.mjs
+  var CanvasTextSystem;
+  var init_CanvasTextSystem = __esm({
+    "node_modules/pixi.js/lib/scene/text/canvas/CanvasTextSystem.mjs"() {
+      "use strict";
+      init_Color();
+      init_Extensions();
+      init_pow2();
+      init_CanvasPool();
+      init_TexturePool();
+      init_getCanvasBoundingBox();
       init_deprecation();
+      init_TextStyle();
+      init_getPo2TextureFromSource();
       init_CanvasTextMetrics();
       init_fontStringFromTextStyle();
       init_getCanvasFillStyle();
-      init_AbstractBitmapFont();
-      init_resolveCharacters();
-      DynamicBitmapFont = class extends AbstractBitmapFont {
-        /**
-         * @param options - The options for the dynamic bitmap font.
-         */
-        constructor(options) {
-          super();
-          this.resolution = 1;
-          this.pages = [];
-          this._padding = 4;
-          this._measureCache = /* @__PURE__ */ Object.create(null);
-          this._currentChars = [];
-          this._currentX = 0;
-          this._currentY = 0;
-          this._currentPageIndex = -1;
-          this._skipKerning = false;
-          const dynamicOptions = options;
-          const style = dynamicOptions.style.clone();
-          if (dynamicOptions.overrideFill) {
-            style._fill.color = 16777215;
-            style._fill.alpha = 1;
-            style._fill.texture = Texture.WHITE;
-            style._fill.fill = null;
-          }
-          const requestedFontSize = style.fontSize;
-          style.fontSize = this.baseMeasurementFontSize;
-          const font = fontStringFromTextStyle(style);
-          if (dynamicOptions.overrideSize) {
-            if (style._stroke) {
-              style._stroke.width *= this.baseRenderedFontSize / requestedFontSize;
-            }
-          } else {
-            style.fontSize = this.baseRenderedFontSize = requestedFontSize;
-          }
-          this._style = style;
-          this._skipKerning = dynamicOptions.skipKerning ?? false;
-          this.resolution = dynamicOptions.resolution ?? 1;
-          this._padding = dynamicOptions.padding ?? 4;
-          this.fontMetrics = CanvasTextMetrics.measureFont(font);
-          this.lineHeight = style.lineHeight || this.fontMetrics.fontSize || style.fontSize;
+      CanvasTextSystem = class {
+        constructor(_renderer) {
+          this._activeTextures = {};
+          this._renderer = _renderer;
         }
-        ensureCharacters(chars) {
-          const charList = resolveCharacters(chars).filter((char) => !this._currentChars.includes(char)).filter((char, index, self2) => self2.indexOf(char) === index);
-          if (!charList.length)
-            return;
-          this._currentChars = [...this._currentChars, ...charList];
-          let pageData;
-          if (this._currentPageIndex === -1) {
-            pageData = this._nextPage();
-          } else {
-            pageData = this.pages[this._currentPageIndex];
-          }
-          let { canvas, context: context2 } = pageData.canvasAndContext;
-          let textureSource = pageData.texture.source;
-          const style = this._style;
-          let currentX = this._currentX;
-          let currentY = this._currentY;
-          const fontScale = this.baseRenderedFontSize / this.baseMeasurementFontSize;
-          const padding = this._padding * fontScale;
-          const widthScale = style.fontStyle === "italic" ? 2 : 1;
-          let maxCharHeight = 0;
-          let skipTexture = false;
-          for (let i3 = 0; i3 < charList.length; i3++) {
-            const char = charList[i3];
-            const metrics = CanvasTextMetrics.measureText(char, style, canvas, false);
-            metrics.lineHeight = metrics.height;
-            const width = widthScale * metrics.width * fontScale;
-            const height = metrics.height * fontScale;
-            const paddedWidth = width + padding * 2;
-            const paddedHeight = height + padding * 2;
-            skipTexture = false;
-            if (char !== "\n" && char !== "\r" && char !== "	" && char !== " ") {
-              skipTexture = true;
-              maxCharHeight = Math.ceil(Math.max(paddedHeight, maxCharHeight));
-            }
-            if (currentX + paddedWidth > 512) {
-              currentY += maxCharHeight;
-              maxCharHeight = paddedHeight;
-              currentX = 0;
-              if (currentY + maxCharHeight > 512) {
-                textureSource.update();
-                const pageData2 = this._nextPage();
-                canvas = pageData2.canvasAndContext.canvas;
-                context2 = pageData2.canvasAndContext.context;
-                textureSource = pageData2.texture.source;
-                currentY = 0;
-              }
-            }
-            const xAdvance = width / fontScale - (style.dropShadow?.distance ?? 0) - (style._stroke?.width ?? 0);
-            this.chars[char] = {
-              id: char.codePointAt(0),
-              xOffset: -this._padding,
-              yOffset: -this._padding,
-              xAdvance,
-              kerning: {}
-            };
-            if (skipTexture) {
-              this._drawGlyph(
-                context2,
-                metrics,
-                currentX + padding,
-                currentY + padding,
-                fontScale,
-                style
-              );
-              const px = textureSource.width * fontScale;
-              const py = textureSource.height * fontScale;
-              const frame = new Rectangle(
-                currentX / px * textureSource.width,
-                currentY / py * textureSource.height,
-                paddedWidth / px * textureSource.width,
-                paddedHeight / py * textureSource.height
-              );
-              this.chars[char].texture = new Texture({
-                source: textureSource,
-                frame
-              });
-              currentX += Math.ceil(paddedWidth);
-            }
-          }
-          textureSource.update();
-          this._currentX = currentX;
-          this._currentY = currentY;
-          this._skipKerning && this._applyKerning(charList, context2);
+        getTextureSize(text, resolution, style) {
+          const measured = CanvasTextMetrics.measureText(text || " ", style);
+          let width = Math.ceil(Math.ceil(Math.max(1, measured.width) + style.padding * 2) * resolution);
+          let height = Math.ceil(Math.ceil(Math.max(1, measured.height) + style.padding * 2) * resolution);
+          width = Math.ceil(width - 1e-6);
+          height = Math.ceil(height - 1e-6);
+          width = nextPow2(width);
+          height = nextPow2(height);
+          return { width, height };
         }
-        /**
-         * @deprecated since 8.0.0
-         * The map of base page textures (i.e., sheets of glyphs).
-         */
-        get pageTextures() {
-          deprecation(v8_0_0, "BitmapFont.pageTextures is deprecated, please use BitmapFont.pages instead.");
-          return this.pages;
-        }
-        _applyKerning(newChars, context2) {
-          const measureCache = this._measureCache;
-          for (let i3 = 0; i3 < newChars.length; i3++) {
-            const first = newChars[i3];
-            for (let j3 = 0; j3 < this._currentChars.length; j3++) {
-              const second = this._currentChars[j3];
-              let c1 = measureCache[first];
-              if (!c1)
-                c1 = measureCache[first] = context2.measureText(first).width;
-              let c22 = measureCache[second];
-              if (!c22)
-                c22 = measureCache[second] = context2.measureText(second).width;
-              let total = context2.measureText(first + second).width;
-              let amount = total - (c1 + c22);
-              if (amount) {
-                this.chars[first].kerning[second] = amount;
-              }
-              total = context2.measureText(first + second).width;
-              amount = total - (c1 + c22);
-              if (amount) {
-                this.chars[second].kerning[first] = amount;
-              }
-            }
-          }
-        }
-        _nextPage() {
-          this._currentPageIndex++;
-          const textureResolution = this.resolution;
-          const canvasAndContext = CanvasPool.getOptimalCanvasAndContext(512, 512, textureResolution);
-          this._setupContext(canvasAndContext.context, this._style, textureResolution);
-          const resolution = textureResolution * (this.baseRenderedFontSize / this.baseMeasurementFontSize);
-          const texture = new Texture({
-            source: new ImageSource({
-              resource: canvasAndContext.canvas,
-              resolution,
-              alphaMode: "premultiply-alpha-on-upload"
-            })
-          });
-          const pageData = {
-            canvasAndContext,
-            texture
-          };
-          this.pages[this._currentPageIndex] = pageData;
-          return pageData;
-        }
-        // canvas style!
-        _setupContext(context2, style, resolution) {
-          style.fontSize = this.baseRenderedFontSize;
-          context2.scale(resolution, resolution);
-          context2.font = fontStringFromTextStyle(style);
-          style.fontSize = this.baseMeasurementFontSize;
-          context2.textBaseline = style.textBaseline;
-          const stroke = style._stroke;
-          const strokeThickness = stroke?.width ?? 0;
-          if (stroke) {
-            context2.lineWidth = strokeThickness;
-            context2.lineJoin = stroke.join;
-            context2.miterLimit = stroke.miterLimit;
-            context2.strokeStyle = getCanvasFillStyle(stroke, context2);
-          }
-          if (style._fill) {
-            context2.fillStyle = getCanvasFillStyle(style._fill, context2);
-          }
-          if (style.dropShadow) {
-            const shadowOptions = style.dropShadow;
-            const rgb = Color.shared.setValue(shadowOptions.color).toArray();
-            const dropShadowBlur = shadowOptions.blur * resolution;
-            const dropShadowDistance = shadowOptions.distance * resolution;
-            context2.shadowColor = `rgba(${rgb[0] * 255},${rgb[1] * 255},${rgb[2] * 255},${shadowOptions.alpha})`;
-            context2.shadowBlur = dropShadowBlur;
-            context2.shadowOffsetX = Math.cos(shadowOptions.angle) * dropShadowDistance;
-            context2.shadowOffsetY = Math.sin(shadowOptions.angle) * dropShadowDistance;
-          } else {
-            context2.shadowColor = "black";
-            context2.shadowBlur = 0;
-            context2.shadowOffsetX = 0;
-            context2.shadowOffsetY = 0;
-          }
-        }
-        _drawGlyph(context2, metrics, x3, y3, fontScale, style) {
-          const char = metrics.text;
-          const fontProperties = metrics.fontProperties;
-          const stroke = style._stroke;
-          const strokeThickness = (stroke?.width ?? 0) * fontScale;
-          const tx = x3 + strokeThickness / 2;
-          const ty = y3 - strokeThickness / 2;
-          const descent = fontProperties.descent * fontScale;
-          const lineHeight = metrics.lineHeight * fontScale;
-          if (style.stroke && strokeThickness) {
-            context2.strokeText(char, tx, ty + lineHeight - descent);
-          }
-          if (style._fill) {
-            context2.fillText(char, tx, ty + lineHeight - descent);
-          }
-        }
-        destroy() {
-          super.destroy();
-          for (let i3 = 0; i3 < this.pages.length; i3++) {
-            const { canvasAndContext, texture } = this.pages[i3];
-            CanvasPool.returnCanvasAndContext(canvasAndContext);
-            texture.destroy(true);
-          }
-          this.pages = null;
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text-bitmap/utils/getBitmapTextLayout.mjs
-  function getBitmapTextLayout(chars, style, font) {
-    const layoutData = {
-      width: 0,
-      height: 0,
-      offsetY: 0,
-      scale: style.fontSize / font.baseMeasurementFontSize,
-      lines: [{
-        width: 0,
-        charPositions: [],
-        spaceWidth: 0,
-        spacesIndex: [],
-        chars: []
-      }]
-    };
-    layoutData.offsetY = font.baseLineOffset;
-    let currentLine = layoutData.lines[0];
-    let previousChar = null;
-    let firstWord = true;
-    const currentWord = {
-      spaceWord: false,
-      width: 0,
-      start: 0,
-      index: 0,
-      // use index to not modify the array as we use it a lot!
-      positions: [],
-      chars: []
-    };
-    const nextWord = (word) => {
-      const start = currentLine.width;
-      for (let j3 = 0; j3 < currentWord.index; j3++) {
-        const position = word.positions[j3];
-        currentLine.chars.push(word.chars[j3]);
-        currentLine.charPositions.push(position + start);
-      }
-      currentLine.width += word.width;
-      firstWord = false;
-      currentWord.width = 0;
-      currentWord.index = 0;
-      currentWord.chars.length = 0;
-    };
-    const nextLine = () => {
-      let index = currentLine.chars.length - 1;
-      let lastChar = currentLine.chars[index];
-      while (lastChar === " ") {
-        currentLine.width -= font.chars[lastChar].xAdvance;
-        lastChar = currentLine.chars[--index];
-      }
-      layoutData.width = Math.max(layoutData.width, currentLine.width);
-      currentLine = {
-        width: 0,
-        charPositions: [],
-        chars: [],
-        spaceWidth: 0,
-        spacesIndex: []
-      };
-      firstWord = true;
-      layoutData.lines.push(currentLine);
-      layoutData.height += font.lineHeight;
-    };
-    const scale = font.baseMeasurementFontSize / style.fontSize;
-    const adjustedLetterSpacing = style.letterSpacing * scale;
-    const adjustedWordWrapWidth = style.wordWrapWidth * scale;
-    for (let i3 = 0; i3 < chars.length + 1; i3++) {
-      let char;
-      const isEnd = i3 === chars.length;
-      if (!isEnd) {
-        char = chars[i3];
-      }
-      const charData = font.chars[char] || font.chars[" "];
-      const isSpace = /(?:\s)/.test(char);
-      const isWordBreak = isSpace || char === "\r" || char === "\n" || isEnd;
-      if (isWordBreak) {
-        const addWordToNextLine = !firstWord && style.wordWrap && currentLine.width + currentWord.width - adjustedLetterSpacing > adjustedWordWrapWidth;
-        if (addWordToNextLine) {
-          nextLine();
-          nextWord(currentWord);
-          if (!isEnd) {
-            currentLine.charPositions.push(0);
-          }
-        } else {
-          currentWord.start = currentLine.width;
-          nextWord(currentWord);
-          if (!isEnd) {
-            currentLine.charPositions.push(0);
-          }
-        }
-        if (char === "\r" || char === "\n") {
-          if (currentLine.width !== 0) {
-            nextLine();
-          }
-        } else if (!isEnd) {
-          const spaceWidth = charData.xAdvance + (charData.kerning[previousChar] || 0) + adjustedLetterSpacing;
-          currentLine.width += spaceWidth;
-          currentLine.spaceWidth = spaceWidth;
-          currentLine.spacesIndex.push(currentLine.charPositions.length);
-          currentLine.chars.push(char);
-        }
-      } else {
-        const kerning = charData.kerning[previousChar] || 0;
-        const nextCharWidth = charData.xAdvance + kerning + adjustedLetterSpacing;
-        currentWord.positions[currentWord.index++] = currentWord.width + kerning;
-        currentWord.chars.push(char);
-        currentWord.width += nextCharWidth;
-      }
-      previousChar = char;
-    }
-    nextLine();
-    if (style.align === "center") {
-      alignCenter(layoutData);
-    } else if (style.align === "right") {
-      alignRight(layoutData);
-    } else if (style.align === "justify") {
-      alignJustify(layoutData);
-    }
-    return layoutData;
-  }
-  function alignCenter(measurementData) {
-    for (let i3 = 0; i3 < measurementData.lines.length; i3++) {
-      const line = measurementData.lines[i3];
-      const offset = measurementData.width / 2 - line.width / 2;
-      for (let j3 = 0; j3 < line.charPositions.length; j3++) {
-        line.charPositions[j3] += offset;
-      }
-    }
-  }
-  function alignRight(measurementData) {
-    for (let i3 = 0; i3 < measurementData.lines.length; i3++) {
-      const line = measurementData.lines[i3];
-      const offset = measurementData.width - line.width;
-      for (let j3 = 0; j3 < line.charPositions.length; j3++) {
-        line.charPositions[j3] += offset;
-      }
-    }
-  }
-  function alignJustify(measurementData) {
-    const width = measurementData.width;
-    for (let i3 = 0; i3 < measurementData.lines.length; i3++) {
-      const line = measurementData.lines[i3];
-      let indy = 0;
-      let spaceIndex = line.spacesIndex[indy++];
-      let offset = 0;
-      const totalSpaces = line.spacesIndex.length;
-      const newSpaceWidth = (width - line.width) / totalSpaces;
-      const spaceWidth = newSpaceWidth;
-      for (let j3 = 0; j3 < line.charPositions.length; j3++) {
-        if (j3 === spaceIndex) {
-          spaceIndex = line.spacesIndex[indy++];
-          offset += spaceWidth;
-        }
-        line.charPositions[j3] += offset;
-      }
-    }
-  }
-  var init_getBitmapTextLayout = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/utils/getBitmapTextLayout.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text-bitmap/BitmapFontManager.mjs
-  var BitmapFontManagerClass, BitmapFontManager;
-  var init_BitmapFontManager = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/BitmapFontManager.mjs"() {
-      "use strict";
-      init_Cache();
-      init_deprecation();
-      init_TextStyle();
-      init_DynamicBitmapFont();
-      init_getBitmapTextLayout();
-      init_resolveCharacters();
-      BitmapFontManagerClass = class {
-        constructor() {
-          this.ALPHA = [["a", "z"], ["A", "Z"], " "];
-          this.NUMERIC = [["0", "9"]];
-          this.ALPHANUMERIC = [["a", "z"], ["A", "Z"], ["0", "9"], " "];
-          this.ASCII = [[" ", "~"]];
-          this.defaultOptions = {
-            chars: this.ALPHANUMERIC,
-            resolution: 1,
-            padding: 4,
-            skipKerning: false
-          };
-        }
-        /**
-         * Get a font for the specified text and style.
-         * @param text - The text to get the font for
-         * @param style - The style to use
-         */
-        getFont(text, style) {
-          let fontFamilyKey = `${style.fontFamily}-bitmap`;
-          let overrideFill = true;
-          if (style._fill.fill) {
-            fontFamilyKey += style._fill.fill.uid;
-            overrideFill = false;
-          }
-          if (!Cache.has(fontFamilyKey)) {
-            const fnt = new DynamicBitmapFont({
-              style,
-              overrideFill,
-              overrideSize: true,
-              ...this.defaultOptions
-            });
-            fnt.once("destroy", () => Cache.remove(fontFamilyKey));
-            Cache.set(
-              fontFamilyKey,
-              fnt
-            );
-          }
-          const dynamicFont = Cache.get(fontFamilyKey);
-          dynamicFont.ensureCharacters?.(text);
-          return dynamicFont;
-        }
-        /**
-         * Get the layout of a text for the specified style.
-         * @param text - The text to get the layout for
-         * @param style - The style to use
-         */
-        getLayout(text, style) {
-          const bitmapFont = this.getFont(text, style);
-          return getBitmapTextLayout(text.split(""), style, bitmapFont);
-        }
-        /**
-         * Measure the text using the specified style.
-         * @param text - The text to measure
-         * @param style - The style to use
-         */
-        measureText(text, style) {
-          return this.getLayout(text, style);
-        }
-        // eslint-disable-next-line max-len
-        install(...args) {
-          let options = args[0];
+        getTexture(options, resolution, style, _textKey) {
           if (typeof options === "string") {
+            deprecation("8.0.0", "CanvasTextSystem.getTexture: Use object TextOptions instead of separate arguments");
             options = {
-              name: options,
-              style: args[1],
-              chars: args[2]?.chars,
-              resolution: args[2]?.resolution,
-              padding: args[2]?.padding,
-              skipKerning: args[2]?.skipKerning
+              text: options,
+              style,
+              resolution
             };
-            deprecation(v8_0_0, "BitmapFontManager.install(name, style, options) is deprecated, use BitmapFontManager.install({name, style, ...options})");
           }
-          const name = options?.name;
-          if (!name) {
-            throw new Error("[BitmapFontManager] Property `name` is required.");
+          if (!(options.style instanceof TextStyle)) {
+            options.style = new TextStyle(options.style);
           }
-          options = { ...this.defaultOptions, ...options };
-          const textStyle = options.style;
-          const style = textStyle instanceof TextStyle ? textStyle : new TextStyle(textStyle);
-          const overrideFill = style._fill.fill !== null && style._fill.fill !== void 0;
-          const font = new DynamicBitmapFont({
-            style,
-            overrideFill,
-            skipKerning: options.skipKerning,
-            padding: options.padding,
-            resolution: options.resolution,
-            overrideSize: false
-          });
-          const flatChars = resolveCharacters(options.chars);
-          font.ensureCharacters(flatChars.join(""));
-          Cache.set(`${name}-bitmap`, font);
-          font.once("destroy", () => Cache.remove(`${name}-bitmap`));
-          return font;
+          const { texture, canvasAndContext } = this.createTextureAndCanvas(
+            options
+          );
+          this._renderer.texture.initSource(texture._source);
+          CanvasPool.returnCanvasAndContext(canvasAndContext);
+          return texture;
+        }
+        createTextureAndCanvas(options) {
+          const { text, style } = options;
+          const resolution = options.resolution ?? this._renderer.resolution;
+          const measured = CanvasTextMetrics.measureText(text || " ", style);
+          const width = Math.ceil(Math.ceil(Math.max(1, measured.width) + style.padding * 2) * resolution);
+          const height = Math.ceil(Math.ceil(Math.max(1, measured.height) + style.padding * 2) * resolution);
+          const canvasAndContext = CanvasPool.getOptimalCanvasAndContext(width, height);
+          const { canvas } = canvasAndContext;
+          this.renderTextToCanvas(text, style, resolution, canvasAndContext);
+          const texture = getPo2TextureFromSource(canvas, width, height, resolution);
+          if (style.trim) {
+            const trimmed = getCanvasBoundingBox(canvas, resolution);
+            texture.frame.copyFrom(trimmed);
+            texture.updateUvs();
+          }
+          return { texture, canvasAndContext };
+        }
+        getManagedTexture(text) {
+          const textKey = text._getKey();
+          if (this._activeTextures[textKey]) {
+            this._increaseReferenceCount(textKey);
+            return this._activeTextures[textKey].texture;
+          }
+          const { texture, canvasAndContext } = this.createTextureAndCanvas(text);
+          this._activeTextures[textKey] = {
+            canvasAndContext,
+            texture,
+            usageCount: 1
+          };
+          return texture;
+        }
+        _increaseReferenceCount(textKey) {
+          this._activeTextures[textKey].usageCount++;
+        }
+        decreaseReferenceCount(textKey) {
+          const activeTexture = this._activeTextures[textKey];
+          activeTexture.usageCount--;
+          if (activeTexture.usageCount === 0) {
+            CanvasPool.returnCanvasAndContext(activeTexture.canvasAndContext);
+            TexturePool.returnTexture(activeTexture.texture);
+            const source2 = activeTexture.texture.source;
+            source2.resource = null;
+            source2.uploadMethodId = "unknown";
+            source2.alphaMode = "no-premultiply-alpha";
+            this._activeTextures[textKey] = null;
+          }
+        }
+        getReferenceCount(textKey) {
+          return this._activeTextures[textKey].usageCount;
         }
         /**
-         * Uninstalls a bitmap font from the cache.
-         * @param {string} name - The name of the bitmap font to uninstall.
-         */
-        uninstall(name) {
-          const cacheKey = `${name}-bitmap`;
-          const font = Cache.get(cacheKey);
-          if (font) {
-            Cache.remove(cacheKey);
-            font.destroy();
-          }
-        }
-      };
-      BitmapFontManager = new BitmapFontManagerClass();
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text-bitmap/BitmapFont.mjs
-  var BitmapFont;
-  var init_BitmapFont = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/BitmapFont.mjs"() {
-      "use strict";
-      init_Rectangle();
-      init_Texture();
-      init_AbstractBitmapFont();
-      init_BitmapFontManager();
-      BitmapFont = class extends AbstractBitmapFont {
-        constructor(options, url) {
-          super();
-          const { textures, data } = options;
-          Object.keys(data.pages).forEach((key) => {
-            const pageData = data.pages[parseInt(key, 10)];
-            const texture = textures[pageData.id];
-            this.pages.push({ texture });
-          });
-          Object.keys(data.chars).forEach((key) => {
-            const charData = data.chars[key];
-            const textureSource = textures[charData.page].source;
-            const frameReal = new Rectangle(
-              charData.x,
-              charData.y,
-              charData.width,
-              charData.height
-            );
-            const texture = new Texture({
-              source: textureSource,
-              frame: frameReal
-            });
-            this.chars[key] = {
-              id: key.codePointAt(0),
-              xOffset: charData.xOffset,
-              yOffset: charData.yOffset,
-              xAdvance: charData.xAdvance,
-              kerning: charData.kerning ?? {},
-              texture
-            };
-          });
-          this.baseRenderedFontSize = data.fontSize;
-          this.baseMeasurementFontSize = data.fontSize;
-          this.fontMetrics = {
-            ascent: 0,
-            descent: 0,
-            fontSize: data.fontSize
-          };
-          this.baseLineOffset = data.baseLineOffset;
-          this.lineHeight = data.lineHeight;
-          this.fontFamily = data.fontFamily;
-          this.distanceField = data.distanceField ?? {
-            type: "none",
-            range: 0
-          };
-          this.url = url;
-        }
-        /** Destroys the BitmapFont object. */
-        destroy() {
-          super.destroy();
-          for (let i3 = 0; i3 < this.pages.length; i3++) {
-            const { texture } = this.pages[i3];
-            texture.destroy(true);
-          }
-          this.pages = null;
-        }
-        /**
-         * Generates a bitmap-font for the given style and character set
-         * @param options - Setup options for font generation.
-         * @returns Font generated by style options.
-         * @example
-         * import { BitmapFont, BitmapText } from 'pixi.js';
+         * Renders text to its canvas, and updates its texture.
          *
-         * BitmapFont.install('TitleFont', {
-         *     fontFamily: 'Arial',
-         *     fontSize: 12,
-         *     strokeThickness: 2,
-         *     fill: 'purple',
-         * });
-         *
-         * const title = new BitmapText({ text: 'This is the title', fontFamily: 'TitleFont' });
+         * By default this is used internally to ensure the texture is correct before rendering,
+         * but it can be used called externally, for example from this class to 'pre-generate' the texture from a piece of text,
+         * and then shared across multiple Sprites.
+         * @param text
+         * @param style
+         * @param resolution
+         * @param canvasAndContext
          */
-        static install(options) {
-          BitmapFontManager.install(options);
-        }
-        /**
-         * Uninstalls a bitmap font from the cache.
-         * @param {string} name - The name of the bitmap font to uninstall.
-         */
-        static uninstall(name) {
-          BitmapFontManager.uninstall(name);
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontTextParser.mjs
-  var bitmapFontTextParser;
-  var init_bitmapFontTextParser = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontTextParser.mjs"() {
-      "use strict";
-      bitmapFontTextParser = {
-        test(data) {
-          return typeof data === "string" && data.startsWith("info face=");
-        },
-        parse(txt) {
-          const items = txt.match(/^[a-z]+\s+.+$/gm);
-          const rawData = {
-            info: [],
-            common: [],
-            page: [],
-            char: [],
-            chars: [],
-            kerning: [],
-            kernings: [],
-            distanceField: []
-          };
-          for (const i3 in items) {
-            const name = items[i3].match(/^[a-z]+/gm)[0];
-            const attributeList = items[i3].match(/[a-zA-Z]+=([^\s"']+|"([^"]*)")/gm);
-            const itemData = {};
-            for (const i22 in attributeList) {
-              const split = attributeList[i22].split("=");
-              const key = split[0];
-              const strValue = split[1].replace(/"/gm, "");
-              const floatValue = parseFloat(strValue);
-              const value = isNaN(floatValue) ? strValue : floatValue;
-              itemData[key] = value;
+        renderTextToCanvas(text, style, resolution, canvasAndContext) {
+          const { canvas, context: context2 } = canvasAndContext;
+          const font = fontStringFromTextStyle(style);
+          const measured = CanvasTextMetrics.measureText(text || " ", style);
+          const lines = measured.lines;
+          const lineHeight = measured.lineHeight;
+          const lineWidths = measured.lineWidths;
+          const maxLineWidth = measured.maxLineWidth;
+          const fontProperties = measured.fontProperties;
+          const height = canvas.height;
+          context2.resetTransform();
+          context2.scale(resolution, resolution);
+          const padding = style.padding * 2;
+          context2.clearRect(0, 0, measured.width + 4 + padding, measured.height + 4 + padding);
+          if (style._stroke?.width) {
+            const strokeStyle = style._stroke;
+            context2.lineWidth = strokeStyle.width;
+            context2.miterLimit = strokeStyle.miterLimit;
+            context2.lineJoin = strokeStyle.join;
+            context2.lineCap = strokeStyle.cap;
+          }
+          context2.font = font;
+          let linePositionX;
+          let linePositionY;
+          const passesCount = style.dropShadow ? 2 : 1;
+          for (let i3 = 0; i3 < passesCount; ++i3) {
+            const isShadowPass = style.dropShadow && i3 === 0;
+            const dsOffsetText = isShadowPass ? Math.ceil(Math.max(1, height) + style.padding * 2) : 0;
+            const dsOffsetShadow = dsOffsetText * resolution;
+            if (isShadowPass) {
+              context2.fillStyle = "black";
+              context2.strokeStyle = "black";
+              const shadowOptions = style.dropShadow;
+              const dropShadowColor = shadowOptions.color;
+              const dropShadowAlpha = shadowOptions.alpha;
+              context2.shadowColor = Color.shared.setValue(dropShadowColor).setAlpha(dropShadowAlpha).toRgbaString();
+              const dropShadowBlur = shadowOptions.blur * resolution;
+              const dropShadowDistance = shadowOptions.distance * resolution;
+              context2.shadowBlur = dropShadowBlur;
+              context2.shadowOffsetX = Math.cos(shadowOptions.angle) * dropShadowDistance;
+              context2.shadowOffsetY = Math.sin(shadowOptions.angle) * dropShadowDistance + dsOffsetShadow;
+            } else {
+              context2.globalAlpha = style._fill?.alpha ?? 1;
+              context2.fillStyle = style._fill ? getCanvasFillStyle(style._fill, context2) : null;
+              if (style._stroke?.width) {
+                context2.strokeStyle = getCanvasFillStyle(style._stroke, context2);
+              }
+              context2.shadowColor = "black";
             }
-            rawData[name].push(itemData);
+            let linePositionYShift = (lineHeight - fontProperties.fontSize) / 2;
+            if (lineHeight - fontProperties.fontSize < 0) {
+              linePositionYShift = 0;
+            }
+            const strokeWidth = style._stroke?.width ?? 0;
+            for (let i22 = 0; i22 < lines.length; i22++) {
+              linePositionX = strokeWidth / 2;
+              linePositionY = strokeWidth / 2 + i22 * lineHeight + fontProperties.ascent + linePositionYShift;
+              if (style.align === "right") {
+                linePositionX += maxLineWidth - lineWidths[i22];
+              } else if (style.align === "center") {
+                linePositionX += (maxLineWidth - lineWidths[i22]) / 2;
+              }
+              if (style._stroke?.width) {
+                this._drawLetterSpacing(
+                  lines[i22],
+                  style,
+                  canvasAndContext,
+                  linePositionX + style.padding,
+                  linePositionY + style.padding - dsOffsetText,
+                  true
+                );
+              }
+              if (style._fill !== void 0) {
+                this._drawLetterSpacing(
+                  lines[i22],
+                  style,
+                  canvasAndContext,
+                  linePositionX + style.padding,
+                  linePositionY + style.padding - dsOffsetText
+                );
+              }
+            }
           }
-          const font = {
-            chars: {},
-            pages: [],
-            lineHeight: 0,
-            fontSize: 0,
-            fontFamily: "",
-            distanceField: null,
-            baseLineOffset: 0
-          };
-          const [info] = rawData.info;
-          const [common] = rawData.common;
-          const [distanceField] = rawData.distanceField ?? [];
-          if (distanceField) {
-            font.distanceField = {
-              range: parseInt(distanceField.distanceRange, 10),
-              type: distanceField.fieldType
-            };
-          }
-          font.fontSize = parseInt(info.size, 10);
-          font.fontFamily = info.face;
-          font.lineHeight = parseInt(common.lineHeight, 10);
-          const page = rawData.page;
-          for (let i3 = 0; i3 < page.length; i3++) {
-            font.pages.push({
-              id: parseInt(page[i3].id, 10) || 0,
-              file: page[i3].file
-            });
-          }
-          const map = {};
-          font.baseLineOffset = font.lineHeight - parseInt(common.base, 10);
-          const char = rawData.char;
-          for (let i3 = 0; i3 < char.length; i3++) {
-            const charNode = char[i3];
-            const id = parseInt(charNode.id, 10);
-            let letter = charNode.letter ?? charNode.char ?? String.fromCharCode(id);
-            if (letter === "space")
-              letter = " ";
-            map[id] = letter;
-            font.chars[letter] = {
-              id,
-              // texture deets..
-              page: parseInt(charNode.page, 10) || 0,
-              x: parseInt(charNode.x, 10),
-              y: parseInt(charNode.y, 10),
-              width: parseInt(charNode.width, 10),
-              height: parseInt(charNode.height, 10),
-              xOffset: parseInt(charNode.xoffset, 10),
-              yOffset: parseInt(charNode.yoffset, 10),
-              xAdvance: parseInt(charNode.xadvance, 10),
-              kerning: {}
-            };
-          }
-          const kerning = rawData.kerning || [];
-          for (let i3 = 0; i3 < kerning.length; i3++) {
-            const first = parseInt(kerning[i3].first, 10);
-            const second = parseInt(kerning[i3].second, 10);
-            const amount = parseInt(kerning[i3].amount, 10);
-            font.chars[map[second]].kerning[map[first]] = amount;
-          }
-          return font;
         }
+        /**
+         * Render the text with letter-spacing.
+         * @param text - The text to draw
+         * @param style
+         * @param canvasAndContext
+         * @param x - Horizontal position to draw the text
+         * @param y - Vertical position to draw the text
+         * @param isStroke - Is this drawing for the outside stroke of the
+         *  text? If not, it's for the inside fill
+         */
+        _drawLetterSpacing(text, style, canvasAndContext, x3, y3, isStroke = false) {
+          const { context: context2 } = canvasAndContext;
+          const letterSpacing = style.letterSpacing;
+          let useExperimentalLetterSpacing = false;
+          if (CanvasTextMetrics.experimentalLetterSpacingSupported) {
+            if (CanvasTextMetrics.experimentalLetterSpacing) {
+              context2.letterSpacing = `${letterSpacing}px`;
+              context2.textLetterSpacing = `${letterSpacing}px`;
+              useExperimentalLetterSpacing = true;
+            } else {
+              context2.letterSpacing = "0px";
+              context2.textLetterSpacing = "0px";
+            }
+          }
+          if (letterSpacing === 0 || useExperimentalLetterSpacing) {
+            if (isStroke) {
+              context2.strokeText(text, x3, y3);
+            } else {
+              context2.fillText(text, x3, y3);
+            }
+            return;
+          }
+          let currentPosition = x3;
+          const stringArray = CanvasTextMetrics.graphemeSegmenter(text);
+          let previousWidth = context2.measureText(text).width;
+          let currentWidth = 0;
+          for (let i3 = 0; i3 < stringArray.length; ++i3) {
+            const currentChar = stringArray[i3];
+            if (isStroke) {
+              context2.strokeText(currentChar, currentPosition, y3);
+            } else {
+              context2.fillText(currentChar, currentPosition, y3);
+            }
+            let textStr = "";
+            for (let j3 = i3 + 1; j3 < stringArray.length; ++j3) {
+              textStr += stringArray[j3];
+            }
+            currentWidth = context2.measureText(textStr).width;
+            currentPosition += previousWidth - currentWidth + letterSpacing;
+            previousWidth = currentWidth;
+          }
+        }
+        destroy() {
+          this._activeTextures = null;
+        }
+      };
+      CanvasTextSystem.extension = {
+        type: [
+          ExtensionType.WebGLSystem,
+          ExtensionType.WebGPUSystem,
+          ExtensionType.CanvasSystem
+        ],
+        name: "canvasText"
       };
     }
   });
 
-  // node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLParser.mjs
-  var bitmapFontXMLParser;
-  var init_bitmapFontXMLParser = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLParser.mjs"() {
+  // node_modules/pixi.js/lib/scene/text/init.mjs
+  var init_init8 = __esm({
+    "node_modules/pixi.js/lib/scene/text/init.mjs"() {
       "use strict";
-      bitmapFontXMLParser = {
-        test(data) {
-          const xml = data;
-          return typeof xml !== "string" && "getElementsByTagName" in xml && xml.getElementsByTagName("page").length && xml.getElementsByTagName("info")[0].getAttribute("face") !== null;
-        },
-        parse(xml) {
-          const data = {
-            chars: {},
-            pages: [],
-            lineHeight: 0,
-            fontSize: 0,
-            fontFamily: "",
-            distanceField: null,
-            baseLineOffset: 0
-          };
-          const info = xml.getElementsByTagName("info")[0];
-          const common = xml.getElementsByTagName("common")[0];
-          const distanceField = xml.getElementsByTagName("distanceField")[0];
-          if (distanceField) {
-            data.distanceField = {
-              type: distanceField.getAttribute("fieldType"),
-              range: parseInt(distanceField.getAttribute("distanceRange"), 10)
-            };
-          }
-          const page = xml.getElementsByTagName("page");
-          const char = xml.getElementsByTagName("char");
-          const kerning = xml.getElementsByTagName("kerning");
-          data.fontSize = parseInt(info.getAttribute("size"), 10);
-          data.fontFamily = info.getAttribute("face");
-          data.lineHeight = parseInt(common.getAttribute("lineHeight"), 10);
-          for (let i3 = 0; i3 < page.length; i3++) {
-            data.pages.push({
-              id: parseInt(page[i3].getAttribute("id"), 10) || 0,
-              file: page[i3].getAttribute("file")
-            });
-          }
-          const map = {};
-          data.baseLineOffset = data.lineHeight - parseInt(common.getAttribute("base"), 10);
-          for (let i3 = 0; i3 < char.length; i3++) {
-            const charNode = char[i3];
-            const id = parseInt(charNode.getAttribute("id"), 10);
-            let letter = charNode.getAttribute("letter") ?? charNode.getAttribute("char") ?? String.fromCharCode(id);
-            if (letter === "space")
-              letter = " ";
-            map[id] = letter;
-            data.chars[letter] = {
-              id,
-              // texture deets..
-              page: parseInt(charNode.getAttribute("page"), 10) || 0,
-              x: parseInt(charNode.getAttribute("x"), 10),
-              y: parseInt(charNode.getAttribute("y"), 10),
-              width: parseInt(charNode.getAttribute("width"), 10),
-              height: parseInt(charNode.getAttribute("height"), 10),
-              // render deets..
-              xOffset: parseInt(charNode.getAttribute("xoffset"), 10),
-              yOffset: parseInt(charNode.getAttribute("yoffset"), 10),
-              // + baseLineOffset,
-              xAdvance: parseInt(charNode.getAttribute("xadvance"), 10),
-              kerning: {}
-            };
-          }
-          for (let i3 = 0; i3 < kerning.length; i3++) {
-            const first = parseInt(kerning[i3].getAttribute("first"), 10);
-            const second = parseInt(kerning[i3].getAttribute("second"), 10);
-            const amount = parseInt(kerning[i3].getAttribute("amount"), 10);
-            data.chars[map[second]].kerning[map[first]] = amount;
-          }
-          return data;
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLStringParser.mjs
-  var bitmapFontXMLStringParser;
-  var init_bitmapFontXMLStringParser = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLStringParser.mjs"() {
-      "use strict";
-      init_adapter();
-      init_bitmapFontXMLParser();
-      bitmapFontXMLStringParser = {
-        test(data) {
-          if (typeof data === "string" && data.includes("<font>")) {
-            return bitmapFontXMLParser.test(DOMAdapter.get().parseXML(data));
-          }
-          return false;
-        },
-        parse(data) {
-          return bitmapFontXMLParser.parse(DOMAdapter.get().parseXML(data));
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/text-bitmap/asset/loadBitmapFont.mjs
-  var validExtensions, bitmapFontCachePlugin, loadBitmapFont;
-  var init_loadBitmapFont = __esm({
-    "node_modules/pixi.js/lib/scene/text-bitmap/asset/loadBitmapFont.mjs"() {
-      "use strict";
-      init_LoaderParser();
-      init_copySearchParams();
-      init_adapter();
       init_Extensions();
-      init_path();
-      init_BitmapFont();
-      init_bitmapFontTextParser();
-      init_bitmapFontXMLStringParser();
-      validExtensions = [".xml", ".fnt"];
-      bitmapFontCachePlugin = {
-        extension: ExtensionType.CacheParser,
-        test: (asset) => asset instanceof BitmapFont,
-        getCacheableAssets(keys, asset) {
-          const out2 = {};
-          keys.forEach((key) => {
-            out2[key] = asset;
-          });
-          out2[`${asset.fontFamily}-bitmap`] = asset;
-          return out2;
-        }
-      };
-      loadBitmapFont = {
-        extension: {
-          type: ExtensionType.LoadParser,
-          priority: LoaderParserPriority.Normal
-        },
-        test(url) {
-          return validExtensions.includes(path.extname(url).toLowerCase());
-        },
-        async testParse(data) {
-          return bitmapFontTextParser.test(data) || bitmapFontXMLStringParser.test(data);
-        },
-        async parse(asset, data, loader) {
-          const bitmapFontData = bitmapFontTextParser.test(asset) ? bitmapFontTextParser.parse(asset) : bitmapFontXMLStringParser.parse(asset);
-          const { src } = data;
-          const { pages } = bitmapFontData;
-          const textureUrls = [];
-          for (let i3 = 0; i3 < pages.length; ++i3) {
-            const pageFile = pages[i3].file;
-            let imagePath = path.join(path.dirname(src), pageFile);
-            imagePath = copySearchParams(imagePath, src);
-            textureUrls.push(imagePath);
-          }
-          const loadedTextures = await loader.load(textureUrls);
-          const textures = textureUrls.map((url) => loadedTextures[url]);
-          const bitmapFont = new BitmapFont({
-            data: bitmapFontData,
-            textures
-          }, src);
-          return bitmapFont;
-        },
-        async load(url, _options) {
-          const response = await DOMAdapter.get().fetch(url);
-          return await response.text();
-        },
-        async unload(bitmapFont, _resolvedAsset, loader) {
-          await Promise.all(bitmapFont.pages.map((page) => loader.unload(page.texture.source._sourceOrigin)));
-          bitmapFont.destroy();
-        }
-      };
+      init_CanvasTextPipe();
+      init_CanvasTextSystem();
+      extensions.add(CanvasTextSystem);
+      extensions.add(CanvasTextPipe);
     }
   });
 
@@ -20972,8 +20140,9 @@ Deprecated since v${version}`);
           if (this.didViewUpdate)
             return;
           this.didViewUpdate = true;
-          if (this.renderGroup) {
-            this.renderGroup.onChildViewUpdate(this);
+          const renderGroup = this.renderGroup || this.parentRenderGroup;
+          if (renderGroup) {
+            renderGroup.onChildViewUpdate(this);
           }
         }
         /**
@@ -21009,7 +20178,7 @@ Deprecated since v${version}`);
         /**
          * Sets the current fill style of the graphics context. The fill style can be a color, gradient,
          * pattern, or a more complex style defined by a FillStyle object.
-         * @param {FillStyleInputs} args - The fill style to apply. This can be a simple color, a gradient or
+         * @param {FillInput} args - The fill style to apply. This can be a simple color, a gradient or
          * pattern object, or a FillStyle or ConvertedFillStyle object.
          * @returns The instance of the current GraphicsContext for method chaining.
          */
@@ -21019,7 +20188,7 @@ Deprecated since v${version}`);
         /**
          * Sets the current stroke style of the graphics context. Similar to fill styles, stroke styles can
          * encompass colors, gradients, patterns, or more detailed configurations via a StrokeStyle object.
-         * @param {FillStyleInputs} args - The stroke style to apply. Can be defined as a color, a gradient or pattern,
+         * @param {StrokeInput} args - The stroke style to apply. Can be defined as a color, a gradient or pattern,
          * or a StrokeStyle or ConvertedStrokeStyle object.
          * @returns The instance of the current GraphicsContext for method chaining.
          */
@@ -21031,8 +20200,8 @@ Deprecated since v${version}`);
         }
         /**
          * Strokes the current path with the current stroke style. This method can take an optional
-         * FillStyleInputs parameter to define the stroke's appearance, including its color, width, and other properties.
-         * @param {FillStyleInputs} args - (Optional) The stroke style to apply. Can be defined as a simple color or a more
+         * FillStyle parameter to define the stroke's appearance, including its color, width, and other properties.
+         * @param {FillStyle} args - (Optional) The stroke style to apply. Can be defined as a simple color or a more
          * complex style object. If omitted, uses the current stroke style.
          * @returns The instance of the current GraphicsContext for method chaining.
          */
@@ -21297,22 +20466,6 @@ Deprecated since v${version}`);
           return this._callContextMethod("star", args);
         }
       };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.mjs
-  function getTestContext() {
-    if (!context || context?.isContextLost()) {
-      const canvas = DOMAdapter.get().createCanvas();
-      context = canvas.getContext("webgl", {});
-    }
-    return context;
-  }
-  var context;
-  var init_getTestContext = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.mjs"() {
-      "use strict";
-      init_adapter();
     }
   });
 
@@ -21676,7 +20829,7 @@ ${src}`;
 
   // node_modules/pixi.js/lib/rendering/renderers/shared/shader/const.mjs
   var ShaderStage;
-  var init_const7 = __esm({
+  var init_const6 = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/shared/shader/const.mjs"() {
       "use strict";
       ShaderStage = /* @__PURE__ */ ((ShaderStage2) => {
@@ -21729,7 +20882,7 @@ ${src}`;
   var init_generateGpuLayoutGroups = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateGpuLayoutGroups.mjs"() {
       "use strict";
-      init_const7();
+      init_const6();
     }
   });
 
@@ -22339,28 +21492,28 @@ ${parts.join("\n")}
   });
 
   // node_modules/pixi.js/lib/rendering/high-shader/shader-bits/generateTextureBatchBit.mjs
-  function generateBindingSrc(maxTextures) {
+  function generateBindingSrc(maxTextures2) {
     const src = [];
-    if (maxTextures === 1) {
+    if (maxTextures2 === 1) {
       src.push("@group(1) @binding(0) var textureSource1: texture_2d<f32>;");
       src.push("@group(1) @binding(1) var textureSampler1: sampler;");
     } else {
       let bindingIndex = 0;
-      for (let i3 = 0; i3 < maxTextures; i3++) {
+      for (let i3 = 0; i3 < maxTextures2; i3++) {
         src.push(`@group(1) @binding(${bindingIndex++}) var textureSource${i3 + 1}: texture_2d<f32>;`);
         src.push(`@group(1) @binding(${bindingIndex++}) var textureSampler${i3 + 1}: sampler;`);
       }
     }
     return src.join("\n");
   }
-  function generateSampleSrc(maxTextures) {
+  function generateSampleSrc(maxTextures2) {
     const src = [];
-    if (maxTextures === 1) {
+    if (maxTextures2 === 1) {
       src.push("outColor = textureSampleGrad(textureSource1, textureSampler1, vUV, uvDx, uvDy);");
     } else {
       src.push("switch vTextureId {");
-      for (let i3 = 0; i3 < maxTextures; i3++) {
-        if (i3 === maxTextures - 1) {
+      for (let i3 = 0; i3 < maxTextures2; i3++) {
+        if (i3 === maxTextures2 - 1) {
           src.push(`  default:{`);
         } else {
           src.push(`  case ${i3}:{`);
@@ -22372,9 +21525,9 @@ ${parts.join("\n")}
     }
     return src.join("\n");
   }
-  function generateTextureBatchBit(maxTextures) {
-    if (!textureBatchBitGpuCache[maxTextures]) {
-      textureBatchBitGpuCache[maxTextures] = {
+  function generateTextureBatchBit(maxTextures2) {
+    if (!textureBatchBitGpuCache[maxTextures2]) {
+      textureBatchBitGpuCache[maxTextures2] = {
         name: "texture-batch-bit",
         vertex: {
           header: `
@@ -22395,26 +21548,26 @@ ${parts.join("\n")}
           header: `
                 @in @interpolate(flat) vTextureId: u32;
     
-                ${generateBindingSrc(16)}
+                ${generateBindingSrc(maxRecommendedTextures())}
             `,
           main: `
                 var uvDx = dpdx(vUV);
                 var uvDy = dpdy(vUV);
     
-                ${generateSampleSrc(16)}
+                ${generateSampleSrc(maxRecommendedTextures())}
             `
         }
       };
     }
-    return textureBatchBitGpuCache[maxTextures];
+    return textureBatchBitGpuCache[maxTextures2];
   }
-  function generateSampleGlSrc(maxTextures) {
+  function generateSampleGlSrc(maxTextures2) {
     const src = [];
-    for (let i3 = 0; i3 < maxTextures; i3++) {
+    for (let i3 = 0; i3 < maxTextures2; i3++) {
       if (i3 > 0) {
         src.push("else");
       }
-      if (i3 < maxTextures - 1) {
+      if (i3 < maxTextures2 - 1) {
         src.push(`if(vTextureId < ${i3}.5)`);
       }
       src.push("{");
@@ -22423,9 +21576,9 @@ ${parts.join("\n")}
     }
     return src.join("\n");
   }
-  function generateTextureBatchBitGl(maxTextures) {
-    if (!textureBatchBitGlCache[maxTextures]) {
-      textureBatchBitGlCache[maxTextures] = {
+  function generateTextureBatchBitGl(maxTextures2) {
+    if (!textureBatchBitGlCache[maxTextures2]) {
+      textureBatchBitGlCache[maxTextures2] = {
         name: "texture-batch-bit",
         vertex: {
           header: `
@@ -22447,22 +21600,23 @@ ${parts.join("\n")}
           header: `
                 in float vTextureId;
     
-                uniform sampler2D uTextures[${maxTextures}];
+                uniform sampler2D uTextures[${maxTextures2}];
               
             `,
           main: `
     
-                ${generateSampleGlSrc(16)}
+                ${generateSampleGlSrc(maxRecommendedTextures())}
             `
         }
       };
     }
-    return textureBatchBitGlCache[maxTextures];
+    return textureBatchBitGlCache[maxTextures2];
   }
   var textureBatchBitGpuCache, textureBatchBitGlCache;
   var init_generateTextureBatchBit = __esm({
     "node_modules/pixi.js/lib/rendering/high-shader/shader-bits/generateTextureBatchBit.mjs"() {
       "use strict";
+      init_maxRecommendedTextures();
       textureBatchBitGpuCache = {};
       textureBatchBitGlCache = {};
     }
@@ -22481,7 +21635,7 @@ ${parts.join("\n")}
             `
             fn roundPixels(position: vec2<f32>, targetSize: vec2<f32>) -> vec2<f32> 
             {
-                return (floor((position * 0.5 + 0.5) * targetSize) / targetSize) * 2.0 - 1.0;
+                return (floor(((position * 0.5 + 0.5) * targetSize) + 0.5) / targetSize) * 2.0 - 1.0;
             }
         `
           )
@@ -22495,7 +21649,7 @@ ${parts.join("\n")}
             `   
             vec2 roundPixels(vec2 position, vec2 targetSize)
             {       
-                return (floor((position * 0.5 + 0.5) * targetSize) / targetSize) * 2.0 - 1.0;
+                return (floor(((position * 0.5 + 0.5) * targetSize) + 0.5) / targetSize) * 2.0 - 1.0;
             }
         `
           )
@@ -22504,26 +21658,32 @@ ${parts.join("\n")}
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/batchSamplersUniformGroup.mjs
-  var sampleValues, batchSamplersUniformGroup;
-  var init_batchSamplersUniformGroup = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/batchSamplersUniformGroup.mjs"() {
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/getBatchSamplersUniformGroup.mjs
+  function getBatchSamplersUniformGroup(maxTextures2) {
+    let batchSamplersUniformGroup = batchSamplersUniformGroupHash[maxTextures2];
+    if (batchSamplersUniformGroup)
+      return batchSamplersUniformGroup;
+    const sampleValues = new Int32Array(maxTextures2);
+    for (let i3 = 0; i3 < maxTextures2; i3++) {
+      sampleValues[i3] = i3;
+    }
+    batchSamplersUniformGroup = batchSamplersUniformGroupHash[maxTextures2] = new UniformGroup({
+      uTextures: { value: sampleValues, type: `i32`, size: maxTextures2 }
+    }, { isStatic: true });
+    return batchSamplersUniformGroup;
+  }
+  var batchSamplersUniformGroupHash;
+  var init_getBatchSamplersUniformGroup = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/getBatchSamplersUniformGroup.mjs"() {
       "use strict";
-      init_const4();
       init_UniformGroup();
-      sampleValues = new Int32Array(MAX_TEXTURES);
-      for (let i3 = 0; i3 < MAX_TEXTURES; i3++) {
-        sampleValues[i3] = i3;
-      }
-      batchSamplersUniformGroup = new UniformGroup({
-        uTextures: { value: sampleValues, type: `i32`, size: MAX_TEXTURES }
-      }, { isStatic: true });
+      batchSamplersUniformGroupHash = {};
     }
   });
 
   // node_modules/pixi.js/lib/rendering/renderers/types.mjs
   var RendererType;
-  var init_types = __esm({
+  var init_types2 = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/types.mjs"() {
       "use strict";
       RendererType = /* @__PURE__ */ ((RendererType2) => {
@@ -22544,7 +21704,7 @@ ${parts.join("\n")}
       init_GlProgram();
       init_BindGroup();
       init_GpuProgram();
-      init_types();
+      init_types2();
       init_UniformGroup();
       Shader = class _Shader extends eventemitter3_default {
         constructor(options) {
@@ -22552,20 +21712,20 @@ ${parts.join("\n")}
           this._uniformBindMap = /* @__PURE__ */ Object.create(null);
           this._ownedBindGroups = [];
           let {
-            gpuProgram: gpuProgram2,
-            glProgram: glProgram2,
+            gpuProgram: gpuProgram3,
+            glProgram: glProgram3,
             groups,
             resources,
             compatibleRenderers,
             groupMap
           } = options;
-          this.gpuProgram = gpuProgram2;
-          this.glProgram = glProgram2;
+          this.gpuProgram = gpuProgram3;
+          this.glProgram = glProgram3;
           if (compatibleRenderers === void 0) {
             compatibleRenderers = 0;
-            if (gpuProgram2)
+            if (gpuProgram3)
               compatibleRenderers |= RendererType.WEBGPU;
-            if (glProgram2)
+            if (glProgram3)
               compatibleRenderers |= RendererType.WEBGL;
           }
           this.compatibleRenderers = compatibleRenderers;
@@ -22575,9 +21735,9 @@ ${parts.join("\n")}
           }
           if (resources && groups) {
             throw new Error("[Shader] Cannot have both resources and groups");
-          } else if (!gpuProgram2 && groups && !groupMap) {
+          } else if (!gpuProgram3 && groups && !groupMap) {
             throw new Error("[Shader] No group map or WebGPU shader provided - consider using resources instead.");
-          } else if (!gpuProgram2 && groups && groupMap) {
+          } else if (!gpuProgram3 && groups && groupMap) {
             for (const i3 in groupMap) {
               for (const j3 in groupMap[i3]) {
                 const uniformName = groupMap[i3][j3];
@@ -22588,8 +21748,8 @@ ${parts.join("\n")}
                 };
               }
             }
-          } else if (gpuProgram2 && groups && !groupMap) {
-            const groupData = gpuProgram2.structsAndGroups.groups;
+          } else if (gpuProgram3 && groups && !groupMap) {
+            const groupData = gpuProgram3.structsAndGroups.groups;
             groupMap = {};
             groupData.forEach((data) => {
               groupMap[data.group] = groupMap[data.group] || {};
@@ -22597,7 +21757,7 @@ ${parts.join("\n")}
               nameHash[data.name] = data;
             });
           } else if (resources) {
-            if (!gpuProgram2) {
+            if (!gpuProgram3) {
               groupMap = {};
               groups = {
                 99: new BindGroup()
@@ -22611,7 +21771,7 @@ ${parts.join("\n")}
                 bindTick++;
               }
             } else {
-              const groupData = gpuProgram2.structsAndGroups.groups;
+              const groupData = gpuProgram3.structsAndGroups.groups;
               groupMap = {};
               groupData.forEach((data) => {
                 groupMap[data.group] = groupMap[data.group] || {};
@@ -22696,17 +21856,17 @@ ${parts.join("\n")}
         }
         static from(options) {
           const { gpu, gl, ...rest } = options;
-          let gpuProgram2;
-          let glProgram2;
+          let gpuProgram3;
+          let glProgram3;
           if (gpu) {
-            gpuProgram2 = GpuProgram.from(gpu);
+            gpuProgram3 = GpuProgram.from(gpu);
           }
           if (gl) {
-            glProgram2 = GlProgram.from(gl);
+            glProgram3 = GlProgram.from(gl);
           }
           return new _Shader({
-            gpuProgram: gpuProgram2,
-            glProgram: glProgram2,
+            gpuProgram: gpuProgram3,
+            glProgram: glProgram3,
             ...rest
           });
         }
@@ -22768,7 +21928,7 @@ ${parts.join("\n")}
           main: (
             /* wgsl */
             ` 
-            outColor = vColor * calculateMSDFAlpha(outColor, localUniforms.uDistance);
+            outColor = vec4<f32>(calculateMSDFAlpha(outColor, localUniforms.uColor, localUniforms.uDistance));
         `
           )
         }
@@ -22811,7 +21971,7 @@ ${parts.join("\n")}
           main: (
             /* glsl */
             ` 
-            outColor = vColor * calculateMSDFAlpha(outColor, uDistance);
+            outColor = vec4(calculateMSDFAlpha(outColor, vColor, uDistance));
         `
           )
         }
@@ -22830,7 +21990,7 @@ ${parts.join("\n")}
           header: (
             /* wgsl */
             `
-            fn calculateMSDFAlpha(msdfColor:vec4<f32>, distance:f32) -> f32 {
+            fn calculateMSDFAlpha(msdfColor:vec4<f32>, shapeColor:vec4<f32>, distance:f32) -> f32 {
                 
                 // MSDF
                 var median = msdfColor.r + msdfColor.g + msdfColor.b -
@@ -22848,7 +22008,13 @@ ${parts.join("\n")}
                     alpha = 1.0;
                 }
 
-                return alpha;
+                // Gamma correction for coverage-like alpha
+                var luma: f32 = dot(shapeColor.rgb, vec3<f32>(0.299, 0.587, 0.114));
+                var gamma: f32 = mix(1.0, 1.0 / 2.2, luma);
+                var coverage: f32 = pow(shapeColor.a * alpha, gamma);
+
+                return coverage;
+             
             }
         `
           )
@@ -22860,7 +22026,7 @@ ${parts.join("\n")}
           header: (
             /* glsl */
             `
-            float calculateMSDFAlpha(vec4 msdfColor, float distance) {
+            float calculateMSDFAlpha(vec4 msdfColor, vec4 shapeColor, float distance) {
                 
                 // MSDF
                 float median = msdfColor.r + msdfColor.g + msdfColor.b -
@@ -22879,7 +22045,12 @@ ${parts.join("\n")}
                     alpha = 1.0;
                 }
 
-                return alpha;
+                // Gamma correction for coverage-like alpha
+                float luma = dot(shapeColor.rgb, vec3(0.299, 0.587, 0.114));
+                float gamma = mix(1.0, 1.0 / 2.2, luma);
+                float coverage = pow(shapeColor.a * alpha, gamma);  
+              
+                return coverage;
             }
         `
           )
@@ -22889,19 +22060,19 @@ ${parts.join("\n")}
   });
 
   // node_modules/pixi.js/lib/scene/text/sdfShader/SdfShader.mjs
-  var SdfShader;
+  var gpuProgram, glProgram, SdfShader;
   var init_SdfShader = __esm({
     "node_modules/pixi.js/lib/scene/text/sdfShader/SdfShader.mjs"() {
       "use strict";
       init_Matrix();
-      init_const4();
       init_compileHighShaderToProgram();
       init_colorBit();
       init_generateTextureBatchBit();
       init_roundPixelsBit();
-      init_batchSamplersUniformGroup();
+      init_getBatchSamplersUniformGroup();
       init_Shader();
       init_UniformGroup();
+      init_maxRecommendedTextures();
       init_localUniformMSDFBit();
       init_mSDFBit();
       SdfShader = class extends Shader {
@@ -22912,36 +22083,693 @@ ${parts.join("\n")}
             uDistance: { value: 4, type: "f32" },
             uRound: { value: 0, type: "f32" }
           });
-          const gpuProgram2 = compileHighShaderGpuProgram({
+          const maxTextures2 = maxRecommendedTextures();
+          gpuProgram ?? (gpuProgram = compileHighShaderGpuProgram({
             name: "sdf-shader",
             bits: [
               colorBit,
-              generateTextureBatchBit(MAX_TEXTURES),
+              generateTextureBatchBit(maxTextures2),
               localUniformMSDFBit,
               mSDFBit,
               roundPixelsBit
             ]
-          });
-          const glProgram2 = compileHighShaderGlProgram({
+          }));
+          glProgram ?? (glProgram = compileHighShaderGlProgram({
             name: "sdf-shader",
             bits: [
               colorBitGl,
-              generateTextureBatchBitGl(MAX_TEXTURES),
+              generateTextureBatchBitGl(maxTextures2),
               localUniformMSDFBitGl,
               mSDFBitGl,
               roundPixelsBitGl
             ]
-          });
+          }));
           super({
-            glProgram: glProgram2,
-            gpuProgram: gpuProgram2,
+            glProgram,
+            gpuProgram,
             resources: {
               localUniforms: uniforms,
-              batchSamplers: batchSamplersUniformGroup
+              batchSamplers: getBatchSamplersUniformGroup(maxTextures2)
             }
           });
         }
       };
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/AbstractBitmapFont.mjs
+  var AbstractBitmapFont;
+  var init_AbstractBitmapFont = __esm({
+    "node_modules/pixi.js/lib/scene/text-bitmap/AbstractBitmapFont.mjs"() {
+      "use strict";
+      init_eventemitter3();
+      init_deprecation();
+      AbstractBitmapFont = class extends eventemitter3_default {
+        constructor() {
+          super(...arguments);
+          this.chars = /* @__PURE__ */ Object.create(null);
+          this.lineHeight = 0;
+          this.fontFamily = "";
+          this.fontMetrics = { fontSize: 0, ascent: 0, descent: 0 };
+          this.baseLineOffset = 0;
+          this.distanceField = { type: "none", range: 0 };
+          this.pages = [];
+          this.baseMeasurementFontSize = 100;
+          this.baseRenderedFontSize = 100;
+        }
+        /**
+         * The name of the font face.
+         * @deprecated since 8.0.0 Use `fontFamily` instead.
+         */
+        get font() {
+          deprecation(v8_0_0, "BitmapFont.font is deprecated, please use BitmapFont.fontFamily instead.");
+          return this.fontFamily;
+        }
+        /**
+         * The map of base page textures (i.e., sheets of glyphs).
+         * @deprecated since 8.0.0 Use `pages` instead.
+         */
+        get pageTextures() {
+          deprecation(v8_0_0, "BitmapFont.pageTextures is deprecated, please use BitmapFont.pages instead.");
+          return this.pages;
+        }
+        /**
+         * The size of the font face in pixels.
+         * @deprecated since 8.0.0 Use `fontMetrics.fontSize` instead.
+         */
+        get size() {
+          deprecation(v8_0_0, "BitmapFont.size is deprecated, please use BitmapFont.fontMetrics.fontSize instead.");
+          return this.fontMetrics.fontSize;
+        }
+        /**
+         * The kind of distance field for this font or "none".
+         * @deprecated since 8.0.0 Use `distanceField.type` instead.
+         */
+        get distanceFieldRange() {
+          deprecation(v8_0_0, "BitmapFont.distanceFieldRange is deprecated, please use BitmapFont.distanceField.range instead.");
+          return this.distanceField.range;
+        }
+        /**
+         * The range of the distance field in pixels.
+         * @deprecated since 8.0.0 Use `distanceField.range` instead.
+         */
+        get distanceFieldType() {
+          deprecation(v8_0_0, "BitmapFont.distanceFieldType is deprecated, please use BitmapFont.distanceField.type instead.");
+          return this.distanceField.type;
+        }
+        destroy(destroyTextures = false) {
+          this.emit("destroy", this);
+          this.removeAllListeners();
+          for (const i3 in this.chars) {
+            this.chars[i3].texture?.destroy();
+          }
+          this.chars = null;
+          if (destroyTextures) {
+            this.pages.forEach((page) => page.texture.destroy(true));
+            this.pages = null;
+          }
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/utils/resolveCharacters.mjs
+  function resolveCharacters(chars) {
+    if (chars === "") {
+      return [];
+    }
+    if (typeof chars === "string") {
+      chars = [chars];
+    }
+    const result = [];
+    for (let i3 = 0, j3 = chars.length; i3 < j3; i3++) {
+      const item = chars[i3];
+      if (Array.isArray(item)) {
+        if (item.length !== 2) {
+          throw new Error(`[BitmapFont]: Invalid character range length, expecting 2 got ${item.length}.`);
+        }
+        if (item[0].length === 0 || item[1].length === 0) {
+          throw new Error("[BitmapFont]: Invalid character delimiter.");
+        }
+        const startCode = item[0].charCodeAt(0);
+        const endCode = item[1].charCodeAt(0);
+        if (endCode < startCode) {
+          throw new Error("[BitmapFont]: Invalid character range.");
+        }
+        for (let i22 = startCode, j22 = endCode; i22 <= j22; i22++) {
+          result.push(String.fromCharCode(i22));
+        }
+      } else {
+        result.push(...Array.from(item));
+      }
+    }
+    if (result.length === 0) {
+      throw new Error("[BitmapFont]: Empty set when resolving characters.");
+    }
+    return result;
+  }
+  var init_resolveCharacters = __esm({
+    "node_modules/pixi.js/lib/scene/text-bitmap/utils/resolveCharacters.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/DynamicBitmapFont.mjs
+  var DynamicBitmapFont;
+  var init_DynamicBitmapFont = __esm({
+    "node_modules/pixi.js/lib/scene/text-bitmap/DynamicBitmapFont.mjs"() {
+      "use strict";
+      init_Color();
+      init_Rectangle();
+      init_CanvasPool();
+      init_ImageSource();
+      init_Texture();
+      init_deprecation();
+      init_CanvasTextMetrics();
+      init_fontStringFromTextStyle();
+      init_getCanvasFillStyle();
+      init_AbstractBitmapFont();
+      init_resolveCharacters();
+      DynamicBitmapFont = class extends AbstractBitmapFont {
+        /**
+         * @param options - The options for the dynamic bitmap font.
+         */
+        constructor(options) {
+          super();
+          this.resolution = 1;
+          this.pages = [];
+          this._padding = 4;
+          this._measureCache = /* @__PURE__ */ Object.create(null);
+          this._currentChars = [];
+          this._currentX = 0;
+          this._currentY = 0;
+          this._currentPageIndex = -1;
+          this._skipKerning = false;
+          const dynamicOptions = options;
+          const style = dynamicOptions.style.clone();
+          if (dynamicOptions.overrideFill) {
+            style._fill.color = 16777215;
+            style._fill.alpha = 1;
+            style._fill.texture = Texture.WHITE;
+            style._fill.fill = null;
+          }
+          const requestedFontSize = style.fontSize;
+          style.fontSize = this.baseMeasurementFontSize;
+          const font = fontStringFromTextStyle(style);
+          if (dynamicOptions.overrideSize) {
+            if (style._stroke) {
+              style._stroke.width *= this.baseRenderedFontSize / requestedFontSize;
+            }
+          } else {
+            style.fontSize = this.baseRenderedFontSize = requestedFontSize;
+          }
+          this._style = style;
+          this._skipKerning = dynamicOptions.skipKerning ?? false;
+          this.resolution = dynamicOptions.resolution ?? 1;
+          this._padding = dynamicOptions.padding ?? 4;
+          this.fontMetrics = CanvasTextMetrics.measureFont(font);
+          this.lineHeight = style.lineHeight || this.fontMetrics.fontSize || style.fontSize;
+        }
+        ensureCharacters(chars) {
+          const charList = resolveCharacters(chars).filter((char) => !this._currentChars.includes(char)).filter((char, index, self2) => self2.indexOf(char) === index);
+          if (!charList.length)
+            return;
+          this._currentChars = [...this._currentChars, ...charList];
+          let pageData;
+          if (this._currentPageIndex === -1) {
+            pageData = this._nextPage();
+          } else {
+            pageData = this.pages[this._currentPageIndex];
+          }
+          let { canvas, context: context2 } = pageData.canvasAndContext;
+          let textureSource = pageData.texture.source;
+          const style = this._style;
+          let currentX = this._currentX;
+          let currentY = this._currentY;
+          const fontScale = this.baseRenderedFontSize / this.baseMeasurementFontSize;
+          const padding = this._padding * fontScale;
+          const widthScale = style.fontStyle === "italic" ? 2 : 1;
+          let maxCharHeight = 0;
+          let skipTexture = false;
+          for (let i3 = 0; i3 < charList.length; i3++) {
+            const char = charList[i3];
+            const metrics = CanvasTextMetrics.measureText(char, style, canvas, false);
+            metrics.lineHeight = metrics.height;
+            const width = widthScale * metrics.width * fontScale;
+            const height = metrics.height * fontScale;
+            const paddedWidth = width + padding * 2;
+            const paddedHeight = height + padding * 2;
+            skipTexture = false;
+            if (char !== "\n" && char !== "\r" && char !== "	" && char !== " ") {
+              skipTexture = true;
+              maxCharHeight = Math.ceil(Math.max(paddedHeight, maxCharHeight));
+            }
+            if (currentX + paddedWidth > 512) {
+              currentY += maxCharHeight;
+              maxCharHeight = paddedHeight;
+              currentX = 0;
+              if (currentY + maxCharHeight > 512) {
+                textureSource.update();
+                const pageData2 = this._nextPage();
+                canvas = pageData2.canvasAndContext.canvas;
+                context2 = pageData2.canvasAndContext.context;
+                textureSource = pageData2.texture.source;
+                currentY = 0;
+              }
+            }
+            const xAdvance = width / fontScale - (style.dropShadow?.distance ?? 0) - (style._stroke?.width ?? 0);
+            this.chars[char] = {
+              id: char.codePointAt(0),
+              xOffset: -this._padding,
+              yOffset: -this._padding,
+              xAdvance,
+              kerning: {}
+            };
+            if (skipTexture) {
+              this._drawGlyph(
+                context2,
+                metrics,
+                currentX + padding,
+                currentY + padding,
+                fontScale,
+                style
+              );
+              const px = textureSource.width * fontScale;
+              const py = textureSource.height * fontScale;
+              const frame = new Rectangle(
+                currentX / px * textureSource.width,
+                currentY / py * textureSource.height,
+                paddedWidth / px * textureSource.width,
+                paddedHeight / py * textureSource.height
+              );
+              this.chars[char].texture = new Texture({
+                source: textureSource,
+                frame
+              });
+              currentX += Math.ceil(paddedWidth);
+            }
+          }
+          textureSource.update();
+          this._currentX = currentX;
+          this._currentY = currentY;
+          this._skipKerning && this._applyKerning(charList, context2);
+        }
+        /**
+         * @deprecated since 8.0.0
+         * The map of base page textures (i.e., sheets of glyphs).
+         */
+        get pageTextures() {
+          deprecation(v8_0_0, "BitmapFont.pageTextures is deprecated, please use BitmapFont.pages instead.");
+          return this.pages;
+        }
+        _applyKerning(newChars, context2) {
+          const measureCache = this._measureCache;
+          for (let i3 = 0; i3 < newChars.length; i3++) {
+            const first = newChars[i3];
+            for (let j3 = 0; j3 < this._currentChars.length; j3++) {
+              const second = this._currentChars[j3];
+              let c1 = measureCache[first];
+              if (!c1)
+                c1 = measureCache[first] = context2.measureText(first).width;
+              let c22 = measureCache[second];
+              if (!c22)
+                c22 = measureCache[second] = context2.measureText(second).width;
+              let total = context2.measureText(first + second).width;
+              let amount = total - (c1 + c22);
+              if (amount) {
+                this.chars[first].kerning[second] = amount;
+              }
+              total = context2.measureText(first + second).width;
+              amount = total - (c1 + c22);
+              if (amount) {
+                this.chars[second].kerning[first] = amount;
+              }
+            }
+          }
+        }
+        _nextPage() {
+          this._currentPageIndex++;
+          const textureResolution = this.resolution;
+          const canvasAndContext = CanvasPool.getOptimalCanvasAndContext(512, 512, textureResolution);
+          this._setupContext(canvasAndContext.context, this._style, textureResolution);
+          const resolution = textureResolution * (this.baseRenderedFontSize / this.baseMeasurementFontSize);
+          const texture = new Texture({
+            source: new ImageSource({
+              resource: canvasAndContext.canvas,
+              resolution,
+              alphaMode: "premultiply-alpha-on-upload"
+            })
+          });
+          const pageData = {
+            canvasAndContext,
+            texture
+          };
+          this.pages[this._currentPageIndex] = pageData;
+          return pageData;
+        }
+        // canvas style!
+        _setupContext(context2, style, resolution) {
+          style.fontSize = this.baseRenderedFontSize;
+          context2.scale(resolution, resolution);
+          context2.font = fontStringFromTextStyle(style);
+          style.fontSize = this.baseMeasurementFontSize;
+          context2.textBaseline = style.textBaseline;
+          const stroke = style._stroke;
+          const strokeThickness = stroke?.width ?? 0;
+          if (stroke) {
+            context2.lineWidth = strokeThickness;
+            context2.lineJoin = stroke.join;
+            context2.miterLimit = stroke.miterLimit;
+            context2.strokeStyle = getCanvasFillStyle(stroke, context2);
+          }
+          if (style._fill) {
+            context2.fillStyle = getCanvasFillStyle(style._fill, context2);
+          }
+          if (style.dropShadow) {
+            const shadowOptions = style.dropShadow;
+            const rgb = Color.shared.setValue(shadowOptions.color).toArray();
+            const dropShadowBlur = shadowOptions.blur * resolution;
+            const dropShadowDistance = shadowOptions.distance * resolution;
+            context2.shadowColor = `rgba(${rgb[0] * 255},${rgb[1] * 255},${rgb[2] * 255},${shadowOptions.alpha})`;
+            context2.shadowBlur = dropShadowBlur;
+            context2.shadowOffsetX = Math.cos(shadowOptions.angle) * dropShadowDistance;
+            context2.shadowOffsetY = Math.sin(shadowOptions.angle) * dropShadowDistance;
+          } else {
+            context2.shadowColor = "black";
+            context2.shadowBlur = 0;
+            context2.shadowOffsetX = 0;
+            context2.shadowOffsetY = 0;
+          }
+        }
+        _drawGlyph(context2, metrics, x3, y3, fontScale, style) {
+          const char = metrics.text;
+          const fontProperties = metrics.fontProperties;
+          const stroke = style._stroke;
+          const strokeThickness = (stroke?.width ?? 0) * fontScale;
+          const tx = x3 + strokeThickness / 2;
+          const ty = y3 - strokeThickness / 2;
+          const descent = fontProperties.descent * fontScale;
+          const lineHeight = metrics.lineHeight * fontScale;
+          if (style.stroke && strokeThickness) {
+            context2.strokeText(char, tx, ty + lineHeight - descent);
+          }
+          if (style._fill) {
+            context2.fillText(char, tx, ty + lineHeight - descent);
+          }
+        }
+        destroy() {
+          super.destroy();
+          for (let i3 = 0; i3 < this.pages.length; i3++) {
+            const { canvasAndContext, texture } = this.pages[i3];
+            CanvasPool.returnCanvasAndContext(canvasAndContext);
+            texture.destroy(true);
+          }
+          this.pages = null;
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/utils/getBitmapTextLayout.mjs
+  function getBitmapTextLayout(chars, style, font) {
+    const layoutData = {
+      width: 0,
+      height: 0,
+      offsetY: 0,
+      scale: style.fontSize / font.baseMeasurementFontSize,
+      lines: [{
+        width: 0,
+        charPositions: [],
+        spaceWidth: 0,
+        spacesIndex: [],
+        chars: []
+      }]
+    };
+    layoutData.offsetY = font.baseLineOffset;
+    let currentLine = layoutData.lines[0];
+    let previousChar = null;
+    let firstWord = true;
+    const currentWord = {
+      spaceWord: false,
+      width: 0,
+      start: 0,
+      index: 0,
+      // use index to not modify the array as we use it a lot!
+      positions: [],
+      chars: []
+    };
+    const nextWord = (word) => {
+      const start = currentLine.width;
+      for (let j3 = 0; j3 < currentWord.index; j3++) {
+        const position = word.positions[j3];
+        currentLine.chars.push(word.chars[j3]);
+        currentLine.charPositions.push(position + start);
+      }
+      currentLine.width += word.width;
+      firstWord = false;
+      currentWord.width = 0;
+      currentWord.index = 0;
+      currentWord.chars.length = 0;
+    };
+    const nextLine = () => {
+      let index = currentLine.chars.length - 1;
+      let lastChar = currentLine.chars[index];
+      while (lastChar === " ") {
+        currentLine.width -= font.chars[lastChar].xAdvance;
+        lastChar = currentLine.chars[--index];
+      }
+      layoutData.width = Math.max(layoutData.width, currentLine.width);
+      currentLine = {
+        width: 0,
+        charPositions: [],
+        chars: [],
+        spaceWidth: 0,
+        spacesIndex: []
+      };
+      firstWord = true;
+      layoutData.lines.push(currentLine);
+      layoutData.height += font.lineHeight;
+    };
+    const scale = font.baseMeasurementFontSize / style.fontSize;
+    const adjustedLetterSpacing = style.letterSpacing * scale;
+    const adjustedWordWrapWidth = style.wordWrapWidth * scale;
+    for (let i3 = 0; i3 < chars.length + 1; i3++) {
+      let char;
+      const isEnd = i3 === chars.length;
+      if (!isEnd) {
+        char = chars[i3];
+      }
+      const charData = font.chars[char] || font.chars[" "];
+      const isSpace = /(?:\s)/.test(char);
+      const isWordBreak = isSpace || char === "\r" || char === "\n" || isEnd;
+      if (isWordBreak) {
+        const addWordToNextLine = !firstWord && style.wordWrap && currentLine.width + currentWord.width - adjustedLetterSpacing > adjustedWordWrapWidth;
+        if (addWordToNextLine) {
+          nextLine();
+          nextWord(currentWord);
+          if (!isEnd) {
+            currentLine.charPositions.push(0);
+          }
+        } else {
+          currentWord.start = currentLine.width;
+          nextWord(currentWord);
+          if (!isEnd) {
+            currentLine.charPositions.push(0);
+          }
+        }
+        if (char === "\r" || char === "\n") {
+          if (currentLine.width !== 0) {
+            nextLine();
+          }
+        } else if (!isEnd) {
+          const spaceWidth = charData.xAdvance + (charData.kerning[previousChar] || 0) + adjustedLetterSpacing;
+          currentLine.width += spaceWidth;
+          currentLine.spaceWidth = spaceWidth;
+          currentLine.spacesIndex.push(currentLine.charPositions.length);
+          currentLine.chars.push(char);
+        }
+      } else {
+        const kerning = charData.kerning[previousChar] || 0;
+        const nextCharWidth = charData.xAdvance + kerning + adjustedLetterSpacing;
+        currentWord.positions[currentWord.index++] = currentWord.width + kerning;
+        currentWord.chars.push(char);
+        currentWord.width += nextCharWidth;
+      }
+      previousChar = char;
+    }
+    nextLine();
+    if (style.align === "center") {
+      alignCenter(layoutData);
+    } else if (style.align === "right") {
+      alignRight(layoutData);
+    } else if (style.align === "justify") {
+      alignJustify(layoutData);
+    }
+    return layoutData;
+  }
+  function alignCenter(measurementData) {
+    for (let i3 = 0; i3 < measurementData.lines.length; i3++) {
+      const line = measurementData.lines[i3];
+      const offset = measurementData.width / 2 - line.width / 2;
+      for (let j3 = 0; j3 < line.charPositions.length; j3++) {
+        line.charPositions[j3] += offset;
+      }
+    }
+  }
+  function alignRight(measurementData) {
+    for (let i3 = 0; i3 < measurementData.lines.length; i3++) {
+      const line = measurementData.lines[i3];
+      const offset = measurementData.width - line.width;
+      for (let j3 = 0; j3 < line.charPositions.length; j3++) {
+        line.charPositions[j3] += offset;
+      }
+    }
+  }
+  function alignJustify(measurementData) {
+    const width = measurementData.width;
+    for (let i3 = 0; i3 < measurementData.lines.length; i3++) {
+      const line = measurementData.lines[i3];
+      let indy = 0;
+      let spaceIndex = line.spacesIndex[indy++];
+      let offset = 0;
+      const totalSpaces = line.spacesIndex.length;
+      const newSpaceWidth = (width - line.width) / totalSpaces;
+      const spaceWidth = newSpaceWidth;
+      for (let j3 = 0; j3 < line.charPositions.length; j3++) {
+        if (j3 === spaceIndex) {
+          spaceIndex = line.spacesIndex[indy++];
+          offset += spaceWidth;
+        }
+        line.charPositions[j3] += offset;
+      }
+    }
+  }
+  var init_getBitmapTextLayout = __esm({
+    "node_modules/pixi.js/lib/scene/text-bitmap/utils/getBitmapTextLayout.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/BitmapFontManager.mjs
+  var BitmapFontManagerClass, BitmapFontManager;
+  var init_BitmapFontManager = __esm({
+    "node_modules/pixi.js/lib/scene/text-bitmap/BitmapFontManager.mjs"() {
+      "use strict";
+      init_Cache();
+      init_deprecation();
+      init_TextStyle();
+      init_DynamicBitmapFont();
+      init_getBitmapTextLayout();
+      init_resolveCharacters();
+      BitmapFontManagerClass = class {
+        constructor() {
+          this.ALPHA = [["a", "z"], ["A", "Z"], " "];
+          this.NUMERIC = [["0", "9"]];
+          this.ALPHANUMERIC = [["a", "z"], ["A", "Z"], ["0", "9"], " "];
+          this.ASCII = [[" ", "~"]];
+          this.defaultOptions = {
+            chars: this.ALPHANUMERIC,
+            resolution: 1,
+            padding: 4,
+            skipKerning: false
+          };
+        }
+        /**
+         * Get a font for the specified text and style.
+         * @param text - The text to get the font for
+         * @param style - The style to use
+         */
+        getFont(text, style) {
+          let fontFamilyKey = `${style.fontFamily}-bitmap`;
+          let overrideFill = true;
+          if (style._fill.fill) {
+            fontFamilyKey += style._fill.fill.uid;
+            overrideFill = false;
+          }
+          if (!Cache.has(fontFamilyKey)) {
+            const fnt = new DynamicBitmapFont({
+              style,
+              overrideFill,
+              overrideSize: true,
+              ...this.defaultOptions
+            });
+            fnt.once("destroy", () => Cache.remove(fontFamilyKey));
+            Cache.set(
+              fontFamilyKey,
+              fnt
+            );
+          }
+          const dynamicFont = Cache.get(fontFamilyKey);
+          dynamicFont.ensureCharacters?.(text);
+          return dynamicFont;
+        }
+        /**
+         * Get the layout of a text for the specified style.
+         * @param text - The text to get the layout for
+         * @param style - The style to use
+         */
+        getLayout(text, style) {
+          const bitmapFont = this.getFont(text, style);
+          return getBitmapTextLayout([...text], style, bitmapFont);
+        }
+        /**
+         * Measure the text using the specified style.
+         * @param text - The text to measure
+         * @param style - The style to use
+         */
+        measureText(text, style) {
+          return this.getLayout(text, style);
+        }
+        // eslint-disable-next-line max-len
+        install(...args) {
+          let options = args[0];
+          if (typeof options === "string") {
+            options = {
+              name: options,
+              style: args[1],
+              chars: args[2]?.chars,
+              resolution: args[2]?.resolution,
+              padding: args[2]?.padding,
+              skipKerning: args[2]?.skipKerning
+            };
+            deprecation(v8_0_0, "BitmapFontManager.install(name, style, options) is deprecated, use BitmapFontManager.install({name, style, ...options})");
+          }
+          const name = options?.name;
+          if (!name) {
+            throw new Error("[BitmapFontManager] Property `name` is required.");
+          }
+          options = { ...this.defaultOptions, ...options };
+          const textStyle = options.style;
+          const style = textStyle instanceof TextStyle ? textStyle : new TextStyle(textStyle);
+          const overrideFill = style._fill.fill !== null && style._fill.fill !== void 0;
+          const font = new DynamicBitmapFont({
+            style,
+            overrideFill,
+            skipKerning: options.skipKerning,
+            padding: options.padding,
+            resolution: options.resolution,
+            overrideSize: false
+          });
+          const flatChars = resolveCharacters(options.chars);
+          font.ensureCharacters(flatChars.join(""));
+          Cache.set(`${name}-bitmap`, font);
+          font.once("destroy", () => Cache.remove(`${name}-bitmap`));
+          return font;
+        }
+        /**
+         * Uninstalls a bitmap font from the cache.
+         * @param {string} name - The name of the bitmap font to uninstall.
+         */
+        uninstall(name) {
+          const cacheKey = `${name}-bitmap`;
+          const font = Cache.get(cacheKey);
+          if (font) {
+            Cache.remove(cacheKey);
+            font.destroy();
+          }
+        }
+      };
+      BitmapFontManager = new BitmapFontManagerClass();
     }
   });
 
@@ -22969,6 +22797,7 @@ ${parts.join("\n")}
       init_BitmapFontManager();
       init_getBitmapTextLayout();
       BitmapTextPipe = class {
+        // private _sdfShader: SdfShader;
         constructor(renderer) {
           this._gpuBitmapText = {};
           this._renderer = renderer;
@@ -22997,6 +22826,11 @@ ${parts.join("\n")}
           this._destroyRenderableByUid(bitmapText.uid);
         }
         _destroyRenderableByUid(renderableUid) {
+          const context2 = this._gpuBitmapText[renderableUid].context;
+          if (context2.customShader) {
+            BigPool.return(context2.customShader);
+            context2.customShader = null;
+          }
           BigPool.return(this._gpuBitmapText[renderableUid]);
           this._gpuBitmapText[renderableUid] = null;
         }
@@ -23014,10 +22848,7 @@ ${parts.join("\n")}
           context2.clear();
           if (bitmapFont.distanceField.type !== "none") {
             if (!context2.customShader) {
-              if (!this._sdfShader) {
-                this._sdfShader = new SdfShader();
-              }
-              context2.customShader = this._sdfShader;
+              context2.customShader = BigPool.get(SdfShader);
             }
           }
           const chars = Array.from(bitmapText.text);
@@ -23071,8 +22902,7 @@ ${parts.join("\n")}
           const dy = Math.sqrt(c3 * c3 + d3 * d3);
           const worldScale = (Math.abs(dx) + Math.abs(dy)) / 2;
           const fontScale = dynamicFont.baseRenderedFontSize / bitmapText._style.fontSize;
-          const resolution = bitmapText.resolution ?? this._renderer.resolution;
-          const distance = worldScale * dynamicFont.distanceField.range * (1 / fontScale) * resolution;
+          const distance = worldScale * dynamicFont.distanceField.range * (1 / fontScale);
           context2.customShader.resources.localUniforms.uniforms.uDistance = distance;
         }
         destroy() {
@@ -23080,8 +22910,6 @@ ${parts.join("\n")}
             this._destroyRenderableByUid(uid2);
           }
           this._gpuBitmapText = null;
-          this._sdfShader?.destroy(true);
-          this._sdfShader = null;
           this._renderer = null;
         }
       };
@@ -23101,9 +22929,8 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/scene/text-bitmap/init.mjs"() {
       "use strict";
       init_Extensions();
-      init_loadBitmapFont();
       init_BitmapTextPipe();
-      extensions.add(BitmapTextPipe, loadBitmapFont, bitmapFontCachePlugin);
+      extensions.add(BitmapTextPipe);
     }
   });
 
@@ -23403,7 +23230,7 @@ ${parts.join("\n")}
           return new _HTMLTextStyle({
             align: this.align,
             breakWords: this.breakWords,
-            dropShadow: this.dropShadow,
+            dropShadow: this.dropShadow ? { ...this.dropShadow } : null,
             fill: this._fill,
             fontFamily: this.fontFamily,
             fontSize: this.fontSize,
@@ -23664,7 +23491,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_TexturePool();
-      init_types();
+      init_types2();
       init_isSafari();
       init_warn();
       init_PoolGroup();
@@ -24088,7 +23915,7 @@ ${parts.join("\n")}
   });
 
   // node_modules/pixi.js/lib/scene/sprite-tiling/shader/TilingSpriteShader.mjs
-  var gpuProgram, glProgram, TilingSpriteShader;
+  var gpuProgram2, glProgram2, TilingSpriteShader;
   var init_TilingSpriteShader = __esm({
     "node_modules/pixi.js/lib/scene/sprite-tiling/shader/TilingSpriteShader.mjs"() {
       "use strict";
@@ -24102,7 +23929,7 @@ ${parts.join("\n")}
       init_tilingBit();
       TilingSpriteShader = class extends Shader {
         constructor() {
-          gpuProgram ?? (gpuProgram = compileHighShaderGpuProgram({
+          gpuProgram2 ?? (gpuProgram2 = compileHighShaderGpuProgram({
             name: "tiling-sprite-shader",
             bits: [
               localUniformBit,
@@ -24110,7 +23937,7 @@ ${parts.join("\n")}
               roundPixelsBit
             ]
           }));
-          glProgram ?? (glProgram = compileHighShaderGlProgram({
+          glProgram2 ?? (glProgram2 = compileHighShaderGlProgram({
             name: "tiling-sprite-shader",
             bits: [
               localUniformBitGl,
@@ -24126,8 +23953,8 @@ ${parts.join("\n")}
             uSizeAnchor: { value: new Float32Array([100, 100, 0.5, 0.5]), type: "vec4<f32>" }
           });
           super({
-            glProgram,
-            gpuProgram,
+            glProgram: glProgram2,
+            gpuProgram: gpuProgram2,
             resources: {
               localUniforms: new UniformGroup({
                 uTransformMatrix: { value: new Matrix(), type: "mat3x3<f32>" },
@@ -24273,7 +24100,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_State();
-      init_types();
+      init_types2();
       init_colorToUniform();
       init_BatchableMesh();
       init_MeshGeometry();
@@ -24752,8 +24579,8 @@ ${parts.join("\n")}
     if (!bounds.isValid) {
       bounds.set(0, 0, 0, 0);
     }
-    if (!target.isRenderGroupRoot) {
-      bounds.applyMatrix(target.renderGroup.worldTransform);
+    if (!target.renderGroup) {
+      bounds.applyMatrix(target.parentRenderGroup.worldTransform);
     } else {
       bounds.applyMatrix(target.renderGroup.localTransform);
     }
@@ -24765,7 +24592,7 @@ ${parts.join("\n")}
     }
     const manageEffects = !!target.effects.length;
     let localBounds = bounds;
-    if (target.isRenderGroupRoot || manageEffects) {
+    if (target.renderGroup || manageEffects) {
       localBounds = boundsPool.get().clear();
     }
     if (target.boundsArea) {
@@ -24792,18 +24619,18 @@ ${parts.join("\n")}
         if (target.effects[i3].addBounds) {
           if (!advanced) {
             advanced = true;
-            localBounds.applyMatrix(target.renderGroup.worldTransform);
+            localBounds.applyMatrix(target.parentRenderGroup.worldTransform);
           }
           target.effects[i3].addBounds(localBounds, true);
         }
       }
       if (advanced) {
-        localBounds.applyMatrix(target.renderGroup.worldTransform.copyTo(tempMatrix4).invert());
+        localBounds.applyMatrix(target.parentRenderGroup.worldTransform.copyTo(tempMatrix4).invert());
         bounds.addBounds(localBounds, target.relativeGroupTransform);
       }
       bounds.addBounds(localBounds);
       boundsPool.return(localBounds);
-    } else if (target.isRenderGroupRoot) {
+    } else if (target.renderGroup) {
       bounds.addBounds(localBounds, target.relativeGroupTransform);
       boundsPool.return(localBounds);
     }
@@ -24852,7 +24679,7 @@ ${parts.join("\n")}
       init_UniformGroup();
       init_Texture();
       init_TexturePool();
-      init_types();
+      init_types2();
       init_Bounds();
       init_getFastGlobalBounds();
       init_getRenderableBounds();
@@ -25293,17 +25120,17 @@ ${parts.join("\n")}
          */
         static from(options) {
           const { gpu, gl, ...rest } = options;
-          let gpuProgram2;
-          let glProgram2;
+          let gpuProgram3;
+          let glProgram3;
           if (gpu) {
-            gpuProgram2 = GpuProgram.from(gpu);
+            gpuProgram3 = GpuProgram.from(gpu);
           }
           if (gl) {
-            glProgram2 = GlProgram.from(gl);
+            glProgram3 = GlProgram.from(gl);
           }
           return new _Filter2({
-            gpuProgram: gpuProgram2,
-            glProgram: glProgram2,
+            gpuProgram: gpuProgram3,
+            glProgram: glProgram3,
             ...rest
           });
         }
@@ -25316,6 +25143,28 @@ ${parts.join("\n")}
         blendRequired: false
       };
       Filter = _Filter;
+    }
+  });
+
+  // node_modules/pixi.js/lib/environment/autoDetectEnvironment.mjs
+  async function loadEnvironmentExtensions(skip) {
+    if (skip)
+      return;
+    for (let i3 = 0; i3 < environments.length; i3++) {
+      const env = environments[i3];
+      if (env.value.test()) {
+        await env.value.load();
+        return;
+      }
+    }
+  }
+  var environments;
+  var init_autoDetectEnvironment = __esm({
+    "node_modules/pixi.js/lib/environment/autoDetectEnvironment.mjs"() {
+      "use strict";
+      init_Extensions();
+      environments = [];
+      extensions.handleByNamedList(ExtensionType.Environment, environments);
     }
   });
 
@@ -25341,7 +25190,7 @@ ${parts.join("\n")}
 
   // node_modules/pixi.js/lib/rendering/renderers/gl/const.mjs
   var CLEAR;
-  var init_const8 = __esm({
+  var init_const7 = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gl/const.mjs"() {
       "use strict";
       CLEAR = /* @__PURE__ */ ((CLEAR2) => {
@@ -25462,10 +25311,11 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/rendering/renderers/shared/system/AbstractRenderer.mjs"() {
       "use strict";
       init_Color();
+      init_autoDetectEnvironment();
       init_Container();
       init_unsafeEvalSupported();
       init_deprecation();
-      init_const8();
+      init_const7();
       init_SystemRunner();
       init_eventemitter3();
       defaultRunners = [
@@ -25495,10 +25345,9 @@ ${parts.join("\n")}
           this._systemsHash = /* @__PURE__ */ Object.create(null);
           this.type = config.type;
           this.name = config.name;
-          const combinedRunners = [...defaultRunners, ...config.runners ?? []];
+          this.config = config;
+          const combinedRunners = [...defaultRunners, ...this.config.runners ?? []];
           this._addRunners(...combinedRunners);
-          this._addSystems(config.systems);
-          this._addPipes(config.renderPipes, config.renderPipeAdaptors);
           this._unsafeEvalCheck();
         }
         /**
@@ -25506,6 +25355,10 @@ ${parts.join("\n")}
          * @param options - The options to use to create the renderer.
          */
         async init(options = {}) {
+          const skip = options.skipExtensionImports === true ? true : options.manageImports === false;
+          await loadEnvironmentExtensions(skip);
+          this._addSystems(this.config.systems);
+          this._addPipes(this.config.renderPipes, this.config.renderPipeAdaptors);
           for (const systemName in this._systemsHash) {
             const system = this._systemsHash[systemName];
             const defaultSystemOptions = system.constructor.defaultOptions;
@@ -25756,7 +25609,6 @@ ${parts.join("\n")}
       init_Extensions();
       init_Matrix();
       init_getTextureBatchBindGroup();
-      init_const4();
       init_compileHighShaderToProgram();
       init_colorBit();
       init_generateTextureBatchBit();
@@ -25764,6 +25616,7 @@ ${parts.join("\n")}
       init_roundPixelsBit();
       init_Shader();
       init_UniformGroup();
+      init_maxRecommendedTextures();
       GpuGraphicsAdaptor = class {
         init() {
           const localUniforms = new UniformGroup({
@@ -25771,17 +25624,17 @@ ${parts.join("\n")}
             uColor: { value: new Float32Array([1, 1, 1, 1]), type: "vec4<f32>" },
             uRound: { value: 0, type: "f32" }
           });
-          const gpuProgram2 = compileHighShaderGpuProgram({
+          const gpuProgram3 = compileHighShaderGpuProgram({
             name: "graphics",
             bits: [
               colorBit,
-              generateTextureBatchBit(MAX_TEXTURES),
+              generateTextureBatchBit(maxRecommendedTextures()),
               localUniformBitGroup2,
               roundPixelsBit
             ]
           });
           this.shader = new Shader({
-            gpuProgram: gpuProgram2,
+            gpuProgram: gpuProgram3,
             resources: {
               // added on the fly!
               localUniforms
@@ -25935,7 +25788,7 @@ ${parts.join("\n")}
       init_warn();
       GpuMeshAdapter = class {
         init() {
-          const gpuProgram2 = compileHighShaderGpuProgram({
+          const gpuProgram3 = compileHighShaderGpuProgram({
             name: "mesh",
             bits: [
               localUniformBit,
@@ -25944,7 +25797,7 @@ ${parts.join("\n")}
             ]
           });
           this._shader = new Shader({
-            gpuProgram: gpuProgram2,
+            gpuProgram: gpuProgram3,
             resources: {
               uTexture: Texture.EMPTY._source,
               uSampler: Texture.EMPTY._source.style,
@@ -25966,11 +25819,11 @@ ${parts.join("\n")}
             warn("Mesh shader has no gpuProgram", mesh.shader);
             return;
           }
-          const gpuProgram2 = shader.gpuProgram;
-          if (gpuProgram2.autoAssignGlobalUniforms) {
+          const gpuProgram3 = shader.gpuProgram;
+          if (gpuProgram3.autoAssignGlobalUniforms) {
             shader.groups[0] = renderer.globalUniforms.bindGroup;
           }
-          if (gpuProgram2.autoAssignLocalUniforms) {
+          if (gpuProgram3.autoAssignLocalUniforms) {
             const localUniforms = meshPipe.localUniforms;
             shader.groups[1] = renderer.renderPipes.uniformBatch.getUniformBindGroup(localUniforms, true);
           }
@@ -26006,21 +25859,21 @@ ${parts.join("\n")}
       init_roundPixelsBit();
       init_Shader();
       init_State();
-      init_const4();
+      init_maxRecommendedTextures();
       init_getTextureBatchBindGroup();
       tempState = State.for2d();
       GpuBatchAdaptor = class {
         init() {
-          const gpuProgram2 = compileHighShaderGpuProgram({
+          const gpuProgram3 = compileHighShaderGpuProgram({
             name: "batch",
             bits: [
               colorBit,
-              generateTextureBatchBit(MAX_TEXTURES),
+              generateTextureBatchBit(maxRecommendedTextures()),
               roundPixelsBit
             ]
           });
           this._shader = new Shader({
-            gpuProgram: gpuProgram2,
+            gpuProgram: gpuProgram3,
             groups: {
               // these will be dynamically allocated
             }
@@ -26203,7 +26056,7 @@ ${parts.join("\n")}
       const rp = renderPipes3;
       rp[container.renderPipeId].addRenderable(container, instructionSet);
     }
-    if (!container.isRenderGroupRoot) {
+    if (!container.renderGroup) {
       const children = container.children;
       const length = children.length;
       for (let i3 = 0; i3 < length; i3++) {
@@ -26212,7 +26065,7 @@ ${parts.join("\n")}
     }
   }
   function collectAllRenderablesAdvanced(container, instructionSet, renderPipes3, isRoot) {
-    if (!isRoot && container.isRenderGroupRoot) {
+    if (!isRoot && container.renderGroup) {
       renderPipes3.renderGroup.addRenderGroup(container.renderGroup, instructionSet);
     } else {
       for (let i3 = 0; i3 < container.effects.length; i3++) {
@@ -26260,18 +26113,55 @@ ${parts.join("\n")}
     }
   });
 
+  // node_modules/pixi.js/lib/scene/container/utils/mixHexColors.mjs
+  function mixHexColors(color1, color2, ratio) {
+    const r1 = color1 >> 16 & 255;
+    const g1 = color1 >> 8 & 255;
+    const b1 = color1 & 255;
+    const r22 = color2 >> 16 & 255;
+    const g22 = color2 >> 8 & 255;
+    const b22 = color2 & 255;
+    const r3 = r1 + (r22 - r1) * ratio;
+    const g3 = g1 + (g22 - g1) * ratio;
+    const b3 = b1 + (b22 - b1) * ratio;
+    return (r3 << 16) + (g3 << 8) + b3;
+  }
+  var init_mixHexColors = __esm({
+    "node_modules/pixi.js/lib/scene/container/utils/mixHexColors.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/container/utils/mixColors.mjs
+  function mixColors(localBGRColor, parentBGRColor) {
+    if (localBGRColor === WHITE_BGR || parentBGRColor === WHITE_BGR) {
+      return localBGRColor + parentBGRColor - WHITE_BGR;
+    }
+    return mixHexColors(localBGRColor, parentBGRColor, 0.5);
+  }
+  var WHITE_BGR;
+  var init_mixColors = __esm({
+    "node_modules/pixi.js/lib/scene/container/utils/mixColors.mjs"() {
+      "use strict";
+      init_mixHexColors();
+      WHITE_BGR = 16777215;
+    }
+  });
+
   // node_modules/pixi.js/lib/scene/container/utils/updateRenderGroupTransforms.mjs
   function updateRenderGroupTransforms(renderGroup, updateChildRenderGroups = false) {
     updateRenderGroupTransform(renderGroup);
     const childrenToUpdate = renderGroup.childrenToUpdate;
-    const updateTick = renderGroup.updateTick;
-    renderGroup.updateTick++;
+    const updateTick = renderGroup.updateTick++;
     for (const j3 in childrenToUpdate) {
       const childrenAtDepth = childrenToUpdate[j3];
       const list = childrenAtDepth.list;
       const index = childrenAtDepth.index;
       for (let i3 = 0; i3 < index; i3++) {
-        updateTransformAndChildren(list[i3], updateTick, 0);
+        const child = list[i3];
+        if (child.parentRenderGroup === renderGroup) {
+          updateTransformAndChildren(child, updateTick, 0);
+        }
       }
       childrenAtDepth.index = 0;
     }
@@ -26312,7 +26202,7 @@ ${parts.join("\n")}
     const localTransform = container.localTransform;
     container.updateLocalTransform();
     const parent = container.parent;
-    if (parent && !parent.isRenderGroupRoot) {
+    if (parent && !parent.renderGroup) {
       updateFlags = updateFlags | container._updateFlags;
       container.relativeGroupTransform.appendFrom(
         localTransform,
@@ -26328,13 +26218,13 @@ ${parts.join("\n")}
         updateColorBlendVisibility(container, tempContainer, updateFlags);
       }
     }
-    if (!container.isRenderGroupRoot) {
+    if (!container.renderGroup) {
       const children = container.children;
       const length = children.length;
       for (let i3 = 0; i3 < length; i3++) {
         updateTransformAndChildren(children[i3], updateTick, updateFlags);
       }
-      const renderGroup = container.renderGroup;
+      const renderGroup = container.parentRenderGroup;
       if (container.renderPipeId && !renderGroup.structureDidChange) {
         renderGroup.updateRenderable(container);
       }
@@ -26688,7 +26578,7 @@ ${parts.join("\n")}
             uMaskClamp: { value: textureMatrix.uClampFrame, type: "vec4<f32>" },
             uAlpha: { value: 1, type: "f32" }
           });
-          const gpuProgram2 = GpuProgram.from({
+          const gpuProgram3 = GpuProgram.from({
             vertex: {
               source,
               entryPoint: "mainVertex"
@@ -26698,15 +26588,15 @@ ${parts.join("\n")}
               entryPoint: "mainFragment"
             }
           });
-          const glProgram2 = GlProgram.from({
+          const glProgram3 = GlProgram.from({
             vertex,
             fragment,
             name: "mask-filter"
           });
           super({
             ...rest,
-            gpuProgram: gpuProgram2,
-            glProgram: glProgram2,
+            gpuProgram: gpuProgram3,
+            glProgram: glProgram3,
             resources: {
               filterUniforms,
               uMaskTexture: sprite.texture.source
@@ -26746,11 +26636,10 @@ ${parts.join("\n")}
       tempBounds3 = new Bounds();
       AlphaMaskEffect = class extends FilterEffect {
         constructor() {
-          super({
-            filters: [new MaskFilter({
-              sprite: new Sprite(Texture.EMPTY)
-            })]
-          });
+          super();
+          this.filters = [new MaskFilter({
+            sprite: new Sprite(Texture.EMPTY)
+          })];
         }
         get sprite() {
           return this.filters[0].sprite;
@@ -26953,8 +26842,8 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_buildInstructions();
-      init_const8();
-      init_const5();
+      init_const7();
+      init_const4();
       StencilMaskPipe = class {
         constructor(renderer) {
           this._maskStackHash = {};
@@ -27199,16 +27088,16 @@ ${parts.join("\n")}
             warn(`Unable to assign BlendMode: '${blendMode}'. You may want to include: import 'pixi.js/advanced-blend-modes'`);
             return;
           }
-          if (!this._filterHash[blendMode]) {
-            this._filterHash[blendMode] = new FilterEffect({
-              filters: [new BLEND_MODE_FILTERS[blendMode]()]
-            });
+          let filterEffect = this._filterHash[blendMode];
+          if (!filterEffect) {
+            filterEffect = this._filterHash[blendMode] = new FilterEffect();
+            filterEffect.filters = [new BLEND_MODE_FILTERS[blendMode]()];
           }
           const instruction = {
             renderPipeId: "filter",
             action: "pushFilter",
             renderables: [],
-            filterEffect: this._filterHash[blendMode],
+            filterEffect,
             canBundle: false
           };
           this._renderableList = instruction.renderables;
@@ -27566,7 +27455,7 @@ ${parts.join("\n")}
       init_Point();
       init_colorToUniform();
       init_BindGroup();
-      init_types();
+      init_types2();
       init_UniformGroup();
       GlobalUniformSystem = class {
         constructor(renderer) {
@@ -27712,7 +27601,7 @@ ${parts.join("\n")}
       "use strict";
       init_adapter();
       saidHello = false;
-      VERSION = "8.0.5";
+      VERSION = "8.1.6";
     }
   });
 
@@ -27723,7 +27612,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_sayHello();
-      init_types();
+      init_types2();
       HelloSystem = class {
         constructor(renderer) {
           this._renderer = renderer;
@@ -27859,11 +27748,13 @@ ${parts.join("\n")}
           this.dirtyId = 0;
           this.isRoot = false;
           this._size = new Float32Array(2);
+          this._managedColorTextures = false;
           descriptor = { ..._RenderTarget2.defaultOptions, ...descriptor };
           this.stencil = descriptor.stencil;
           this.depth = descriptor.depth;
           this.isRoot = descriptor.isRoot;
           if (typeof descriptor.colorTextures === "number") {
+            this._managedColorTextures = true;
             for (let i3 = 0; i3 < descriptor.colorTextures; i3++) {
               this.colorTextures.push(
                 new TextureSource({
@@ -27948,6 +27839,11 @@ ${parts.join("\n")}
         }
         destroy() {
           this.colorTexture.source.off("resize", this.onSourceResize, this);
+          if (this._managedColorTextures) {
+            this.colorTextures.forEach((texture) => {
+              texture.destroy();
+            });
+          }
           if (this.depthStencilTexture) {
             this.depthStencilTexture.destroy();
             delete this.depthStencilTexture;
@@ -28634,7 +28530,7 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/rendering/renderers/gpu/GpuStencilSystem.mjs"() {
       "use strict";
       init_Extensions();
-      init_const5();
+      init_const4();
       GpuStencilSystem = class {
         constructor(renderer) {
           this._renderTargetStencilState = /* @__PURE__ */ Object.create(null);
@@ -28847,7 +28743,7 @@ ${parts.join("\n")}
             data[offset + 9] = matrix[7];
             data[offset + 10] = matrix[8];
         `,
-          uniform: ` 
+          uniform: `
             gl.uniformMatrix3fv(ud[name].location, false, uv[name].toArray(true));
         `
         },
@@ -29167,6 +29063,7 @@ ${parts.join("\n")}
           this._touched = 0;
           this._resourceId = uid("resource");
           this._bufferResource = true;
+          this.destroyed = false;
           this.buffer = buffer;
           this.offset = offset | 0;
           this.size = size;
@@ -29182,9 +29079,11 @@ ${parts.join("\n")}
          * @param destroyBuffer - Should the underlying buffer be destroyed as well?
          */
         destroy(destroyBuffer = false) {
+          this.destroyed = true;
           if (destroyBuffer) {
             this.buffer.destroy();
           }
+          this.emit("change", this);
           this.buffer = null;
         }
       };
@@ -29418,7 +29317,7 @@ ${parts.join("\n")}
   var init_GpuStencilModesToPixi = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gpu/state/GpuStencilModesToPixi.mjs"() {
       "use strict";
-      init_const5();
+      init_const4();
       GpuStencilModesToPixi = [];
       GpuStencilModesToPixi[STENCIL_MODES.NONE] = void 0;
       GpuStencilModesToPixi[STENCIL_MODES.DISABLED] = {
@@ -29472,7 +29371,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_ensureAttributes();
-      init_const5();
+      init_const4();
       init_createIdFromString();
       init_GpuStencilModesToPixi();
       topologyStringToId = {
@@ -29699,7 +29598,7 @@ ${parts.join("\n")}
       "use strict";
       init_Matrix();
       init_Rectangle();
-      init_const8();
+      init_const7();
       init_calculateProjection();
       init_SystemRunner();
       init_CanvasSource();
@@ -29915,7 +29814,7 @@ ${parts.join("\n")}
         _initRenderTarget(renderSurface) {
           let renderTarget = null;
           if (CanvasSource.test(renderSurface)) {
-            renderSurface = getCanvasTexture(renderSurface);
+            renderSurface = getCanvasTexture(renderSurface).source;
           }
           if (renderSurface instanceof RenderTarget) {
             renderTarget = renderSurface;
@@ -29926,8 +29825,13 @@ ${parts.join("\n")}
             if (CanvasSource.test(renderSurface.source.resource)) {
               renderTarget.isRoot = true;
             }
-            renderSurface.on("destroy", () => {
+            renderSurface.once("destroy", () => {
               renderTarget.destroy();
+              const gpuRenderTarget = this._gpuRenderTargetHash[renderTarget.uid];
+              if (gpuRenderTarget) {
+                this._gpuRenderTargetHash[renderTarget.uid] = null;
+                this.adaptor.destroyGpuRenderTarget(gpuRenderTarget);
+              }
             });
           }
           this._renderSurfaceToRenderTargetHash.set(renderSurface, renderTarget);
@@ -29960,7 +29864,7 @@ ${parts.join("\n")}
   var init_GpuRenderTargetAdaptor = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/GpuRenderTargetAdaptor.mjs"() {
       "use strict";
-      init_const8();
+      init_const7();
       init_CanvasSource();
       init_TextureSource();
       init_GpuRenderTarget();
@@ -30134,6 +30038,16 @@ ${parts.join("\n")}
             }
           }
           return gpuRenderTarget;
+        }
+        destroyGpuRenderTarget(gpuRenderTarget) {
+          gpuRenderTarget.contexts.forEach((context2) => {
+            context2.unconfigure();
+          });
+          gpuRenderTarget.msaaTextures.forEach((texture) => {
+            texture.destroy();
+          });
+          gpuRenderTarget.msaaTextures.length = 0;
+          gpuRenderTarget.contexts.length = 0;
         }
         ensureDepthStencilTexture(renderTarget) {
           const gpuRenderTarget = this._renderTargetSystem.getGpuRenderTarget(renderTarget);
@@ -30897,7 +30811,7 @@ ${parts.join("\n")}
       init_GpuBatchAdaptor();
       init_AbstractRenderer();
       init_SharedSystems();
-      init_types();
+      init_types2();
       init_BindGroupSystem();
       init_GpuBufferSystem();
       init_GpuColorMaskSystem();
@@ -30957,15 +30871,15 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_Matrix();
-      init_const4();
       init_compileHighShaderToProgram();
       init_colorBit();
       init_generateTextureBatchBit();
       init_localUniformBit();
       init_roundPixelsBit();
-      init_batchSamplersUniformGroup();
+      init_getBatchSamplersUniformGroup();
       init_Shader();
       init_UniformGroup();
+      init_maxRecommendedTextures();
       GlGraphicsAdaptor = class {
         init() {
           const uniforms = new UniformGroup({
@@ -30973,20 +30887,21 @@ ${parts.join("\n")}
             uTransformMatrix: { value: new Matrix(), type: "mat3x3<f32>" },
             uRound: { value: 0, type: "f32" }
           });
-          const glProgram2 = compileHighShaderGlProgram({
+          const maxTextures2 = maxRecommendedTextures();
+          const glProgram3 = compileHighShaderGlProgram({
             name: "graphics",
             bits: [
               colorBitGl,
-              generateTextureBatchBitGl(MAX_TEXTURES),
+              generateTextureBatchBitGl(maxTextures2),
               localUniformBitGl,
               roundPixelsBitGl
             ]
           });
           this.shader = new Shader({
-            glProgram: glProgram2,
+            glProgram: glProgram3,
             resources: {
               localUniforms: uniforms,
-              batchSamplers: batchSamplersUniformGroup
+              batchSamplers: getBatchSamplersUniformGroup(maxTextures2)
             }
           });
         }
@@ -31000,6 +30915,7 @@ ${parts.join("\n")}
             instructions
           } = contextSystem.getContextRenderData(context2);
           shader.groups[0] = renderer.globalUniforms.bindGroup;
+          renderer.state.set(graphicsPipe.state);
           renderer.shader.bind(shader);
           renderer.geometry.bind(geometry, shader.glProgram);
           const batches = instructions.instructions;
@@ -31043,7 +30959,7 @@ ${parts.join("\n")}
       init_warn();
       GlMeshAdaptor = class {
         init() {
-          const glProgram2 = compileHighShaderGlProgram({
+          const glProgram3 = compileHighShaderGlProgram({
             name: "mesh",
             bits: [
               localUniformBitGl,
@@ -31052,7 +30968,7 @@ ${parts.join("\n")}
             ]
           });
           this._shader = new Shader({
-            glProgram: glProgram2,
+            glProgram: glProgram3,
             resources: {
               uTexture: Texture.EMPTY.source,
               textureUniforms: {
@@ -31107,28 +31023,29 @@ ${parts.join("\n")}
       init_colorBit();
       init_generateTextureBatchBit();
       init_roundPixelsBit();
-      init_batchSamplersUniformGroup();
+      init_getBatchSamplersUniformGroup();
       init_Shader();
       init_State();
-      init_const4();
+      init_maxRecommendedTextures();
       GlBatchAdaptor = class {
         constructor() {
           this._didUpload = false;
           this._tempState = State.for2d();
         }
         init(batcherPipe) {
-          const glProgram2 = compileHighShaderGlProgram({
+          const maxTextures2 = maxRecommendedTextures();
+          const glProgram3 = compileHighShaderGlProgram({
             name: "batch",
             bits: [
               colorBitGl,
-              generateTextureBatchBitGl(MAX_TEXTURES),
+              generateTextureBatchBitGl(maxTextures2),
               roundPixelsBitGl
             ]
           });
           this._shader = new Shader({
-            glProgram: glProgram2,
+            glProgram: glProgram3,
             resources: {
-              batchSamplers: batchSamplersUniformGroup
+              batchSamplers: getBatchSamplersUniformGroup(maxTextures2)
             }
           });
           batcherPipe.renderer.runners.contextChange.add(this);
@@ -31169,7 +31086,7 @@ ${parts.join("\n")}
 
   // node_modules/pixi.js/lib/rendering/renderers/gl/buffer/const.mjs
   var BUFFER_TYPE;
-  var init_const9 = __esm({
+  var init_const8 = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gl/buffer/const.mjs"() {
       "use strict";
       BUFFER_TYPE = /* @__PURE__ */ ((BUFFER_TYPE2) => {
@@ -31204,7 +31121,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_const3();
-      init_const9();
+      init_const8();
       init_GlBuffer();
       GlBufferSystem = class {
         /**
@@ -31412,7 +31329,7 @@ ${parts.join("\n")}
          */
         initFromContext(gl) {
           this.gl = gl;
-          this.webGLVersion = gl instanceof DOMAdapter.get().getWebGL2RenderingContext() ? 2 : 1;
+          this.webGLVersion = gl instanceof DOMAdapter.get().getWebGLRenderingContext() ? 1 : 2;
           this.getExtensions();
           this.validateContext(gl);
           this._renderer.runners.contextChange.emit(gl);
@@ -31480,6 +31397,10 @@ ${parts.join("\n")}
               ...common,
               colorBufferFloat: gl.getExtension("EXT_color_buffer_float")
             };
+            const provokeExt = gl.getExtension("WEBGL_provoking_vertex");
+            if (provokeExt) {
+              provokeExt.provokingVertexWEBGL(provokeExt.FIRST_VERTEX_CONVENTION_WEBGL);
+            }
           }
         }
         /**
@@ -31583,7 +31504,7 @@ ${parts.join("\n")}
 
   // node_modules/pixi.js/lib/rendering/renderers/gl/texture/const.mjs
   var GL_FORMATS, GL_TARGETS, GL_TYPES;
-  var init_const10 = __esm({
+  var init_const9 = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gl/texture/const.mjs"() {
       "use strict";
       GL_FORMATS = /* @__PURE__ */ ((GL_FORMATS2) => {
@@ -31644,7 +31565,7 @@ ${parts.join("\n")}
   var init_getGlTypeFromFormat = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gl/geometry/utils/getGlTypeFromFormat.mjs"() {
       "use strict";
-      init_const10();
+      init_const9();
       infoMap = {
         uint8x2: GL_TYPES.UNSIGNED_BYTE,
         uint8x4: GL_TYPES.UNSIGNED_BYTE,
@@ -31888,7 +31809,8 @@ ${parts.join("\n")}
             const attribute = attributes[j3];
             const buffer = attribute.buffer;
             const glBuffer = bufferSystem.getGlBuffer(buffer);
-            if (program._attributeData[j3]) {
+            const programAttrib = program._attributeData[j3];
+            if (programAttrib) {
               if (lastBuffer !== glBuffer) {
                 bufferSystem.bind(buffer);
                 lastBuffer = glBuffer;
@@ -31896,14 +31818,25 @@ ${parts.join("\n")}
               const location = attribute.location;
               gl.enableVertexAttribArray(location);
               const attributeInfo = getAttributeInfoFromFormat(attribute.format);
-              gl.vertexAttribPointer(
-                location,
-                attributeInfo.size,
-                getGlTypeFromFormat(attribute.format),
-                attributeInfo.normalised,
-                attribute.stride,
-                attribute.offset
-              );
+              const type = getGlTypeFromFormat(attribute.format);
+              if (programAttrib.format?.substring(1, 4) === "int") {
+                gl.vertexAttribIPointer(
+                  location,
+                  attributeInfo.size,
+                  type,
+                  attribute.stride,
+                  attribute.offset
+                );
+              } else {
+                gl.vertexAttribPointer(
+                  location,
+                  attributeInfo.size,
+                  type,
+                  attributeInfo.normalised,
+                  attribute.stride,
+                  attribute.offset
+                );
+              }
               if (attribute.instance) {
                 if (this.hasInstance) {
                   gl.vertexAttribDivisor(location, 1);
@@ -32187,7 +32120,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_GpuStencilModesToPixi();
-      init_const5();
+      init_const4();
       GlStencilSystem = class {
         constructor(renderer) {
           this._stencilCache = {
@@ -32438,8 +32371,7 @@ ${parts.join("\n")}
       "use strict";
       init_Rectangle();
       init_warn();
-      init_CanvasSource();
-      init_const8();
+      init_const7();
       init_GlRenderTarget();
       GlRenderTargetAdaptor = class {
         constructor() {
@@ -32532,13 +32464,32 @@ ${parts.join("\n")}
           const renderer = this._renderer;
           const gl = renderer.gl;
           const glRenderTarget = new GlRenderTarget();
-          if (CanvasSource.test(renderTarget.colorTexture.resource)) {
+          if (renderTarget.colorTexture.resource === renderer.gl.canvas) {
             glRenderTarget.framebuffer = null;
             return glRenderTarget;
           }
           this._initColor(renderTarget, glRenderTarget);
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           return glRenderTarget;
+        }
+        destroyGpuRenderTarget(gpuRenderTarget) {
+          const gl = this._renderer.gl;
+          if (gpuRenderTarget.framebuffer) {
+            gl.deleteFramebuffer(gpuRenderTarget.framebuffer);
+            gpuRenderTarget.framebuffer = null;
+          }
+          if (gpuRenderTarget.resolveTargetFramebuffer) {
+            gl.deleteFramebuffer(gpuRenderTarget.resolveTargetFramebuffer);
+            gpuRenderTarget.resolveTargetFramebuffer = null;
+          }
+          if (gpuRenderTarget.depthStencilRenderBuffer) {
+            gl.deleteRenderbuffer(gpuRenderTarget.depthStencilRenderBuffer);
+            gpuRenderTarget.depthStencilRenderBuffer = null;
+          }
+          gpuRenderTarget.msaaRenderBuffer.forEach((renderBuffer) => {
+            gl.deleteRenderbuffer(renderBuffer);
+          });
+          gpuRenderTarget.msaaRenderBuffer = null;
         }
         clear(_renderTarget, clear, clearColor) {
           if (!clear)
@@ -33180,8 +33131,8 @@ ${parts.join("\n")}
         value: defaultValue(data.type, data.size)
       };
     }
-    const glProgram2 = new GlProgramData(webGLProgram, uniformData);
-    return glProgram2;
+    const glProgram3 = new GlProgramData(webGLProgram, uniformData);
+    return glProgram3;
   }
   var init_generateProgram = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/generateProgram.mjs"() {
@@ -33845,7 +33796,7 @@ ${parts.join("\n")}
   var init_GlTexture = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gl/texture/GlTexture.mjs"() {
       "use strict";
-      init_const10();
+      init_const9();
       GlTexture = class {
         constructor(texture) {
           this.target = GL_TARGETS.TEXTURE_2D;
@@ -33867,7 +33818,7 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/rendering/renderers/gl/texture/uploaders/glUploadBufferImageResource.mjs"() {
       "use strict";
       glUploadBufferImageResource = {
-        id: "image",
+        id: "buffer",
         upload(source2, glTexture, gl) {
           if (glTexture.width === source2.width || glTexture.height === source2.height) {
             gl.texSubImage2D(
@@ -33875,6 +33826,8 @@ ${parts.join("\n")}
               0,
               0,
               0,
+              source2.width,
+              source2.height,
               glTexture.format,
               glTexture.type,
               source2.resource
@@ -34262,7 +34215,7 @@ ${parts.join("\n")}
   function mapFormatToGlInternalFormat(gl, extensions2) {
     let srgb = {};
     let bgra8unorm = gl.RGBA;
-    if (gl instanceof DOMAdapter.get().getWebGL2RenderingContext()) {
+    if (!(gl instanceof DOMAdapter.get().getWebGLRenderingContext())) {
       srgb = {
         "rgba8unorm-srgb": gl.SRGB8_ALPHA8,
         "bgra8unorm-srgb": gl.SRGB8_ALPHA8
@@ -34738,7 +34691,7 @@ ${parts.join("\n")}
       init_GlBatchAdaptor();
       init_AbstractRenderer();
       init_SharedSystems();
-      init_types();
+      init_types2();
       init_GlBufferSystem();
       init_GlContextSystem();
       init_GlGeometrySystem();
@@ -36565,22 +36518,6 @@ ${parts.join("\n")}
   init_init5();
   init_init4();
 
-  // node_modules/pixi.js/lib/environment/autoDetectEnvironment.mjs
-  init_Extensions();
-  var environments = [];
-  extensions.handleByNamedList(ExtensionType.Environment, environments);
-  async function autoDetectEnvironment(manageImports) {
-    if (!manageImports)
-      return;
-    for (let i3 = 0; i3 < environments.length; i3++) {
-      const env = environments[i3];
-      if (env.value.test()) {
-        await env.value.load();
-        return;
-      }
-    }
-  }
-
   // node_modules/pixi.js/lib/utils/browser/isWebGLSupported.mjs
   init_adapter();
   init_AbstractRenderer();
@@ -36639,7 +36576,7 @@ ${parts.join("\n")}
 
   // node_modules/pixi.js/lib/rendering/renderers/autoDetectRenderer.mjs
   init_AbstractRenderer();
-  var renderPriority = ["webgpu", "webgl", "canvas"];
+  var renderPriority = ["webgl", "webgpu", "canvas"];
   async function autoDetectRenderer(options) {
     let preferredOrder = [];
     if (options.preference) {
@@ -36653,9 +36590,6 @@ ${parts.join("\n")}
       preferredOrder = renderPriority.slice();
     }
     let RendererClass;
-    await autoDetectEnvironment(
-      options.manageImports ?? true
-    );
     let finalOptions = {};
     for (let i3 = 0; i3 < preferredOrder.length; i3++) {
       const rendererType = preferredOrder[i3];
@@ -36673,11 +36607,14 @@ ${parts.join("\n")}
         break;
       } else if (rendererType === "canvas") {
         finalOptions = { ...options };
-        break;
+        throw new Error("CanvasRenderer is not yet implemented");
       }
     }
     delete finalOptions.webgpu;
     delete finalOptions.webgl;
+    if (!RendererClass) {
+      throw new Error("No available renderer for the current environment");
+    }
     const renderer = new RendererClass();
     await renderer.init(finalOptions);
     return renderer;
@@ -36685,6 +36622,357 @@ ${parts.join("\n")}
 
   // node_modules/pixi.js/lib/assets/Assets.mjs
   init_Extensions();
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/asset/loadBitmapFont.mjs
+  init_LoaderParser();
+  init_copySearchParams();
+  init_adapter();
+  init_Extensions();
+  init_path();
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/BitmapFont.mjs
+  init_Rectangle();
+  init_Texture();
+  init_AbstractBitmapFont();
+  init_BitmapFontManager();
+  var BitmapFont = class extends AbstractBitmapFont {
+    constructor(options, url) {
+      super();
+      const { textures, data } = options;
+      Object.keys(data.pages).forEach((key) => {
+        const pageData = data.pages[parseInt(key, 10)];
+        const texture = textures[pageData.id];
+        this.pages.push({ texture });
+      });
+      Object.keys(data.chars).forEach((key) => {
+        const charData = data.chars[key];
+        const {
+          frame: textureFrame,
+          source: textureSource
+        } = textures[charData.page];
+        const frameReal = new Rectangle(
+          charData.x + textureFrame.x,
+          charData.y + textureFrame.y,
+          charData.width,
+          charData.height
+        );
+        const texture = new Texture({
+          source: textureSource,
+          frame: frameReal
+        });
+        this.chars[key] = {
+          id: key.codePointAt(0),
+          xOffset: charData.xOffset,
+          yOffset: charData.yOffset,
+          xAdvance: charData.xAdvance,
+          kerning: charData.kerning ?? {},
+          texture
+        };
+      });
+      this.baseRenderedFontSize = data.fontSize;
+      this.baseMeasurementFontSize = data.fontSize;
+      this.fontMetrics = {
+        ascent: 0,
+        descent: 0,
+        fontSize: data.fontSize
+      };
+      this.baseLineOffset = data.baseLineOffset;
+      this.lineHeight = data.lineHeight;
+      this.fontFamily = data.fontFamily;
+      this.distanceField = data.distanceField ?? {
+        type: "none",
+        range: 0
+      };
+      this.url = url;
+    }
+    /** Destroys the BitmapFont object. */
+    destroy() {
+      super.destroy();
+      for (let i3 = 0; i3 < this.pages.length; i3++) {
+        const { texture } = this.pages[i3];
+        texture.destroy(true);
+      }
+      this.pages = null;
+    }
+    /**
+     * Generates a bitmap-font for the given style and character set
+     * @param options - Setup options for font generation.
+     * @returns Font generated by style options.
+     * @example
+     * import { BitmapFont, BitmapText } from 'pixi.js';
+     *
+     * BitmapFont.install('TitleFont', {
+     *     fontFamily: 'Arial',
+     *     fontSize: 12,
+     *     strokeThickness: 2,
+     *     fill: 'purple',
+     * });
+     *
+     * const title = new BitmapText({ text: 'This is the title', fontFamily: 'TitleFont' });
+     */
+    static install(options) {
+      BitmapFontManager.install(options);
+    }
+    /**
+     * Uninstalls a bitmap font from the cache.
+     * @param {string} name - The name of the bitmap font to uninstall.
+     */
+    static uninstall(name) {
+      BitmapFontManager.uninstall(name);
+    }
+  };
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontTextParser.mjs
+  var bitmapFontTextParser = {
+    test(data) {
+      return typeof data === "string" && data.startsWith("info face=");
+    },
+    parse(txt) {
+      const items = txt.match(/^[a-z]+\s+.+$/gm);
+      const rawData = {
+        info: [],
+        common: [],
+        page: [],
+        char: [],
+        chars: [],
+        kerning: [],
+        kernings: [],
+        distanceField: []
+      };
+      for (const i3 in items) {
+        const name = items[i3].match(/^[a-z]+/gm)[0];
+        const attributeList = items[i3].match(/[a-zA-Z]+=([^\s"']+|"([^"]*)")/gm);
+        const itemData = {};
+        for (const i22 in attributeList) {
+          const split = attributeList[i22].split("=");
+          const key = split[0];
+          const strValue = split[1].replace(/"/gm, "");
+          const floatValue = parseFloat(strValue);
+          const value = isNaN(floatValue) ? strValue : floatValue;
+          itemData[key] = value;
+        }
+        rawData[name].push(itemData);
+      }
+      const font = {
+        chars: {},
+        pages: [],
+        lineHeight: 0,
+        fontSize: 0,
+        fontFamily: "",
+        distanceField: null,
+        baseLineOffset: 0
+      };
+      const [info] = rawData.info;
+      const [common] = rawData.common;
+      const [distanceField] = rawData.distanceField ?? [];
+      if (distanceField) {
+        font.distanceField = {
+          range: parseInt(distanceField.distanceRange, 10),
+          type: distanceField.fieldType
+        };
+      }
+      font.fontSize = parseInt(info.size, 10);
+      font.fontFamily = info.face;
+      font.lineHeight = parseInt(common.lineHeight, 10);
+      const page = rawData.page;
+      for (let i3 = 0; i3 < page.length; i3++) {
+        font.pages.push({
+          id: parseInt(page[i3].id, 10) || 0,
+          file: page[i3].file
+        });
+      }
+      const map = {};
+      font.baseLineOffset = font.lineHeight - parseInt(common.base, 10);
+      const char = rawData.char;
+      for (let i3 = 0; i3 < char.length; i3++) {
+        const charNode = char[i3];
+        const id = parseInt(charNode.id, 10);
+        let letter = charNode.letter ?? charNode.char ?? String.fromCharCode(id);
+        if (letter === "space")
+          letter = " ";
+        map[id] = letter;
+        font.chars[letter] = {
+          id,
+          // texture deets..
+          page: parseInt(charNode.page, 10) || 0,
+          x: parseInt(charNode.x, 10),
+          y: parseInt(charNode.y, 10),
+          width: parseInt(charNode.width, 10),
+          height: parseInt(charNode.height, 10),
+          xOffset: parseInt(charNode.xoffset, 10),
+          yOffset: parseInt(charNode.yoffset, 10),
+          xAdvance: parseInt(charNode.xadvance, 10),
+          kerning: {}
+        };
+      }
+      const kerning = rawData.kerning || [];
+      for (let i3 = 0; i3 < kerning.length; i3++) {
+        const first = parseInt(kerning[i3].first, 10);
+        const second = parseInt(kerning[i3].second, 10);
+        const amount = parseInt(kerning[i3].amount, 10);
+        font.chars[map[second]].kerning[map[first]] = amount;
+      }
+      return font;
+    }
+  };
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLStringParser.mjs
+  init_adapter();
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLParser.mjs
+  var bitmapFontXMLParser = {
+    test(data) {
+      const xml = data;
+      return typeof xml !== "string" && "getElementsByTagName" in xml && xml.getElementsByTagName("page").length && xml.getElementsByTagName("info")[0].getAttribute("face") !== null;
+    },
+    parse(xml) {
+      const data = {
+        chars: {},
+        pages: [],
+        lineHeight: 0,
+        fontSize: 0,
+        fontFamily: "",
+        distanceField: null,
+        baseLineOffset: 0
+      };
+      const info = xml.getElementsByTagName("info")[0];
+      const common = xml.getElementsByTagName("common")[0];
+      const distanceField = xml.getElementsByTagName("distanceField")[0];
+      if (distanceField) {
+        data.distanceField = {
+          type: distanceField.getAttribute("fieldType"),
+          range: parseInt(distanceField.getAttribute("distanceRange"), 10)
+        };
+      }
+      const page = xml.getElementsByTagName("page");
+      const char = xml.getElementsByTagName("char");
+      const kerning = xml.getElementsByTagName("kerning");
+      data.fontSize = parseInt(info.getAttribute("size"), 10);
+      data.fontFamily = info.getAttribute("face");
+      data.lineHeight = parseInt(common.getAttribute("lineHeight"), 10);
+      for (let i3 = 0; i3 < page.length; i3++) {
+        data.pages.push({
+          id: parseInt(page[i3].getAttribute("id"), 10) || 0,
+          file: page[i3].getAttribute("file")
+        });
+      }
+      const map = {};
+      data.baseLineOffset = data.lineHeight - parseInt(common.getAttribute("base"), 10);
+      for (let i3 = 0; i3 < char.length; i3++) {
+        const charNode = char[i3];
+        const id = parseInt(charNode.getAttribute("id"), 10);
+        let letter = charNode.getAttribute("letter") ?? charNode.getAttribute("char") ?? String.fromCharCode(id);
+        if (letter === "space")
+          letter = " ";
+        map[id] = letter;
+        data.chars[letter] = {
+          id,
+          // texture deets..
+          page: parseInt(charNode.getAttribute("page"), 10) || 0,
+          x: parseInt(charNode.getAttribute("x"), 10),
+          y: parseInt(charNode.getAttribute("y"), 10),
+          width: parseInt(charNode.getAttribute("width"), 10),
+          height: parseInt(charNode.getAttribute("height"), 10),
+          // render deets..
+          xOffset: parseInt(charNode.getAttribute("xoffset"), 10),
+          yOffset: parseInt(charNode.getAttribute("yoffset"), 10),
+          // + baseLineOffset,
+          xAdvance: parseInt(charNode.getAttribute("xadvance"), 10),
+          kerning: {}
+        };
+      }
+      for (let i3 = 0; i3 < kerning.length; i3++) {
+        const first = parseInt(kerning[i3].getAttribute("first"), 10);
+        const second = parseInt(kerning[i3].getAttribute("second"), 10);
+        const amount = parseInt(kerning[i3].getAttribute("amount"), 10);
+        data.chars[map[second]].kerning[map[first]] = amount;
+      }
+      return data;
+    }
+  };
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/asset/bitmapFontXMLStringParser.mjs
+  var bitmapFontXMLStringParser = {
+    test(data) {
+      if (typeof data === "string" && data.includes("<font>")) {
+        return bitmapFontXMLParser.test(DOMAdapter.get().parseXML(data));
+      }
+      return false;
+    },
+    parse(data) {
+      return bitmapFontXMLParser.parse(DOMAdapter.get().parseXML(data));
+    }
+  };
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/asset/loadBitmapFont.mjs
+  var validExtensions = [".xml", ".fnt"];
+  var bitmapFontCachePlugin = {
+    extension: {
+      type: ExtensionType.CacheParser,
+      name: "cacheBitmapFont"
+    },
+    test: (asset) => asset instanceof BitmapFont,
+    getCacheableAssets(keys, asset) {
+      const out2 = {};
+      keys.forEach((key) => {
+        out2[key] = asset;
+        out2[`${key}-bitmap`] = asset;
+      });
+      out2[`${asset.fontFamily}-bitmap`] = asset;
+      return out2;
+    }
+  };
+  var loadBitmapFont = {
+    extension: {
+      type: ExtensionType.LoadParser,
+      priority: LoaderParserPriority.Normal
+    },
+    name: "loadBitmapFont",
+    test(url) {
+      return validExtensions.includes(path.extname(url).toLowerCase());
+    },
+    async testParse(data) {
+      return bitmapFontTextParser.test(data) || bitmapFontXMLStringParser.test(data);
+    },
+    async parse(asset, data, loader) {
+      const bitmapFontData = bitmapFontTextParser.test(asset) ? bitmapFontTextParser.parse(asset) : bitmapFontXMLStringParser.parse(asset);
+      const { src } = data;
+      const { pages } = bitmapFontData;
+      const textureUrls = [];
+      const textureOptions = bitmapFontData.distanceField ? {
+        scaleMode: "linear",
+        alphaMode: "premultiply-alpha-on-upload",
+        autoGenerateMipmaps: false,
+        resolution: 1
+      } : {};
+      for (let i3 = 0; i3 < pages.length; ++i3) {
+        const pageFile = pages[i3].file;
+        let imagePath = path.join(path.dirname(src), pageFile);
+        imagePath = copySearchParams(imagePath, src);
+        textureUrls.push({
+          src: imagePath,
+          data: textureOptions
+        });
+      }
+      const loadedTextures = await loader.load(textureUrls);
+      const textures = textureUrls.map((url) => loadedTextures[url.src]);
+      const bitmapFont = new BitmapFont({
+        data: bitmapFontData,
+        textures
+      }, src);
+      return bitmapFont;
+    },
+    async load(url, _options) {
+      const response = await DOMAdapter.get().fetch(url);
+      return await response.text();
+    },
+    async unload(bitmapFont, _resolvedAsset, loader) {
+      await Promise.all(bitmapFont.pages.map((page) => loader.unload(page.texture.source._sourceOrigin)));
+      bitmapFont.destroy();
+    }
+  };
+
+  // node_modules/pixi.js/lib/assets/Assets.mjs
   init_warn();
 
   // node_modules/pixi.js/lib/assets/BackgroundLoader.mjs
@@ -36757,7 +37045,10 @@ ${parts.join("\n")}
   init_Extensions();
   init_Texture();
   var cacheTextureArray = {
-    extension: ExtensionType.CacheParser,
+    extension: {
+      type: ExtensionType.CacheParser,
+      name: "cacheTextureArray"
+    },
     test: (asset) => Array.isArray(asset) && asset.every((t3) => t3 instanceof Texture),
     getCacheableAssets: (keys, asset) => {
       const out2 = {};
@@ -37091,7 +37382,8 @@ ${e3}`);
     name: "loadTxt",
     extension: {
       type: ExtensionType.LoadParser,
-      priority: LoaderParserPriority.Low
+      priority: LoaderParserPriority.Low,
+      name: "loadTxt"
     },
     test(url) {
       return checkDataUrl(url, validTXTMIME) || checkExtension(url, validTXTExtension);
@@ -37256,7 +37548,8 @@ ${e3}`);
   var loadSvg = {
     extension: {
       type: ExtensionType.LoadParser,
-      priority: LoaderParserPriority.Low
+      priority: LoaderParserPriority.Low,
+      name: "loadSVG"
     },
     name: "loadSVG",
     config: {
@@ -37480,7 +37773,8 @@ ${e3}`);
     name: "loadTextures",
     extension: {
       type: ExtensionType.LoadParser,
-      priority: LoaderParserPriority.High
+      priority: LoaderParserPriority.High,
+      name: "loadTextures"
     },
     config: {
       preferWorkers: true,
@@ -37571,9 +37865,9 @@ ${e3}`);
   var loadVideoTextures = {
     name: "loadVideo",
     extension: {
-      type: ExtensionType.LoadParser
+      type: ExtensionType.LoadParser,
+      name: "loadVideo"
     },
-    config: null,
     test(url) {
       const isValidDataUrl = checkDataUrl(url, validVideoMIMEs);
       const isValidExtension = checkExtension(url, validVideoExtensions);
@@ -37642,7 +37936,10 @@ ${e3}`);
   init_Extensions();
   init_Resolver();
   var resolveTextureUrl = {
-    extension: ExtensionType.ResolveParser,
+    extension: {
+      type: ExtensionType.ResolveParser,
+      name: "resolveTexture"
+    },
     test: loadTextures.test,
     parse: (value) => ({
       resolution: parseFloat(Resolver.RETINA_PREFIX.exec(value)?.[1] ?? "1"),
@@ -37653,7 +37950,11 @@ ${e3}`);
 
   // node_modules/pixi.js/lib/assets/resolver/parsers/resolveJsonUrl.mjs
   var resolveJsonUrl = {
-    extension: ExtensionType.ResolveParser,
+    extension: {
+      type: ExtensionType.ResolveParser,
+      priority: -2,
+      name: "resolveJson"
+    },
     test: (value) => Resolver.RETINA_PREFIX.test(value) && value.endsWith(".json"),
     parse: resolveTextureUrl.parse
   };
@@ -38120,6 +38421,8 @@ ${e3}`);
     loadSvg,
     loadTextures,
     loadVideoTextures,
+    loadBitmapFont,
+    bitmapFontCachePlugin,
     resolveTextureUrl,
     resolveJsonUrl
   );
@@ -38460,7 +38763,7 @@ ${e3}`);
     set rotation(value) {
       if (this._rotation !== value) {
         this._rotation = value;
-        this.updateSkew();
+        this._onUpdate(this.skew);
       }
     }
   };
@@ -38502,7 +38805,13 @@ ${e3}`);
       this._bounds = { minX: 0, maxX: 1, minY: 0, maxY: 0 };
       this._boundsDirty = true;
       this.allowChildren = false;
-      this._anchor = new ObservablePoint(this);
+      this._anchor = new ObservablePoint(
+        {
+          _onUpdate: () => {
+            this.onViewUpdate();
+          }
+        }
+      );
       this._applyAnchorToTexture = applyAnchorToTexture;
       this.texture = texture;
       this._width = width ?? texture.width;
@@ -38678,8 +38987,8 @@ ${e3}`);
      * @param point - The point to check
      */
     containsPoint(point) {
-      const width = this.bounds.minX;
-      const height = this.bounds.minY;
+      const width = this._width;
+      const height = this._height;
       const x1 = -width * this._anchor._x;
       let y1 = 0;
       if (point.x >= x1 && point.x <= x1 + width) {
@@ -38696,8 +39005,9 @@ ${e3}`);
       if (this.didViewUpdate)
         return;
       this.didViewUpdate = true;
-      if (this.renderGroup) {
-        this.renderGroup.onChildViewUpdate(this);
+      const renderGroup = this.renderGroup || this.parentRenderGroup;
+      if (renderGroup) {
+        renderGroup.onChildViewUpdate(this);
       }
     }
     /**
@@ -38748,7 +39058,7 @@ ${e3}`);
         ...rest
       });
       this.batched = true;
-      this.resolution = null;
+      this._resolution = null;
       this._didTextUpdate = true;
       this._roundPixels = 0;
       this._bounds = new Bounds();
@@ -38814,6 +39124,17 @@ ${e3}`);
     }
     get text() {
       return this._text;
+    }
+    /**
+     * The resolution / device pixel ratio of the canvas.
+     * @default 1
+     */
+    set resolution(value) {
+      this._resolution = value;
+      this.onViewUpdate();
+    }
+    get resolution() {
+      return this._resolution;
     }
     get style() {
       return this._style;
@@ -38924,8 +39245,8 @@ ${e3}`);
      * @param point - The point to check
      */
     containsPoint(point) {
-      const width = this.bounds.maxX;
-      const height = this.bounds.maxY;
+      const width = this.bounds.width;
+      const height = this.bounds.height;
       const x1 = -width * this.anchor.x;
       let y1 = 0;
       if (point.x >= x1 && point.x <= x1 + width) {
@@ -38942,12 +39263,13 @@ ${e3}`);
         return;
       this.didViewUpdate = true;
       this._didTextUpdate = true;
-      if (this.renderGroup) {
-        this.renderGroup.onChildViewUpdate(this);
+      const renderGroup = this.renderGroup || this.parentRenderGroup;
+      if (renderGroup) {
+        renderGroup.onChildViewUpdate(this);
       }
     }
     _getKey() {
-      return `${this.text}:${this._style.styleKey}`;
+      return `${this.text}:${this._style.styleKey}-${this.resolution}`;
     }
     /**
      * Destroys this text renderable and optionally its style texture.
@@ -39000,9 +39322,9 @@ ${e3}`);
       );
       const { width, height } = canvasMeasurement;
       bounds.minX = -anchor._x * width - padding;
-      bounds.maxX = bounds.minX + width;
+      bounds.maxX = bounds.minX + width + padding * 2;
       bounds.minY = -anchor._y * height - padding;
-      bounds.maxY = bounds.minY + height;
+      bounds.maxY = bounds.minY + height + padding * 2;
     }
   };
 
@@ -40213,6 +40535,7 @@ ${e3}`);
       }).with({ LoadTilesets: _.select() }, (tilesets) => {
         this.set_tileset_map(tilesets);
       }).with({ UpdateGidMap: _.select() }, (gid_map) => {
+        console.log("gid_map", gid_map);
         this.gid_map = gid_map;
       }).with("UnLoadResources", () => console.log("unload")).exhaustive();
     }
@@ -40398,7 +40721,7 @@ ${e3}`);
           width: renderer.terrain_params.tile_width * 100
         }),
         grid_container: new Container(),
-        scaling: { x: 1, y: 1 },
+        p_scaling: { x: 1, y: 1 },
         last_mouse_move_position: { x: 0, y: 0 },
         selected_tile
       };
@@ -40466,8 +40789,8 @@ ${e3}`);
   function update_grid(camera_isometry, renderer) {
     if (renderer.grid) {
       const new_iso = camera_iso_to_scaled_viewport(camera_isometry, {
-        y_pscaling: renderer.grid.scaling.y,
-        x_pscaling: renderer.grid.scaling.x
+        y_pscaling: renderer.grid.p_scaling.y,
+        x_pscaling: renderer.grid.p_scaling.x
       });
       renderer.grid.sprite.tilePosition.x = new_iso.x;
       renderer.grid.sprite.tilePosition.y = new_iso.y;
@@ -40480,6 +40803,17 @@ ${e3}`);
     window.medium = {
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
+      sync_grid_with_layer_p_scaling: (instance_id, world_id, layer_kind) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          const renderer = instances[instance_id][world_id].renderer;
+          if (renderer.grid) {
+            renderer.grid.p_scaling = {
+              x: renderer.layer_map[layer_kind].x_pscaling,
+              y: renderer.layer_map[layer_kind].y_pscaling
+            };
+          }
+        }
+      },
       create_display_object,
       create_collider_graphic,
       set_blueprint_renderer: (blueprint_render_data) => {
@@ -40858,6 +41192,18 @@ ${e3}`);
   }
 
   // client/terrain/index.ts
+  function to_natural(num) {
+    if (num < 0) {
+      return -2 * num - 1;
+    } else {
+      return 2 * num;
+    }
+  }
+  function cantor_pair(x3, y3) {
+    const xx = to_natural(x3);
+    const yy = to_natural(y3);
+    return (xx + yy) * (xx + yy + 1) / 2 + yy;
+  }
   function create_terrain_manager(terrain_params) {
     return new TerrainManager(terrain_params);
   }
@@ -40879,7 +41225,7 @@ ${e3}`);
         this._chunk_map.set(layer_kind, /* @__PURE__ */ new Map());
       }
       const chunk_map = this._chunk_map.get(layer_kind);
-      const chunk_key = this._cantorPair(chunk.position[0], chunk.position[1]);
+      const chunk_key = cantor_pair(chunk.position[0], chunk.position[1]);
       if (!chunk_map.has(chunk_key)) {
         const chunk_map_entry2 = {
           container: new Container(),
@@ -40904,18 +41250,6 @@ ${e3}`);
         sprite.rotation = 0;
         chunk_map_entry.container.addChild(sprite);
       }
-    }
-    _toNatural(num) {
-      if (num < 0) {
-        return -2 * num - 1;
-      } else {
-        return 2 * num;
-      }
-    }
-    _cantorPair(x3, y3) {
-      const xx = this._toNatural(x3);
-      const yy = this._toNatural(y3);
-      return (xx + yy) * (xx + yy + 1) / 2 + yy;
     }
   };
 
@@ -41032,7 +41366,11 @@ ${e3}`);
         if (mouse_plugin) {
           mouse_plugin.plugin_options.mouse_mode = mouse_mode;
         }
-      }).with({ SetParallax: _.select() }, (_layer_parallax) => {
+      }).with({ SetParallax: _.select() }, (parralax_map) => {
+        for (const [layer_kind, x3, y3] of parralax_map) {
+          this.renderer.layer_map[layer_kind].x_pscaling = x3;
+          this.renderer.layer_map[layer_kind].y_pscaling = y3;
+        }
       }).with({ PositionEvent: _.select() }, (entities) => {
         for (const [entity, x3, y3, r3] of entities) {
           window.medium_gui.game_instances.apply_entity_update_for_instance(
@@ -41048,7 +41386,6 @@ ${e3}`);
           );
         }
       }).with({ ShowTerrainCollisionLines: _.select() }, (lines) => {
-        console.log(lines);
         this.draw_terrain_collisions(lines);
       }).exhaustive();
     }
@@ -41127,9 +41464,7 @@ ${e3}`);
     }).with({ SetMap: _.select() }, (d3) => {
       window.medium_gui.resources.set_map(d3);
     }).with({ UpdatedMap: _.select() }, (d3) => {
-      window.medium_gui.resources.update_map(
-        d3
-      );
+      window.medium_gui.resources.update_map(d3);
     }).with({ DeletedMap: _.select() }, (d3) => {
       window.medium_gui.resources.delete_map(d3);
     }).with({ UpdatedConductor: _.select() }, (d3) => {
@@ -41229,6 +41564,7 @@ ${e3}`);
             w_id,
             resource_bundle,
             terrain_params,
+            parralax_map,
             tilesets,
             gid_map
           ]) => {
@@ -41258,6 +41594,10 @@ ${e3}`);
               render_system.stage.addChild(
                 instances[instance_id][world_id].renderer.main_container_wrapper
               );
+            }
+            for (const [layer_kind, x3, y3] of parralax_map) {
+              instances[instance_id][world_id].renderer.layer_map[layer_kind].x_pscaling = x3;
+              instances[instance_id][world_id].renderer.layer_map[layer_kind].y_pscaling = y3;
             }
             if (is_admin) {
               show_grid(

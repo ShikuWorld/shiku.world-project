@@ -57,6 +57,7 @@ impl World {
                 tile_width: game_map.tile_width,
             },
             game_map.terrain.clone(),
+            game_map.layer_parallax.clone(),
             collision_shape_map,
             &mut physics,
         );

@@ -118,7 +118,7 @@ export interface InstanceRendering {
     sprite: TilingSprite;
     selected_tile: Graphics;
     grid_container: Container;
-    scaling: { x: number; y: number };
+    p_scaling: { x: number; y: number };
     last_mouse_move_position: { x: number; y: number };
   };
   layer_map: LayerMap;

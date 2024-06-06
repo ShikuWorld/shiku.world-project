@@ -3,7 +3,6 @@
     <v-text-field label="Name" v-model="game_map.name"></v-text-field>
     <v-text-field
       label="Path inside module folder"
-      type="number"
       density="comfortable"
       v-model="game_map.resource_path"
     ></v-text-field>
@@ -32,7 +31,6 @@
     ></v-select>
     <v-card-actions>
       <v-spacer></v-spacer>
-
       <v-btn text="Create Map" @click="save_map"></v-btn>
       <v-btn text="Close Dialog" @click="$emit('close')"></v-btn>
     </v-card-actions>
@@ -56,6 +54,33 @@ const game_map = reactive<GameMap>({
   main_scene: "",
   name: "",
   resource_path: "",
+  layer_parallax: {
+    BG10: [1.0, 1.0],
+    BG09: [1.0, 1.0],
+    BG08: [1.0, 1.0],
+    BG07: [1.0, 1.0],
+    BG06: [1.0, 1.0],
+    BG05: [1.0, 1.0],
+    BG04: [1.0, 1.0],
+    BG03: [1.0, 1.0],
+    BG02: [1.0, 1.0],
+    BG01: [1.0, 1.0],
+    BG00: [1.0, 1.0],
+    ObjectsBelow: [1.0, 1.0],
+    Terrain: [1.0, 1.0],
+    ObjectsFront: [1.0, 1.0],
+    FG00: [1.0, 1.0],
+    FG01: [1.0, 1.0],
+    FG02: [1.0, 1.0],
+    FG03: [1.0, 1.0],
+    FG04: [1.0, 1.0],
+    FG05: [1.0, 1.0],
+    FG06: [1.0, 1.0],
+    FG07: [1.0, 1.0],
+    FG08: [1.0, 1.0],
+    FG09: [1.0, 1.0],
+    FG10: [1.0, 1.0],
+  },
   terrain: {
     BG10: {},
     BG09: {},
