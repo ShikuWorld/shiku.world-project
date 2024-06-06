@@ -40690,7 +40690,7 @@ ${e3}`);
       renderer.grid.grid_container.addChild(renderer.grid.selected_tile);
     }
   }
-  function show_grid(renderer_system, renderer) {
+  function init_grid(renderer_system, renderer) {
     if (!renderer.grid) {
       const textureSource = new TextureSource({
         width: renderer.terrain_params.tile_width,
@@ -40717,8 +40717,8 @@ ${e3}`);
       const grid = {
         sprite: new TilingSprite({
           texture: renderTexture,
-          height: renderer.terrain_params.tile_height * 100,
-          width: renderer.terrain_params.tile_width * 100
+          height: 1440,
+          width: 2560
         }),
         grid_container: new Container(),
         p_scaling: { x: 1, y: 1 },
@@ -40766,8 +40766,13 @@ ${e3}`);
         update_tile_position(renderer);
       });
       renderer.grid = grid;
+      renderer.main_container.addChild(renderer.grid.grid_container);
     }
-    renderer.main_container.addChild(renderer.grid.grid_container);
+  }
+  function toggle_grid(renderer) {
+    if (renderer.grid) {
+      renderer.grid.sprite.alpha = renderer.grid.sprite.alpha === 0 ? 1 : 0;
+    }
   }
   function update_tile_position(renderer) {
     const grid = renderer.grid;
@@ -40803,6 +40808,11 @@ ${e3}`);
     window.medium = {
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
+      toggle_grid: (instance_id, world_id) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          toggle_grid(instances[instance_id][world_id].renderer);
+        }
+      },
       sync_grid_with_layer_p_scaling: (instance_id, world_id, layer_kind) => {
         if (instances[instance_id] && instances[instance_id][world_id]) {
           const renderer = instances[instance_id][world_id].renderer;
@@ -41600,10 +41610,11 @@ ${e3}`);
               instances[instance_id][world_id].renderer.layer_map[layer_kind].y_pscaling = y3;
             }
             if (is_admin) {
-              show_grid(
+              init_grid(
                 render_system,
                 instances[instance_id][world_id].renderer
               );
+              toggle_grid(instances[instance_id][world_id].renderer);
               const guaranteed_world_id_as_admin = w_id;
               send_admin_event(
                 {

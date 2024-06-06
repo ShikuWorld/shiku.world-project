@@ -33,7 +33,7 @@ export function adjust_selected_tile_size(
   }
 }
 
-export function show_grid(
+export function init_grid(
   renderer_system: RenderSystem,
   renderer: InstanceRendering,
 ) {
@@ -68,8 +68,8 @@ export function show_grid(
     const grid: InstanceRendering["grid"] = {
       sprite: new TilingSprite({
         texture: renderTexture,
-        height: renderer.terrain_params.tile_height * 100,
-        width: renderer.terrain_params.tile_width * 100,
+        height: 1440,
+        width: 2560,
       }),
       grid_container: new Container(),
       p_scaling: { x: 1, y: 1 },
@@ -127,8 +127,14 @@ export function show_grid(
       update_tile_position(renderer);
     });
     renderer.grid = grid;
+    renderer.main_container.addChild(renderer.grid.grid_container);
   }
-  renderer.main_container.addChild(renderer.grid.grid_container);
+}
+
+export function toggle_grid(renderer: InstanceRendering) {
+  if (renderer.grid) {
+    renderer.grid.sprite.alpha = renderer.grid.sprite.alpha === 0 ? 1 : 0;
+  }
 }
 
 export function update_tile_position(renderer: InstanceRendering) {
@@ -170,11 +176,5 @@ export function update_grid(
     renderer.grid.sprite.tilePosition.y = new_iso.y;
 
     update_tile_position(renderer);
-  }
-}
-
-export function hide_grid(renderer: InstanceRendering) {
-  if (renderer.grid) {
-    renderer.main_container.removeChild(renderer.grid.sprite);
   }
 }

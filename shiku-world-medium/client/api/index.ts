@@ -9,7 +9,7 @@ import {
 } from "@/client/resources";
 import { Container } from "pixi.js";
 import { set_blueprint_render } from "@/client/renderer/create_game_renderer";
-import { adjust_selected_tile_size } from "@/client/renderer/grid";
+import { adjust_selected_tile_size, toggle_grid } from "@/client/renderer/grid";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 export const setup_medium_api = (
@@ -22,6 +22,11 @@ export const setup_medium_api = (
     twitch_login: (communication_state: CommunicationState) =>
       login(communication_state),
     communication_state: communication_state,
+    toggle_grid: (instance_id: string, world_id: string) => {
+      if (instances[instance_id] && instances[instance_id][world_id]) {
+        toggle_grid(instances[instance_id][world_id].renderer);
+      }
+    },
     sync_grid_with_layer_p_scaling: (
       instance_id: string,
       world_id: string,

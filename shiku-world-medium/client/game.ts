@@ -25,7 +25,7 @@ import { ResourceManagerMap } from "@/client/resources";
 import { create_resource_manager } from "@/client/resources/create_resource_manager";
 import { is_admin } from "@/client/is_admin";
 import { handle_editor_event } from "@/client/handle-editor-event";
-import { show_grid } from "@/client/renderer/grid";
+import { init_grid, toggle_grid } from "@/client/renderer/grid";
 
 export async function start_medium() {
   const signal_broadcast_channel = new BroadcastChannel(signal_channel_name);
@@ -170,10 +170,11 @@ export async function start_medium() {
               ].y_pscaling = y;
             }
             if (is_admin) {
-              show_grid(
+              init_grid(
                 render_system,
                 instances[instance_id][world_id].renderer,
               );
+              toggle_grid(instances[instance_id][world_id].renderer);
               const guaranteed_world_id_as_admin = w_id!;
               send_admin_event(
                 {

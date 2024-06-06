@@ -41,6 +41,7 @@
             set_parralax(selected_tile_layer, parralax_x, Number(new_value))
         "
       ></v-number-input>
+      <v-btn @click="toggle_grid">Toggle grid</v-btn>
     </div>
     <v-tabs v-model="tab" bg-color="primary">
       <v-tab
@@ -99,6 +100,19 @@ const current_main_map = computed<GameMap | undefined>(() => {
 function select_tile_layer(layer: LayerKind) {
   set_selected_tile_layer(layer);
   update_main_instance_grid_p_scaling(layer);
+}
+
+function toggle_grid() {
+  if (
+    current_main_instance.value &&
+    current_main_instance.value.instance_id &&
+    current_main_instance.value.world_id
+  ) {
+    window.medium.toggle_grid(
+      current_main_instance.value.instance_id,
+      current_main_instance.value.world_id,
+    );
+  }
 }
 
 function update_main_instance_grid_p_scaling(layer: LayerKind) {

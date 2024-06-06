@@ -35,6 +35,7 @@ declare global {
         world_id: string,
         layer_kind: LayerKind,
       ) => void;
+      toggle_grid: (instance_id: string, world_id: string) => void;
       adjust_brush_hover: (
         instance_id: string,
         world_id: string,
