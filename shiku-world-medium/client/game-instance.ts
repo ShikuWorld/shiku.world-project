@@ -65,6 +65,13 @@ export class GameInstance {
       );
     }
     update_grid(this.renderer.camera.camera_isometry, this.renderer);
+
+    window.medium_gui.game_instances.update_render_positions(
+      this.id,
+      this.world_id,
+    );
+
+    this.terrain_manager.update_effects();
   }
 
   handle_game_system_event(

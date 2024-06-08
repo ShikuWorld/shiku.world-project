@@ -4592,11 +4592,11 @@ Deprecated since v${version}`);
          * @ignore
          */
         postrender() {
-          const now = performance.now();
-          if (this._mobileInfo.android.device && now < this._androidUpdateCount) {
+          const now2 = performance.now();
+          if (this._mobileInfo.android.device && now2 < this._androidUpdateCount) {
             return;
           }
-          this._androidUpdateCount = now + this._androidUpdateFrequency;
+          this._androidUpdateCount = now2 + this._androidUpdateFrequency;
           if (!this._renderer.renderingToScreen || !this._renderer.view.canvas) {
             return;
           }
@@ -6362,7 +6362,7 @@ Deprecated since v${version}`);
             warn("EventBoundary cannot map a non-pointer event as a pointer event");
             return;
           }
-          const now = performance.now();
+          const now2 = performance.now();
           const e3 = this.createPointerEvent(from);
           this.dispatchEvent(e3, "pointerup");
           if (e3.pointerType === "touch") {
@@ -6398,17 +6398,17 @@ Deprecated since v${version}`);
               trackingData.clicksByButton[from.button] = {
                 clickCount: 0,
                 target: clickEvent.target,
-                timeStamp: now
+                timeStamp: now2
               };
             }
             const clickHistory = trackingData.clicksByButton[from.button];
-            if (clickHistory.target === clickEvent.target && now - clickHistory.timeStamp < 200) {
+            if (clickHistory.target === clickEvent.target && now2 - clickHistory.timeStamp < 200) {
               ++clickHistory.clickCount;
             } else {
               clickHistory.clickCount = 1;
             }
             clickHistory.target = clickEvent.target;
-            clickHistory.timeStamp = now;
+            clickHistory.timeStamp = now2;
             clickEvent.detail = clickHistory.clickCount;
             if (clickEvent.pointerType === "mouse") {
               const isRightButton = clickEvent.button === 2;
@@ -40550,7 +40550,7 @@ ${e3}`);
       } else {
         sprite = Sprite.from(graphics.textures[0]);
       }
-      sprite.anchor.set(0, 1);
+      sprite.anchor.set(0.5, 0.5);
       return sprite;
     }
     get_graphics_data_by_gid(gid) {
@@ -41201,6 +41201,855 @@ ${e3}`);
     return [container, layer_name];
   }
 
+  // node_modules/@tweenjs/tween.js/dist/tween.esm.js
+  var Easing = Object.freeze({
+    Linear: Object.freeze({
+      None: function(amount) {
+        return amount;
+      },
+      In: function(amount) {
+        return amount;
+      },
+      Out: function(amount) {
+        return amount;
+      },
+      InOut: function(amount) {
+        return amount;
+      }
+    }),
+    Quadratic: Object.freeze({
+      In: function(amount) {
+        return amount * amount;
+      },
+      Out: function(amount) {
+        return amount * (2 - amount);
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return 0.5 * amount * amount;
+        }
+        return -0.5 * (--amount * (amount - 2) - 1);
+      }
+    }),
+    Cubic: Object.freeze({
+      In: function(amount) {
+        return amount * amount * amount;
+      },
+      Out: function(amount) {
+        return --amount * amount * amount + 1;
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return 0.5 * amount * amount * amount;
+        }
+        return 0.5 * ((amount -= 2) * amount * amount + 2);
+      }
+    }),
+    Quartic: Object.freeze({
+      In: function(amount) {
+        return amount * amount * amount * amount;
+      },
+      Out: function(amount) {
+        return 1 - --amount * amount * amount * amount;
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return 0.5 * amount * amount * amount * amount;
+        }
+        return -0.5 * ((amount -= 2) * amount * amount * amount - 2);
+      }
+    }),
+    Quintic: Object.freeze({
+      In: function(amount) {
+        return amount * amount * amount * amount * amount;
+      },
+      Out: function(amount) {
+        return --amount * amount * amount * amount * amount + 1;
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return 0.5 * amount * amount * amount * amount * amount;
+        }
+        return 0.5 * ((amount -= 2) * amount * amount * amount * amount + 2);
+      }
+    }),
+    Sinusoidal: Object.freeze({
+      In: function(amount) {
+        return 1 - Math.sin((1 - amount) * Math.PI / 2);
+      },
+      Out: function(amount) {
+        return Math.sin(amount * Math.PI / 2);
+      },
+      InOut: function(amount) {
+        return 0.5 * (1 - Math.sin(Math.PI * (0.5 - amount)));
+      }
+    }),
+    Exponential: Object.freeze({
+      In: function(amount) {
+        return amount === 0 ? 0 : Math.pow(1024, amount - 1);
+      },
+      Out: function(amount) {
+        return amount === 1 ? 1 : 1 - Math.pow(2, -10 * amount);
+      },
+      InOut: function(amount) {
+        if (amount === 0) {
+          return 0;
+        }
+        if (amount === 1) {
+          return 1;
+        }
+        if ((amount *= 2) < 1) {
+          return 0.5 * Math.pow(1024, amount - 1);
+        }
+        return 0.5 * (-Math.pow(2, -10 * (amount - 1)) + 2);
+      }
+    }),
+    Circular: Object.freeze({
+      In: function(amount) {
+        return 1 - Math.sqrt(1 - amount * amount);
+      },
+      Out: function(amount) {
+        return Math.sqrt(1 - --amount * amount);
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return -0.5 * (Math.sqrt(1 - amount * amount) - 1);
+        }
+        return 0.5 * (Math.sqrt(1 - (amount -= 2) * amount) + 1);
+      }
+    }),
+    Elastic: Object.freeze({
+      In: function(amount) {
+        if (amount === 0) {
+          return 0;
+        }
+        if (amount === 1) {
+          return 1;
+        }
+        return -Math.pow(2, 10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI);
+      },
+      Out: function(amount) {
+        if (amount === 0) {
+          return 0;
+        }
+        if (amount === 1) {
+          return 1;
+        }
+        return Math.pow(2, -10 * amount) * Math.sin((amount - 0.1) * 5 * Math.PI) + 1;
+      },
+      InOut: function(amount) {
+        if (amount === 0) {
+          return 0;
+        }
+        if (amount === 1) {
+          return 1;
+        }
+        amount *= 2;
+        if (amount < 1) {
+          return -0.5 * Math.pow(2, 10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI);
+        }
+        return 0.5 * Math.pow(2, -10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI) + 1;
+      }
+    }),
+    Back: Object.freeze({
+      In: function(amount) {
+        var s3 = 1.70158;
+        return amount === 1 ? 1 : amount * amount * ((s3 + 1) * amount - s3);
+      },
+      Out: function(amount) {
+        var s3 = 1.70158;
+        return amount === 0 ? 0 : --amount * amount * ((s3 + 1) * amount + s3) + 1;
+      },
+      InOut: function(amount) {
+        var s3 = 1.70158 * 1.525;
+        if ((amount *= 2) < 1) {
+          return 0.5 * (amount * amount * ((s3 + 1) * amount - s3));
+        }
+        return 0.5 * ((amount -= 2) * amount * ((s3 + 1) * amount + s3) + 2);
+      }
+    }),
+    Bounce: Object.freeze({
+      In: function(amount) {
+        return 1 - Easing.Bounce.Out(1 - amount);
+      },
+      Out: function(amount) {
+        if (amount < 1 / 2.75) {
+          return 7.5625 * amount * amount;
+        } else if (amount < 2 / 2.75) {
+          return 7.5625 * (amount -= 1.5 / 2.75) * amount + 0.75;
+        } else if (amount < 2.5 / 2.75) {
+          return 7.5625 * (amount -= 2.25 / 2.75) * amount + 0.9375;
+        } else {
+          return 7.5625 * (amount -= 2.625 / 2.75) * amount + 0.984375;
+        }
+      },
+      InOut: function(amount) {
+        if (amount < 0.5) {
+          return Easing.Bounce.In(amount * 2) * 0.5;
+        }
+        return Easing.Bounce.Out(amount * 2 - 1) * 0.5 + 0.5;
+      }
+    }),
+    generatePow: function(power) {
+      if (power === void 0) {
+        power = 4;
+      }
+      power = power < Number.EPSILON ? Number.EPSILON : power;
+      power = power > 1e4 ? 1e4 : power;
+      return {
+        In: function(amount) {
+          return Math.pow(amount, power);
+        },
+        Out: function(amount) {
+          return 1 - Math.pow(1 - amount, power);
+        },
+        InOut: function(amount) {
+          if (amount < 0.5) {
+            return Math.pow(amount * 2, power) / 2;
+          }
+          return (1 - Math.pow(2 - amount * 2, power)) / 2 + 0.5;
+        }
+      };
+    }
+  });
+  var now = function() {
+    return performance.now();
+  };
+  var Group = (
+    /** @class */
+    function() {
+      function Group2() {
+        this._tweens = {};
+        this._tweensAddedDuringUpdate = {};
+      }
+      Group2.prototype.getAll = function() {
+        var _this = this;
+        return Object.keys(this._tweens).map(function(tweenId) {
+          return _this._tweens[tweenId];
+        });
+      };
+      Group2.prototype.removeAll = function() {
+        this._tweens = {};
+      };
+      Group2.prototype.add = function(tween) {
+        this._tweens[tween.getId()] = tween;
+        this._tweensAddedDuringUpdate[tween.getId()] = tween;
+      };
+      Group2.prototype.remove = function(tween) {
+        delete this._tweens[tween.getId()];
+        delete this._tweensAddedDuringUpdate[tween.getId()];
+      };
+      Group2.prototype.update = function(time, preserve) {
+        if (time === void 0) {
+          time = now();
+        }
+        if (preserve === void 0) {
+          preserve = false;
+        }
+        var tweenIds = Object.keys(this._tweens);
+        if (tweenIds.length === 0) {
+          return false;
+        }
+        while (tweenIds.length > 0) {
+          this._tweensAddedDuringUpdate = {};
+          for (var i3 = 0; i3 < tweenIds.length; i3++) {
+            var tween = this._tweens[tweenIds[i3]];
+            var autoStart = !preserve;
+            if (tween && tween.update(time, autoStart) === false && !preserve) {
+              delete this._tweens[tweenIds[i3]];
+            }
+          }
+          tweenIds = Object.keys(this._tweensAddedDuringUpdate);
+        }
+        return true;
+      };
+      return Group2;
+    }()
+  );
+  var Interpolation = {
+    Linear: function(v3, k3) {
+      var m3 = v3.length - 1;
+      var f3 = m3 * k3;
+      var i3 = Math.floor(f3);
+      var fn = Interpolation.Utils.Linear;
+      if (k3 < 0) {
+        return fn(v3[0], v3[1], f3);
+      }
+      if (k3 > 1) {
+        return fn(v3[m3], v3[m3 - 1], m3 - f3);
+      }
+      return fn(v3[i3], v3[i3 + 1 > m3 ? m3 : i3 + 1], f3 - i3);
+    },
+    Bezier: function(v3, k3) {
+      var b3 = 0;
+      var n3 = v3.length - 1;
+      var pw = Math.pow;
+      var bn = Interpolation.Utils.Bernstein;
+      for (var i3 = 0; i3 <= n3; i3++) {
+        b3 += pw(1 - k3, n3 - i3) * pw(k3, i3) * v3[i3] * bn(n3, i3);
+      }
+      return b3;
+    },
+    CatmullRom: function(v3, k3) {
+      var m3 = v3.length - 1;
+      var f3 = m3 * k3;
+      var i3 = Math.floor(f3);
+      var fn = Interpolation.Utils.CatmullRom;
+      if (v3[0] === v3[m3]) {
+        if (k3 < 0) {
+          i3 = Math.floor(f3 = m3 * (1 + k3));
+        }
+        return fn(v3[(i3 - 1 + m3) % m3], v3[i3], v3[(i3 + 1) % m3], v3[(i3 + 2) % m3], f3 - i3);
+      } else {
+        if (k3 < 0) {
+          return v3[0] - (fn(v3[0], v3[0], v3[1], v3[1], -f3) - v3[0]);
+        }
+        if (k3 > 1) {
+          return v3[m3] - (fn(v3[m3], v3[m3], v3[m3 - 1], v3[m3 - 1], f3 - m3) - v3[m3]);
+        }
+        return fn(v3[i3 ? i3 - 1 : 0], v3[i3], v3[m3 < i3 + 1 ? m3 : i3 + 1], v3[m3 < i3 + 2 ? m3 : i3 + 2], f3 - i3);
+      }
+    },
+    Utils: {
+      Linear: function(p0, p1, t3) {
+        return (p1 - p0) * t3 + p0;
+      },
+      Bernstein: function(n3, i3) {
+        var fc = Interpolation.Utils.Factorial;
+        return fc(n3) / fc(i3) / fc(n3 - i3);
+      },
+      Factorial: /* @__PURE__ */ function() {
+        var a3 = [1];
+        return function(n3) {
+          var s3 = 1;
+          if (a3[n3]) {
+            return a3[n3];
+          }
+          for (var i3 = n3; i3 > 1; i3--) {
+            s3 *= i3;
+          }
+          a3[n3] = s3;
+          return s3;
+        };
+      }(),
+      CatmullRom: function(p0, p1, p22, p3, t3) {
+        var v0 = (p22 - p0) * 0.5;
+        var v1 = (p3 - p1) * 0.5;
+        var t22 = t3 * t3;
+        var t32 = t3 * t22;
+        return (2 * p1 - 2 * p22 + v0 + v1) * t32 + (-3 * p1 + 3 * p22 - 2 * v0 - v1) * t22 + v0 * t3 + p1;
+      }
+    }
+  };
+  var Sequence = (
+    /** @class */
+    function() {
+      function Sequence2() {
+      }
+      Sequence2.nextId = function() {
+        return Sequence2._nextId++;
+      };
+      Sequence2._nextId = 0;
+      return Sequence2;
+    }()
+  );
+  var mainGroup = new Group();
+  var Tween = (
+    /** @class */
+    function() {
+      function Tween2(_object, _group) {
+        if (_group === void 0) {
+          _group = mainGroup;
+        }
+        this._object = _object;
+        this._group = _group;
+        this._isPaused = false;
+        this._pauseStart = 0;
+        this._valuesStart = {};
+        this._valuesEnd = {};
+        this._valuesStartRepeat = {};
+        this._duration = 1e3;
+        this._isDynamic = false;
+        this._initialRepeat = 0;
+        this._repeat = 0;
+        this._yoyo = false;
+        this._isPlaying = false;
+        this._reversed = false;
+        this._delayTime = 0;
+        this._startTime = 0;
+        this._easingFunction = Easing.Linear.None;
+        this._interpolationFunction = Interpolation.Linear;
+        this._chainedTweens = [];
+        this._onStartCallbackFired = false;
+        this._onEveryStartCallbackFired = false;
+        this._id = Sequence.nextId();
+        this._isChainStopped = false;
+        this._propertiesAreSetUp = false;
+        this._goToEnd = false;
+      }
+      Tween2.prototype.getId = function() {
+        return this._id;
+      };
+      Tween2.prototype.isPlaying = function() {
+        return this._isPlaying;
+      };
+      Tween2.prototype.isPaused = function() {
+        return this._isPaused;
+      };
+      Tween2.prototype.getDuration = function() {
+        return this._duration;
+      };
+      Tween2.prototype.to = function(target, duration) {
+        if (duration === void 0) {
+          duration = 1e3;
+        }
+        if (this._isPlaying)
+          throw new Error("Can not call Tween.to() while Tween is already started or paused. Stop the Tween first.");
+        this._valuesEnd = target;
+        this._propertiesAreSetUp = false;
+        this._duration = duration < 0 ? 0 : duration;
+        return this;
+      };
+      Tween2.prototype.duration = function(duration) {
+        if (duration === void 0) {
+          duration = 1e3;
+        }
+        this._duration = duration < 0 ? 0 : duration;
+        return this;
+      };
+      Tween2.prototype.dynamic = function(dynamic) {
+        if (dynamic === void 0) {
+          dynamic = false;
+        }
+        this._isDynamic = dynamic;
+        return this;
+      };
+      Tween2.prototype.start = function(time, overrideStartingValues) {
+        if (time === void 0) {
+          time = now();
+        }
+        if (overrideStartingValues === void 0) {
+          overrideStartingValues = false;
+        }
+        if (this._isPlaying) {
+          return this;
+        }
+        this._group && this._group.add(this);
+        this._repeat = this._initialRepeat;
+        if (this._reversed) {
+          this._reversed = false;
+          for (var property in this._valuesStartRepeat) {
+            this._swapEndStartRepeatValues(property);
+            this._valuesStart[property] = this._valuesStartRepeat[property];
+          }
+        }
+        this._isPlaying = true;
+        this._isPaused = false;
+        this._onStartCallbackFired = false;
+        this._onEveryStartCallbackFired = false;
+        this._isChainStopped = false;
+        this._startTime = time;
+        this._startTime += this._delayTime;
+        if (!this._propertiesAreSetUp || overrideStartingValues) {
+          this._propertiesAreSetUp = true;
+          if (!this._isDynamic) {
+            var tmp = {};
+            for (var prop in this._valuesEnd)
+              tmp[prop] = this._valuesEnd[prop];
+            this._valuesEnd = tmp;
+          }
+          this._setupProperties(this._object, this._valuesStart, this._valuesEnd, this._valuesStartRepeat, overrideStartingValues);
+        }
+        return this;
+      };
+      Tween2.prototype.startFromCurrentValues = function(time) {
+        return this.start(time, true);
+      };
+      Tween2.prototype._setupProperties = function(_object, _valuesStart, _valuesEnd, _valuesStartRepeat, overrideStartingValues) {
+        for (var property in _valuesEnd) {
+          var startValue = _object[property];
+          var startValueIsArray = Array.isArray(startValue);
+          var propType = startValueIsArray ? "array" : typeof startValue;
+          var isInterpolationList = !startValueIsArray && Array.isArray(_valuesEnd[property]);
+          if (propType === "undefined" || propType === "function") {
+            continue;
+          }
+          if (isInterpolationList) {
+            var endValues = _valuesEnd[property];
+            if (endValues.length === 0) {
+              continue;
+            }
+            var temp = [startValue];
+            for (var i3 = 0, l3 = endValues.length; i3 < l3; i3 += 1) {
+              var value = this._handleRelativeValue(startValue, endValues[i3]);
+              if (isNaN(value)) {
+                isInterpolationList = false;
+                console.warn("Found invalid interpolation list. Skipping.");
+                break;
+              }
+              temp.push(value);
+            }
+            if (isInterpolationList) {
+              _valuesEnd[property] = temp;
+            }
+          }
+          if ((propType === "object" || startValueIsArray) && startValue && !isInterpolationList) {
+            _valuesStart[property] = startValueIsArray ? [] : {};
+            var nestedObject = startValue;
+            for (var prop in nestedObject) {
+              _valuesStart[property][prop] = nestedObject[prop];
+            }
+            _valuesStartRepeat[property] = startValueIsArray ? [] : {};
+            var endValues = _valuesEnd[property];
+            if (!this._isDynamic) {
+              var tmp = {};
+              for (var prop in endValues)
+                tmp[prop] = endValues[prop];
+              _valuesEnd[property] = endValues = tmp;
+            }
+            this._setupProperties(nestedObject, _valuesStart[property], endValues, _valuesStartRepeat[property], overrideStartingValues);
+          } else {
+            if (typeof _valuesStart[property] === "undefined" || overrideStartingValues) {
+              _valuesStart[property] = startValue;
+            }
+            if (!startValueIsArray) {
+              _valuesStart[property] *= 1;
+            }
+            if (isInterpolationList) {
+              _valuesStartRepeat[property] = _valuesEnd[property].slice().reverse();
+            } else {
+              _valuesStartRepeat[property] = _valuesStart[property] || 0;
+            }
+          }
+        }
+      };
+      Tween2.prototype.stop = function() {
+        if (!this._isChainStopped) {
+          this._isChainStopped = true;
+          this.stopChainedTweens();
+        }
+        if (!this._isPlaying) {
+          return this;
+        }
+        this._group && this._group.remove(this);
+        this._isPlaying = false;
+        this._isPaused = false;
+        if (this._onStopCallback) {
+          this._onStopCallback(this._object);
+        }
+        return this;
+      };
+      Tween2.prototype.end = function() {
+        this._goToEnd = true;
+        this.update(Infinity);
+        return this;
+      };
+      Tween2.prototype.pause = function(time) {
+        if (time === void 0) {
+          time = now();
+        }
+        if (this._isPaused || !this._isPlaying) {
+          return this;
+        }
+        this._isPaused = true;
+        this._pauseStart = time;
+        this._group && this._group.remove(this);
+        return this;
+      };
+      Tween2.prototype.resume = function(time) {
+        if (time === void 0) {
+          time = now();
+        }
+        if (!this._isPaused || !this._isPlaying) {
+          return this;
+        }
+        this._isPaused = false;
+        this._startTime += time - this._pauseStart;
+        this._pauseStart = 0;
+        this._group && this._group.add(this);
+        return this;
+      };
+      Tween2.prototype.stopChainedTweens = function() {
+        for (var i3 = 0, numChainedTweens = this._chainedTweens.length; i3 < numChainedTweens; i3++) {
+          this._chainedTweens[i3].stop();
+        }
+        return this;
+      };
+      Tween2.prototype.group = function(group) {
+        if (group === void 0) {
+          group = mainGroup;
+        }
+        this._group = group;
+        return this;
+      };
+      Tween2.prototype.delay = function(amount) {
+        if (amount === void 0) {
+          amount = 0;
+        }
+        this._delayTime = amount;
+        return this;
+      };
+      Tween2.prototype.repeat = function(times) {
+        if (times === void 0) {
+          times = 0;
+        }
+        this._initialRepeat = times;
+        this._repeat = times;
+        return this;
+      };
+      Tween2.prototype.repeatDelay = function(amount) {
+        this._repeatDelayTime = amount;
+        return this;
+      };
+      Tween2.prototype.yoyo = function(yoyo) {
+        if (yoyo === void 0) {
+          yoyo = false;
+        }
+        this._yoyo = yoyo;
+        return this;
+      };
+      Tween2.prototype.easing = function(easingFunction) {
+        if (easingFunction === void 0) {
+          easingFunction = Easing.Linear.None;
+        }
+        this._easingFunction = easingFunction;
+        return this;
+      };
+      Tween2.prototype.interpolation = function(interpolationFunction) {
+        if (interpolationFunction === void 0) {
+          interpolationFunction = Interpolation.Linear;
+        }
+        this._interpolationFunction = interpolationFunction;
+        return this;
+      };
+      Tween2.prototype.chain = function() {
+        var tweens = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+          tweens[_i] = arguments[_i];
+        }
+        this._chainedTweens = tweens;
+        return this;
+      };
+      Tween2.prototype.onStart = function(callback) {
+        this._onStartCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onEveryStart = function(callback) {
+        this._onEveryStartCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onUpdate = function(callback) {
+        this._onUpdateCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onRepeat = function(callback) {
+        this._onRepeatCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onComplete = function(callback) {
+        this._onCompleteCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onStop = function(callback) {
+        this._onStopCallback = callback;
+        return this;
+      };
+      Tween2.prototype.update = function(time, autoStart) {
+        var _a;
+        if (time === void 0) {
+          time = now();
+        }
+        if (autoStart === void 0) {
+          autoStart = true;
+        }
+        if (this._isPaused)
+          return true;
+        var endTime = this._startTime + this._duration;
+        if (!this._goToEnd && !this._isPlaying) {
+          if (time > endTime)
+            return false;
+          if (autoStart)
+            this.start(time, true);
+        }
+        this._goToEnd = false;
+        if (time < this._startTime) {
+          return true;
+        }
+        if (this._onStartCallbackFired === false) {
+          if (this._onStartCallback) {
+            this._onStartCallback(this._object);
+          }
+          this._onStartCallbackFired = true;
+        }
+        if (this._onEveryStartCallbackFired === false) {
+          if (this._onEveryStartCallback) {
+            this._onEveryStartCallback(this._object);
+          }
+          this._onEveryStartCallbackFired = true;
+        }
+        var elapsedTime = time - this._startTime;
+        var durationAndDelay = this._duration + ((_a = this._repeatDelayTime) !== null && _a !== void 0 ? _a : this._delayTime);
+        var totalTime = this._duration + this._repeat * durationAndDelay;
+        var elapsed = this._calculateElapsedPortion(elapsedTime, durationAndDelay, totalTime);
+        var value = this._easingFunction(elapsed);
+        var status = this._calculateCompletionStatus(elapsedTime, durationAndDelay);
+        if (status === "repeat") {
+          this._processRepetition(elapsedTime, durationAndDelay);
+        }
+        this._updateProperties(this._object, this._valuesStart, this._valuesEnd, value);
+        if (status === "about-to-repeat") {
+          this._processRepetition(elapsedTime, durationAndDelay);
+        }
+        if (this._onUpdateCallback) {
+          this._onUpdateCallback(this._object, elapsed);
+        }
+        if (status === "repeat" || status === "about-to-repeat") {
+          if (this._onRepeatCallback) {
+            this._onRepeatCallback(this._object);
+          }
+          this._onEveryStartCallbackFired = false;
+        } else if (status === "completed") {
+          this._isPlaying = false;
+          if (this._onCompleteCallback) {
+            this._onCompleteCallback(this._object);
+          }
+          for (var i3 = 0, numChainedTweens = this._chainedTweens.length; i3 < numChainedTweens; i3++) {
+            this._chainedTweens[i3].start(this._startTime + this._duration, false);
+          }
+        }
+        return status !== "completed";
+      };
+      Tween2.prototype._calculateElapsedPortion = function(elapsedTime, durationAndDelay, totalTime) {
+        if (this._duration === 0 || elapsedTime > totalTime) {
+          return 1;
+        }
+        var timeIntoCurrentRepeat = elapsedTime % durationAndDelay;
+        var portion = Math.min(timeIntoCurrentRepeat / this._duration, 1);
+        if (portion === 0 && elapsedTime !== 0 && elapsedTime % this._duration === 0) {
+          return 1;
+        }
+        return portion;
+      };
+      Tween2.prototype._calculateCompletionStatus = function(elapsedTime, durationAndDelay) {
+        if (this._duration !== 0 && elapsedTime < this._duration) {
+          return "playing";
+        }
+        if (this._repeat <= 0) {
+          return "completed";
+        }
+        if (elapsedTime === this._duration) {
+          return "about-to-repeat";
+        }
+        return "repeat";
+      };
+      Tween2.prototype._processRepetition = function(elapsedTime, durationAndDelay) {
+        var completeCount = Math.min(Math.trunc((elapsedTime - this._duration) / durationAndDelay) + 1, this._repeat);
+        if (isFinite(this._repeat)) {
+          this._repeat -= completeCount;
+        }
+        for (var property in this._valuesStartRepeat) {
+          var valueEnd = this._valuesEnd[property];
+          if (!this._yoyo && typeof valueEnd === "string") {
+            this._valuesStartRepeat[property] = this._valuesStartRepeat[property] + parseFloat(valueEnd);
+          }
+          if (this._yoyo) {
+            this._swapEndStartRepeatValues(property);
+          }
+          this._valuesStart[property] = this._valuesStartRepeat[property];
+        }
+        if (this._yoyo) {
+          this._reversed = !this._reversed;
+        }
+        this._startTime += durationAndDelay * completeCount;
+      };
+      Tween2.prototype._updateProperties = function(_object, _valuesStart, _valuesEnd, value) {
+        for (var property in _valuesEnd) {
+          if (_valuesStart[property] === void 0) {
+            continue;
+          }
+          var start = _valuesStart[property] || 0;
+          var end = _valuesEnd[property];
+          var startIsArray = Array.isArray(_object[property]);
+          var endIsArray = Array.isArray(end);
+          var isInterpolationList = !startIsArray && endIsArray;
+          if (isInterpolationList) {
+            _object[property] = this._interpolationFunction(end, value);
+          } else if (typeof end === "object" && end) {
+            this._updateProperties(_object[property], start, end, value);
+          } else {
+            end = this._handleRelativeValue(start, end);
+            if (typeof end === "number") {
+              _object[property] = start + (end - start) * value;
+            }
+          }
+        }
+      };
+      Tween2.prototype._handleRelativeValue = function(start, end) {
+        if (typeof end !== "string") {
+          return end;
+        }
+        if (end.charAt(0) === "+" || end.charAt(0) === "-") {
+          return start + parseFloat(end);
+        }
+        return parseFloat(end);
+      };
+      Tween2.prototype._swapEndStartRepeatValues = function(property) {
+        var tmp = this._valuesStartRepeat[property];
+        var endValue = this._valuesEnd[property];
+        if (typeof endValue === "string") {
+          this._valuesStartRepeat[property] = this._valuesStartRepeat[property] + parseFloat(endValue);
+        } else {
+          this._valuesStartRepeat[property] = this._valuesEnd[property];
+        }
+        this._valuesEnd[property] = tmp;
+      };
+      return Tween2;
+    }()
+  );
+  var nextId = Sequence.nextId;
+  var TWEEN = mainGroup;
+  var getAll = TWEEN.getAll.bind(TWEEN);
+  var removeAll = TWEEN.removeAll.bind(TWEEN);
+  var add = TWEEN.add.bind(TWEEN);
+  var remove = TWEEN.remove.bind(TWEEN);
+  var update = TWEEN.update.bind(TWEEN);
+
+  // client/sprite-animations.ts
+  function create_basic_fade_in_animation(duration, delay) {
+    const add_props = {
+      pos_x: 0,
+      pos_y: 0,
+      scale_x: 0,
+      scale_y: 0,
+      rotation: 0,
+      alpha: 0
+    };
+    const tween_1 = new Tween(add_props).to({ scale_x: 1.5, scale_y: 1.5 }, duration * (1 / 2)).easing(Easing.Quadratic.Out).delay(delay);
+    const tween_2 = new Tween(add_props).to({ scale_x: 1, scale_y: 1 }, duration * (1 / 2)).easing(Easing.Quadratic.In);
+    return {
+      add_props,
+      tween: tween_1.chain(tween_2),
+      all_tweens: [tween_1, tween_2]
+    };
+  }
+  function create_basic_fade_out_animation(duration, delay) {
+    const add_props = {
+      pos_x: 0,
+      pos_y: 0,
+      scale_x: 0,
+      scale_y: 0,
+      rotation: 0,
+      alpha: 0
+    };
+    const tween_1 = new Tween(add_props).to({ scale_x: 0.3, scale_y: 0.3 }, duration * (1 / 2)).easing(Easing.Quadratic.In).delay(delay);
+    const tween_2 = new Tween(add_props).to({ scale_x: -1, scale_y: -1 }, duration * (1 / 2)).easing(Easing.Quadratic.Out);
+    return {
+      add_props,
+      tween: tween_1.chain(tween_2),
+      all_tweens: [tween_1, tween_2]
+    };
+  }
+
   // client/terrain/index.ts
   function to_natural(num) {
     if (num < 0) {
@@ -41221,14 +42070,31 @@ ${e3}`);
     constructor(terrain_params) {
       this.terrain_params = terrain_params;
       this._chunk_map = /* @__PURE__ */ new Map();
+      this._animations = {};
+      this._active_animations = [];
     }
     _chunk_map;
+    _animations;
+    _active_animations;
     remove_all_chunks_for_module(renderer) {
       for (const [layer, layer_chunks] of this._chunk_map.entries()) {
         for (const chunk of Object.values(layer_chunks)) {
           renderer.layer_map[layer].removeChild(chunk.container);
         }
       }
+    }
+    update_effects() {
+      this._active_animations = this._active_animations.filter((tile_effect) => {
+        console.log("active :o");
+        update(window.performance.now());
+        tile_effect.sprite.position.x = tile_effect.base_props.pos_x + tile_effect.fade_in.add_props.pos_x + tile_effect.fade_out.add_props.pos_x;
+        tile_effect.sprite.position.y = tile_effect.base_props.pos_y + tile_effect.fade_in.add_props.pos_y + tile_effect.fade_out.add_props.pos_y;
+        tile_effect.sprite.rotation = tile_effect.base_props.rotation + tile_effect.fade_in.add_props.rotation + tile_effect.fade_out.add_props.rotation;
+        tile_effect.sprite.alpha = tile_effect.base_props.alpha + tile_effect.fade_in.add_props.alpha + tile_effect.fade_out.add_props.alpha;
+        tile_effect.sprite.scale.x = tile_effect.base_props.scale_x + tile_effect.fade_in.add_props.scale_x + tile_effect.fade_out.add_props.scale_x;
+        tile_effect.sprite.scale.y = tile_effect.base_props.scale_y + tile_effect.fade_in.add_props.scale_y + tile_effect.fade_out.add_props.scale_y;
+        return tile_effect.fade_in.all_tweens.some((t3) => t3.isPlaying()) || tile_effect.fade_out.all_tweens.some((t3) => t3.isPlaying());
+      });
     }
     add_chunk(resource_manager, renderer, layer_kind, chunk) {
       if (!this._chunk_map.has(layer_kind)) {
@@ -41239,7 +42105,8 @@ ${e3}`);
       if (!chunk_map.has(chunk_key)) {
         const chunk_map_entry2 = {
           container: new Container(),
-          data: chunk
+          data: chunk,
+          animations: {}
         };
         chunk_map_entry2.container.x = chunk.position[0] * this.terrain_params.chunk_size * this.terrain_params.tile_width;
         chunk_map_entry2.container.y = chunk.position[1] * this.terrain_params.chunk_size * this.terrain_params.tile_height;
@@ -41248,20 +42115,82 @@ ${e3}`);
       }
       const chunk_map_entry = chunk_map.get(chunk_key);
       chunk_map_entry.data = chunk;
-      chunk_map_entry.container.removeChildren();
       for (const [i3, gid] of chunk.data.entries()) {
-        if (gid === 0) {
-          continue;
+        const x3 = i3 % this.terrain_params.chunk_size * this.terrain_params.tile_width;
+        const y3 = Math.floor(i3 / this.terrain_params.chunk_size) * this.terrain_params.tile_height + this.terrain_params.tile_height;
+        const tile_key = get_tile_key(
+          layer_kind,
+          chunk.position[0],
+          chunk.position[1],
+          x3,
+          y3
+        );
+        const animation = this._animations[tile_key];
+        if (!animation) {
+          if (gid === 0) {
+            continue;
+          }
+          this._create_new_tile(
+            resource_manager,
+            gid,
+            x3 + this.terrain_params.tile_width / 2,
+            y3 - this.terrain_params.tile_height / 2,
+            tile_key,
+            chunk_map_entry
+          );
+        } else {
+          if (gid === animation.gid) {
+            continue;
+          }
+          if (!this._active_animations.includes(animation)) {
+            this._active_animations.push(animation);
+          }
+          delete this._animations[tile_key];
+          animation.fade_out.tween.start(window.performance.now());
+          animation.fade_out.all_tweens[animation.fade_out.all_tweens.length - 1].onComplete(() => {
+            chunk_map_entry.container.removeChild(animation.sprite);
+          });
+          if (gid !== 0) {
+            this._create_new_tile(
+              resource_manager,
+              gid,
+              x3,
+              y3,
+              tile_key,
+              chunk_map_entry
+            );
+          }
         }
-        const graphics = resource_manager.get_graphics_data_by_gid(gid);
-        const sprite = resource_manager.get_sprite_from_graphics(graphics);
-        sprite.x = i3 % this.terrain_params.chunk_size * this.terrain_params.tile_width;
-        sprite.y = Math.floor(i3 / this.terrain_params.chunk_size) * this.terrain_params.tile_height + this.terrain_params.tile_height;
-        sprite.rotation = 0;
-        chunk_map_entry.container.addChild(sprite);
       }
     }
+    _create_new_tile(resource_manager, gid, x3, y3, tile_key, chunk_map_entry) {
+      const graphics = resource_manager.get_graphics_data_by_gid(gid);
+      const sprite = resource_manager.get_sprite_from_graphics(graphics);
+      sprite.y = y3;
+      sprite.rotation = 0;
+      this._animations[tile_key] = {
+        base_props: {
+          pos_x: x3,
+          pos_y: y3,
+          scale_x: 0,
+          scale_y: 0,
+          rotation: 0,
+          alpha: 1
+        },
+        fade_in: create_basic_fade_in_animation(300, Math.random() * 600),
+        fade_out: create_basic_fade_out_animation(300, Math.random() * 600),
+        sprite,
+        gid
+      };
+      const new_animation = this._animations[tile_key];
+      new_animation.fade_in.tween.start(window.performance.now());
+      this._active_animations.push(new_animation);
+      chunk_map_entry.container.addChild(sprite);
+    }
   };
+  function get_tile_key(layer_kind, chunk_x, chunk_y, tile_x, tile_y) {
+    return `${layer_kind}_${chunk_x}_${chunk_y}_${tile_x}_${tile_y}`;
+  }
 
   // client/game-instance.ts
   var collision_graphic_colors = [
@@ -41304,6 +42233,11 @@ ${e3}`);
         );
       }
       update_grid(this.renderer.camera.camera_isometry, this.renderer);
+      window.medium_gui.game_instances.update_render_positions(
+        this.id,
+        this.world_id
+      );
+      this.terrain_manager.update_effects();
     }
     handle_game_system_event(game_system_event, menu_system, resource_manager) {
       N2(game_system_event).with({ SetCamera: _.select() }, ([entity_id, camera_settings]) => {
@@ -41366,8 +42300,8 @@ ${e3}`);
         }
       }).with({ UpdateDataStore: _.select() }, (store_update) => {
         try {
-          const update = JSON.parse(store_update);
-          window.medium_gui.current_module.set_data(update);
+          const update2 = JSON.parse(store_update);
+          window.medium_gui.current_module.set_data(update2);
         } catch (e3) {
           console.error("Could not parse store update!");
         }

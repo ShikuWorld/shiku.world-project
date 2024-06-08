@@ -1,14 +1,14 @@
 import {
   AnimatedSprite,
   Assets,
-  TextureSource,
+  Container,
+  FrameObject,
+  Graphics as PixijsGraphics,
   Rectangle,
   Sprite,
-  Texture,
-  FrameObject,
-  Container,
   Text,
-  Graphics as PixijsGraphics,
+  Texture,
+  TextureSource,
 } from "pixi.js";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { RenderSystem } from "@/client/renderer";
@@ -179,7 +179,7 @@ export class ResourceManager {
     } else {
       sprite = Sprite.from(graphics.textures[0]);
     }
-    sprite.anchor.set(0, 1);
+    sprite.anchor.set(0.5, 0.5);
     return sprite;
   }
 

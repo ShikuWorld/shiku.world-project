@@ -269,6 +269,34 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         this.apply_entity_update(render_graph_data, update, resource_manager);
       }
     },
+    update_render_positions(instance_id: string, world_id: string) {
+      const game_instance_data = this.get_game_instance_data(
+        instance_id,
+        world_id,
+      );
+      if (!game_instance_data) {
+        return;
+      }
+      const render_graph_data = game_instance_data.render_graph_data;
+      for (const [id, render_node] of Object.entries(
+        render_graph_data.entity_node_to_render_node_map,
+      )) {
+        const node = render_graph_data.entity_node_map[id];
+        if (node) {
+          this.update_render_position(render_node, node);
+        }
+      }
+    },
+    update_render_position(render_node: Node, game_node: GameNodeKind) {
+      const node_2d = get_generic_game_node(game_node).data as Node2D;
+      if (node_2d.transform) {
+        render_node.container.position.x =
+          node_2d.transform.position[0] * RENDER_SCALE;
+        render_node.container.position.y =
+          node_2d.transform.position[1] * RENDER_SCALE;
+        render_node.container.rotation = node_2d.transform.rotation;
+      }
+    },
     apply_entity_update(
       render_graph_data: RenderGraphData,
       update: { id: string | number; kind: EntityUpdateKind },
@@ -289,11 +317,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             return;
           }
           (game_node.data as Node2D).transform = transform;
-          render_node.container.position.x =
-            transform.position[0] * RENDER_SCALE;
-          render_node.container.position.y =
-            transform.position[1] * RENDER_SCALE;
-          render_node.container.rotation = transform.rotation;
         })
         .with({ ScriptPath: P.select() }, (script) => {
           game_node.script = script;
@@ -325,9 +348,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           const node_2d = game_node.data as Node2D;
           node_2d.transform.position = [x, y];
           node_2d.transform.rotation = r;
-          render_node.container.position.x = x * RENDER_SCALE;
-          render_node.container.position.y = y * RENDER_SCALE;
-          render_node.container.rotation = r;
         })
         .with({ Gid: P.select() }, (gid) => {
           if (get_gid(game_node) === gid) {
