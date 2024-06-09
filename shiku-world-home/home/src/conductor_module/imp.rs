@@ -122,7 +122,7 @@ impl ConductorModule {
                                     self.login_manager.add_provider_login(admin.id, provider);
                                 } else {
                                     error!(
-                    "Admin tried to do something other than logging in while not being logged in!"
+                    "Admin tried to do something other than logging in while not being logged in! {:?}", event
                 );
                                 }
                                 continue;

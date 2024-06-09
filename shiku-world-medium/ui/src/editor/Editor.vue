@@ -1,7 +1,14 @@
 <template>
   <div class="editor-wrapper">
     <div class="editor-nav-top">
-      <v-tabs v-model="tab" bg-color="primary">
+      <v-tabs
+        :model-value="selected_nav_top_tab"
+        @update:model-value="
+          (v) =>
+            set_selected_nav_top_tab(v as EditorStore['selected_nav_top_tab'])
+        "
+        bg-color="primary"
+      >
         <v-tab value="current">Current</v-tab>
         <v-tab value="modules">Modules</v-tab>
         <v-tab value="resources">Resources</v-tab>
@@ -68,7 +75,7 @@
       </v-expansion-panels>
     </div>
     <div class="editor-main-view">
-      <v-window v-model="tab">
+      <v-window v-model="selected_nav_top_tab">
         <v-window-item value="current"></v-window-item>
         <v-window-item value="modules">
           <ModulesGraph class="modules-editor"></ModulesGraph>
@@ -123,7 +130,11 @@ import ModulesGraph from "@/editor/editor/ModulesGraph.vue";
 import { computed, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import ModulesEditor from "@/editor/editor/ModulesEditor.vue";
-import { resource_key, use_editor_store } from "@/editor/stores/editor";
+import {
+  EditorStore,
+  resource_key,
+  use_editor_store,
+} from "@/editor/stores/editor";
 import ResourcesEditor from "@/editor/editor/ResourcesEditor.vue";
 import ModuleResourceList from "@/editor/editor/ModuleResourceList.vue";
 import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
@@ -147,8 +158,8 @@ import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { Entity } from "@/editor/blueprints/Entity";
 import { Scene } from "@/editor/blueprints/Scene";
 import RhaiEditor from "@/editor/editor/RhaiEditor.vue";
+import { Tileset } from "@/editor/blueprints/Tileset";
 
-const tab = ref<number>(0);
 const {
   selected_module_id,
   selected_tileset_path,
@@ -159,6 +170,9 @@ const {
   selected_tile_layer,
   tile_brush,
   selected_scene_props,
+  selected_nav_top_tab,
+  active_component,
+  inspecting_worlds,
 } = storeToRefs(use_editor_store());
 const {
   add_open_resource_path,
@@ -168,6 +182,9 @@ const {
   remove_entity_server,
   add_entity_server,
   reset_world,
+  set_selected_nav_top_tab,
+  set_inspector_component,
+  start_inspecting_world,
 } = use_editor_store();
 const rhai_editor = ref<typeof RhaiEditor>();
 const selected_script_resource_path = ref<string | null>();
@@ -196,7 +213,7 @@ const { game_map_map, tileset_map, scene_map } = storeToRefs(
 const {
   get_module,
   get_or_load_tileset,
-  load_modules,
+  load_editor_data,
   update_map_server,
   get_or_load_scene,
   get_resource_server,
@@ -204,12 +221,46 @@ const {
   add_child_to_scene_on_server,
 } = use_resources_store();
 
-const { active_component, component_stores } = storeToRefs(
-  use_inspector_store(),
-);
-const { set_inspector_component } = use_inspector_store();
+const { component_stores } = storeToRefs(use_inspector_store());
 
-load_modules();
+// try to load modules until window?.medium?.communication_state?.is_connection_open is set to true
+const load_modules_interval = setInterval(() => {
+  if (window?.medium?.communication_state?.is_connection_ready) {
+    clearInterval(load_modules_interval);
+    setTimeout(() => {
+      load_editor_data();
+      if (inspecting_worlds.value.main) {
+        start_inspecting_world(
+          inspecting_worlds.value.main.module_id,
+          inspecting_worlds.value.main.instance_id,
+          inspecting_worlds.value.main.world_id,
+        );
+        // try selecting main instances as long as instance is not loaded
+        const interval = setInterval(() => {
+          if (!inspecting_worlds.value.main) {
+            clearInterval(interval);
+            return;
+          }
+          if (
+            game_instance_exists(
+              inspecting_worlds.value.main.instance_id,
+              inspecting_worlds.value.main.world_id,
+            )
+          ) {
+            clearInterval(interval);
+            if (current_main_instance.value.instance_id) {
+              select_as_main_instance(
+                inspecting_worlds.value.main.module_id,
+                inspecting_worlds.value.main.instance_id,
+                inspecting_worlds.value.main.world_id,
+              );
+            }
+          }
+        }, 100);
+      }
+    }, 100);
+  }
+}, 100);
 
 const selected_module = computed(() => get_module(selected_module_id?.value));
 const selected_tileset = computed(() =>
@@ -219,8 +270,9 @@ const tilesets_of_current_module = computed(() => {
   return selected_module.value.resources
     .filter((r) => r.kind === "Tileset")
     .map((r) => {
-      return tileset_map.value[r.path];
-    });
+      return get_or_load_tileset(tileset_map.value, r.path);
+    })
+    .filter((r) => r !== undefined) as Tileset[];
 });
 
 const scenes_in_module = computed(() => {
@@ -333,19 +385,6 @@ function prevent_browser_default(e: MouseEvent) {
 }
 
 function load_map_palette() {
-  if (selected_module.value) {
-    const tilesets_to_load: BlueprintResource[] = [];
-    for (const r of selected_module.value.resources) {
-      if (r.kind === "Tileset" && !tileset_map.value[r.path]) {
-        tilesets_to_load.push(r);
-      }
-    }
-    if (tilesets_to_load.length > 0) {
-      for (const r of tilesets_to_load) {
-        get_resource_server(r.path);
-      }
-    }
-  }
   set_inspector_component("map");
 }
 const selected_scene = computed(() => {
@@ -516,7 +555,7 @@ function select_as_main_instance(
 }
 
 function open_resource_editor(resource: BlueprintResource) {
-  tab.value = 2;
+  selected_nav_top_tab.value = "resources";
   let path_index = add_open_resource_path(resource_key(resource));
   setTimeout(() => {
     set_selected_resource_tab(path_index + 1);

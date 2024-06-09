@@ -1,15 +1,7 @@
 import { defineStore } from "pinia";
 import { Entity } from "@/editor/blueprints/Entity";
 
-export type InspectorComponent =
-  | "module"
-  | "tile"
-  | "map"
-  | "game_node"
-  | "nothing";
-
 export interface InspectorStore {
-  active_component: InspectorComponent;
   component_stores: {
     module: string;
     tile: string;
@@ -27,7 +19,6 @@ export interface InspectorStore {
 
 export const use_inspector_store = defineStore("inspector", {
   state: (): InspectorStore => ({
-    active_component: "nothing",
     component_stores: {
       game_node: {},
       map: "",
@@ -37,9 +28,6 @@ export const use_inspector_store = defineStore("inspector", {
     },
   }),
   actions: {
-    set_inspector_component(component: InspectorComponent) {
-      this.active_component = component;
-    },
     select_game_node(
       scene_resource_path: string,
       selected_game_node_id: string,
@@ -57,7 +45,6 @@ export const use_inspector_store = defineStore("inspector", {
           selected_entity_id,
         },
       };
-      this.active_component = "game_node";
     },
   },
 });

@@ -64,7 +64,7 @@ export function handle_editor_event(event: EditorEvent) {
       window.medium_gui.resources.delete_map(d);
     })
     .with({ UpdatedConductor: P.select() }, (d) => {
-      window.medium_gui.editor.set_conductor(d);
+      window.medium_gui.resources.set_conductor(d);
     })
     .with({ ModuleInstances: P.select() }, (d) => {
       window.medium_gui.editor.set_game_instance_map(d);

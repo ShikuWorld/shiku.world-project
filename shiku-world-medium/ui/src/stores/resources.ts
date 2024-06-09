@@ -26,13 +26,14 @@ import {
 import { TilesetUpdate } from "@/client/communication/api/bindings/TilesetUpdate";
 import { Script } from "@/editor/blueprints/Script";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
-import { cantor_pair, TerrainManager } from "@/client/terrain";
+import { cantor_pair } from "@/client/terrain";
 
 export type Point = { y: number; x: number };
 
 export interface ResourcesStore {
   tileset_map: { [tileset_path: string]: Tileset };
   game_map_map: { [map_path: string]: GameMap };
+  conductor: Conductor;
   modules: { [module_id: string]: Module };
   scene_map: { [scene_path: string]: Scene };
   script_map: { [scene_path: string]: Script };
@@ -42,6 +43,7 @@ export interface ResourcesStore {
 export const use_resources_store = defineStore("resources", () => {
   const state: ResourcesStore = reactive({
     modules: {},
+    conductor: { module_connection_map: {}, resources: [], gid_map: [] },
     tileset_map: {},
     game_map_map: {},
     scene_map: {},
@@ -278,7 +280,7 @@ export const use_resources_store = defineStore("resources", () => {
       delete scene_map[scene_key(scene)];
       state.scene_map = scene_map;
     },
-    load_modules() {
+    load_editor_data() {
       send_admin_event("LoadEditorData");
     },
     save_module_server(
@@ -315,6 +317,12 @@ export const use_resources_store = defineStore("resources", () => {
           resources: [...module.resources, resource],
         });
       }
+    },
+    save_conductor_server(conductor: Conductor) {
+      send_admin_event({ UpdateConductor: conductor });
+    },
+    set_conductor(conductor: Conductor) {
+      state.conductor = conductor;
     },
     browse_folder(path: string) {
       send_admin_event({ BrowseFolder: path });
@@ -425,9 +433,6 @@ export const use_resources_store = defineStore("resources", () => {
     delete_module_server(id: string) {
       send_admin_event({ DeleteModule: id });
     },
-    save_conductor_server(conductor: Conductor) {
-      send_admin_event({ UpdateConductor: conductor });
-    },
   };
 
   return {
@@ -437,8 +442,10 @@ export const use_resources_store = defineStore("resources", () => {
 });
 
 function send_admin_event(event: AdminToSystemEvent) {
-  if (window.medium.communication_state.is_connection_open) {
+  if (window?.medium?.communication_state?.is_connection_open) {
     window.medium.communication_state.ws_connection.send(JSON.stringify(event));
+  } else {
+    console.trace("Could not send", event);
   }
 }
 

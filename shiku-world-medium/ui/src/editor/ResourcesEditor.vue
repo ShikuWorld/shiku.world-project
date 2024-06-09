@@ -102,18 +102,18 @@ import TilesetEditor from "@/editor/editor/TilesetEditor.vue";
 import { match } from "ts-pattern";
 import CreateMap from "@/editor/editor/CreateMap.vue";
 import { BlueprintResource } from "@/editor/blueprints/BlueprintResource";
-import { use_inspector_store } from "@/editor/stores/inspector";
 import CreateScene from "@/editor/editor/CreateScene.vue";
 import { Scene } from "@/editor/blueprints/Scene";
 import { use_resources_store } from "@/editor/stores/resources";
 import { Script } from "@/editor/blueprints/Script";
 import CreateScript from "@/editor/editor/CreateScript.vue";
+
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
 const create_scene_dialog = ref(false);
 const create_script_dialog = ref(false);
-const { close_resource, set_selected_tile } = use_editor_store();
-const { set_inspector_component } = use_inspector_store();
+const { close_resource, set_selected_tile, set_inspector_component } =
+  use_editor_store();
 const { open_resource_paths, selected_resource_tab, selected_module_id } =
   storeToRefs(use_editor_store());
 

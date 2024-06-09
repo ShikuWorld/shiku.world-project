@@ -47,6 +47,7 @@ import { use_inspector_store } from "@/editor/stores/inspector";
 import { storeToRefs } from "pinia";
 import { get_generic_game_node } from "@/editor/stores/resources";
 import ContextMenu from "@imengyu/vue3-context-menu";
+import { use_editor_store } from "@/editor/stores/editor";
 
 const props = defineProps<{
   node: GameNodeKind;
@@ -76,7 +77,7 @@ const emit = defineEmits<{
 }>();
 
 const { select_game_node } = use_inspector_store();
-
+const { set_inspector_component } = use_editor_store();
 function on_remove_node(
   scene_resource: string,
   path: number[],
@@ -139,6 +140,7 @@ function on_node_click($event: MouseEvent, game_node: GameNode<unknown>) {
       scene_is_instance.value,
       game_node.entity_id,
     );
+    set_inspector_component("game_node");
   }
 }
 </script>

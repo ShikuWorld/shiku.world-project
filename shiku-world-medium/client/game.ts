@@ -107,6 +107,7 @@ export async function start_medium() {
         .with(
           { ConnectionReady: P.select() },
           ([_session_id, should_login]) => {
+            console.log("Connection ready", should_login);
             if (should_login) {
               menu_system.activate("login-menu");
             } else if (is_admin) {
@@ -303,13 +304,6 @@ export async function start_medium() {
         );
       }
 
-      send_ticket(
-        {
-          session_id,
-          admin_login: is_admin,
-        },
-        communication_system,
-      );
       check_for_connection_ready(communication_system);
       if (communication_system.is_connection_ready) {
         window.requestAnimationFrame(main_loop);
@@ -317,7 +311,16 @@ export async function start_medium() {
           canvas.className = "canvas--active";
         }
         clearInterval(interval_handle);
+        return;
       }
+
+      send_ticket(
+        {
+          session_id,
+          admin_login: is_admin,
+        },
+        communication_system,
+      );
     }
-  }, 1000);
+  }, 100);
 }

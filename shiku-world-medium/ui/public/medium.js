@@ -42412,7 +42412,7 @@ ${e3}`);
     }).with({ DeletedMap: _.select() }, (d3) => {
       window.medium_gui.resources.delete_map(d3);
     }).with({ UpdatedConductor: _.select() }, (d3) => {
-      window.medium_gui.editor.set_conductor(d3);
+      window.medium_gui.resources.set_conductor(d3);
     }).with({ ModuleInstances: _.select() }, (d3) => {
       window.medium_gui.editor.set_game_instance_map(d3);
     }).with(
@@ -42490,6 +42490,7 @@ ${e3}`);
         }).with({ EditorEvent: _.select() }, handle_editor_event).with(
           { ConnectionReady: _.select() },
           ([_session_id, should_login]) => {
+            console.log("Connection ready", should_login);
             if (should_login) {
               menu_system.activate("login-menu");
             } else if (is_admin) {
@@ -42657,13 +42658,6 @@ ${e3}`);
             "Seems like you block local storage or something, you'll have to login on every reload."
           );
         }
-        send_ticket(
-          {
-            session_id,
-            admin_login: is_admin
-          },
-          communication_system
-        );
         check_for_connection_ready(communication_system);
         if (communication_system.is_connection_ready) {
           window.requestAnimationFrame(main_loop);
@@ -42671,9 +42665,17 @@ ${e3}`);
             canvas.className = "canvas--active";
           }
           clearInterval(interval_handle);
+          return;
         }
+        send_ticket(
+          {
+            session_id,
+            admin_login: is_admin
+          },
+          communication_system
+        );
       }
-    }, 1e3);
+    }, 100);
   }
 
   // client/index.ts
