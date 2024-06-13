@@ -347,7 +347,6 @@ impl GameInstanceManager {
     ) -> bool {
         match Engine::new().compile(&script.content) {
             Ok(ast) => {
-                debug!("Script compiled successfully! {:?}", ast);
                 for game_instance in self.game_instances.values_mut() {
                     for world in game_instance.dynamic_module.world_map.values_mut() {
                         let mut script_reset = false;

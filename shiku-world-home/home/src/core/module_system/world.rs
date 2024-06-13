@@ -17,6 +17,8 @@ use crate::core::ApiShare;
 
 pub type WorldId = String;
 
+const MIN_EQUAL_FLOAT_VALUE: f32 = 0.00001;
+
 pub struct World {
     pub world_id: WorldId,
     pub game_map_path: ResourcePath,
@@ -86,14 +88,45 @@ impl World {
     pub fn update(&mut self) {
         if let Some(mut physics) = self.physics.try_borrow_mut() {
             physics.update();
-            if let Some(mut shared) = self.ecs.shared.try_borrow_mut() {
-                Self::update_positions(&mut physics, &mut shared);
+            if let Some(mut shared_ecs) = self.ecs.shared.try_borrow_mut() {
+                Self::update_kinematic_character_controllers(&shared_ecs, &mut physics);
+                Self::update_positions(&mut physics, &mut shared_ecs);
             }
         }
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
         }
         self.ecs.process_added_and_removed_entities();
+    }
+
+    pub fn update_kinematic_character_controllers(
+        ecs_shared: &ECSShared,
+        physics: &mut RapierSimulation,
+    ) {
+        for (entity, kinematic_character_controller) in
+            ecs_shared.entities.kinematic_character.iter()
+        {
+            if let (Some(children), Some(rigid_body_handle)) = (
+                ecs_shared.entities.game_node_children.get(entity),
+                ecs_shared.entities.rigid_body_handle.get(entity),
+            ) {
+                let mut child_collider_handle = None;
+                for child in children {
+                    if let Some(collider_handle) = ecs_shared.entities.collider_handle.get(child) {
+                        child_collider_handle = Some(*collider_handle);
+                        break;
+                    }
+                }
+                if let Some(collider_handle) = child_collider_handle {
+                    physics.move_character(
+                        &kinematic_character_controller.controller,
+                        *rigid_body_handle,
+                        collider_handle,
+                        kinematic_character_controller.desired_translation,
+                    );
+                }
+            }
+        }
     }
 
     pub fn reset(&mut self) -> Result<(), ResetWorldError> {
@@ -169,6 +202,18 @@ impl World {
         };
         FuncRegistration::new("get_rigid_body_handle")
             .set_into_module(&mut module, get_rigid_body_handle);
+
+        let ecs_shared = ecs.shared.clone();
+        let set_entity_desired_translation = move |entity: Entity, x: f64, y: f64| {
+            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
+                    character.desired_translation.x = x as f32;
+                    character.desired_translation.y = y as f32;
+                }
+            }
+        };
+        FuncRegistration::new("set_entity_desired_translation")
+            .set_into_module(&mut module, set_entity_desired_translation);
 
         let physics_clone = physics_share.clone();
         let ecs_shared = ecs.shared.clone();
@@ -254,7 +299,9 @@ impl World {
         for (entity, rigid_body_handle) in shared.entities.rigid_body_handle.iter() {
             if let Some(transform) = shared.entities.transforms.get_mut(entity) {
                 let (x, y, r) = physics.get_rigid_body_translation(*rigid_body_handle);
-                if transform.position.0 != x || transform.position.1 != y || transform.rotation != r
+                if transform.position.0 != x
+                    || transform.position.1 != y
+                    || (transform.rotation - r).abs() > MIN_EQUAL_FLOAT_VALUE
                 {
                     transform.position = (x, y);
                     transform.rotation = r;

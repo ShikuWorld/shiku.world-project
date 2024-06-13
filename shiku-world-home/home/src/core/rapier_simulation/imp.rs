@@ -1,9 +1,12 @@
+use futures_util::TryFutureExt;
 use std::ops::Deref;
 
+use crate::core::blueprint::scene::def::KinematicCharacterControllerProps;
 use crate::core::module_system::terrain_manager::{TerrainPolyLine, TerrainPolyLineBuilder};
 use log::error;
+use rapier2d::control::{CharacterAutostep, CharacterLength, KinematicCharacterController};
 use rapier2d::crossbeam;
-use rapier2d::na::Point2;
+use rapier2d::na::{Point2, Translation2, Vector2};
 use rapier2d::prelude::*;
 
 use crate::core::rapier_simulation::def::RapierSimulation;
@@ -25,10 +28,68 @@ impl RapierSimulation {
             &mut self.impulse_joints,
             &mut self.multibody_joints,
             &mut self.ccd_solver,
-            None,
+            Some(&mut self.query_pipeline),
             &self.physics_hooks,
             self.events.deref(),
         );
+    }
+
+    pub fn move_character(
+        &mut self,
+        character_controller: &KinematicCharacterController,
+        rigid_body_handle: RigidBodyHandle,
+        collider_handle: ColliderHandle,
+        desired_translation: Vector<Real>,
+    ) {
+        let mut rigid_body_position = self
+            .bodies
+            .get(rigid_body_handle)
+            .map(|body| *body.position())
+            .unwrap_or_default();
+        if let Some(collider) = self.colliders.get(collider_handle) {
+            let corrected_movement = character_controller.move_shape(
+                self.integration_parameters.dt,
+                &self.bodies,
+                &self.colliders,
+                &self.query_pipeline,
+                collider.shape(),
+                &rigid_body_position,
+                desired_translation,
+                QueryFilter::default().exclude_rigid_body(rigid_body_handle),
+                |_| {},
+            );
+            if corrected_movement.translation.y.abs() > 0.0001 {
+                rigid_body_position.translation.y += corrected_movement.translation.y;
+            }
+            if corrected_movement.translation.x.abs() > 0.0001 {
+                rigid_body_position.translation.x += corrected_movement.translation.x;
+            }
+        }
+        if let Some(rigid_body) = self.bodies.get_mut(rigid_body_handle) {
+            rigid_body.set_position(rigid_body_position, true);
+        }
+    }
+
+    pub fn create_kinematic_character_controller(
+        props: &KinematicCharacterControllerProps,
+    ) -> KinematicCharacterController {
+        let mut kinematic = KinematicCharacterController::default();
+        if let Some(auto_step_props) = &props.autostep {
+            kinematic.autostep = Some(CharacterAutostep {
+                max_height: CharacterLength::Absolute(auto_step_props.max_height),
+                min_width: CharacterLength::Absolute(auto_step_props.min_width),
+                include_dynamic_bodies: auto_step_props.include_dynamic_bodies,
+            });
+        }
+        kinematic.offset = CharacterLength::Absolute(props.offset);
+        kinematic.slide = props.slide;
+        kinematic.up = UnitVector::new_normalize(Vector2::new(props.up.0, props.up.1));
+        kinematic.max_slope_climb_angle = props.max_slope_climb_angle;
+        kinematic.min_slope_slide_angle = props.min_slope_slide_angle;
+        if let Some(snap_to_ground) = props.snap_to_ground {
+            kinematic.snap_to_ground = Some(CharacterLength::Absolute(snap_to_ground));
+        }
+        kinematic
     }
 
     pub fn get_intersecting_colliders(
@@ -161,7 +222,7 @@ impl RapierSimulation {
             return (
                 position.translation.x,
                 position.translation.y,
-                Self::atan2_approx(position.rotation.im, position.rotation.re),
+                position.rotation.angle(), //Self::atan2_approx(position.rotation.im, position.rotation.re),
             );
         }
 
@@ -454,6 +515,7 @@ impl RapierSimulation {
             impulse_joints: ImpulseJointSet::new(),
             physics_hooks: (),
             events: Box::from(event_handler),
+            query_pipeline: QueryPipeline::new(),
         }
     }
 }

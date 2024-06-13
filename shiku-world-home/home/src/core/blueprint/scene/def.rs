@@ -128,8 +128,44 @@ impl Default for Transform {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub struct AutoStepProps {
+    pub max_height: f32,
+    pub min_width: f32,
+    pub include_dynamic_bodies: bool,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct KinematicCharacterControllerProps {
+    pub offset: Real,
+    pub up: (Real, Real),
+    pub slide: bool,
+    pub autostep: Option<AutoStepProps>,
+    pub max_slope_climb_angle: Real,
+    pub min_slope_slide_angle: Real,
+    pub snap_to_ground: Option<Real>,
+    pub normal_nudge_factor: Real,
+}
+
+impl KinematicCharacterControllerProps {
+    pub fn new() -> Self {
+        Self {
+            offset: 0.001,
+            up: (0.0, -1.0),
+            slide: true,
+            autostep: None,
+            max_slope_climb_angle: 45.0,
+            min_slope_slide_angle: 45.0,
+            snap_to_ground: None,
+            normal_nudge_factor: 0.001,
+        }
+    }
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct RigidBody {
-    pub velocity: (Real, Real),
+    pub kinematic_character_controller_props: Option<KinematicCharacterControllerProps>,
     pub body: RigidBodyType,
 }
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

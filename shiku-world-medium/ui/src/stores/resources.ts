@@ -87,6 +87,17 @@ export const use_resources_store = defineStore("resources", () => {
 
       return scene_map[path];
     },
+    get_or_load_map(
+      map_map: { [map_path: string]: GameMap },
+      path: string,
+    ): GameMap | undefined {
+      if (!map_map[path]) {
+        this.get_resource_server(path);
+        return undefined;
+      }
+
+      return map_map[path];
+    },
     get_or_load_tileset(
       tileset_map: { [resource_path: string]: Tileset },
       path: string,
@@ -541,7 +552,7 @@ export function create_2d_game_node(
       "Node2D-RigidBody",
       (): Node2DKind => ({
         RigidBody: {
-          velocity: [0, 0],
+          kinematic_character_controller_props: null,
           body: "Dynamic",
         },
       }),

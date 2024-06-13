@@ -42,7 +42,12 @@ export interface EditorStore {
     is_pinned: boolean;
   };
   inspecting_worlds: {
-    main?: { module_id: string; instance_id: string; world_id: string };
+    main?: {
+      module_id: string;
+      instance_id: string;
+      world_id: string;
+      map_resource_path: string;
+    };
   };
   current_main_instance: { instance_id?: string; world_id?: string };
   active_component: InspectorComponent;
@@ -217,6 +222,7 @@ export const use_editor_store = defineStore(
         module_id: string,
         game_instance_id: string,
         world_id: string,
+        map_resource_path: string,
       ) {
         send_admin_event({
           StartInspectingWorld: [module_id, game_instance_id, world_id],
@@ -225,6 +231,7 @@ export const use_editor_store = defineStore(
           module_id,
           instance_id: game_instance_id,
           world_id,
+          map_resource_path,
         };
       },
       stop_inspecting_world(

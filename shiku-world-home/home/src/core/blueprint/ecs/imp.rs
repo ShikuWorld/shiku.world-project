@@ -13,15 +13,17 @@ use smartstring::{SmartString, SmartStringMode};
 
 use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::def::{
-    DynamicMap, ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS,
+    DynamicMap, ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, KinematicCharacter,
+    ECS,
 };
 use crate::core::blueprint::ecs::game_node_script::{
     GameNodeScript, GameNodeScriptError, GameNodeScriptFunction, ScopeCacheValue,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
-    Collider, ColliderKind, ColliderShape, GameNodeKind, GameNodeKindClean, Node2DKind,
-    Node2DKindClean, RenderKind, RenderKindClean, RigidBodyType, Scene, SceneId, Script, Transform,
+    Collider, ColliderKind, ColliderShape, GameNodeKind, GameNodeKindClean,
+    KinematicCharacterControllerProps, Node2DKind, Node2DKindClean, RenderKind, RenderKindClean,
+    RigidBodyType, Scene, SceneId, Script, Transform,
 };
 use crate::core::guest::ActorId;
 use crate::core::rapier_simulation::def::RapierSimulation;
@@ -66,7 +68,7 @@ impl ECS {
                     render_layer: HashMap::new(),
                     render_gid: HashMap::new(),
                     transforms: HashMap::new(),
-                    rigid_body_velocity: HashMap::new(),
+                    kinematic_character: HashMap::new(),
                     rigid_body_type: HashMap::new(),
                     rigid_body_handle: HashMap::new(),
                     collider: HashMap::new(),
@@ -317,9 +319,21 @@ impl ECS {
                         ecs.entities
                             .rigid_body_type
                             .insert(entity, rigid_body.body.clone());
-                        ecs.entities
-                            .rigid_body_velocity
-                            .insert(entity, rigid_body.velocity);
+                        if let Some(kinematic_character_controller_props) =
+                            &rigid_body.kinematic_character_controller_props
+                        {
+                            ecs.entities.kinematic_character.insert(
+                                entity,
+                                KinematicCharacter {
+                                    controller:
+                                        RapierSimulation::create_kinematic_character_controller(
+                                            kinematic_character_controller_props,
+                                        ),
+                                    props: kinematic_character_controller_props.clone(),
+                                    desired_translation: Vector::zeros(),
+                                },
+                            );
+                        }
                     }
                     Node2DKind::Collider(collider) => {
                         ecs.entities
@@ -456,6 +470,15 @@ impl ECS {
                     shared.entities.transforms.insert(entity, transform);
                 }
             }
+            EntityUpdateKind::KinematicCharacterControllerProps(props) => {
+                if let Some(kinematic_character) =
+                    shared.entities.kinematic_character.get_mut(&entity)
+                {
+                    kinematic_character.props = props.clone();
+                    kinematic_character.controller =
+                        RapierSimulation::create_kinematic_character_controller(&props);
+                }
+            }
             EntityUpdateKind::PositionRotation((x, y, r)) => {
                 if let Some(rigid_body_handle) =
                     shared.entities.rigid_body_handle.get(&entity_update.id)
@@ -494,6 +517,24 @@ impl ECS {
                 if let Some(rigid_body_handle) =
                     shared.entities.rigid_body_handle.get(&entity_update.id)
                 {
+                    match rigid_body_type {
+                        RigidBodyType::KinematicPositionBased
+                        | RigidBodyType::KinematicVelocityBased => {
+                            if let Some(kinematic_character) =
+                                shared.entities.kinematic_character.get_mut(&entity)
+                            {
+                                kinematic_character.props =
+                                    KinematicCharacterControllerProps::new();
+                                kinematic_character.controller =
+                                    RapierSimulation::create_kinematic_character_controller(
+                                        &kinematic_character.props,
+                                    );
+                            }
+                        }
+                        RigidBodyType::Dynamic | RigidBodyType::Fixed => {
+                            shared.entities.kinematic_character.remove(&entity);
+                        }
+                    }
                     physics.remove_rigid_body(*rigid_body_handle);
                     shared.entities.rigid_body_handle.remove(&entity);
                     let transform = shared

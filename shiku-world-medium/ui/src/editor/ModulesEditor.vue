@@ -124,11 +124,12 @@ function toggle_inspect_world(
   module_id: string,
   instance_id: string,
   world_id: string,
+  map_resource_path: string,
 ) {
   if (game_instance_exists(instance_id, world_id)) {
     stop_inspecting_world(module_id, instance_id, world_id);
   } else {
-    start_inspecting_world(module_id, instance_id, world_id);
+    start_inspecting_world(module_id, instance_id, world_id, map_resource_path);
   }
 }
 const input_socket_name = ref("");

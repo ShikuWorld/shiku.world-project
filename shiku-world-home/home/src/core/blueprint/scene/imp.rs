@@ -1,12 +1,12 @@
 use log::{debug, error};
 use std::collections::HashMap;
-use std::hash::Hash;
 
 use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityUpdateKind, ECS};
 use crate::core::blueprint::ecs::game_node_script::GameNodeScript;
 use crate::core::blueprint::scene::def::{
-    GameNode, GameNodeKind, GameNodeKindClean, Node2D, Node2DDud, Node2DKind, Node2DKindClean,
-    Render, RenderKind, RenderKindClean, RigidBody, Scene,
+    GameNode, GameNodeKind, GameNodeKindClean, KinematicCharacterControllerProps, Node2D,
+    Node2DDud, Node2DKind, Node2DKindClean, Render, RenderKind, RenderKindClean, RigidBody,
+    RigidBodyType, Scene,
 };
 
 pub fn build_scene_from_ecs(ecs: &ECS) -> Option<Scene> {
@@ -35,13 +35,14 @@ fn get_render_node_2d_kind_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<
             }
             Node2DKindClean::Node2D => return Some(Node2DKind::Node2D(Node2DDud(0))),
             Node2DKindClean::RigidBody => {
-                if let (Some(velocity), Some(body)) = (
-                    ecs.entities.rigid_body_velocity.get(entity),
-                    ecs.entities.rigid_body_type.get(entity),
-                ) {
+                if let Some(body) = ecs.entities.rigid_body_type.get(entity) {
                     return Some(Node2DKind::RigidBody(RigidBody {
                         body: body.clone(),
-                        velocity: *velocity,
+                        kinematic_character_controller_props: ecs
+                            .entities
+                            .kinematic_character
+                            .get(entity)
+                            .map(|k| k.props.clone()),
                     }));
                 }
             }
@@ -135,6 +136,13 @@ impl GameNodeKind {
                     *path = instance_path;
                 }
             }
+            EntityUpdateKind::KinematicCharacterControllerProps(props) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
+                        rigid_body.kinematic_character_controller_props = Some(props);
+                    }
+                }
+            }
             EntityUpdateKind::Transform(transform) => {
                 if let GameNodeKind::Node2D(n) = self {
                     n.data.transform = transform;
@@ -154,6 +162,13 @@ impl GameNodeKind {
                 if let GameNodeKind::Node2D(n) = self {
                     if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
                         rigid_body.body = rigid_body_type;
+                        rigid_body.kinematic_character_controller_props = match rigid_body.body {
+                            RigidBodyType::KinematicPositionBased
+                            | RigidBodyType::KinematicVelocityBased => {
+                                Some(KinematicCharacterControllerProps::new())
+                            }
+                            RigidBodyType::Dynamic | RigidBodyType::Fixed => None,
+                        }
                     }
                 }
             }

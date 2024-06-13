@@ -216,7 +216,7 @@ const {
   load_editor_data,
   update_map_server,
   get_or_load_scene,
-  get_resource_server,
+  get_or_load_map,
   remove_child_from_scene_on_server,
   add_child_to_scene_on_server,
 } = use_resources_store();
@@ -234,6 +234,7 @@ const load_modules_interval = setInterval(() => {
           inspecting_worlds.value.main.module_id,
           inspecting_worlds.value.main.instance_id,
           inspecting_worlds.value.main.world_id,
+          inspecting_worlds.value.main.map_resource_path,
         );
         // try selecting main instances as long as instance is not loaded
         const interval = setInterval(() => {
@@ -416,9 +417,10 @@ const current_main_instance_scene = computed(() => {
   return null;
 });
 const current_main_map = computed<GameMap | undefined>(() => {
-  if (current_main_instance.value?.world_id && game_map_map.value) {
-    return Object.values(game_map_map.value).find(
-      (m) => m.world_id === current_main_instance.value.world_id,
+  if (inspecting_worlds.value.main) {
+    return get_or_load_map(
+      game_map_map.value,
+      inspecting_worlds.value.main.map_resource_path,
     );
   }
   return undefined;

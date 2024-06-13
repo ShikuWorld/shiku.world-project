@@ -1,6 +1,8 @@
+use rapier2d::control::KinematicCharacterController;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use rapier2d::dynamics::RigidBodyHandle;
+use rapier2d::math::Vector;
 use rapier2d::prelude::{ColliderHandle, Real};
 use rhai::Dynamic;
 use serde::{Deserialize, Serialize};
@@ -13,8 +15,8 @@ use remove_entity::RemoveEntity;
 use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
 use crate::core::blueprint::scene::def::{
-    Collider, GameNodeId, GameNodeKindClean, Node2DKindClean, NodeInstanceId, RenderKindClean,
-    RigidBodyType, SceneId, Transform,
+    Collider, GameNodeId, GameNodeKindClean, KinematicCharacterControllerProps, Node2DKindClean,
+    NodeInstanceId, RenderKindClean, RigidBodyType, SceneId, Transform,
 };
 
 #[derive(TS, Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -57,12 +59,19 @@ pub struct EntityMaps {
     pub render_layer: HashMap<Entity, LayerKind>,
     pub render_gid: HashMap<Entity, Gid>,
     pub transforms: HashMap<Entity, Transform>,
-    pub rigid_body_velocity: HashMap<Entity, (Real, Real)>,
     pub rigid_body_type: HashMap<Entity, RigidBodyType>,
+    pub kinematic_character: HashMap<Entity, KinematicCharacter>,
     pub rigid_body_handle: HashMap<Entity, RigidBodyHandle>,
     pub collider: HashMap<Entity, Collider>,
     pub collider_handle: HashMap<Entity, ColliderHandle>,
     pub dirty: HashMap<Entity, bool>,
+}
+
+#[derive(Debug, Clone)]
+pub struct KinematicCharacter {
+    pub controller: KinematicCharacterController,
+    pub props: KinematicCharacterControllerProps,
+    pub desired_translation: Vector<Real>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -82,6 +91,7 @@ pub enum EntityUpdateKind {
     UpdateScriptScope(String, ScopeCacheValue),
     SetScriptScope(HashMap<String, ScopeCacheValue>),
     RigidBodyType(RigidBodyType),
+    KinematicCharacterControllerProps(KinematicCharacterControllerProps),
     Collider(Collider),
     PositionRotation((Real, Real, Real)),
     Gid(Gid),

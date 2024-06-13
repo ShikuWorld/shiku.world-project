@@ -10,7 +10,13 @@
           v-for="game_map in game_maps"
           :prepend-icon="get_icon(instance_id, game_map.world_id)"
           @click="
-            emit('world_click', module.id, instance_id, game_map.world_id)
+            emit(
+              'world_click',
+              module.id,
+              instance_id,
+              game_map.world_id,
+              map_key(game_map),
+            )
           "
           >{{ game_map.name }}
         </v-list-item>
@@ -23,7 +29,7 @@ import { Module } from "@/editor/blueprints/Module";
 import { computed, toRefs } from "vue";
 import { GameMap } from "@/editor/blueprints/GameMap";
 import { storeToRefs } from "pinia";
-import { use_editor_store } from "@/editor/stores/editor";
+import { map_key, use_editor_store } from "@/editor/stores/editor";
 import { mdiAccessPoint, mdiAccessPointOff, mdiCheckBold } from "@mdi/js";
 import { use_resources_store } from "@/editor/stores/resources";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
@@ -44,6 +50,7 @@ const emit = defineEmits<{
     module_is: string,
     instance_id: string,
     world_id: string,
+    map_resource_path: string,
   ): void;
 }>();
 

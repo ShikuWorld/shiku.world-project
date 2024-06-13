@@ -16,6 +16,7 @@ import { markRaw, reactive, toRefs } from "vue";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 import { RENDER_SCALE } from "@/shared/index";
 import { ScopeCacheValue } from "@/editor/blueprints/ScopeCacheValue";
+import { KinematicCharacterControllerProps } from "@/editor/blueprints/KinematicCharacterControllerProps";
 
 export interface Node {
   node_id: ReturnType<typeof render_key>;
@@ -339,6 +340,26 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             return;
           }
           rigid_body.body = rigid_body_type;
+          rigid_body.kinematic_character_controller_props = match(
+            rigid_body_type,
+          )
+            .with("Dynamic", "Fixed", () => null)
+            .with(
+              "KinematicPositionBased",
+              "KinematicVelocityBased",
+              () =>
+                ({
+                  normal_nudge_factor: 0.0,
+                  slide: false,
+                  max_slope_climb_angle: 45.0,
+                  min_slope_slide_angle: 45.0,
+                  offset: 0.0,
+                  snap_to_ground: null,
+                  up: [0, -1],
+                  autostep: null,
+                }) as KinematicCharacterControllerProps,
+            )
+            .exhaustive();
         })
         .with({ PositionRotation: P.select() }, ([x, y, r]) => {
           if (!game_node.data.transform) {
@@ -405,6 +426,16 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             /* dealt with one level up */
           },
         )
+        .with({ KinematicCharacterControllerProps: P.select() }, (props) => {
+          const node_2d = game_node.data as Node2D;
+          const rigid_body =
+            "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
+          if (!rigid_body) {
+            console.error("Could not upate rigid body type");
+            return;
+          }
+          rigid_body.kinematic_character_controller_props = props;
+        })
         .with({ SetScriptScope: P.select() }, (_scope_cache_update) => {
           /* dealt with one level up */
         })

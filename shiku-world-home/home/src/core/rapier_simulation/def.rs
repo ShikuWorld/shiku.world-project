@@ -11,6 +11,7 @@ pub struct RapierSimulation {
     pub(crate) multibody_joints: MultibodyJointSet,
     pub(crate) impulse_joints: ImpulseJointSet,
     pub(crate) ccd_solver: CCDSolver,
+    pub(crate) query_pipeline: QueryPipeline,
     pub(crate) physics_hooks: (),
     pub(crate) events: Box<dyn EventHandler>,
     pub(crate) physics_pipeline: PhysicsPipeline,

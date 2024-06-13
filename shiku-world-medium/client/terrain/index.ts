@@ -191,8 +191,8 @@ export class TerrainManager {
           this._create_new_tile(
             resource_manager,
             gid,
-            x,
-            y,
+            x + this.terrain_params.tile_width / 2,
+            y - this.terrain_params.tile_height / 2,
             tile_key,
             chunk_map_entry,
           );

@@ -1,6 +1,5 @@
 <template>
-  <div v-if="loading">Loading</div>
-  <div v-else class="tile-selector">
+  <div class="tile-selector">
     <div class="tile-selector__eraser">
       <v-btn
         :icon="mdiEraserVariant"
@@ -231,7 +230,6 @@ function create_brush_with_gid(gid: number, size: number): number[][] {
 const props = defineProps<{ tilesets: Tileset[] }>();
 const { tilesets } = toRefs(props);
 
-const loading = computed(() => tilesets.value.some((t) => !t));
 const eraser_active = computed(
   () =>
     tile_brush.value.length == 1 &&
@@ -240,13 +238,13 @@ const eraser_active = computed(
 );
 
 watch(tilesets, () => {
-  if (!loading.value) {
+  if (props.tilesets.length > 0 && !tab.value) {
     tab.value = tileset_key(props.tilesets[0]);
   }
 });
 
 onMounted(() => {
-  if (!loading.value) {
+  if (props.tilesets.length > 0 && !tab.value) {
     tab.value = tileset_key(props.tilesets[0]);
   }
 });

@@ -76,7 +76,7 @@ pub enum ScopeCacheValue {
     Map(HashMap<String, ScopeCacheValue>),
 }
 
-const MIN_EQUAL_FLOAT_VALUE: f64 = 0.0000001_f64;
+pub const MIN_EQUAL_FLOAT_VALUE: f64 = 0.0000001_f64;
 
 impl ScopeCacheValue {
     pub(crate) fn equals_dynamic_value(
