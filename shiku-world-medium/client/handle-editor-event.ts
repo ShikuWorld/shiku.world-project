@@ -63,6 +63,15 @@ export function handle_editor_event(event: EditorEvent) {
     .with({ DeletedMap: P.select() }, (d) => {
       window.medium_gui.resources.delete_map(d);
     })
+    .with({ CreatedCharacterAnimation: P.select() }, (d) => {
+      window.medium_gui.resources.set_character_animation(d);
+    })
+    .with({ SetCharacterAnimation: P.select() }, (d) => {
+      window.medium_gui.resources.set_character_animation(d);
+    })
+    .with({ DeletedCharacterAnimation: P.select() }, (d) => {
+      window.medium_gui.resources.delete_character_animation(d);
+    })
     .with({ UpdatedConductor: P.select() }, (d) => {
       window.medium_gui.resources.set_conductor(d);
     })

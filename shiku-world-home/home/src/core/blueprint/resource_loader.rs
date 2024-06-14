@@ -6,12 +6,13 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::RwLock;
 
+use crate::core::blueprint::character_animation::CharacterAnimation;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use uuid::Uuid;
 
 use crate::core::blueprint::def::{
-    BlueprintError, GameMap, IOPoint, Module, ResourcePath, Tileset,
+    BlueprintError, GameMap, IOPoint, JsonResource, Module, ResourcePath, Tileset,
 };
 use crate::core::blueprint::ecs::def::{EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::resource_cache::get_resource_cache;
@@ -22,18 +23,21 @@ use crate::core::module::ModuleName;
 pub struct Blueprint;
 
 impl Blueprint {
-    pub fn create<T: Serialize + Clone>(
+    pub fn create<T: Serialize + Clone + JsonResource>(
         resource: &T,
         resource_path: &str,
         resource_name: &str,
-        file_extension: &str,
         resource_map: &RwLock<HashMap<ResourcePath, T>>,
     ) -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
         let resource_path = PathBuf::from_str(resource_path)?;
         let directory_path = out_dir.join(resource_path);
         create_dir_all(directory_path.as_path())?;
-        let file_path = directory_path.join(format!("{}.{}.json", resource_name, file_extension));
+        let file_path = directory_path.join(format!(
+            "{}.{}.json",
+            resource_name,
+            T::get_resource_extension()
+        ));
         if file_path.exists() {
             return Err(BlueprintError::FileAlreadyExists);
         }
@@ -50,7 +54,7 @@ impl Blueprint {
         Ok(())
     }
 
-    pub fn load<T: DeserializeOwned + Clone>(
+    pub fn load<T: DeserializeOwned + Clone + JsonResource>(
         path: PathBuf,
         resource_map: &RwLock<HashMap<ResourcePath, T>>,
     ) -> Result<T, BlueprintError> {
@@ -77,17 +81,20 @@ impl Blueprint {
         Ok(serde_json::from_reader(reader)?)
     }
 
-    pub fn save<T: Serialize + Clone>(
+    pub fn save<T: Serialize + Clone + JsonResource>(
         resource: &T,
         resource_path: &str,
         resource_name: &str,
-        file_extension: &str,
         resource_map: &RwLock<HashMap<ResourcePath, T>>,
     ) -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
         let resource_path = PathBuf::from_str(resource_path)?;
         let directory_path = out_dir.join(resource_path);
-        let file_path = directory_path.join(format!("{}.{}.json", resource_name, file_extension));
+        let file_path = directory_path.join(format!(
+            "{}.{}.json",
+            resource_name,
+            T::get_resource_extension()
+        ));
         if !file_path.exists() {
             return Err(BlueprintError::FileDoesNotExist(format!("{:?}", file_path)));
         }
@@ -104,16 +111,19 @@ impl Blueprint {
         Ok(())
     }
 
-    pub fn delete<T>(
+    pub fn delete<T: JsonResource>(
         resource_path: &str,
         resource_name: &str,
-        file_extension: &str,
         resource_map: &RwLock<HashMap<ResourcePath, T>>,
     ) -> Result<(), BlueprintError> {
         let out_dir = get_out_dir();
         let resource_path = PathBuf::from_str(resource_path)?;
         let directory_path = out_dir.join(resource_path);
-        let file_path = directory_path.join(format!("{}.{}.json", resource_name, file_extension));
+        let file_path = directory_path.join(format!(
+            "{}.{}.json",
+            resource_name,
+            T::get_resource_extension()
+        ));
         if !file_path.exists() {
             return Err(BlueprintError::FileDoesNotExist(format!("{:?}", file_path)));
         }
@@ -134,7 +144,6 @@ impl Blueprint {
             tileset,
             &tileset.resource_path,
             &tileset.name,
-            "tileset",
             &resources.tilesets,
         )
     }
@@ -152,24 +161,18 @@ impl Blueprint {
             tileset,
             &tileset.resource_path,
             &tileset.name,
-            "tileset",
             &resources.tilesets,
         )
     }
 
     pub fn delete_tileset(tileset: &Tileset) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::delete(
-            &tileset.resource_path,
-            &tileset.name,
-            "tileset",
-            &resources.tilesets,
-        )
+        Self::delete(&tileset.resource_path, &tileset.name, &resources.tilesets)
     }
 
     pub fn create_map(map: &GameMap) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::create(map, &map.resource_path, &map.name, "map", &resources.maps)
+        Self::create(map, &map.resource_path, &map.name, &resources.maps)
     }
 
     pub fn load_map(path: PathBuf) -> Result<GameMap, BlueprintError> {
@@ -179,23 +182,17 @@ impl Blueprint {
 
     pub fn save_map(map: &GameMap) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::save(map, &map.resource_path, &map.name, "map", &resources.maps)
+        Self::save(map, &map.resource_path, &map.name, &resources.maps)
     }
 
     pub fn delete_map(map: &GameMap) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::delete(&map.resource_path, &map.name, "map", &resources.maps)
+        Self::delete(&map.resource_path, &map.name, &resources.maps)
     }
 
     pub fn create_script(map: &Script) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::create(
-            map,
-            &map.resource_path,
-            &map.name,
-            "script",
-            &resources.scripts,
-        )
+        Self::create(map, &map.resource_path, &map.name, &resources.scripts)
     }
 
     pub fn load_script(path: PathBuf) -> Result<Script, BlueprintError> {
@@ -205,34 +202,57 @@ impl Blueprint {
 
     pub fn save_script(map: &Script) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::save(
-            map,
-            &map.resource_path,
-            &map.name,
-            "script",
-            &resources.scripts,
-        )
+        Self::save(map, &map.resource_path, &map.name, &resources.scripts)
     }
 
     pub fn delete_script(script: &Script) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
+        Self::delete(&script.resource_path, &script.name, &resources.scripts)
+    }
+
+    pub fn create_character_animation(
+        character_animation: &CharacterAnimation,
+    ) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::create(
+            character_animation,
+            &character_animation.resource_path,
+            &character_animation.name,
+            &resources.character_animation,
+        )
+    }
+
+    pub fn load_character_animation(path: PathBuf) -> Result<CharacterAnimation, BlueprintError> {
+        let resources = get_resource_cache();
+        Self::load(path, &resources.character_animation)
+    }
+
+    pub fn save_character_animation(
+        character_animation: &CharacterAnimation,
+    ) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::save(
+            character_animation,
+            &character_animation.resource_path,
+            &character_animation.name,
+            &resources.character_animation,
+        )
+    }
+
+    pub fn delete_character_animation(
+        character_animation: &CharacterAnimation,
+    ) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
         Self::delete(
-            &script.resource_path,
-            &script.name,
-            "script",
-            &resources.scripts,
+            &character_animation.resource_path,
+            &character_animation.name,
+            &resources.character_animation,
         )
     }
 
     pub fn create_scene(scene: &Scene) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::create(
-            scene,
-            &scene.resource_path,
-            &scene.name,
-            "scene",
-            &resources.scenes,
-        )
+        Self::create(scene, &scene.resource_path, &scene.name, &resources.scenes)
     }
 
     pub fn load_scene(path: PathBuf) -> Result<Scene, BlueprintError> {
@@ -362,23 +382,12 @@ impl Blueprint {
 
     pub fn save_scene(scene: &Scene) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::save(
-            scene,
-            &scene.resource_path,
-            &scene.name,
-            "scene",
-            &resources.scenes,
-        )
+        Self::save(scene, &scene.resource_path, &scene.name, &resources.scenes)
     }
 
     pub fn delete_scene(scene: &Scene) -> Result<(), BlueprintError> {
         let resources = get_resource_cache();
-        Self::delete(
-            &scene.resource_path,
-            &scene.name,
-            "scene",
-            &resources.scenes,
-        )
+        Self::delete(&scene.resource_path, &scene.name, &resources.scenes)
     }
 
     pub fn module_exists(module_name: &String) -> bool {
@@ -437,13 +446,7 @@ impl Blueprint {
         let resources = get_resource_cache();
         let module_path =
             Self::path_buf_to_string(get_out_dir().join("modules").join(&module.name))?;
-        Self::create(
-            module,
-            &module_path,
-            &module.name,
-            "module",
-            &resources.modules,
-        )
+        Self::create(module, &module_path, &module.name, &resources.modules)
     }
 
     pub fn lazy_create_module(module_name: &ModuleName) -> Result<Module, BlueprintError> {
@@ -468,13 +471,7 @@ impl Blueprint {
         let file_path = file_path_buf
             .to_str()
             .ok_or(BlueprintError::ConversionToStr)?;
-        Self::save(
-            module,
-            file_path,
-            &module.name,
-            "module",
-            &resources.modules,
-        )
+        Self::save(module, file_path, &module.name, &resources.modules)
     }
 
     pub fn get_all_modules() -> Result<Vec<Module>, BlueprintError> {

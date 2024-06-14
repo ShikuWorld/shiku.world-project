@@ -1,39 +1,80 @@
-use rapier2d::prelude::Real;
+use crate::core::blueprint::def::Gid;
+use rapier2d::math::Real;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::hash::Hash;
+use ts_rs::TS;
 
-#[derive(Clone)]
-pub struct AnimationFrame<Q: Clone + Eq + Hash> {
-    duration_in_ms: Real,
-    gid_map: HashMap<Q, &'static str>,
+pub type StateName = String;
+pub type TransitionName = String;
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[ts(export, export_to = "blueprints/")]
+pub enum CharacterDirection {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
-impl<Q: Clone + Eq + Hash> AnimationFrame<Q> {
-    pub fn new(duration_in_ms: Real, gid_map: HashMap<Q, &'static str>) -> AnimationFrame<Q> {
-        AnimationFrame {
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct CharacterAnimation {
+    pub id: String,
+    pub name: String,
+    pub resource_path: String,
+    pub tileset_resource: String,
+    pub current_direction: CharacterDirection,
+    pub current_state: StateName,
+    pub current_gid_inside_tile: Gid,
+    pub states: HashMap<StateName, CharacterAnimationState>,
+    pub transitions: HashMap<TransitionName, HashMap<StateName, StateName>>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct CharacterAnimationState {
+    name: String,
+    animation: Animation,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct CharacterAnimationFrame {
+    duration_in_ms: Real,
+    gid_map: HashMap<CharacterDirection, Gid>,
+}
+
+impl CharacterAnimationFrame {
+    pub fn new(
+        duration_in_ms: Real,
+        gid_map: HashMap<CharacterDirection, Gid>,
+    ) -> CharacterAnimationFrame {
+        CharacterAnimationFrame {
             duration_in_ms,
             gid_map,
         }
     }
 
-    pub fn get_gid(&self, qualifier: &Q) -> &'static str {
-        self.gid_map.get(qualifier).unwrap_or(&"0")
+    pub fn get_gid(&self, qualifier: &CharacterDirection) -> Gid {
+        *self.gid_map.get(qualifier).unwrap_or(&0)
     }
 }
 
-#[derive(Clone)]
-pub struct Animation<Q: Clone + Eq + Hash> {
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Animation {
     current_frame_time_in_ms: Real,
     current_total_time_in_ms: Real,
     animation_total_duration: Real,
-    frames: Vec<AnimationFrame<Q>>,
+    frames: Vec<CharacterAnimationFrame>,
     current_frame_index: usize,
     running: bool,
     pub done: bool,
 }
 
-impl<Q: Clone + Eq + Hash> Animation<Q> {
-    pub fn new(frames: Vec<AnimationFrame<Q>>) -> Animation<Q> {
+impl Animation {
+    pub fn new(frames: Vec<CharacterAnimationFrame>) -> Animation {
         let animation_total_duration: Real = frames.iter().map(|f| f.duration_in_ms).sum();
 
         Animation {
@@ -89,11 +130,11 @@ impl<Q: Clone + Eq + Hash> Animation<Q> {
         }
     }
 
-    pub fn get_current_gid(&self, current_qualifier: &Q) -> &'static str {
+    pub fn get_current_gid(&self, current_qualifier: &CharacterDirection) -> Gid {
         if let Some(animation_frame) = self.frames.get(self.current_frame_index) {
             return animation_frame.get_gid(current_qualifier);
         }
 
-        "1"
+        0
     }
 }

@@ -6,6 +6,7 @@ use std::sync::RwLock;
 use log::{debug, error};
 use walkdir::WalkDir;
 
+use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintService, FileBrowserFileKind, GameMap, Module, ResourcePath, Tileset,
 };
@@ -18,6 +19,7 @@ pub struct ResourceCache {
     pub maps: RwLock<HashMap<ResourcePath, GameMap>>,
     pub scenes: RwLock<HashMap<ResourcePath, Scene>>,
     pub scripts: RwLock<HashMap<ResourcePath, Script>>,
+    pub character_animation: RwLock<HashMap<ResourcePath, CharacterAnimation>>,
     pub modules: RwLock<HashMap<ResourcePath, Module>>,
 }
 
@@ -29,6 +31,7 @@ pub fn get_resource_cache() -> &'static ResourceCache {
         maps: RwLock::new(HashMap::new()),
         scenes: RwLock::new(HashMap::new()),
         scripts: RwLock::new(HashMap::new()),
+        character_animation: RwLock::new(HashMap::new()),
         modules: RwLock::new(HashMap::new()),
     })
 }

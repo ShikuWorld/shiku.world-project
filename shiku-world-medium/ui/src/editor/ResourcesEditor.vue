@@ -164,13 +164,16 @@ function ensure_resources_are_loaded() {
         }
       })
       .with({ kind: "Map" }, (r) => {
-        console.log("hm map?", r);
+        console.log("hm Map?", r);
       })
       .with({ kind: "Scene" }, (r) => {
-        console.log("hm scene?", r);
+        console.log("hm Scene?", r);
       })
       .with({ kind: "Script" }, (r) => {
-        console.log("hm scene?", r);
+        console.log("hm Script?", r);
+      })
+      .with({ kind: "CharacterAnimation" }, (r) => {
+        console.log("hm CharacterAnimation?", r);
       })
       .with({ kind: "Unknown" }, () => {})
       .exhaustive();

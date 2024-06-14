@@ -3,6 +3,7 @@ use std::convert::Infallible;
 use std::ffi::OsString;
 use std::hash::Hash;
 
+use crate::core::blueprint::character_animation::CharacterAnimation;
 use log::error;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -39,6 +40,7 @@ pub enum ResourceLoaded {
     Scene(Scene),
     Map(GameMap),
     Script(Script),
+    CharacterAnimation(CharacterAnimation),
     Unknown,
 }
 
@@ -73,6 +75,7 @@ pub enum ResourceKind {
     Scene,
     Map,
     Script,
+    CharacterAnimation,
     Unknown,
 }
 
@@ -131,7 +134,7 @@ impl Tileset {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
-pub struct AnimationFrame {
+pub struct SimpleAnimationFrame {
     id: u32,
     duration: u32,
 }
@@ -141,7 +144,7 @@ pub struct AnimationFrame {
 pub struct Tile {
     pub id: u32,
     pub image: Option<Image>,
-    pub animation: Option<Vec<AnimationFrame>>,
+    pub animation: Option<Vec<SimpleAnimationFrame>>,
     pub collision_shape: Option<CollisionShape>,
 }
 
@@ -214,18 +217,22 @@ impl ModuleUpdate {
 }
 
 pub trait JsonResource {
-    fn get_resource_type(&self) -> &'static str;
+    fn get_resource_extension() -> &'static str;
     fn get_resource_kind(&self) -> ResourceKind;
     fn get_full_resource_path(&self) -> String {
         format!(
             "{}/{}.{}.json",
             self.get_resource_dir(),
             self.get_name(),
-            self.get_resource_type()
+            Self::get_resource_extension()
         )
     }
     fn get_file_name(&self) -> String {
-        format!("{}.{}.json", self.get_name(), self.get_resource_type())
+        format!(
+            "{}.{}.json",
+            self.get_name(),
+            Self::get_resource_extension()
+        )
     }
     fn get_name(&self) -> &str;
     fn get_resource_dir(&self) -> &str;

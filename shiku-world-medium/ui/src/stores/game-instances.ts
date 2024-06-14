@@ -381,8 +381,9 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                   (render_kind as { Sprite: number }).Sprite = gid;
                 })
                 .with({ AnimatedSprite: P.select() }, () => {
-                  (render_kind as { AnimatedSprite: number }).AnimatedSprite =
-                    gid;
+                  (
+                    render_kind as { AnimatedSprite: [string, number] }
+                  ).AnimatedSprite[1] = gid;
                 })
                 .exhaustive();
             })
@@ -393,6 +394,20 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             resource_manager.get_sprite_from_graphics(graphics),
             0,
           );
+        })
+        .with({ AnimatedSpriteResource: P.select() }, (resource_path) => {
+          match((game_node.data as Node2D).kind)
+            .with({ Render: { kind: P.select() } }, (render_kind) => {
+              match(render_kind)
+                .with({ Sprite: P.select() }, () => {})
+                .with({ AnimatedSprite: P.select() }, () => {
+                  (
+                    render_kind as { AnimatedSprite: [string, number] }
+                  ).AnimatedSprite[0] = resource_path;
+                })
+                .exhaustive();
+            })
+            .run();
         })
         .with({ InstancePath: P.select() }, (_) => {
           console.error(
@@ -586,7 +601,7 @@ function get_gid(node_2d: GameNode<Node2D>): number | undefined {
   if ("Render" in node_2d.data.kind) {
     return match(node_2d.data.kind.Render.kind)
       .with({ Sprite: P.select() }, (gid) => gid)
-      .with({ AnimatedSprite: P.select() }, (gid) => gid)
+      .with({ AnimatedSprite: P.select() }, (p) => p[1])
       .exhaustive();
   }
 

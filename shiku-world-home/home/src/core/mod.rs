@@ -12,7 +12,6 @@ use flume::Sender;
 use log::{debug, error};
 use rapier2d::prelude::Real;
 
-pub mod animation;
 pub mod basic_game_module;
 pub mod blending_mode;
 pub mod entity;

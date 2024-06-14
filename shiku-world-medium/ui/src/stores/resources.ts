@@ -27,6 +27,7 @@ import { TilesetUpdate } from "@/client/communication/api/bindings/TilesetUpdate
 import { Script } from "@/editor/blueprints/Script";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { cantor_pair } from "@/client/terrain";
+import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
 
 export type Point = { y: number; x: number };
 
@@ -34,6 +35,7 @@ export interface ResourcesStore {
   tileset_map: { [tileset_path: string]: Tileset };
   game_map_map: { [map_path: string]: GameMap };
   conductor: Conductor;
+  character_animation_map: { [module_id: string]: CharacterAnimation };
   modules: { [module_id: string]: Module };
   scene_map: { [scene_path: string]: Scene };
   script_map: { [scene_path: string]: Script };
@@ -48,6 +50,7 @@ export const use_resources_store = defineStore("resources", () => {
     game_map_map: {},
     scene_map: {},
     script_map: {},
+    character_animation_map: {},
     current_file_browser_result: {
       resources: [],
       dirs: [],
@@ -188,6 +191,19 @@ export const use_resources_store = defineStore("resources", () => {
         (current, module) => ({ ...current, [module.id]: module }),
         {},
       );
+    },
+    set_character_animation(character_animation: CharacterAnimation) {
+      state.character_animation_map = {
+        ...state.character_animation_map,
+        [character_animation_key(character_animation)]: character_animation,
+      };
+    },
+    delete_character_animation(character_animation: CharacterAnimation) {
+      const scripts = {
+        ...state.character_animation_map,
+      };
+      delete scripts[character_animation_key(character_animation)];
+      state.character_animation_map = scripts;
     },
     set_tileset(tileset: Tileset) {
       state.tileset_map = {
@@ -474,6 +490,12 @@ export function map_key(game_map: { resource_path: string; name: string }) {
 
 export function script_key(script: Script) {
   return `${script.resource_path}/${script.name}.script.json`;
+}
+
+export function character_animation_key(
+  character_animation: CharacterAnimation,
+) {
+  return `${character_animation.resource_path}/${character_animation.name}.char_anim.json`;
 }
 
 export function get_node_by_path(

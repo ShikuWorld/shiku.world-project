@@ -1,3 +1,4 @@
+use crate::core::blueprint::def::JsonResource;
 use log::{debug, error};
 use std::collections::HashMap;
 
@@ -73,11 +74,17 @@ fn get_render_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<Render> {
         ecs.entities.render_offset.get(entity),
     ) {
         if let Some(kind) = match render_kind {
-            RenderKindClean::AnimatedSprite => ecs
-                .entities
-                .render_gid
-                .get(entity)
-                .map(|gid| RenderKind::AnimatedSprite(*gid)),
+            RenderKindClean::AnimatedSprite => {
+                ecs.entities
+                    .character_animation
+                    .get(entity)
+                    .map(|character_animation| {
+                        RenderKind::AnimatedSprite(
+                            character_animation.get_full_resource_path(),
+                            character_animation.current_gid_inside_tile,
+                        )
+                    })
+            }
             RenderKindClean::Sprite => ecs
                 .entities
                 .render_gid
@@ -185,12 +192,21 @@ impl GameNodeKind {
                     }
                 }
             }
+            EntityUpdateKind::AnimatedSpriteResource(resource_path) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    if let Node2DKind::Render(r) = &mut n.data.kind {
+                        if let RenderKind::AnimatedSprite(ref mut r, _) = r.kind {
+                            *r = resource_path;
+                        }
+                    }
+                }
+            }
             EntityUpdateKind::Gid(gid) => {
                 if let GameNodeKind::Node2D(n) = self {
                     if let Node2DKind::Render(r) = &mut n.data.kind {
                         match r.kind {
-                            RenderKind::AnimatedSprite(ref mut g) => {
-                                *g = gid;
+                            RenderKind::AnimatedSprite(_, _) => {
+                                debug!("Cannot set gid on animated sprite directly!");
                             }
                             RenderKind::Sprite(ref mut g) => {
                                 *g = gid;

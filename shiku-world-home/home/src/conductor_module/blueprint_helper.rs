@@ -37,9 +37,11 @@ pub fn loading_resources_from_blueprint_resource(
                 }
             }
         }
-        ResourceKind::Scene | ResourceKind::Map | ResourceKind::Unknown | ResourceKind::Script => {
-            Vec::new()
-        }
+        ResourceKind::Scene
+        | ResourceKind::Map
+        | ResourceKind::Unknown
+        | ResourceKind::Script
+        | ResourceKind::CharacterAnimation => Vec::new(),
     }
 }
 

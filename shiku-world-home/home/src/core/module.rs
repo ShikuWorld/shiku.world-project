@@ -1,11 +1,11 @@
 use flume::{unbounded, Receiver, Sender};
 use rapier2d::prelude::Real;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use thiserror::Error;
 use ts_rs::TS;
 
 use crate::core::blueprint;
+use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     Chunk, Conductor, Gid, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
 };
@@ -19,7 +19,6 @@ use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::module_system::world::WorldId;
 use crate::resource_module::def::{ResourceBundle, ResourceEvent};
-use crate::resource_module::map::def::LayerName;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
@@ -86,6 +85,9 @@ pub enum EditorEvent {
     CreatedTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
     DeletedTileset(blueprint::def::Tileset),
+    CreatedCharacterAnimation(CharacterAnimation),
+    SetCharacterAnimation(CharacterAnimation),
+    DeletedCharacterAnimation(CharacterAnimation),
     DirectoryInfo(blueprint::def::FileBrowserResult),
     UpdatedConductor(Conductor),
     ModuleInstanceOpened(ModuleId, GameInstanceId),
@@ -125,6 +127,9 @@ pub enum AdminToSystemEvent {
     CreateScript(ModuleId, Script),
     UpdateScript(Script),
     DeleteScript(Script),
+    CreateCharacterAnimation(ModuleId, CharacterAnimation),
+    UpdateCharacterAnimation(CharacterAnimation),
+    DeleteCharacterAnimation(CharacterAnimation),
     DeleteModule(ModuleId),
     SetMainDoorStatus(bool),
     SetBackDoorStatus(bool),

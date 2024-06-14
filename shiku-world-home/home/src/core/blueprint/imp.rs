@@ -7,6 +7,7 @@ use std::str::FromStr;
 use log::{debug, error};
 use walkdir::WalkDir;
 
+use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, BlueprintService, Chunk, Conductor, FileBrowserFileKind,
     FileBrowserResult, GameMap, Gid, GidMap, JsonResource, LayerKind, MapUpdate, Module,
@@ -91,37 +92,27 @@ impl BlueprintService {
         if let Ok(path_buf) = PathBuf::from_str(path) {
             if let Some(file_name_os) = path_buf.as_path().file_name() {
                 if let Some(file_name) = file_name_os.to_str() {
-                    return match BlueprintService::determine_resource_type(file_name) {
-                        ResourceKind::Scene => match Blueprint::load_scene(path_buf) {
-                            Ok(scene) => ResourceLoaded::Scene(scene),
-                            Err(err) => {
-                                error!("Could not load Resource: {:?}", err);
-                                ResourceLoaded::Unknown
-                            }
-                        },
-                        ResourceKind::Tileset => match Blueprint::load_tileset(path_buf) {
-                            Ok(tileset) => ResourceLoaded::Tileset(tileset),
-                            Err(err) => {
-                                error!("Could not load Resource: {:?}", err);
-                                ResourceLoaded::Unknown
-                            }
-                        },
-                        ResourceKind::Map => match Blueprint::load_map(path_buf) {
-                            Ok(map) => ResourceLoaded::Map(map),
-                            Err(err) => {
-                                error!("Could not load Resource: {:?}", err);
-                                ResourceLoaded::Unknown
-                            }
-                        },
-                        ResourceKind::Script => match Blueprint::load_script(path_buf) {
-                            Ok(script) => ResourceLoaded::Script(script),
-                            Err(err) => {
-                                error!("Could not load Resource: {:?}", err);
-                                ResourceLoaded::Unknown
-                            }
-                        },
-                        ResourceKind::Unknown => ResourceLoaded::Unknown,
+                    let result = match BlueprintService::determine_resource_type(file_name) {
+                        ResourceKind::Scene => {
+                            Blueprint::load_scene(path_buf).map(ResourceLoaded::Scene)
+                        }
+                        ResourceKind::CharacterAnimation => {
+                            Blueprint::load_character_animation(path_buf)
+                                .map(ResourceLoaded::CharacterAnimation)
+                        }
+                        ResourceKind::Tileset => {
+                            Blueprint::load_tileset(path_buf).map(ResourceLoaded::Tileset)
+                        }
+                        ResourceKind::Map => Blueprint::load_map(path_buf).map(ResourceLoaded::Map),
+                        ResourceKind::Script => {
+                            Blueprint::load_script(path_buf).map(ResourceLoaded::Script)
+                        }
+                        ResourceKind::Unknown => Ok(ResourceLoaded::Unknown),
                     };
+                    return result.unwrap_or_else(|err| {
+                        error!("Could not load Resource: {:?}", err);
+                        ResourceLoaded::Unknown
+                    });
                 }
             }
         }
@@ -262,8 +253,23 @@ impl GameMap {
     }
 }
 
+impl JsonResource for Module {
+    fn get_resource_extension() -> &'static str {
+        "module"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::Unknown
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        self.name.as_str()
+    }
+}
+
 impl JsonResource for GameMap {
-    fn get_resource_type(&self) -> &'static str {
+    fn get_resource_extension() -> &'static str {
         "map"
     }
     fn get_resource_kind(&self) -> ResourceKind {
@@ -278,7 +284,7 @@ impl JsonResource for GameMap {
 }
 
 impl JsonResource for Script {
-    fn get_resource_type(&self) -> &'static str {
+    fn get_resource_extension() -> &'static str {
         "script"
     }
     fn get_resource_kind(&self) -> ResourceKind {
@@ -293,7 +299,7 @@ impl JsonResource for Script {
 }
 
 impl JsonResource for Scene {
-    fn get_resource_type(&self) -> &'static str {
+    fn get_resource_extension() -> &'static str {
         "scene"
     }
     fn get_resource_kind(&self) -> ResourceKind {
@@ -308,7 +314,7 @@ impl JsonResource for Scene {
 }
 
 impl JsonResource for Tileset {
-    fn get_resource_type(&self) -> &'static str {
+    fn get_resource_extension() -> &'static str {
         "tileset"
     }
     fn get_resource_kind(&self) -> ResourceKind {
@@ -323,11 +329,26 @@ impl JsonResource for Tileset {
 }
 
 impl JsonResource for MapUpdate {
-    fn get_resource_type(&self) -> &'static str {
+    fn get_resource_extension() -> &'static str {
         "map"
     }
     fn get_resource_kind(&self) -> ResourceKind {
         ResourceKind::Map
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        &self.resource_path
+    }
+}
+
+impl JsonResource for CharacterAnimation {
+    fn get_resource_extension() -> &'static str {
+        "char_anim"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::CharacterAnimation
     }
     fn get_name(&self) -> &str {
         &self.name

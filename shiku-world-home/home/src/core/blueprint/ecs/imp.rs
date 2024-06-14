@@ -67,6 +67,7 @@ impl ECS {
                     render_offset: HashMap::new(),
                     render_layer: HashMap::new(),
                     render_gid: HashMap::new(),
+                    character_animation: HashMap::new(),
                     transforms: HashMap::new(),
                     kinematic_character: HashMap::new(),
                     rigid_body_type: HashMap::new(),
@@ -349,18 +350,19 @@ impl ECS {
                             .render_layer
                             .insert(entity, render.layer.clone());
                         ecs.entities.render_offset.insert(entity, render.offset);
-                        match render.kind {
-                            RenderKind::AnimatedSprite(gid) => {
+                        match &render.kind {
+                            RenderKind::AnimatedSprite(resource_path, gid) => {
                                 ecs.entities
                                     .render_kind
                                     .insert(entity, RenderKindClean::AnimatedSprite);
-                                ecs.entities.render_gid.insert(entity, gid);
+                                Self::add_character_animation(ecs, entity, resource_path);
+                                ecs.entities.render_gid.insert(entity, *gid);
                             }
                             RenderKind::Sprite(gid) => {
                                 ecs.entities
                                     .render_kind
                                     .insert(entity, RenderKindClean::Sprite);
-                                ecs.entities.render_gid.insert(entity, gid);
+                                ecs.entities.render_gid.insert(entity, *gid);
                             }
                         }
                     }
@@ -378,6 +380,19 @@ impl ECS {
         }
 
         entity
+    }
+
+    fn add_character_animation(ecs: &mut ECSShared, entity: Entity, resource_path: &ResourcePath) {
+        match Blueprint::load_character_animation(resource_path.into()) {
+            Ok(character_animation) => {
+                ecs.entities
+                    .character_animation
+                    .insert(entity, character_animation);
+            }
+            Err(e) => {
+                error!("Error loading character animation: {:?}", e);
+            }
+        }
     }
 
     fn get_node_2d_instance_root_node(game_node_kind: &GameNodeKind) -> Option<GameNodeKind> {
@@ -555,6 +570,9 @@ impl ECS {
             }
             EntityUpdateKind::Gid(gid) => {
                 shared.entities.render_gid.insert(entity, gid);
+            }
+            EntityUpdateKind::AnimatedSpriteResource(resource_path) => {
+                Self::add_character_animation(shared, entity, &resource_path);
             }
             EntityUpdateKind::UpdateScriptScope(scope_key, scope_value) => {
                 if let Some(game_node_script) = entity_scripts.get_mut(&entity) {

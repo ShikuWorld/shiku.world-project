@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use smartstring::{LazyCompact, SmartString};
 use ts_rs::TS;
 
+use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::ApiShare;
 use remove_entity::RemoveEntity;
 
@@ -58,6 +59,7 @@ pub struct EntityMaps {
     pub render_offset: HashMap<Entity, (Real, Real)>,
     pub render_layer: HashMap<Entity, LayerKind>,
     pub render_gid: HashMap<Entity, Gid>,
+    pub character_animation: HashMap<Entity, CharacterAnimation>,
     pub transforms: HashMap<Entity, Transform>,
     pub rigid_body_type: HashMap<Entity, RigidBodyType>,
     pub kinematic_character: HashMap<Entity, KinematicCharacter>,
@@ -94,5 +96,6 @@ pub enum EntityUpdateKind {
     KinematicCharacterControllerProps(KinematicCharacterControllerProps),
     Collider(Collider),
     PositionRotation((Real, Real, Real)),
+    AnimatedSpriteResource(ResourcePath),
     Gid(Gid),
 }

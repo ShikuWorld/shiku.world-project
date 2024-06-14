@@ -8,3 +8,5 @@ pub mod ecs;
 pub mod resource_loader;
 
 pub mod resource_cache;
+
+pub mod character_animation;

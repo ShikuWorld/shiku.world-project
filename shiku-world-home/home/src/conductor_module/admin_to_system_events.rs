@@ -389,6 +389,9 @@ pub async fn handle_admin_to_system_event(
                 ResourceLoaded::Tileset(tileset) => {
                     send_editor_event(EditorEvent::SetTileset(tileset));
                 }
+                ResourceLoaded::CharacterAnimation(character_animation) => {
+                    send_editor_event(EditorEvent::SetCharacterAnimation(character_animation));
+                }
                 ResourceLoaded::Scene(scene) => {
                     send_editor_event(EditorEvent::SetScene(scene));
                 }
@@ -692,6 +695,40 @@ pub async fn handle_admin_to_system_event(
                 }
             }
         }
+        AdminToSystemEvent::CreateCharacterAnimation(module_id, character_animation) => {
+            match Blueprint::create_character_animation(&character_animation) {
+                Ok(()) => {
+                    update_module_with_resource(
+                        module_id,
+                        BlueprintResource::from(&character_animation),
+                    );
+                    send_editor_event(EditorEvent::CreatedCharacterAnimation(character_animation));
+                }
+                Err(err) => {
+                    error!("Could not create character animation {:?}", err);
+                }
+            }
+        }
+        AdminToSystemEvent::UpdateCharacterAnimation(character_animation) => {
+            match Blueprint::save_character_animation(&character_animation) {
+                Ok(()) => {
+                    send_editor_event(EditorEvent::SetCharacterAnimation(character_animation));
+                }
+                Err(err) => {
+                    debug!("Could not save character animatino: {:?}", err);
+                }
+            }
+        }
+        AdminToSystemEvent::DeleteCharacterAnimation(character_animation) => {
+            match Blueprint::delete_character_animation(&character_animation) {
+                Ok(()) => {
+                    send_editor_event(EditorEvent::DeletedCharacterAnimation(character_animation));
+                }
+                Err(err) => {
+                    debug!("Could not delete character animatino: {:?}", err);
+                }
+            }
+        }
         AdminToSystemEvent::CreateScript(module_id, script) => {
             match Blueprint::create_script(&script) {
                 Ok(()) => {
@@ -699,7 +736,7 @@ pub async fn handle_admin_to_system_event(
                     send_editor_event(EditorEvent::CreatedScript(script));
                 }
                 Err(err) => {
-                    error!("Could not create tileset {:?}", err);
+                    error!("Could not create script {:?}", err);
                 }
             }
         }
@@ -723,7 +760,7 @@ pub async fn handle_admin_to_system_event(
                         send_editor_event(EditorEvent::SetScript(script));
                     }
                     Err(err) => {
-                        debug!("Could not create script: {:?}", err);
+                        debug!("Could not update script: {:?}", err);
                     }
                 }
             }
@@ -745,7 +782,7 @@ pub async fn handle_admin_to_system_event(
                     send_editor_event(EditorEvent::DeletedScript(script));
                 }
                 Err(err) => {
-                    debug!("Could not create script: {:?}", err);
+                    debug!("Could not delete script: {:?}", err);
                 }
             }
         }

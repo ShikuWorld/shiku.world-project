@@ -42411,6 +42411,12 @@ ${e3}`);
       window.medium_gui.resources.update_map(d3);
     }).with({ DeletedMap: _.select() }, (d3) => {
       window.medium_gui.resources.delete_map(d3);
+    }).with({ CreatedCharacterAnimation: _.select() }, (d3) => {
+      window.medium_gui.resources.set_character_animation(d3);
+    }).with({ SetCharacterAnimation: _.select() }, (d3) => {
+      window.medium_gui.resources.set_character_animation(d3);
+    }).with({ DeletedCharacterAnimation: _.select() }, (d3) => {
+      window.medium_gui.resources.delete_character_animation(d3);
     }).with({ UpdatedConductor: _.select() }, (d3) => {
       window.medium_gui.resources.set_conductor(d3);
     }).with({ ModuleInstances: _.select() }, (d3) => {
