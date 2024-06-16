@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use ts_rs::TS;
 
-pub type StateName = String;
-pub type TransitionName = String;
+pub type StateName = u32;
+pub type TransitionName = u32;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[ts(export, export_to = "blueprints/")]
@@ -35,7 +35,7 @@ pub struct CharacterAnimation {
 #[ts(export, export_to = "blueprints/")]
 pub struct CharacterAnimationState {
     name: String,
-    animation: Animation,
+    frames: Vec<CharacterAnimationFrame>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -61,8 +61,7 @@ impl CharacterAnimationFrame {
     }
 }
 
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export, export_to = "blueprints/")]
+#[derive(Debug, Clone)]
 pub struct Animation {
     current_frame_time_in_ms: Real,
     current_total_time_in_ms: Real,

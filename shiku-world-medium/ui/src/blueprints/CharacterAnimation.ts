@@ -2,4 +2,4 @@
 import type { CharacterAnimationState } from "./CharacterAnimationState";
 import type { CharacterDirection } from "./CharacterDirection";
 
-export interface CharacterAnimation { id: string, name: string, resource_path: string, tileset_resource: string, current_direction: CharacterDirection, current_state: string, current_gid_inside_tile: number, states: Record<string, CharacterAnimationState>, transitions: Record<string, Record<string, string>>, }
+export interface CharacterAnimation { id: string, name: string, resource_path: string, tileset_resource: string, current_direction: CharacterDirection, current_state: number, current_gid_inside_tile: number, states: Record<number, CharacterAnimationState>, transitions: Record<number, Record<number, number>>, }

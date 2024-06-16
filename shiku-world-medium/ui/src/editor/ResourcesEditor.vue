@@ -47,6 +47,12 @@
                 >Script</v-list-item-title
               >
             </v-list-item>
+            <v-list-item v-if="selected_module">
+              <v-list-item-title
+                @click="create_character_animation_dialog = true"
+                >Character Animation</v-list-item-title
+              >
+            </v-list-item>
           </v-list>
         </v-menu>
         <v-dialog v-model="create_tileset_dialog" width="800">
@@ -73,6 +79,13 @@
             @close="create_script_dialog = false"
             @save="save_script"
           ></CreateScript>
+        </v-dialog>
+        <v-dialog v-model="create_character_animation_dialog" width="800">
+          <CreateCharacterAnimation
+            :module="selected_module"
+            @close="create_character_animation_dialog = false"
+            @save="save_character_animation"
+          ></CreateCharacterAnimation>
         </v-dialog>
       </v-window-item>
       <v-window-item
@@ -107,11 +120,14 @@ import { Scene } from "@/editor/blueprints/Scene";
 import { use_resources_store } from "@/editor/stores/resources";
 import { Script } from "@/editor/blueprints/Script";
 import CreateScript from "@/editor/editor/CreateScript.vue";
+import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
+import CreateCharacterAnimation from "@/editor/editor/CreateCharacterAnimation.vue";
 
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
 const create_scene_dialog = ref(false);
 const create_script_dialog = ref(false);
+const create_character_animation_dialog = ref(false);
 const { close_resource, set_selected_tile, set_inspector_component } =
   use_editor_store();
 const { open_resource_paths, selected_resource_tab, selected_module_id } =
@@ -124,6 +140,7 @@ const {
   get_module,
   get_resource_server,
   create_script_server,
+  create_character_animation_server,
 } = use_resources_store();
 const { modules, tileset_map } = storeToRefs(use_resources_store());
 const available_resources = computed(
@@ -198,6 +215,14 @@ function save_scene(scene: Scene) {
 function save_script(script: Script) {
   create_script_dialog.value = false;
   create_script_server(selected_module_id.value, script);
+}
+
+function save_character_animation(character_animation: CharacterAnimation) {
+  create_character_animation_dialog.value = false;
+  create_character_animation_server(
+    selected_module_id.value,
+    character_animation,
+  );
 }
 </script>
 <style></style>

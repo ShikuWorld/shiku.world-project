@@ -372,6 +372,14 @@ export const use_resources_store = defineStore("resources", () => {
     update_script_server(script: Script) {
       send_admin_event({ UpdateScript: script });
     },
+    create_character_animation_server(
+      module_id: string,
+      character_animation: CharacterAnimation,
+    ) {
+      send_admin_event({
+        CreateCharacterAnimation: [module_id, character_animation],
+      });
+    },
     update_instance_node(
       module_id: string,
       game_instance_id: string,
