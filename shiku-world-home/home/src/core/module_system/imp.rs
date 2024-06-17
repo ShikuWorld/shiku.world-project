@@ -1,7 +1,7 @@
 use flume::Sender;
 use log::{debug, error};
 use rapier2d::math::Real;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tokio::time::Instant;
 
 use crate::core::blueprint::def::{
@@ -47,6 +47,7 @@ impl DynamicGameModule {
             admin_to_world: LazyHashmapSet::new(),
             world_to_admin: LazyHashmapSet::new(),
             world_to_guest: LazyHashmapSet::new(),
+            connected_actor_set: HashSet::new(),
             gid_to_collision_shape_map,
             module_communication: ModuleCommunication::new(
                 module_input_receiver,
@@ -155,6 +156,7 @@ impl DynamicGameModule {
                 &mut self.module_communication,
                 &self.world_to_guest,
                 &self.world_to_admin,
+                &self.connected_actor_set,
                 ModuleInstanceEvent {
                     module_id: self.module_id.clone(),
                     instance_id: self.instance_id.clone(),
@@ -244,6 +246,7 @@ impl DynamicGameModule {
                 &mut self.module_communication,
                 &self.world_to_guest,
                 &self.world_to_admin,
+                &self.connected_actor_set,
                 update_position_event,
                 "Could not send entity update",
             );
@@ -328,6 +331,7 @@ impl DynamicGameModule {
                 &mut self.module_communication,
                 &self.world_to_guest,
                 &self.world_to_admin,
+                &self.connected_actor_set,
                 entity_update_event,
                 "Could not send entity update",
             );
@@ -349,6 +353,7 @@ impl DynamicGameModule {
             &mut self.module_communication,
             &self.world_to_guest,
             &self.world_to_admin,
+            &self.connected_actor_set,
             entity_removed_event,
             "Could not send entity remove event",
         );
@@ -377,6 +382,7 @@ impl DynamicGameModule {
                         &mut self.module_communication,
                         &self.world_to_guest,
                         &self.world_to_admin,
+                        &self.connected_actor_set,
                         add_entity_event,
                         "Could not send entity add event",
                     );
@@ -411,6 +417,7 @@ impl DynamicGameModule {
                     &mut self.module_communication,
                     &self.world_to_guest,
                     &self.world_to_admin,
+                    &self.connected_actor_set,
                     terrain_update,
                     "Could not send terrain update",
                 );
@@ -464,10 +471,11 @@ impl DynamicGameModule {
         module_communication: &mut ModuleCommunication,
         world_to_guest: &LazyHashmapSet<WorldId, ActorId>,
         world_to_admin: &LazyHashmapSet<WorldId, ActorId>,
+        connected_actors_set: &HashSet<ActorId>,
         event: ModuleInstanceEvent<GameSystemToGuestEvent>,
         custom_error_msg: &str,
     ) {
-        if let (Some(guest_ids), Some(admin_ids)) = (
+        if let (Some(actor_id), Some(admin_ids)) = (
             world_to_guest.hashset(world_id),
             world_to_admin.hashset(world_id),
         ) {
@@ -484,13 +492,17 @@ impl DynamicGameModule {
                         custom_error_msg,
                     );
                 };
-            for guest_id in guest_ids {
-                send_event_update(*guest_id, event.clone());
+            for guest_id in actor_id {
+                if connected_actors_set.contains(guest_id) {
+                    send_event_update(*guest_id, event.clone());
+                }
             }
             let mut admin_event = event;
             admin_event.world_id = Some(world_id.clone());
             for admin_id in admin_ids {
-                send_event_update(*admin_id, admin_event.clone());
+                if connected_actors_set.contains(admin_id) {
+                    send_event_update(*admin_id, admin_event.clone());
+                }
             }
         }
     }
@@ -703,9 +715,10 @@ impl DynamicGameModule {
         self.admins.entry(admin.id).or_insert(ModuleAdmin {
             id: admin.id,
             last_input_time: Instant::now(),
-            connected: false,
+            connected: true,
             resources_loaded: false,
         });
+        self.connected_actor_set.insert(admin.id);
 
         if let Some(world) = self.world_map.get_mut(&world_id) {
             world.actor_joined_world(admin.id);
@@ -749,6 +762,7 @@ impl DynamicGameModule {
                 world_id: None,
             },
         );
+        self.connected_actor_set.insert(guest.id);
 
         Ok(EnterSuccessState::Entered)
     }

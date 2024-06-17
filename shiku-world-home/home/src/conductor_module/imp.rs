@@ -264,6 +264,11 @@ impl ConductorModule {
 
                         self.ws_to_admin_map.insert(connection_id, admin.id);
                         admin.ws_connection_id = Some(connection_id);
+
+                        for module in self.module_map.values_mut() {
+                            module.set_admin_connected_state(&admin.id, true);
+                        }
+
                         admin.id
                     } else {
                         debug!("Created new admin!");
@@ -418,6 +423,9 @@ impl ConductorModule {
                 debug!("admin connection lost {:?}", &admin_id);
                 if let Some(admin) = self.admins.get_mut(&admin_id) {
                     admin.ws_connection_id = None;
+                    for module in self.module_map.values_mut() {
+                        module.set_admin_connected_state(&admin.id, false);
+                    }
                 } else {
                     debug!("Admin {:?} logged in somewhere else it seems.", admin_id);
                 }
@@ -505,7 +513,7 @@ impl ConductorModule {
         if let Some(ws_connection_id) = &admin.ws_connection_id {
             websocket_module.send_event(ws_connection_id, event_as_string);
         } else {
-            debug!("Could not send to guest '{:?}' no active connection", admin);
+            error!("Could not send to admin '{:?}' no active connection", admin);
         }
     }
 

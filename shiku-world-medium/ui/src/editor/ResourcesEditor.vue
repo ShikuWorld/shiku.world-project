@@ -98,8 +98,15 @@
           "
           :tileset="tileset_map[resource_key(resource)]"
           @tile_selected="on_tile_selected"
-        ></TilesetEditor
-      ></v-window-item>
+        ></TilesetEditor>
+        <CharacterAnimationEditor
+          v-if="
+            resource.kind === 'CharacterAnimation' &&
+            character_animation_map[resource_key(resource)]
+          "
+          :character-animation="character_animation_map[resource_key(resource)]"
+        ></CharacterAnimationEditor>
+      </v-window-item>
     </v-window>
   </div>
 </template>
@@ -122,6 +129,7 @@ import { Script } from "@/editor/blueprints/Script";
 import CreateScript from "@/editor/editor/CreateScript.vue";
 import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
 import CreateCharacterAnimation from "@/editor/editor/CreateCharacterAnimation.vue";
+import CharacterAnimationEditor from "@/editor/editor/CharacterAnimationEditor.vue";
 
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
@@ -142,7 +150,9 @@ const {
   create_script_server,
   create_character_animation_server,
 } = use_resources_store();
-const { modules, tileset_map } = storeToRefs(use_resources_store());
+const { modules, tileset_map, character_animation_map } = storeToRefs(
+  use_resources_store(),
+);
 const available_resources = computed(
   () =>
     new Map(
@@ -190,7 +200,9 @@ function ensure_resources_are_loaded() {
         console.log("hm Script?", r);
       })
       .with({ kind: "CharacterAnimation" }, (r) => {
-        console.log("hm CharacterAnimation?", r);
+        if (!tileset_map.value[resource_key(r)]) {
+          get_resource_server(r.path);
+        }
       })
       .with({ kind: "Unknown" }, () => {})
       .exhaustive();

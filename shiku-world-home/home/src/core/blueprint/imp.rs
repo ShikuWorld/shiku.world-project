@@ -128,6 +128,7 @@ impl BlueprintService {
             [_, "scene", "json"] => ResourceKind::Scene,
             [_, "script", "json"] => ResourceKind::Script,
             [_, "map", "json"] => ResourceKind::Map,
+            [_, "char_anim", "json"] => ResourceKind::CharacterAnimation,
             _ => ResourceKind::Unknown,
         }
     }

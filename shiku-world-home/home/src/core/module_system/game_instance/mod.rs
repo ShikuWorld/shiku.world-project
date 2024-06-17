@@ -113,6 +113,7 @@ impl GameInstanceManager {
     > {
         let (input_sender, input_receiver, output_sender, output_receiver) =
             create_module_communication();
+
         let manager = GameInstanceManager {
             game_instances: HashMap::new(),
             inactive_game_instances: Vec::new(),
@@ -189,6 +190,31 @@ impl GameInstanceManager {
             game_instance
                 .dynamic_module
                 .update_world_map(world_id, layer_kind, chunk);
+        }
+    }
+
+    pub fn set_admin_connected_state(&mut self, admin_id: &ActorId, connected: bool) {
+        if let Some(game_instance_ids) = self.active_admins.get(admin_id) {
+            for game_instance_id in game_instance_ids {
+                if let Some(game_instance) = self.game_instances.get_mut(game_instance_id) {
+                    if connected {
+                        game_instance
+                            .dynamic_module
+                            .connected_actor_set
+                            .insert(*admin_id);
+                    } else {
+                        game_instance
+                            .dynamic_module
+                            .connected_actor_set
+                            .remove(admin_id);
+                    }
+                    if let Some(module_admin) =
+                        game_instance.dynamic_module.admins.get_mut(admin_id)
+                    {
+                        module_admin.connected = connected;
+                    }
+                }
+            }
         }
     }
 

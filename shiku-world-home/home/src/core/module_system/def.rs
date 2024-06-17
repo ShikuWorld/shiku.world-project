@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use tokio::time::Instant;
 
@@ -40,6 +40,7 @@ pub struct DynamicGameModule {
     pub gid_to_collision_shape_map: HashMap<Gid, CollisionShape>,
     pub guests: GuestMap,
     pub admins: AdminMap,
+    pub connected_actor_set: HashSet<ActorId>,
     pub world_to_admin: LazyHashmapSet<WorldId, ActorId>,
     pub world_to_guest: LazyHashmapSet<WorldId, ActorId>,
     pub admin_to_world: LazyHashmapSet<ActorId, WorldId>,
