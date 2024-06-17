@@ -19,7 +19,7 @@ pub struct ResourceCache {
     pub maps: RwLock<HashMap<ResourcePath, GameMap>>,
     pub scenes: RwLock<HashMap<ResourcePath, Scene>>,
     pub scripts: RwLock<HashMap<ResourcePath, Script>>,
-    pub character_animation: RwLock<HashMap<ResourcePath, CharacterAnimation>>,
+    pub character_animations: RwLock<HashMap<ResourcePath, CharacterAnimation>>,
     pub modules: RwLock<HashMap<ResourcePath, Module>>,
 }
 
@@ -31,7 +31,7 @@ pub fn get_resource_cache() -> &'static ResourceCache {
         maps: RwLock::new(HashMap::new()),
         scenes: RwLock::new(HashMap::new()),
         scripts: RwLock::new(HashMap::new()),
-        character_animation: RwLock::new(HashMap::new()),
+        character_animations: RwLock::new(HashMap::new()),
         modules: RwLock::new(HashMap::new()),
     })
 }
@@ -87,6 +87,19 @@ pub fn init_resource_cache() -> Result<(), BlueprintError> {
                     .write()
                     .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
                     .insert(full_resource_path.display().to_string(), script);
+                debug!("Successfully loaded {:?}", full_resource_path.display());
+            }
+            FileBrowserFileKind::CharacterAnimation => {
+                let character_animation =
+                    Blueprint::load_from_file(PathBuf::from(full_resource_path))?;
+                resources
+                    .character_animations
+                    .write()
+                    .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
+                    .insert(
+                        full_resource_path.display().to_string(),
+                        character_animation,
+                    );
                 debug!("Successfully loaded {:?}", full_resource_path.display());
             }
             FileBrowserFileKind::Folder | FileBrowserFileKind::Conductor => {}

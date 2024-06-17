@@ -459,6 +459,9 @@ export const use_resources_store = defineStore("resources", () => {
     update_tileset_server(resource_path: string, tile_update: TilesetUpdate) {
       send_admin_event({ UpdateTileset: [resource_path, tile_update] });
     },
+    update_character_animation_server(character_animation: CharacterAnimation) {
+      send_admin_event({ UpdateCharacterAnimation: character_animation });
+    },
     delete_tileset_server(tileset: Tileset) {
       send_admin_event({ DeleteTileset: tileset });
     },

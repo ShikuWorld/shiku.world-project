@@ -68,6 +68,7 @@ impl BlueprintService {
                 FileBrowserFileKind::Scene
                 | FileBrowserFileKind::Tileset
                 | FileBrowserFileKind::Map
+                | FileBrowserFileKind::CharacterAnimation
                 | FileBrowserFileKind::Script => {
                     file_browser_entry.resources.push(BlueprintResource {
                         file_name: file_name.to_string(),
@@ -192,6 +193,7 @@ impl BlueprintService {
             [_, "scene", "json"] => FileBrowserFileKind::Scene,
             [_, "script", "json"] => FileBrowserFileKind::Script,
             [_, "module", "json"] => FileBrowserFileKind::Module,
+            [_, "char_anim", "json"] => FileBrowserFileKind::CharacterAnimation,
             [_] => FileBrowserFileKind::Folder,
             _ => FileBrowserFileKind::Unknown,
         }
@@ -237,6 +239,7 @@ impl From<FileBrowserFileKind> for ResourceKind {
             | FileBrowserFileKind::Unknown
             | FileBrowserFileKind::Conductor
             | FileBrowserFileKind::Module => ResourceKind::Unknown,
+            FileBrowserFileKind::CharacterAnimation => ResourceKind::CharacterAnimation,
             FileBrowserFileKind::Map => ResourceKind::Map,
             FileBrowserFileKind::Tileset => ResourceKind::Tileset,
             FileBrowserFileKind::Script => ResourceKind::Script,

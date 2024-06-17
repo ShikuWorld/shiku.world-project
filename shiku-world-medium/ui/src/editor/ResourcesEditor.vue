@@ -92,6 +92,7 @@
         v-for="resource in open_resources"
         :key="resource.path"
         :value="resource.path"
+        style="min-width: 800px; min-height: 800px"
         ><TilesetEditor
           v-if="
             resource.kind === 'Tileset' && tileset_map[resource_key(resource)]
@@ -105,6 +106,7 @@
             character_animation_map[resource_key(resource)]
           "
           :character-animation="character_animation_map[resource_key(resource)]"
+          @select_animation_node="on_node_selected"
         ></CharacterAnimationEditor>
       </v-window-item>
     </v-window>
@@ -161,12 +163,16 @@ const available_resources = computed(
       ),
     ),
 );
+const on_node_selected = (node_id: number) => {
+  console.log(node_id);
+  set_inspector_component("character_animation_state");
+};
 const selected_module = computed(() => get_module(selected_module_id.value));
 const open_resources = computed(
   () =>
-    open_resource_paths.value.map((path) =>
-      available_resources.value.get(path),
-    ) as BlueprintResource[],
+    open_resource_paths.value
+      .map((path) => available_resources.value.get(path))
+      .filter((b) => !!b) as BlueprintResource[],
 );
 
 watch(open_resources, () => {

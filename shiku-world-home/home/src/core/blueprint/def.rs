@@ -65,6 +65,7 @@ pub enum FileBrowserFileKind {
     Script,
     Scene,
     Folder,
+    CharacterAnimation,
     Unknown,
 }
 

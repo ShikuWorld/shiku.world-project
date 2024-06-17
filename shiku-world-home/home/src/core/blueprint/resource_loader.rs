@@ -218,13 +218,14 @@ impl Blueprint {
             character_animation,
             &character_animation.resource_path,
             &character_animation.name,
-            &resources.character_animation,
+            &resources.character_animations,
         )
     }
 
     pub fn load_character_animation(path: PathBuf) -> Result<CharacterAnimation, BlueprintError> {
         let resources = get_resource_cache();
-        Self::load(path, &resources.character_animation)
+        debug!("path {:?}", path.display());
+        Self::load(path, &resources.character_animations)
     }
 
     pub fn save_character_animation(
@@ -235,7 +236,7 @@ impl Blueprint {
             character_animation,
             &character_animation.resource_path,
             &character_animation.name,
-            &resources.character_animation,
+            &resources.character_animations,
         )
     }
 
@@ -246,7 +247,7 @@ impl Blueprint {
         Self::delete(
             &character_animation.resource_path,
             &character_animation.name,
-            &resources.character_animation,
+            &resources.character_animations,
         )
     }
 

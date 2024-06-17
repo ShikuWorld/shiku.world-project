@@ -17,6 +17,7 @@ export type InspectorComponent =
   | "tile"
   | "map"
   | "game_node"
+  | "character_animation_state"
   | "nothing";
 
 export interface EditorStore {
