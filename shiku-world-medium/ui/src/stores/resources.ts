@@ -101,6 +101,17 @@ export const use_resources_store = defineStore("resources", () => {
 
       return map_map[path];
     },
+    get_or_load_character_animation(
+      character_animation_map: { [resource_path: string]: CharacterAnimation },
+      path: string,
+    ): CharacterAnimation | undefined {
+      if (!character_animation_map[path]) {
+        this.get_resource_server(path);
+        return undefined;
+      }
+
+      return character_animation_map[path];
+    },
     get_or_load_tileset(
       tileset_map: { [resource_path: string]: Tileset },
       path: string,
@@ -347,6 +358,9 @@ export const use_resources_store = defineStore("resources", () => {
     },
     save_conductor_server(conductor: Conductor) {
       send_admin_event({ UpdateConductor: conductor });
+    },
+    save_character_animation_server(character_animation: CharacterAnimation) {
+      send_admin_event({ UpdateCharacterAnimation: character_animation });
     },
     set_conductor(conductor: Conductor) {
       state.conductor = conductor;

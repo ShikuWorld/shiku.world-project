@@ -121,6 +121,15 @@
           :tile_id="selected_tile_id"
         ></TileEditor>
       </div>
+      <div v-if="active_component === 'character_animation_state'">
+        <CharacterAnimationNodeInspector
+          v-if="selected_character_animation"
+          :character_animation="selected_character_animation"
+          :selected_state_id="
+            component_stores.character_animation.selected_state_id
+          "
+        ></CharacterAnimationNodeInspector>
+      </div>
     </div>
   </div>
 </template>
@@ -159,6 +168,7 @@ import { Entity } from "@/editor/blueprints/Entity";
 import { Scene } from "@/editor/blueprints/Scene";
 import RhaiEditor from "@/editor/editor/RhaiEditor.vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
+import CharacterAnimationNodeInspector from "@/editor/editor/CharacterAnimationNodeInspector.vue";
 
 const {
   selected_module_id,
@@ -207,9 +217,21 @@ const reset_selected_world = function () {
 
 const { game_instance_data_map } = storeToRefs(use_game_instances_store());
 
-const { game_map_map, tileset_map, scene_map } = storeToRefs(
-  use_resources_store(),
-);
+const selected_character_animation = computed(() => {
+  if (
+    component_stores.value.character_animation.character_animation_resource_path
+  ) {
+    return get_or_load_character_animation(
+      character_animation_map.value,
+      component_stores.value.character_animation
+        .character_animation_resource_path,
+    );
+  }
+  return undefined;
+});
+
+const { game_map_map, tileset_map, scene_map, character_animation_map } =
+  storeToRefs(use_resources_store());
 const {
   get_module,
   get_or_load_tileset,
@@ -217,6 +239,7 @@ const {
   update_map_server,
   get_or_load_scene,
   get_or_load_map,
+  get_or_load_character_animation,
   remove_child_from_scene_on_server,
   add_child_to_scene_on_server,
 } = use_resources_store();
@@ -598,7 +621,7 @@ function open_resource_editor(resource: BlueprintResource) {
 
 .editor-nav-left,
 .editor-nav-right {
-  width: 200px;
+  width: 250px;
   height: calc(100vh - 48px);
   background-color: rgb(var(--v-theme-primary));
 }

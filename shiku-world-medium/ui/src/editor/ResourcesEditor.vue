@@ -105,8 +105,10 @@
             resource.kind === 'CharacterAnimation' &&
             character_animation_map[resource_key(resource)]
           "
-          :character-animation="character_animation_map[resource_key(resource)]"
-          @select_animation_node="on_node_selected"
+          :character_animation="character_animation_map[resource_key(resource)]"
+          @select_animation_node="
+            (state_id) => on_node_selected(state_id, resource_key(resource))
+          "
         ></CharacterAnimationEditor>
       </v-window-item>
     </v-window>
@@ -132,12 +134,14 @@ import CreateScript from "@/editor/editor/CreateScript.vue";
 import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
 import CreateCharacterAnimation from "@/editor/editor/CreateCharacterAnimation.vue";
 import CharacterAnimationEditor from "@/editor/editor/CharacterAnimationEditor.vue";
+import { use_inspector_store } from "@/editor/stores/inspector";
 
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
 const create_scene_dialog = ref(false);
 const create_script_dialog = ref(false);
 const create_character_animation_dialog = ref(false);
+const { select_character_animation_state } = use_inspector_store();
 const { close_resource, set_selected_tile, set_inspector_component } =
   use_editor_store();
 const { open_resource_paths, selected_resource_tab, selected_module_id } =
@@ -163,8 +167,8 @@ const available_resources = computed(
       ),
     ),
 );
-const on_node_selected = (node_id: number) => {
-  console.log(node_id);
+const on_node_selected = (state_id: number, resource_path: string) => {
+  select_character_animation_state(state_id, resource_path);
   set_inspector_component("character_animation_state");
 };
 const selected_module = computed(() => get_module(selected_module_id.value));

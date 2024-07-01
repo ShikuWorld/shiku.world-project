@@ -6,20 +6,31 @@
       :edges="edges"
       @nodeClick="on_node_selected"
     >
-      <Panel position="top-left">
-        <button @click="addNode">Add node</button>
-        <button @click="deleteSelected">Delete Selected</button>
-      </Panel>
+      <template #node-custom="props">
+        <div class="custom-node">
+          {{ props.label }}
+          <TilePreviewAnimation
+            v-if="
+              character_animation_tileset &&
+              character_animation.states[Number(props.id)]
+            "
+            :tileset="character_animation_tileset"
+            :character_direction="character_animation.current_direction"
+            :animation_state="character_animation.states[Number(props.id)]"
+          ></TilePreviewAnimation>
+        </div>
+      </template>
     </VueFlow>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, toRefs } from "vue";
-import { VueFlow, Panel, useVueFlow, NodeMouseEvent } from "@vue-flow/core";
-import type { Node, Edge } from "@vue-flow/core";
+import { computed, toRefs } from "vue";
+import { VueFlow, useVueFlow, NodeMouseEvent } from "@vue-flow/core";
 import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
 import { use_resources_store } from "@/editor/stores/resources";
+import TilePreviewAnimation from "@/editor/editor/TilePreviewAnimation.vue";
+import { storeToRefs } from "pinia";
 
 function on_node_selected(event: NodeMouseEvent) {
   emit("select_animation_node", parseInt(event.node.id));
@@ -30,24 +41,34 @@ const emit = defineEmits<{
 }>();
 
 const props = defineProps<{
-  characterAnimation: CharacterAnimation;
+  character_animation: CharacterAnimation;
 }>();
 
-const { characterAnimation } = toRefs(props);
-const { update_character_animation_server } = use_resources_store();
+const { character_animation } = toRefs(props);
+const { get_or_load_tileset } = use_resources_store();
+
+const { tileset_map } = storeToRefs(use_resources_store());
+
+const character_animation_tileset = computed(() =>
+  get_or_load_tileset(
+    tileset_map.value,
+    character_animation.value.tileset_resource,
+  ),
+);
 
 const nodes = computed(() => {
-  return Object.entries(characterAnimation.value.states).map(
+  return Object.entries(character_animation.value.states).map(
     ([key, state]) => ({
       id: key,
       label: state.name,
+      type: "custom",
       position: { x: Math.random() * 400, y: Math.random() * 400 },
     }),
   );
 });
 
 const edges = computed(() => {
-  return Object.entries(characterAnimation.value.transitions).flatMap(
+  return Object.entries(character_animation.value.trans_functions).flatMap(
     ([transitionId, transitions]) => {
       return Object.entries(transitions).map(([from, to]) => ({
         id: transition_key(transitionId, from, to),
@@ -55,16 +76,6 @@ const edges = computed(() => {
         target: `${to}`,
       }));
     },
-  );
-});
-
-const last_node_id = computed(() => {
-  return (
-    Math.max(
-      ...Object.keys(characterAnimation.value.states).map((key) =>
-        parseInt(key),
-      ),
-    ) || 0
   );
 });
 
@@ -76,56 +87,14 @@ function transition_key(
   return `${transitionId}-${from}-${to}`;
 }
 
-const { removeNodes, removeEdges, findNode, onInit } = useVueFlow();
+const { findNode, onInit } = useVueFlow();
 
 onInit(() => {
-  console.log("flow initialized");
   const node = findNode("0");
 
   if (node) {
-    console.log(node);
     node.position = { x: 100, y: 100 };
   }
-});
-
-const selectedNode = ref<Node | null>(null);
-const selectedEdge = ref<Edge | null>(null);
-const selectedNodeId = computed<number | null>(() =>
-  selectedNode.value?.id ? parseInt(selectedNode.value.id) : null,
-);
-const selectedEdgeId = computed<number | null>(() =>
-  selectedEdge.value?.id ? parseInt(selectedEdge.value.id) : null,
-);
-
-function addNode() {
-  const newNodeId = last_node_id.value + 1;
-  update_character_animation_server({
-    ...characterAnimation.value,
-    states: {
-      ...characterAnimation.value.states,
-      [newNodeId]: {
-        name: "New State",
-        frames: [],
-      },
-    },
-  });
-}
-
-function deleteSelected() {
-  if (selectedNode.value && selectedNodeId.value) {
-    delete characterAnimation.value.states[selectedNodeId.value];
-    removeNodes([selectedNode.value.id]);
-    selectedNode.value = null;
-  }
-  if (selectedEdge.value && selectedEdgeId.value) {
-    delete characterAnimation.value.transitions[selectedEdgeId.value];
-    removeEdges([selectedEdge.value.id]);
-    selectedEdge.value = null;
-  }
-}
-
-watch(characterAnimation, () => {
-  // TODO: Handle graph changes
 });
 </script>
 
@@ -137,5 +106,10 @@ watch(characterAnimation, () => {
   pointer-events: all;
   width: 1400px;
   height: 800px;
+}
+.custom-node {
+  background-color: #1a192b;
+  padding: 16px;
+  border-radius: 4px;
 }
 </style>

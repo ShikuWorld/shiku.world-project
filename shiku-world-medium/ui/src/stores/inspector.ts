@@ -13,6 +13,10 @@ export interface InspectorStore {
       selection_path?: number[];
       is_instance?: boolean;
     };
+    character_animation: {
+      character_animation_resource_path?: string;
+      selected_state_id?: number;
+    };
     nothing: undefined;
   };
 }
@@ -23,11 +27,24 @@ export const use_inspector_store = defineStore("inspector", {
       game_node: {},
       map: "",
       module: "",
+      character_animation: {},
       nothing: undefined,
       tile: "",
     },
   }),
   actions: {
+    select_character_animation_state(
+      selected_state_id: number,
+      character_animation_resource_path: string,
+    ) {
+      this.component_stores = {
+        ...this.component_stores,
+        character_animation: {
+          selected_state_id,
+          character_animation_resource_path,
+        },
+      };
+    },
     select_game_node(
       scene_resource_path: string,
       selected_game_node_id: string,

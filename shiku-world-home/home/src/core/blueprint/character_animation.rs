@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use ts_rs::TS;
 
-pub type StateName = u32;
-pub type TransitionName = u32;
+pub type StateId = u32;
+pub type TransitionId = u32;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[ts(export, export_to = "blueprints/")]
@@ -25,10 +25,17 @@ pub struct CharacterAnimation {
     pub resource_path: String,
     pub tileset_resource: String,
     pub current_direction: CharacterDirection,
-    pub current_state: StateName,
+    pub current_state: StateId,
     pub current_gid_inside_tile: Gid,
-    pub states: HashMap<StateName, CharacterAnimationState>,
-    pub transitions: HashMap<TransitionName, HashMap<StateName, StateName>>,
+    pub states: HashMap<StateId, CharacterAnimationState>,
+    pub trans_functions: HashMap<TransitionId, CharacterTransitionFunctions>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct CharacterTransitionFunctions {
+    name: String,
+    possible_transitions: HashMap<StateId, StateId>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

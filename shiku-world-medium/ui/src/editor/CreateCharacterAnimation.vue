@@ -47,7 +47,7 @@ const character_animation = reactive<CharacterAnimation>({
   current_state: 0,
   current_gid_inside_tile: 0,
   states: { 0: { name: "Idle", frames: [] } },
-  transitions: {},
+  trans_functions: {},
 });
 
 const emit = defineEmits<{
