@@ -224,7 +224,6 @@ impl GameNodeScript {
                             }
                         }
                         if updated {
-                            debug!("Updating map");
                             let mut new_map = HashMap::new();
                             for (key, value) in scope_value.iter() {
                                 new_map.insert(key.clone().into(), value.clone().into());

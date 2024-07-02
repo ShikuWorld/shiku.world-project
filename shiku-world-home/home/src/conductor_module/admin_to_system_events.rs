@@ -710,6 +710,16 @@ pub async fn handle_admin_to_system_event(
             }
         }
         AdminToSystemEvent::UpdateCharacterAnimation(character_animation) => {
+            for module_id in resource_to_module_map
+                .entry(character_animation.get_full_resource_path())
+                .or_default()
+                .iter()
+            {
+                if let Some(module) = module_map.get_mut(module_id) {
+                    module.update_character_animation(&character_animation);
+                }
+            }
+
             match Blueprint::save_character_animation(&character_animation) {
                 Ok(()) => {
                     send_editor_event(EditorEvent::SetCharacterAnimation(character_animation));

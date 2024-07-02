@@ -9,15 +9,15 @@ use serde::{Deserialize, Serialize};
 use smartstring::{LazyCompact, SmartString};
 use ts_rs::TS;
 
-use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::ApiShare;
 use remove_entity::RemoveEntity;
 
 use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
+use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
 use crate::core::blueprint::scene::def::{
     Collider, GameNodeId, GameNodeKindClean, KinematicCharacterControllerProps, Node2DKindClean,
-    NodeInstanceId, RenderKindClean, RigidBodyType, SceneId, Transform,
+    NodeInstanceId, RenderKind, RenderKindClean, RigidBodyType, SceneId, Transform,
 };
 
 #[derive(TS, Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -67,6 +67,7 @@ pub struct EntityMaps {
     pub collider: HashMap<Entity, Collider>,
     pub collider_handle: HashMap<Entity, ColliderHandle>,
     pub dirty: HashMap<Entity, bool>,
+    pub view_dirty: HashMap<Entity, bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,6 +97,7 @@ pub enum EntityUpdateKind {
     KinematicCharacterControllerProps(KinematicCharacterControllerProps),
     Collider(Collider),
     PositionRotation((Real, Real, Real)),
+    RenderKind(RenderKind),
     AnimatedSpriteResource(ResourcePath),
     Gid(Gid),
 }

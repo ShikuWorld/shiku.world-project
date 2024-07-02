@@ -80,8 +80,8 @@ fn get_render_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<Render> {
                     .get(entity)
                     .map(|character_animation| {
                         RenderKind::AnimatedSprite(
-                            character_animation.get_full_resource_path(),
-                            character_animation.current_gid_inside_tile,
+                            character_animation.blueprint.get_full_resource_path(),
+                            character_animation.current_gid,
                         )
                     })
             }
@@ -176,6 +176,13 @@ impl GameNodeKind {
                             }
                             RigidBodyType::Dynamic | RigidBodyType::Fixed => None,
                         }
+                    }
+                }
+            }
+            EntityUpdateKind::RenderKind(render_kind) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    if let Node2DKind::Render(render) = &mut n.data.kind {
+                        render.kind = render_kind;
                     }
                 }
             }

@@ -3,7 +3,6 @@ use std::cmp::PartialEq;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::rc::Rc;
 
-use crate::core::ApiShare;
 use log::{debug, error};
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::geometry::ColliderHandle;
@@ -11,7 +10,8 @@ use rapier2d::math::Vector;
 use rhai::{Dynamic, Engine, ImmutableString, Scope, AST};
 use smartstring::{SmartString, SmartStringMode};
 
-use crate::core::blueprint::def::ResourcePath;
+use crate::core::blueprint::def::{Gid, ResourcePath};
+use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::def::{
     DynamicMap, ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, KinematicCharacter,
     ECS,
@@ -27,6 +27,7 @@ use crate::core::blueprint::scene::def::{
 };
 use crate::core::guest::ActorId;
 use crate::core::rapier_simulation::def::RapierSimulation;
+use crate::core::ApiShare;
 
 impl From<&Scene> for ECS {
     fn from(scene: &Scene) -> Self {
@@ -75,6 +76,7 @@ impl ECS {
                     collider: HashMap::new(),
                     collider_handle: HashMap::new(),
                     dirty: HashMap::new(),
+                    view_dirty: HashMap::new(),
                 },
                 added_entities: Vec::new(),
                 removed_entities: Vec::new(),
@@ -351,12 +353,11 @@ impl ECS {
                             .insert(entity, render.layer.clone());
                         ecs.entities.render_offset.insert(entity, render.offset);
                         match &render.kind {
-                            RenderKind::AnimatedSprite(resource_path, gid) => {
+                            RenderKind::AnimatedSprite(resource_path, _) => {
                                 ecs.entities
                                     .render_kind
                                     .insert(entity, RenderKindClean::AnimatedSprite);
                                 Self::add_character_animation(ecs, entity, resource_path);
-                                ecs.entities.render_gid.insert(entity, *gid);
                             }
                             RenderKind::Sprite(gid) => {
                                 ecs.entities
@@ -385,9 +386,12 @@ impl ECS {
     fn add_character_animation(ecs: &mut ECSShared, entity: Entity, resource_path: &ResourcePath) {
         match Blueprint::load_character_animation(resource_path.into()) {
             Ok(character_animation) => {
+                let c_a: CharacterAnimation = character_animation.into();
+                ecs.entities.render_gid.insert(entity, c_a.current_gid);
                 ecs.entities
-                    .character_animation
-                    .insert(entity, character_animation);
+                    .render_kind
+                    .insert(entity, RenderKindClean::AnimatedSprite);
+                ecs.entities.character_animation.insert(entity, c_a);
             }
             Err(e) => {
                 error!("Error loading character animation: {:?}", e);
@@ -574,6 +578,19 @@ impl ECS {
             EntityUpdateKind::AnimatedSpriteResource(resource_path) => {
                 Self::add_character_animation(shared, entity, &resource_path);
             }
+            EntityUpdateKind::RenderKind(render_kind) => match render_kind {
+                RenderKind::AnimatedSprite(resource_path, _) => {
+                    Self::add_character_animation(shared, entity, &resource_path);
+                }
+                RenderKind::Sprite(gid) => {
+                    shared.entities.character_animation.remove(&entity);
+                    shared
+                        .entities
+                        .render_kind
+                        .insert(entity, RenderKindClean::Sprite);
+                    shared.entities.render_gid.insert(entity, gid);
+                }
+            },
             EntityUpdateKind::UpdateScriptScope(scope_key, scope_value) => {
                 if let Some(game_node_script) = entity_scripts.get_mut(&entity) {
                     game_node_script.update_scope(scope_key, scope_value);

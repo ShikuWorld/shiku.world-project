@@ -39303,31 +39303,6 @@ ${e3}`);
     return options;
   }
 
-  // node_modules/pixi.js/lib/scene/text/Text.mjs
-  init_CanvasTextMetrics();
-  init_TextStyle();
-  var Text = class extends AbstractText {
-    constructor(...args) {
-      const options = ensureOptions(args, "Text");
-      super(options, TextStyle);
-      this.renderPipeId = "text";
-    }
-    _updateBounds() {
-      const bounds = this._bounds;
-      const padding = this._style.padding;
-      const anchor = this._anchor;
-      const canvasMeasurement = CanvasTextMetrics.measureText(
-        this._text,
-        this._style
-      );
-      const { width, height } = canvasMeasurement;
-      bounds.minX = -anchor._x * width - padding;
-      bounds.maxX = bounds.minX + width + padding * 2;
-      bounds.minY = -anchor._y * height - padding;
-      bounds.maxY = bounds.minY + height + padding * 2;
-    }
-  };
-
   // node_modules/pixi.js/lib/scene/text-bitmap/BitmapText.mjs
   init_TextStyle();
   init_BitmapFontManager();
@@ -40612,12 +40587,10 @@ ${e3}`);
         const display_object = N2(render2.kind).with({ Sprite: _.select() }, (gid) => {
           const graphics = resource_manager.get_graphics_data_by_gid(gid);
           return resource_manager.get_sprite_from_graphics(graphics);
-        }).with(
-          { AnimatedSprite: _.select() },
-          (gid) => new Text(`Animated Sprite not implemented. gid: ${gid}`, {
-            fill: "red"
-          })
-        ).exhaustive();
+        }).with({ AnimatedSprite: _.select() }, ([_2, gid]) => {
+          const graphics = resource_manager.get_graphics_data_by_gid(gid);
+          return resource_manager.get_sprite_from_graphics(graphics);
+        }).exhaustive();
         container.addChild(display_object);
       }).with({ RigidBody: _.select() }, (rigid_body) => {
         console.log("rb", rigid_body);

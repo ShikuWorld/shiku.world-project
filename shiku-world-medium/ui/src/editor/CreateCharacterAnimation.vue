@@ -43,11 +43,9 @@ const character_animation = reactive<CharacterAnimation>({
   name: "",
   resource_path: "",
   tileset_resource: "",
-  current_direction: "Right",
-  current_state: 0,
-  current_gid_inside_tile: 0,
+  start_direction: "Right",
+  start_state: 0,
   states: { 0: { name: "Idle", frames: [] } },
-  trans_functions: {},
 });
 
 const emit = defineEmits<{

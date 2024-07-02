@@ -15,7 +15,7 @@
               character_animation.states[Number(props.id)]
             "
             :tileset="character_animation_tileset"
-            :character_direction="character_animation.current_direction"
+            :character_direction="character_animation.start_direction"
             :animation_state="character_animation.states[Number(props.id)]"
           ></TilePreviewAnimation>
         </div>
@@ -68,24 +68,16 @@ const nodes = computed(() => {
 });
 
 const edges = computed(() => {
-  return Object.entries(character_animation.value.trans_functions).flatMap(
-    ([transitionId, transitions]) => {
-      return Object.entries(transitions).map(([from, to]) => ({
-        id: transition_key(transitionId, from, to),
-        source: `${from}`,
-        target: `${to}`,
-      }));
-    },
-  );
+  return [];
 });
 
-function transition_key(
+/*function transition_key(
   transitionId: number | string,
   from: number | string,
   to: number | string,
 ) {
   return `${transitionId}-${from}-${to}`;
-}
+}*/
 
 const { findNode, onInit } = useVueFlow();
 

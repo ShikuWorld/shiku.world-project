@@ -8,7 +8,7 @@
   ></v-text-field>
   <v-select
     label="Start Direction"
-    :model-value="character_animation.current_direction"
+    :model-value="character_animation.start_direction"
     :items="character_animation_directions"
     density="compact"
     hide-details="auto"
@@ -16,7 +16,7 @@
   ></v-select>
   <v-select
     label="Start State"
-    :model-value="character_animation.current_state"
+    :model-value="character_animation.start_state"
     :items="state_options"
     item-value="value"
     item-title="label"
@@ -51,21 +51,7 @@
   </div>
   <div>
     <h4 class="header">Functions</h4>
-    <v-list lines="one">
-      <v-list-item
-        density="compact"
-        v-for="(transition, key) in character_animation.trans_functions"
-        :key="key"
-      >
-        {{ transition.name }}
-        <template v-slot:append>
-          <v-icon
-            :icon="mdiTrashCan"
-            @click="remove_transition_function(key)"
-          ></v-icon>
-        </template>
-      </v-list-item>
-    </v-list>
+    <v-list lines="one"> </v-list>
     <v-text-field
       label="State name"
       v-model="new_transition_name"
@@ -307,14 +293,14 @@ const change_name = (new_name: string) => {
 const change_current_direction = (new_direction: CharacterDirection) => {
   save_character_animation_server({
     ...character_animation.value,
-    current_direction: new_direction,
+    start_direction: new_direction,
   });
 };
 
 const change_current_state = (new_state_id: number) => {
   save_character_animation_server({
     ...character_animation.value,
-    current_state: new_state_id,
+    start_state: new_state_id,
   });
 };
 

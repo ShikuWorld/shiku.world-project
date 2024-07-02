@@ -6,7 +6,6 @@ import {
   Graphics as PixijsGraphics,
   Rectangle,
   Sprite,
-  Text,
   Texture,
   TextureSource,
 } from "pixi.js";
@@ -265,13 +264,10 @@ export function create_display_object(
               const graphics = resource_manager.get_graphics_data_by_gid(gid);
               return resource_manager.get_sprite_from_graphics(graphics);
             })
-            .with(
-              { AnimatedSprite: P.select() },
-              (gid) =>
-                new Text(`Animated Sprite not implemented. gid: ${gid}`, {
-                  fill: "red",
-                }),
-            )
+            .with({ AnimatedSprite: P.select() }, ([_, gid]) => {
+              const graphics = resource_manager.get_graphics_data_by_gid(gid);
+              return resource_manager.get_sprite_from_graphics(graphics);
+            })
             .exhaustive();
           container.addChild(display_object);
         })

@@ -13,7 +13,7 @@ use crate::core::module::GuestInput;
 use crate::core::module_system::error::{CreateWorldError, ResetWorldError};
 use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
-use crate::core::ApiShare;
+use crate::core::{ApiShare, TARGET_FRAME_DURATION};
 
 pub type WorldId = String;
 
@@ -89,6 +89,7 @@ impl World {
         if let Some(mut physics) = self.physics.try_borrow_mut() {
             physics.update();
             if let Some(mut shared_ecs) = self.ecs.shared.try_borrow_mut() {
+                Self::update_entities_gid_from_animations(&mut shared_ecs);
                 Self::update_kinematic_character_controllers(&shared_ecs, &mut physics);
                 Self::update_positions(&mut physics, &mut shared_ecs);
             }
@@ -97,6 +98,18 @@ impl World {
             game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
         }
         self.ecs.process_added_and_removed_entities();
+    }
+
+    pub fn update_entities_gid_from_animations(shared: &mut ECSShared) {
+        for (entity, character_animation) in shared.entities.character_animation.iter_mut() {
+            character_animation.run_current_animation(TARGET_FRAME_DURATION);
+            if let Some(current_gid) = shared.entities.render_gid.get_mut(entity) {
+                if character_animation.current_gid != *current_gid {
+                    *current_gid = character_animation.current_gid;
+                    shared.entities.view_dirty.insert(*entity, true);
+                }
+            }
+        }
     }
 
     pub fn update_kinematic_character_controllers(

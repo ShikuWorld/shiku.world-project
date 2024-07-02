@@ -8,6 +8,7 @@ use rhai::{Engine, ParseError, AST};
 use snowflake::SnowflakeIdBucket;
 use thiserror::Error;
 
+use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, Chunk, GameMap, Gid, JsonResource, Layer, LayerKind,
     LayerParralaxMap, ModuleId, ResourceKind, TerrainParams,
@@ -363,6 +364,14 @@ impl GameInstanceManager {
                     resource_module
                         .register_resource_for_module(self.module_blueprint.id.clone(), resource)
                 });
+        }
+    }
+
+    pub fn update_character_animation(&mut self, character_animation: &CharacterAnimation) {
+        for game_instance in self.game_instances.values_mut() {
+            game_instance
+                .dynamic_module
+                .update_character_animation(character_animation);
         }
     }
 

@@ -4,10 +4,12 @@ use rapier2d::math::Real;
 use std::collections::{HashMap, HashSet};
 use tokio::time::Instant;
 
+use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     BlueprintService, Chunk, GameMap, Gid, LayerKind, LayerParralaxMap, Module, ModuleId,
     ResourcePath, TerrainParams,
 };
+use crate::core::blueprint::ecs::character_animation::Animation;
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind};
 use crate::core::blueprint::scene::imp::build_scene_from_ecs;
@@ -232,24 +234,47 @@ impl DynamicGameModule {
             world.update();
 
             let position_updates = Self::get_position_updates(world);
-            if position_updates.is_empty() {
-                continue;
+            if !position_updates.is_empty() {
+                let update_position_event = ModuleInstanceEvent {
+                    world_id: None,
+                    module_id: self.module_id.clone(),
+                    instance_id: self.instance_id.clone(),
+                    event_type: GameSystemToGuestEvent::PositionEvent(position_updates),
+                };
+                Self::send_event_to_actors(
+                    &world.world_id,
+                    &mut self.module_communication,
+                    &self.world_to_guest,
+                    &self.world_to_admin,
+                    &self.connected_actor_set,
+                    update_position_event,
+                    "Could not send entity update",
+                );
             }
-            let update_position_event = ModuleInstanceEvent {
-                world_id: None,
-                module_id: self.module_id.clone(),
-                instance_id: self.instance_id.clone(),
-                event_type: GameSystemToGuestEvent::PositionEvent(position_updates),
-            };
-            Self::send_event_to_actors(
-                &world.world_id,
-                &mut self.module_communication,
-                &self.world_to_guest,
-                &self.world_to_admin,
-                &self.connected_actor_set,
-                update_position_event,
-                "Could not send entity update",
-            );
+
+            let gid_updates = Self::get_gid_updates(world);
+            if !gid_updates.is_empty() {
+                for (entity, gid) in gid_updates {
+                    let update_position_event = ModuleInstanceEvent {
+                        world_id: None,
+                        module_id: self.module_id.clone(),
+                        instance_id: self.instance_id.clone(),
+                        event_type: GameSystemToGuestEvent::UpdateEntity(EntityUpdate {
+                            id: entity,
+                            kind: EntityUpdateKind::Gid(gid),
+                        }),
+                    };
+                    Self::send_event_to_actors(
+                        &world.world_id,
+                        &mut self.module_communication,
+                        &self.world_to_guest,
+                        &self.world_to_admin,
+                        &self.connected_actor_set,
+                        update_position_event,
+                        "Could not send entity update",
+                    );
+                }
+            }
         }
     }
 
@@ -297,6 +322,26 @@ impl DynamicGameModule {
                                 transform.rotation,
                             )
                         })
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    pub fn get_gid_updates(world: &mut World) -> Vec<(Entity, Gid)> {
+        if let Some(mut shared) = world.ecs.shared.try_borrow_mut() {
+            let entities = &mut shared.entities;
+            let render_gid = &mut entities.render_gid;
+            entities
+                .view_dirty
+                .drain()
+                .filter_map(|(entity, dirty)| {
+                    if dirty {
+                        render_gid.get(&entity).map(|gid| (entity, *gid))
                     } else {
                         None
                     }
@@ -388,6 +433,25 @@ impl DynamicGameModule {
                     );
                 } else {
                     error!("Could not create game node from entity!!");
+                }
+            }
+        }
+    }
+
+    pub fn update_character_animation(&mut self, character_animation: &CharacterAnimation) {
+        for world in self.world_map.values_mut() {
+            if let Some(mut shared) = world.ecs.shared.try_borrow_mut() {
+                for c_a in shared.entities.character_animation.values_mut() {
+                    if c_a.blueprint.id == character_animation.id {
+                        if !character_animation.states.contains_key(&c_a.current_state) {
+                            c_a.current_state = character_animation.start_state;
+                        }
+                        c_a.states.clear();
+                        for (state_id, state) in &character_animation.states {
+                            c_a.states
+                                .insert(*state_id, Animation::new(state.frames.clone()));
+                        }
+                    }
                 }
             }
         }
