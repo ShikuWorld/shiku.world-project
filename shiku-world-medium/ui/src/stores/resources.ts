@@ -497,7 +497,7 @@ function send_admin_event(event: AdminToSystemEvent) {
   if (window?.medium?.communication_state?.is_connection_open) {
     window.medium.communication_state.ws_connection.send(JSON.stringify(event));
   } else {
-    console.trace("Could not send", event);
+    console.error("Could not send", event);
   }
 }
 

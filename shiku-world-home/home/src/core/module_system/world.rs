@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use rapier2d::prelude::*;
-use rhai::{Dynamic, Engine, FuncRegistration, Module as RhaiModule};
+use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
+use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpdate, ECS};
 use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
@@ -11,6 +12,7 @@ use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform
 use crate::core::guest::ActorId;
 use crate::core::module::GuestInput;
 use crate::core::module_system::error::{CreateWorldError, ResetWorldError};
+use crate::core::module_system::script_types::CharacterDirectionModule;
 use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::{ApiShare, TARGET_FRAME_DURATION};
@@ -66,8 +68,11 @@ impl World {
         Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
 
         let mut script_engine = Engine::new();
+        Self::register_types(&mut script_engine);
+        Self::setup_nodes_api(&mut script_engine, &mut ecs);
         let physics_share = ApiShare::new(physics);
         Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
+        Self::setup_animation_api(&mut script_engine, &mut ecs);
         let actor_api = ApiShare::new(ActorApi {
             actor_inputs: HashMap::new(),
             active_users: HashSet::new(),
@@ -152,7 +157,10 @@ impl World {
         self.terrain_manager.re_add_polylines(&mut physics);
         let physics_share = ApiShare::new(physics);
         let mut script_engine = Engine::new();
+        Self::register_types(&mut script_engine);
+        Self::setup_nodes_api(&mut script_engine, &mut ecs);
         Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
+        Self::setup_animation_api(&mut script_engine, &mut ecs);
         Self::setup_actor_api(&mut script_engine, &self.actor_api);
         ecs.process_added_and_removed_entities();
         Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
@@ -263,6 +271,82 @@ impl World {
             .set_into_module(&mut module, apply_impulse_to_rigid_body);
 
         engine.register_static_module("shiku::physics", module.into());
+    }
+
+    fn register_types(engine: &mut Engine) {
+        engine.register_static_module(
+            "CharacterDirection",
+            exported_module!(CharacterDirectionModule).into(),
+        );
+    }
+
+    fn setup_nodes_api(engine: &mut Engine, ecs: &mut ECS) {
+        let mut module = RhaiModule::new();
+
+        let ecs_shared = ecs.shared.clone();
+        let get_child_animation_entity = move |entity: Entity| -> Dynamic {
+            if let Some(shared) = ecs_shared.try_borrow_mut() {
+                if let Some(children) = shared.entities.game_node_children.get(&entity) {
+                    for child in children {
+                        if shared.entities.character_animation.contains_key(child) {
+                            return Dynamic::from(*child);
+                        }
+                    }
+                }
+            }
+            Dynamic::from(())
+        };
+        FuncRegistration::new("get_child_animation_entity")
+            .set_into_module(&mut module, get_child_animation_entity);
+        engine.register_static_module("shiku::nodes", module.into());
+    }
+
+    fn setup_animation_api(engine: &mut Engine, ecs: &mut ECS) {
+        let mut module = RhaiModule::new();
+
+        let ecs_shared = ecs.shared.clone();
+        let get_state = move |entity: Entity| -> Dynamic {
+            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
+                    return Dynamic::from(animation.current_state);
+                }
+            }
+            Dynamic::from(())
+        };
+        FuncRegistration::new("get_state").set_into_module(&mut module, get_state);
+
+        let ecs_shared = ecs.shared.clone();
+        let go_to_state = move |entity: Entity, state_id: StateId| {
+            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
+                    animation.go_to_state(state_id);
+                }
+            }
+        };
+        FuncRegistration::new("go_to_state").set_into_module(&mut module, go_to_state);
+
+        let ecs_shared = ecs.shared.clone();
+        let get_progress = move |entity: Entity| -> f32 {
+            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
+                    return animation.get_animation_progress();
+                }
+            }
+            0.0
+        };
+        FuncRegistration::new("get_progress").set_into_module(&mut module, get_progress);
+
+        let ecs_shared = ecs.shared.clone();
+        let set_direction = move |entity: Entity, direction: CharacterDirection| {
+            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
+                    animation.current_direction = direction;
+                }
+            }
+        };
+        FuncRegistration::new("set_direction").set_into_module(&mut module, set_direction);
+
+        engine.register_static_module("shiku::animation", module.into());
     }
 
     fn setup_actor_api(engine: &mut Engine, actor_api_share: &ApiShare<ActorApi>) {

@@ -196,6 +196,7 @@ const {
   set_inspector_component,
   start_inspecting_world,
 } = use_editor_store();
+const { set_and_render_blueprint_render } = use_game_instances_store();
 const rhai_editor = ref<typeof RhaiEditor>();
 const selected_script_resource_path = ref<string | null>();
 const { game_instance_exists } = use_game_instances_store();
@@ -246,7 +247,7 @@ const {
 
 const { component_stores } = storeToRefs(use_inspector_store());
 
-// try to load modules until window?.medium?.communication_state?.is_connection_open is set to true
+// try to load modules until window?.medium?.communication_state?.is_connection_ready is set to true
 const load_modules_interval = setInterval(() => {
   if (window?.medium?.communication_state?.is_connection_ready) {
     clearInterval(load_modules_interval);
@@ -261,6 +262,25 @@ const load_modules_interval = setInterval(() => {
         );
         // try selecting main instances as long as instance is not loaded
         const interval = setInterval(() => {
+          if (
+            inspecting_worlds.value.main &&
+            !window?.medium?.is_instance_ready(
+              inspecting_worlds.value.main.instance_id,
+              inspecting_worlds.value.main.world_id,
+            )
+          ) {
+            return;
+          }
+          if (!selected_scene_props.value.scene_path) {
+            return;
+          }
+          const scene = get_or_load_scene(
+            scene_map.value,
+            selected_scene_props.value.scene_path,
+          );
+          if (!scene) {
+            return;
+          }
           if (!inspecting_worlds.value.main) {
             clearInterval(interval);
             return;
@@ -277,6 +297,13 @@ const load_modules_interval = setInterval(() => {
                 inspecting_worlds.value.main.module_id,
                 inspecting_worlds.value.main.instance_id,
                 inspecting_worlds.value.main.world_id,
+              );
+              console.log(selected_scene_props.value, scene);
+              set_and_render_blueprint_render(
+                inspecting_worlds.value.main.module_id,
+                selected_scene_props.value.scene_path,
+                scene,
+                selected_scene_props.value.is_pinned,
               );
             }
           }

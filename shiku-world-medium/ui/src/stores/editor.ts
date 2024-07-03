@@ -37,6 +37,7 @@ export interface EditorStore {
   selected_tile_id: number;
   selected_tile_position: Point;
   selected_tile_layer: LayerKind;
+  client_connection_ready: boolean;
   selected_scene_props: {
     scene_path: string | null;
     transparency: number;
@@ -73,6 +74,7 @@ export const use_editor_store = defineStore(
       selected_resource_tab: 0,
       selected_nav_top_tab: "current",
       edit_module_id: "",
+      client_connection_ready: false,
       selected_tile_layer: "Terrain",
       current_map_index: 0,
       current_main_instance: {},
@@ -83,6 +85,20 @@ export const use_editor_store = defineStore(
         is_pinned: false,
       },
     });
+
+    setInterval(() => {
+      if (
+        window?.medium?.communication_state?.is_connection_ready &&
+        !state.client_connection_ready
+      ) {
+        state.client_connection_ready = true;
+      } else if (
+        !window?.medium?.communication_state?.is_connection_ready &&
+        state.client_connection_ready
+      ) {
+        state.client_connection_ready = false;
+      }
+    }, 100);
 
     const actions = {
       set_inspector_component(component: InspectorComponent) {
@@ -260,23 +276,38 @@ export const use_editor_store = defineStore(
 
     const { get_or_load_scene } = use_resources_store();
     const { scene_map } = toRefs(use_resources_store());
-    watch([state.selected_scene_props, scene_map], () => {
-      const scene_path = state.selected_scene_props.scene_path;
-      if (!scene_path) {
-        return;
-      }
-      const scene = get_or_load_scene(scene_map.value, scene_path);
-      if (!scene) {
-        return;
-      }
-      const { set_and_render_blueprint_render } = use_game_instances_store();
-      set_and_render_blueprint_render(
-        state.selected_module_id,
-        scene_path,
-        scene,
-        state.selected_scene_props.is_pinned,
-      );
-    });
+    watch(
+      [state.selected_scene_props, scene_map, state.client_connection_ready],
+      () => {
+        if (!state.client_connection_ready) {
+          return;
+        }
+        const scene_path = state.selected_scene_props.scene_path;
+        if (!scene_path) {
+          return;
+        }
+        const scene = get_or_load_scene(scene_map.value, scene_path);
+        if (!scene) {
+          return;
+        }
+        const { set_and_render_blueprint_render } = use_game_instances_store();
+        if (
+          state.inspecting_worlds?.main?.instance_id &&
+          state.inspecting_worlds?.main?.world_id &&
+          window.medium.is_instance_ready(
+            state.inspecting_worlds.main.instance_id,
+            state.inspecting_worlds.main.world_id,
+          )
+        ) {
+          set_and_render_blueprint_render(
+            state.selected_module_id,
+            scene_path,
+            scene,
+            state.selected_scene_props.is_pinned,
+          );
+        }
+      },
+    );
 
     return {
       ...toRefs(state),

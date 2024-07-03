@@ -81,7 +81,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         is_pinned,
         module_id,
       };
-
       if (!state.blueprint_render.render_graph_data?.render_root.container) {
         return;
       }
@@ -307,7 +306,13 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       const render_node =
         render_graph_data.entity_node_to_render_node_map[update.id];
       if (!node || !render_node) {
-        console.error("Could not update game node!");
+        console.error(
+          "Could not update game node!",
+          node,
+          render_node,
+          update,
+          render_graph_data,
+        );
         return;
       }
       const game_node = Object.values(node)[0];
@@ -318,6 +323,11 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             return;
           }
           (game_node.data as Node2D).transform = transform;
+          render_node.container.position.x =
+            transform.position[0] * RENDER_SCALE;
+          render_node.container.position.y =
+            transform.position[1] * RENDER_SCALE;
+          render_node.container.rotation = transform.rotation;
         })
         .with({ ScriptPath: P.select() }, (script) => {
           game_node.script = script;
@@ -380,7 +390,11 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                 .with({ Sprite: P.select() }, () => {
                   (render_kind as { Sprite: number }).Sprite = gid;
                 })
-                .with({ AnimatedSprite: P.select() }, () => {})
+                .with({ AnimatedSprite: P.select() }, () => {
+                  (
+                    render_kind as { AnimatedSprite: [string, number] }
+                  ).AnimatedSprite[1] = gid;
+                })
                 .exhaustive();
             })
             .run();

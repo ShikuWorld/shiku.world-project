@@ -122,7 +122,7 @@ export async function start_medium() {
         })
         .with(
           { PrepareGame: P.select() },
-          ([
+          async ([
             module_id,
             instance_id,
             w_id,
@@ -137,12 +137,13 @@ export async function start_medium() {
             resource_manager.tilesets = tilesets;
             resource_manager.set_tileset_map(tilesets);
 
-            resource_manager.load_resource_bundle(
+            await resource_manager.load_resource_bundle(
               module_id,
               instance_id,
               resource_bundle,
               true,
             );
+            console.log("afater load resource bundle", instances);
 
             if (!instances[instance_id]) {
               instances[instance_id] = {};

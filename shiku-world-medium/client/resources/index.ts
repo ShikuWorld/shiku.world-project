@@ -67,6 +67,12 @@ export class ResourceManager {
     }
   }
 
+  async add_loading_to_texture_map(path: string) {
+    const loading = Texture.from(await create_dummy_pic("#FF00ff"));
+    this.image_texture_map[path] = Texture.from(loading.source);
+    this.image_texture_map[path].source.update();
+  }
+
   async load_resource_bundle(
     module_id: string,
     instance_id: string,
@@ -81,9 +87,11 @@ export class ResourceManager {
     for (const asset of resource_bundle.assets) {
       await match(asset.kind)
         .with("Image", async () => {
-          const loading = Texture.from(await create_dummy_pic("#FF00ff"));
-          this.image_texture_map[asset.path] = Texture.from(loading.source);
-          this.image_texture_map[asset.path].source.update();
+          if (!this.image_texture_map[asset.path]) {
+            console.log("Adding", asset);
+            await this.add_loading_to_texture_map(asset.path);
+            console.log("oh oh", asset);
+          }
           return Promise.resolve();
         })
         .with("Unknown", async () => Promise.resolve())
@@ -222,6 +230,7 @@ export class ResourceManager {
       const texture_source: TextureSource =
         this.image_texture_map[tileset.image.path]?.source;
       if (!texture_source) {
+        console.log("@@@@@@@@@@", Object.keys(this.image_texture_map));
         graphics.textures.push(this.dummy_texture_loading);
         console.error(
           "No base_texture even though there should be a dummy at the very least!",
@@ -271,9 +280,7 @@ export function create_display_object(
             .exhaustive();
           container.addChild(display_object);
         })
-        .with({ RigidBody: P.select() }, (rigid_body) => {
-          console.log("rb", rigid_body);
-        })
+        .with({ RigidBody: P.select() }, (_) => {})
         .with({ Collider: P.select() }, (collider) => {
           const [graphics, pivot_x, pivot_y] =
             create_collider_graphic(collider);

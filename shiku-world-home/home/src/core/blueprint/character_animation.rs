@@ -5,8 +5,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use ts_rs::TS;
 
-pub type StateId = u32;
-pub type TransitionId = u32;
+pub type StateId = i64;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 #[ts(export, export_to = "blueprints/")]

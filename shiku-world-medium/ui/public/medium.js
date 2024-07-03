@@ -40438,6 +40438,11 @@ ${e3}`);
         this.tile_set_map[`${tileset.resource_path}/${tileset.name}.tileset.json`] = tileset;
       }
     }
+    async add_loading_to_texture_map(path2) {
+      const loading = Texture.from(await create_dummy_pic("#FF00ff"));
+      this.image_texture_map[path2] = Texture.from(loading.source);
+      this.image_texture_map[path2].source.update();
+    }
     async load_resource_bundle(module_id, instance_id, resource_bundle, dispatch_resource_bundle_complete = false) {
       const bundle_id = `${module_id}-${resource_bundle.name}`;
       const path_to_resource_map = resource_bundle.assets.reduce(
@@ -40446,9 +40451,11 @@ ${e3}`);
       );
       for (const asset of resource_bundle.assets) {
         await N2(asset.kind).with("Image", async () => {
-          const loading = Texture.from(await create_dummy_pic("#FF00ff"));
-          this.image_texture_map[asset.path] = Texture.from(loading.source);
-          this.image_texture_map[asset.path].source.update();
+          if (!this.image_texture_map[asset.path]) {
+            console.log("Adding", asset);
+            await this.add_loading_to_texture_map(asset.path);
+            console.log("oh oh", asset);
+          }
           return Promise.resolve();
         }).with("Unknown", async () => Promise.resolve()).exhaustive();
       }
@@ -40557,6 +40564,7 @@ ${e3}`);
       if (tileset.image) {
         const texture_source = this.image_texture_map[tileset.image.path]?.source;
         if (!texture_source) {
+          console.log("@@@@@@@@@@", Object.keys(this.image_texture_map));
           graphics.textures.push(this.dummy_texture_loading);
           console.error(
             "No base_texture even though there should be a dummy at the very least!"
@@ -40592,8 +40600,7 @@ ${e3}`);
           return resource_manager.get_sprite_from_graphics(graphics);
         }).exhaustive();
         container.addChild(display_object);
-      }).with({ RigidBody: _.select() }, (rigid_body) => {
-        console.log("rb", rigid_body);
+      }).with({ RigidBody: _.select() }, (_2) => {
       }).with({ Collider: _.select() }, (collider) => {
         const [graphics, pivot_x, pivot_y] = create_collider_graphic(collider);
         container.addChild(graphics);
@@ -40781,6 +40788,13 @@ ${e3}`);
     window.medium = {
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
+      is_instance_ready: (instance_id, world_id) => {
+        console.log(
+          instances,
+          !!instances[instance_id] && !!instances[instance_id][world_id]
+        );
+        return !!instances[instance_id] && !!instances[instance_id][world_id];
+      },
       toggle_grid: (instance_id, world_id) => {
         if (instances[instance_id] && instances[instance_id][world_id]) {
           toggle_grid(instances[instance_id][world_id].renderer);
@@ -42482,7 +42496,7 @@ ${e3}`);
           );
         }).with(
           { PrepareGame: _.select() },
-          ([
+          async ([
             module_id,
             instance_id,
             w_id,
@@ -42496,12 +42510,13 @@ ${e3}`);
             resource_manager.gid_map = gid_map;
             resource_manager.tilesets = tilesets;
             resource_manager.set_tileset_map(tilesets);
-            resource_manager.load_resource_bundle(
+            await resource_manager.load_resource_bundle(
               module_id,
               instance_id,
               resource_bundle,
               true
             );
+            console.log("afater load resource bundle", instances);
             if (!instances[instance_id]) {
               instances[instance_id] = {};
             }

@@ -113,18 +113,22 @@ const scope_cache = computed<Array<[string, string, string | number]> | null>(
       ) {
         const game_instance_data =
           game_instance_data_map.value[instance_id][world_id];
-        console.log(game_node.value.entity_id, game_instance_data.scope_cache);
         if (
           typeof game_node.value.entity_id === "number" &&
           game_instance_data.scope_cache[game_node.value.entity_id]
         ) {
           return Object.entries(
             game_instance_data.scope_cache[game_node.value.entity_id],
-          ).map(([key, value]) => [
-            key,
-            Object.keys(value)[0],
-            Object.values(value)[0],
-          ]);
+          )
+            .filter(
+              ([_, value]) =>
+                !["Map", "Unknown"].includes(Object.keys(value)[0]),
+            )
+            .map(([key, value]) => [
+              key,
+              Object.keys(value)[0],
+              Object.values(value)[0],
+            ]);
         }
       }
     }

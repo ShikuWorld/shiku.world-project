@@ -22,6 +22,13 @@ export const setup_medium_api = (
     twitch_login: (communication_state: CommunicationState) =>
       login(communication_state),
     communication_state: communication_state,
+    is_instance_ready: (instance_id: string, world_id: string) => {
+      console.log(
+        instances,
+        !!instances[instance_id] && !!instances[instance_id][world_id],
+      );
+      return !!instances[instance_id] && !!instances[instance_id][world_id];
+    },
     toggle_grid: (instance_id: string, world_id: string) => {
       if (instances[instance_id] && instances[instance_id][world_id]) {
         toggle_grid(instances[instance_id][world_id].renderer);

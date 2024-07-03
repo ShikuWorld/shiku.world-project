@@ -212,8 +212,8 @@ impl GameNodeKind {
                 if let GameNodeKind::Node2D(n) = self {
                     if let Node2DKind::Render(r) = &mut n.data.kind {
                         match r.kind {
-                            RenderKind::AnimatedSprite(_, _) => {
-                                debug!("Cannot set gid on animated sprite directly!");
+                            RenderKind::AnimatedSprite(_, ref mut g) => {
+                                *g = gid;
                             }
                             RenderKind::Sprite(ref mut g) => {
                                 *g = gid;
@@ -279,7 +279,7 @@ impl GameNodeKind {
             match node_kind {
                 GameNodeKindClean::Node2D => {
                     if let (Some(node_2d_kind), Some(transform)) = (
-                        get_render_node_2d_kind_from_ecs(possible_instance_root, &shared),
+                        get_render_node_2d_kind_from_ecs(possible_instance_root, shared),
                         shared.entities.transforms.get(possible_instance_root),
                     ) {
                         return Some(GameNodeKind::Node2D(GameNode {
@@ -310,7 +310,7 @@ impl GameNodeKind {
         shared.entities.game_node_kind.get(original_entity),
         shared.entities.game_node_id.get(original_entity),
         shared.entities.game_node_name.get(original_entity),
-        shared.entities.game_node_children.get(original_entity).is_some());
+        shared.entities.game_node_children.contains_key(original_entity));
         None
     }
 }

@@ -35,6 +35,14 @@ impl CharacterAnimation {
         }
     }
 
+    pub fn get_animation_progress(&self) -> Real {
+        if let Some(animation) = self.states.get(&self.current_state) {
+            return animation.progress();
+        }
+
+        0.0
+    }
+
     pub fn go_to_state(&mut self, state_id: StateId) {
         if self.current_state == state_id {
             return;

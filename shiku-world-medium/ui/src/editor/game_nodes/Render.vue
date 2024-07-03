@@ -9,7 +9,6 @@
   ></v-select>
   <v-label class="form-label" v-if="render_kind == 'Sprite'">GID</v-label>
   <v-text-field
-    v-if="render_kind == 'Sprite'"
     type="number"
     :hide-details="true"
     density="compact"
@@ -78,7 +77,7 @@ const character_animation_resource_path = computed(() => {
 const gid = computed(() => {
   return match(data.value.kind)
     .with({ Sprite: P.select() }, (s) => s)
-    .with({ AnimatedSprite: P.select() }, (_) => 0)
+    .with({ AnimatedSprite: P.select() }, ([_, gid]) => gid)
     .exhaustive();
 });
 
@@ -90,7 +89,9 @@ function update_render_type(kind: KeysOfUnion<RenderKind>) {
     character_animations.value.length > 0
   ) {
     emit("entityUpdate", {
-      RenderKind: { AnimatedSprite: [character_animations.value[0].path, 0] },
+      RenderKind: {
+        AnimatedSprite: [character_animations.value[0].path, gid.value],
+      },
     });
   }
 }
