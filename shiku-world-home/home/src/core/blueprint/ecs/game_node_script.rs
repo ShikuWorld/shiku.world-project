@@ -71,6 +71,7 @@ pub enum GameNodeScriptError {
 #[ts(export, export_to = "blueprints/")]
 pub enum ScopeCacheValue {
     Unknown(String),
+    Empty,
     String(String),
     Number(f64),
     Integer(i64),
@@ -85,6 +86,7 @@ impl ScopeCacheValue {
         dynamic_value: &Dynamic,
     ) -> bool {
         match scope_cache_value {
+            ScopeCacheValue::Empty => dynamic_value.is::<()>(),
             ScopeCacheValue::Unknown(_) => false,
             ScopeCacheValue::String(value) => {
                 if let Some(dynamic_value) = dynamic_value.read_lock::<String>() {
@@ -175,6 +177,7 @@ impl GameNodeScript {
 
         for (key, value) in self.scope_cache.iter_mut() {
             match value {
+                ScopeCacheValue::Empty => {}
                 ScopeCacheValue::Unknown(_) => {}
                 ScopeCacheValue::String(cache_value) => {
                     if let Some(scope_value) = self
@@ -322,6 +325,7 @@ impl PartialEq for ScopeCacheValue {
 impl Into<Dynamic> for ScopeCacheValue {
     fn into(self) -> Dynamic {
         match self {
+            ScopeCacheValue::Empty => Dynamic::from(()),
             ScopeCacheValue::Unknown(val) => Dynamic::from(val),
             ScopeCacheValue::String(val) => Dynamic::from(val),
             ScopeCacheValue::Number(val) => Dynamic::from(val),
@@ -363,6 +367,7 @@ impl Into<ScopeCacheValue> for Dynamic {
                 }
                 ScopeCacheValue::Map(map)
             }
+            "()" => ScopeCacheValue::Empty,
             type_name => ScopeCacheValue::Unknown(format!("Unknown type: {type_name}")),
         }
     }

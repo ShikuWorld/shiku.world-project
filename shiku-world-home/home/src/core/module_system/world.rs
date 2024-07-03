@@ -1,7 +1,6 @@
-use std::collections::{HashMap, HashSet};
-
 use rapier2d::prelude::*;
 use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
+use std::collections::{HashMap, HashSet};
 
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
@@ -78,6 +77,7 @@ impl World {
             active_users: HashSet::new(),
         });
         Self::setup_actor_api(&mut script_engine, &actor_api);
+        ecs.process_added_and_removed_entities();
         Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
         Ok(World {
             world_id: game_map.world_id.clone(),

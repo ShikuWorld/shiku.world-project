@@ -55,11 +55,11 @@ struct TerrainGridTile {
 
 impl TerrainGridTile {
     pub fn vertex_in_polygon(vertices: &RingVec<Vertex>, (x, y): Vertex) -> bool {
-        println!(
+        /*println!(
             "Checking if point {:?} is inside polygon {:?}",
             (x, y),
             vertices
-        );
+        );*/
         let min_x = *vertices.data.iter().map(|(x, _)| x).min().unwrap();
         let max_x = *vertices.data.iter().map(|(x, _)| x).max().unwrap();
 
@@ -75,20 +75,20 @@ impl TerrainGridTile {
         for i in 1..=num_vertices {
             p2_x = vertices[i].0;
             p2_y = vertices[i].1;
-            println!("current_edge: {:?} - {:?}", (p1_x, p1_y), (p2_x, p2_y));
+            //println!("current_edge: {:?} - {:?}", (p1_x, p1_y), (p2_x, p2_y));
             if y >= p1_y.min(p2_y) && y <= p1_y.max(p2_y) && x <= p1_x.max(p2_x) {
                 if p2_y == p1_y && y == p1_y {
-                    println!("parallel");
+                    //println!("parallel");
                     return x >= p1_x.min(p2_x) && x <= p1_x.max(p2_x);
                 }
                 let x_intersection = ((y - p1_y) * (p2_x - p1_x)) / (p2_y - p1_y) + p1_x;
                 if x == x_intersection {
-                    println!("exactly on x inter");
+                    //println!("exactly on x inter");
                     return true;
                 }
 
                 if p1_x == p2_x || x < x_intersection {
-                    println!("inserting intersection point {:?}", (x_intersection, y));
+                    //println!("inserting intersection point {:?}", (x_intersection, y));
                     inside = !inside;
                 }
             }
@@ -97,7 +97,7 @@ impl TerrainGridTile {
         }
 
         if inside {
-            println!("Point {:?} is inside polygon {:?}", (x, y), vertices);
+            //println!("Point {:?} is inside polygon {:?}", (x, y), vertices);
         }
 
         inside
@@ -677,7 +677,7 @@ impl TerrainManager {
         (x, y): &TilePosition,
         terrain_grid: &HashMap<TilePosition, TerrainGridTile>,
     ) -> bool {
-        debug!("Checking edge {:?} on tile {:?}", edge, (x, y));
+        //debug!("Checking edge {:?} on tile {:?}", edge, (x, y));
         let left_touching = terrain_grid
             .get(&(x - 1, *y))
             .map(|tile| Self::is_surface_touching_polygon(edge, tile))
@@ -695,7 +695,7 @@ impl TerrainManager {
             .map(|tile| Self::is_surface_touching_polygon(edge, tile))
             .unwrap_or_default();
         if left_touching || right_touching || top_touching || bottom_touch {
-            debug!(
+            /*debug!(
                 "Edge {:?} on tile {:?} is touching left: {}, right: {}, top: {}, bottom: {}",
                 edge,
                 (x, y),
@@ -703,7 +703,7 @@ impl TerrainManager {
                 right_touching,
                 top_touching,
                 bottom_touch
-            );
+            );*/
         }
 
         !left_touching && !right_touching && !top_touching && !bottom_touch

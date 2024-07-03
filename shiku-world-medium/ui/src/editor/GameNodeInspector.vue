@@ -122,7 +122,7 @@ const scope_cache = computed<Array<[string, string, string | number]> | null>(
           )
             .filter(
               ([_, value]) =>
-                !["Map", "Unknown"].includes(Object.keys(value)[0]),
+                !["Map", "Unknown", "Empty"].includes(Object.keys(value)[0]),
             )
             .map(([key, value]) => [
               key,
