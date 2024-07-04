@@ -26,34 +26,34 @@
         {{ tileset.image?.width }} x {{ tileset.image?.height }}
       </div>
     </div>
-    <v-text-field
+    <v-number-input
       label="Tile width"
       type="number"
       density="comfortable"
       :disabled="!is_single_image"
       v-model="tileset.tile_width"
-    ></v-text-field>
-    <v-text-field
+    ></v-number-input>
+    <v-number-input
       label="Tile height"
       density="comfortable"
       type="number"
       :disabled="!is_single_image"
       v-model="tileset.tile_height"
-    ></v-text-field>
-    <v-text-field
+    ></v-number-input>
+    <v-number-input
       label="Column count"
       density="comfortable"
       type="number"
       :disabled="true"
       v-model="column_count"
-    ></v-text-field>
-    <v-text-field
+    ></v-number-input>
+    <v-number-input
       label="Tile count"
       density="comfortable"
       type="number"
       :disabled="true"
       v-model="tile_count"
-    ></v-text-field>
+    ></v-number-input>
     <v-alert
       text="Tile width/height does not fit into image width/height!"
       type="error"
@@ -76,6 +76,7 @@ import { computed, reactive, ref, watch } from "vue";
 import { use_config_store } from "@/editor/stores/config";
 import { VImg } from "vuetify/components";
 import { mdiAlert } from "@mdi/js";
+import { VNumberInput } from "vuetify/labs/VNumberInput";
 
 const is_single_image = ref(true);
 const tileset = reactive<Tileset>({
@@ -94,8 +95,8 @@ const img = computed(
 );
 const tile_count = computed(() =>
   tileset.image
-    ? tileset.image.width / tileset.tile_width +
-      tileset.image.height / tileset.tile_height
+    ? (tileset.image.width / tileset.tile_width) *
+      (tileset.image.height / tileset.tile_height)
     : 0,
 );
 const column_count = computed(() =>

@@ -8,7 +8,7 @@
     >
       <template #node-custom="props">
         <div class="custom-node">
-          {{ props.label }}
+          {{ props.label }} | {{ props.id }}
           <TilePreviewAnimation
             v-if="
               character_animation_tileset &&

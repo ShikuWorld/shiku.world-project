@@ -2,7 +2,7 @@
   <TilePreview :tileset="tileset" :tile_id="current_tile_id"></TilePreview>
 </template>
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref, toRefs } from "vue";
+import { computed, onMounted, onUnmounted, ref, toRefs, watch } from "vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
 import { CharacterAnimationState } from "@/editor/blueprints/CharacterAnimationState";
 import { CharacterDirection } from "@/editor/blueprints/CharacterDirection";
@@ -25,6 +25,12 @@ const current_tile_id = computed(() => {
   return frame && frame.gid_map[character_direction.value]
     ? frame.gid_map[character_direction.value]
     : 0;
+});
+
+watch([animation_state, character_direction], () => {
+  if (frame_timeout === null) {
+    animate_to_next_frame();
+  }
 });
 
 onMounted(() => {

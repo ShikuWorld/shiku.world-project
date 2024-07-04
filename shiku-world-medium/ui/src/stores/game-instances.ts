@@ -384,21 +384,28 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           if (get_gid(game_node) === gid) {
             return;
           }
-          match((game_node.data as Node2D).kind)
-            .with({ Render: { kind: P.select() } }, (render_kind) => {
+          const graphics = match((game_node.data as Node2D).kind)
+            .with({ Render: { kind: P.select() } }, (render_kind) =>
               match(render_kind)
                 .with({ Sprite: P.select() }, () => {
                   (render_kind as { Sprite: number }).Sprite = gid;
+                  return resource_manager.get_graphics_data_by_gid(gid);
                 })
                 .with({ AnimatedSprite: P.select() }, () => {
-                  (
-                    render_kind as { AnimatedSprite: [string, number] }
-                  ).AnimatedSprite[1] = gid;
+                  const animated_sprite_node = render_kind as {
+                    AnimatedSprite: [string, number];
+                  };
+                  animated_sprite_node.AnimatedSprite[1] = gid;
+                  return resource_manager.get_graphics_by_id_and_tileset_path(
+                    animated_sprite_node.AnimatedSprite[1],
+                    resource_manager.character_animation_to_tileset_map[
+                      animated_sprite_node.AnimatedSprite[0]
+                    ],
+                  );
                 })
-                .exhaustive();
-            })
+                .exhaustive(),
+            )
             .run();
-          const graphics = resource_manager.get_graphics_data_by_gid(gid);
           render_node.container.removeChildAt(0);
           render_node.container.addChildAt(
             resource_manager.get_sprite_from_graphics(graphics),
@@ -424,9 +431,22 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           if ("Render" in node2D.kind && node2D.kind.Render.kind) {
             node2D.kind.Render.kind = render_kind;
 
-            const graphics = resource_manager.get_graphics_data_by_gid(
-              get_gid(game_node) || 0,
-            );
+            const graphics = match(render_kind)
+              .with({ Sprite: P.select() }, (gid) =>
+                resource_manager.get_graphics_data_by_gid(gid),
+              )
+              .with(
+                { AnimatedSprite: P.select() },
+                ([char_anim_resource_path, id_in_tileset]) => {
+                  return resource_manager.get_graphics_by_id_and_tileset_path(
+                    id_in_tileset,
+                    resource_manager.character_animation_to_tileset_map[
+                      char_anim_resource_path
+                    ],
+                  );
+                },
+              )
+              .exhaustive();
             render_node.container.removeChildAt(0);
             render_node.container.addChildAt(
               resource_manager.get_sprite_from_graphics(graphics),

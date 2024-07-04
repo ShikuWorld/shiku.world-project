@@ -7,7 +7,8 @@ use ts_rs::TS;
 use crate::core::blueprint;
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
-    Chunk, Conductor, Gid, GidMap, LayerKind, ModuleId, ResourcePath, TerrainParams, Tileset,
+    CharAnimationToTilesetMap, Chunk, Conductor, Gid, GidMap, LayerKind, ModuleId, ResourcePath,
+    TerrainParams, Tileset,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{
@@ -284,6 +285,7 @@ pub enum CommunicationEvent {
         Vec<(LayerKind, f32, f32)>,
         Vec<Tileset>,
         GidMap,
+        CharAnimationToTilesetMap,
     ),
     UnloadGame(ModuleId, GameInstanceId, Option<WorldId>),
     GameSystemEvent(
@@ -325,6 +327,7 @@ pub enum GameSystemToGuestEvent {
     SetParallax(Vec<(LayerKind, f32, f32)>),
     ShowTerrainCollisionLines(Vec<Vec<(Real, Real)>>),
     ShowScene(Scene),
+    UpdateModuleMaps((GidMap, CharAnimationToTilesetMap)),
     UpdateEntity(EntityUpdate),
     RemoveEntity(Entity),
     AddEntity(Entity, GameNodeKind),

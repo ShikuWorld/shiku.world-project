@@ -69,7 +69,6 @@ export class TerrainManager {
 
   update_effects() {
     this._active_animations = this._active_animations.filter((tile_effect) => {
-      console.log("active :o");
       update(window.performance.now());
       tile_effect.sprite.position.x =
         tile_effect.base_props.pos_x +

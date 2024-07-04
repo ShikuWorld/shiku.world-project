@@ -173,12 +173,17 @@ pub struct GidMap(pub Vec<(ResourcePath, Gid)>);
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub struct CharAnimationToTilesetMap(pub HashMap<ResourcePath, ResourcePath>);
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct Module {
     pub id: ModuleId,
     pub name: ModuleName,
     pub resources: Vec<BlueprintResource>,
     pub main_map: Option<ResourcePath>,
     pub gid_map: GidMap,
+    pub char_animation_to_tileset_map: CharAnimationToTilesetMap,
     pub insert_points: Vec<IOPoint>,
     pub exit_points: Vec<IOPoint>,
     pub max_guests: usize,

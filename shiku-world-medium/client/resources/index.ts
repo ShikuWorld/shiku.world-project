@@ -21,6 +21,7 @@ import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { RENDER_SCALE } from "@/shared/index";
 import { Collider } from "@/editor/blueprints/Collider";
 import { create_dummy_pic } from "@/client/renderer/create_game_renderer";
+import { CharAnimationToTilesetMap } from "@/editor/blueprints/CharAnimationToTilesetMap";
 
 export interface Graphics {
   textures: Texture[];
@@ -37,6 +38,7 @@ export class ResourceManager {
     [gid: string]: Graphics;
   } = {};
   gid_map: GidMap = [];
+  character_animation_to_tileset_map: CharAnimationToTilesetMap = {};
   tilesets: Tileset[] = [];
   tile_set_map: {
     [path: string]: Tileset;
@@ -129,6 +131,7 @@ export class ResourceManager {
           bundle_name: resource_bundle.name,
         });
       }
+      this._update_uv_maps();
     });
   }
 
@@ -173,8 +176,6 @@ export class ResourceManager {
       .exhaustive();
   }
 
-  unload_resources() {}
-
   get_sprite_from_graphics(graphics: Graphics): Sprite {
     let sprite: Sprite;
 
@@ -204,14 +205,41 @@ export class ResourceManager {
     return this.graphic_id_map[gid];
   }
 
-  private _get_tileset_by_gid(gid: number): [Tileset | undefined, number] {
-    for (let i = 0; i < this.gid_map.length; i++) {
-      const [path, start_gid] = this.gid_map[i];
-      if (start_gid <= gid) {
-        return [this.tile_set_map[path], start_gid];
-      }
+  get_graphics_by_id_and_tileset_path(
+    id_in_tileset: number,
+    tileset_path: string,
+  ): Graphics {
+    const tileset = this.tile_set_map[tileset_path];
+    if (!tileset) {
+      console.error("No tileset for", tileset_path);
+      return {
+        textures: [this.dummy_texture_tileset_missing],
+        frame_objects: [],
+      };
     }
-    return [undefined, 0];
+    const start_gid = this.gid_map.find((g) => g[0] === tileset_path)?.[1] || 0;
+    const gid = id_in_tileset + start_gid;
+    if (!this.graphic_id_map[gid]) {
+      this.graphic_id_map[gid] = this._calculate_graphics(
+        id_in_tileset,
+        tileset,
+      );
+    }
+
+    return this.graphic_id_map[gid];
+  }
+
+  private _get_tileset_by_gid(gid: number): [Tileset | undefined, number] {
+    let selected_gid_index = 0;
+    for (let i = 0; i < this.gid_map.length; i++) {
+      const start_gid = this.gid_map[i][1];
+      if (gid < start_gid) {
+        break;
+      }
+      selected_gid_index = i;
+    }
+    const [path, start_gid] = this.gid_map[selected_gid_index];
+    return [this.tile_set_map[path], start_gid];
   }
 
   private _calculate_graphics(
@@ -273,10 +301,19 @@ export function create_display_object(
               const graphics = resource_manager.get_graphics_data_by_gid(gid);
               return resource_manager.get_sprite_from_graphics(graphics);
             })
-            .with({ AnimatedSprite: P.select() }, ([_, gid]) => {
-              const graphics = resource_manager.get_graphics_data_by_gid(gid);
-              return resource_manager.get_sprite_from_graphics(graphics);
-            })
+            .with(
+              { AnimatedSprite: P.select() },
+              ([char_anim_resource_path, id_in_tileset]) => {
+                const graphics =
+                  resource_manager.get_graphics_by_id_and_tileset_path(
+                    id_in_tileset,
+                    resource_manager.character_animation_to_tileset_map[
+                      char_anim_resource_path
+                    ],
+                  );
+                return resource_manager.get_sprite_from_graphics(graphics);
+              },
+            )
             .exhaustive();
           container.addChild(display_object);
         })

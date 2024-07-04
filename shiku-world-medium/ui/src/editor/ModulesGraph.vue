@@ -326,6 +326,7 @@ addOrUpdateNode({
   main_map: null,
   name: "Login",
   gid_map: [],
+  char_animation_to_tileset_map: {},
   max_guests: 0,
   min_guests: 0,
   close_after_full: false,

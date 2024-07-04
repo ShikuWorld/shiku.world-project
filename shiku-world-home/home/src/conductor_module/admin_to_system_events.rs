@@ -53,14 +53,16 @@ pub async fn handle_admin_to_system_event(
 
     let mut update_module_resources =
         |module: &mut GameInstanceManager, resources: Vec<BlueprintResource>| {
-            match BlueprintService::generate_gid_map(&resources) {
-                Ok(gid_map) => {
+            match BlueprintService::generate_gid_and_char_anim_to_tileset_map(&resources) {
+                Ok((gid_map, char_anim_to_tileset_map)) => {
                     resource_module.send_resource_event_to(
                         ResourceEvent::UpdateGidMap(gid_map.clone()),
                         module.module_blueprint.id.clone(),
                         module.get_active_actor_ids(),
                     );
                     module.module_blueprint.gid_map = gid_map;
+                    module.module_blueprint.char_animation_to_tileset_map =
+                        char_anim_to_tileset_map;
                     ConductorModule::update_resource_to_module_map(
                         resource_to_module_map,
                         &module.module_blueprint.id,
@@ -238,6 +240,10 @@ pub async fn handle_admin_to_system_event(
                                                         .collect(),
                                                     tilesets,
                                                     module.module_blueprint.gid_map.clone(),
+                                                    module
+                                                        .module_blueprint
+                                                        .char_animation_to_tileset_map
+                                                        .clone(),
                                                 ),
                                             );
                                         }

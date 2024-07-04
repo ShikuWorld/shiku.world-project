@@ -9,9 +9,9 @@ use walkdir::WalkDir;
 
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, BlueprintService, Chunk, Conductor, FileBrowserFileKind,
-    FileBrowserResult, GameMap, Gid, GidMap, JsonResource, LayerKind, MapUpdate, Module,
-    ResourceKind, ResourceLoaded, Tileset,
+    BlueprintError, BlueprintResource, BlueprintService, CharAnimationToTilesetMap, Chunk,
+    Conductor, FileBrowserFileKind, FileBrowserResult, GameMap, Gid, GidMap, JsonResource,
+    LayerKind, MapUpdate, Module, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, Scene, Script};
@@ -26,6 +26,7 @@ impl Module {
             max_guests: 0,
             min_guests: 0,
             gid_map: GidMap(Vec::new()),
+            char_animation_to_tileset_map: CharAnimationToTilesetMap(HashMap::new()),
             exit_points: Vec::new(),
             insert_points: Vec::new(),
             resources: Vec::new(),
@@ -144,7 +145,9 @@ impl BlueprintService {
         Ok(tiles)
     }
 
-    pub fn generate_gid_map(resources: &[BlueprintResource]) -> Result<GidMap, BlueprintError> {
+    pub fn generate_gid_and_char_anim_to_tileset_map(
+        resources: &[BlueprintResource],
+    ) -> Result<(GidMap, CharAnimationToTilesetMap), BlueprintError> {
         let mut gid_map = Vec::new();
         let mut current_count = 0;
         for resource in resources.iter().filter(|r| ResourceKind::Tileset == r.kind) {
@@ -157,7 +160,26 @@ impl BlueprintService {
                 current_count += tileset.tiles.len() as u32;
             }
         }
-        Ok(GidMap(gid_map))
+        let char_animation_to_tileset_map =
+            BlueprintService::generate_character_animation_to_tileset_map(resources)?;
+        Ok((GidMap(gid_map), char_animation_to_tileset_map))
+    }
+
+    pub fn generate_character_animation_to_tileset_map(
+        resources: &[BlueprintResource],
+    ) -> Result<CharAnimationToTilesetMap, BlueprintError> {
+        let mut animation_to_tileset_map = HashMap::new();
+        for resource in resources
+            .iter()
+            .filter(|r| ResourceKind::CharacterAnimation == r.kind)
+        {
+            debug!("character animation path {:?}", resources);
+            let character_animation =
+                Blueprint::load_character_animation(resource.path.clone().into())?;
+            animation_to_tileset_map
+                .insert(resource.path.clone(), character_animation.tileset_resource);
+        }
+        Ok(CharAnimationToTilesetMap(animation_to_tileset_map))
     }
 
     pub fn generate_gid_to_shape_map(

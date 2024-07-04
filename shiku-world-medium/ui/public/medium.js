@@ -40427,6 +40427,7 @@ ${e3}`);
     image_texture_map = {};
     graphic_id_map = {};
     gid_map = [];
+    character_animation_to_tileset_map = {};
     tilesets = [];
     tile_set_map = {};
     dummy_texture_tileset_missing;
@@ -40487,6 +40488,7 @@ ${e3}`);
             bundle_name: resource_bundle.name
           });
         }
+        this._update_uv_maps();
       });
     }
     _update_uv_maps() {
@@ -40521,8 +40523,6 @@ ${e3}`);
         this.gid_map = gid_map;
       }).with("UnLoadResources", () => console.log("unload")).exhaustive();
     }
-    unload_resources() {
-    }
     get_sprite_from_graphics(graphics) {
       let sprite;
       if (graphics.frame_objects.length > 0) {
@@ -40546,14 +40546,36 @@ ${e3}`);
       }
       return this.graphic_id_map[gid];
     }
-    _get_tileset_by_gid(gid) {
-      for (let i3 = 0; i3 < this.gid_map.length; i3++) {
-        const [path2, start_gid] = this.gid_map[i3];
-        if (start_gid <= gid) {
-          return [this.tile_set_map[path2], start_gid];
-        }
+    get_graphics_by_id_and_tileset_path(id_in_tileset, tileset_path) {
+      const tileset = this.tile_set_map[tileset_path];
+      if (!tileset) {
+        console.error("No tileset for", tileset_path);
+        return {
+          textures: [this.dummy_texture_tileset_missing],
+          frame_objects: []
+        };
       }
-      return [void 0, 0];
+      const start_gid = this.gid_map.find((g3) => g3[0] === tileset_path)?.[1] || 0;
+      const gid = id_in_tileset + start_gid;
+      if (!this.graphic_id_map[gid]) {
+        this.graphic_id_map[gid] = this._calculate_graphics(
+          id_in_tileset,
+          tileset
+        );
+      }
+      return this.graphic_id_map[gid];
+    }
+    _get_tileset_by_gid(gid) {
+      let selected_gid_index = 0;
+      for (let i3 = 0; i3 < this.gid_map.length; i3++) {
+        const start_gid2 = this.gid_map[i3][1];
+        if (gid < start_gid2) {
+          break;
+        }
+        selected_gid_index = i3;
+      }
+      const [path2, start_gid] = this.gid_map[selected_gid_index];
+      return [this.tile_set_map[path2], start_gid];
     }
     _calculate_graphics(id, tileset) {
       const graphics = { textures: [], frame_objects: [] };
@@ -40595,10 +40617,16 @@ ${e3}`);
         const display_object = N2(render2.kind).with({ Sprite: _.select() }, (gid) => {
           const graphics = resource_manager.get_graphics_data_by_gid(gid);
           return resource_manager.get_sprite_from_graphics(graphics);
-        }).with({ AnimatedSprite: _.select() }, ([_2, gid]) => {
-          const graphics = resource_manager.get_graphics_data_by_gid(gid);
-          return resource_manager.get_sprite_from_graphics(graphics);
-        }).exhaustive();
+        }).with(
+          { AnimatedSprite: _.select() },
+          ([char_anim_resource_path, id_in_tileset]) => {
+            const graphics = resource_manager.get_graphics_by_id_and_tileset_path(
+              id_in_tileset,
+              resource_manager.character_animation_to_tileset_map[char_anim_resource_path]
+            );
+            return resource_manager.get_sprite_from_graphics(graphics);
+          }
+        ).exhaustive();
         container.addChild(display_object);
       }).with({ RigidBody: _.select() }, (_2) => {
       }).with({ Collider: _.select() }, (collider) => {
@@ -40789,10 +40817,6 @@ ${e3}`);
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
       is_instance_ready: (instance_id, world_id) => {
-        console.log(
-          instances,
-          !!instances[instance_id] && !!instances[instance_id][world_id]
-        );
         return !!instances[instance_id] && !!instances[instance_id][world_id];
       },
       toggle_grid: (instance_id, world_id) => {
@@ -42072,7 +42096,6 @@ ${e3}`);
     }
     update_effects() {
       this._active_animations = this._active_animations.filter((tile_effect) => {
-        console.log("active :o");
         update(window.performance.now());
         tile_effect.sprite.position.x = tile_effect.base_props.pos_x + tile_effect.fade_in.add_props.pos_x + tile_effect.fade_out.add_props.pos_x;
         tile_effect.sprite.position.y = tile_effect.base_props.pos_y + tile_effect.fade_in.add_props.pos_y + tile_effect.fade_out.add_props.pos_y;
@@ -42318,7 +42341,13 @@ ${e3}`);
         }
       }).with({ ShowTerrainCollisionLines: _.select() }, (lines) => {
         this.draw_terrain_collisions(lines);
-      }).exhaustive();
+      }).with(
+        { UpdateModuleMaps: _.select() },
+        ([gid_map, char_anim_to_tileset_map]) => {
+          resource_manager.gid_map = gid_map;
+          resource_manager.character_animation_to_tileset_map = char_anim_to_tileset_map;
+        }
+      ).exhaustive();
     }
     destroy() {
     }
@@ -42504,19 +42533,20 @@ ${e3}`);
             terrain_params,
             parralax_map,
             tilesets,
-            gid_map
+            gid_map,
+            char_anim_to_tileset_map
           ]) => {
             const resource_manager = lazy_get_resource_manager(module_id);
             resource_manager.gid_map = gid_map;
             resource_manager.tilesets = tilesets;
             resource_manager.set_tileset_map(tilesets);
+            resource_manager.character_animation_to_tileset_map = char_anim_to_tileset_map;
             await resource_manager.load_resource_bundle(
               module_id,
               instance_id,
               resource_bundle,
               true
             );
-            console.log("afater load resource bundle", instances);
             if (!instances[instance_id]) {
               instances[instance_id] = {};
             }

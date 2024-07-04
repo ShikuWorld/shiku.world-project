@@ -131,11 +131,14 @@ export async function start_medium() {
             parralax_map,
             tilesets,
             gid_map,
+            char_anim_to_tileset_map,
           ]) => {
             const resource_manager = lazy_get_resource_manager(module_id);
             resource_manager.gid_map = gid_map;
             resource_manager.tilesets = tilesets;
             resource_manager.set_tileset_map(tilesets);
+            resource_manager.character_animation_to_tileset_map =
+              char_anim_to_tileset_map;
 
             await resource_manager.load_resource_bundle(
               module_id,
@@ -143,7 +146,6 @@ export async function start_medium() {
               resource_bundle,
               true,
             );
-            console.log("afater load resource bundle", instances);
 
             if (!instances[instance_id]) {
               instances[instance_id] = {};

@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityUpdateKind, ECS};
 use crate::core::blueprint::ecs::game_node_script::GameNodeScript;
+use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     GameNode, GameNodeKind, GameNodeKindClean, KinematicCharacterControllerProps, Node2D,
     Node2DDud, Node2DKind, Node2DKindClean, Render, RenderKind, RenderKindClean, RigidBody,
@@ -203,7 +204,7 @@ impl GameNodeKind {
                 if let GameNodeKind::Node2D(n) = self {
                     if let Node2DKind::Render(r) = &mut n.data.kind {
                         if let RenderKind::AnimatedSprite(ref mut r, _) = r.kind {
-                            *r = resource_path;
+                            *r = resource_path.clone();
                         }
                     }
                 }

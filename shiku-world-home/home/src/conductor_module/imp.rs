@@ -16,8 +16,8 @@ use crate::conductor_module::errors::{
 };
 use crate::conductor_module::game_instances::create_game_instance_manager;
 use crate::core::blueprint::def::{
-    BlueprintResource, BlueprintService, GidMap, LayerKind, ModuleId, ResourceKind, ResourcePath,
-    TerrainParams, Tileset,
+    BlueprintResource, BlueprintService, CharAnimationToTilesetMap, GidMap, LayerKind, ModuleId,
+    ResourceKind, ResourcePath, TerrainParams, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{
@@ -363,6 +363,10 @@ impl ConductorModule {
                                                 .collect(),
                                             tilesets,
                                             module.module_blueprint.gid_map.clone(),
+                                            module
+                                                .module_blueprint
+                                                .char_animation_to_tileset_map
+                                                .clone(),
                                         ),
                                         Err(err) => {
                                             error!("Could not load tilesets for module! {:?}", err)
@@ -635,6 +639,10 @@ impl ConductorModule {
                                 .collect(),
                             tilesets,
                             module.module_blueprint.gid_map.clone(),
+                            module
+                                .module_blueprint
+                                .char_animation_to_tileset_map
+                                .clone(),
                         ),
                         Err(err) => {
                             error!("Could not load tilesets for module! {:?}", err)
@@ -667,6 +675,7 @@ impl ConductorModule {
         parallax_params: Vec<(LayerKind, f32, f32)>,
         tilesets: Vec<Tileset>,
         gid_map: GidMap,
+        character_animation_to_tileset_map: CharAnimationToTilesetMap,
     ) {
         if let Ok(resources) = resource_module.get_active_resources_for_module(module_id, &guest.id)
         {
@@ -685,6 +694,7 @@ impl ConductorModule {
                     parallax_params,
                     tilesets,
                     gid_map,
+                    character_animation_to_tileset_map,
                 ),
             ) {
                 error!("Cold not send communicastion event to guest {:?}", err);
