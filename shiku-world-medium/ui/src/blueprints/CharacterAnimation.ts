@@ -2,4 +2,4 @@
 import type { CharacterAnimationState } from "./CharacterAnimationState";
 import type { CharacterDirection } from "./CharacterDirection";
 
-export interface CharacterAnimation { id: string, name: string, resource_path: string, tileset_resource: string, start_direction: CharacterDirection, start_state: bigint, states: Record<bigint, CharacterAnimationState>, }
+export interface CharacterAnimation { id: string, name: string, resource_path: string, tileset_resource: string, start_direction: CharacterDirection, start_state: number, states: Record<number, CharacterAnimationState>, }

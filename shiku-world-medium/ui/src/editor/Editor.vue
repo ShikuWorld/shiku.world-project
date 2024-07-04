@@ -653,6 +653,10 @@ function open_resource_editor(resource: BlueprintResource) {
   background-color: rgb(var(--v-theme-primary));
 }
 
+.editor-nav-right > div {
+  height: 100%;
+}
+
 .editor-nav-top,
 .editor-nav-left,
 .editor-nav-right {

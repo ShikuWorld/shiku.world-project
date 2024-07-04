@@ -12,46 +12,54 @@
     <v-label v-if="game_node.script && is_instance" class="form-label"
       >Scope variables</v-label
     >
-    <div v-if="game_node.script && is_instance">
-      <div
-        v-for="[scope_key, scope_type, scope_value] in scope_cache"
-        :key="scope_key"
-      >
-        <v-label class="form-label">{{ scope_key }}</v-label>
-        <v-text-field
-          v-if="scope_type === 'String'"
-          :model-value="scope_value"
-          @update:model-value="
-            (new_value) => scope_update(scope_key, new_value, scope_type)
-          "
-        ></v-text-field>
-        <v-number-input
-          v-if="scope_type === 'Number'"
-          control-variant="stacked"
-          :step="0.1"
-          :model-value="scope_value"
-          @update:model-value="
-            (new_value) => scope_update(scope_key, new_value, scope_type)
-          "
-        ></v-number-input>
-        <v-number-input
-          v-if="scope_type === 'Integer'"
-          control-variant="stacked"
-          :step="1"
-          :model-value="scope_value"
-          @update:model-value="
-            (new_value) => scope_update(scope_key, new_value, scope_type)
-          "
-        ></v-number-input>
-      </div>
+    <div v-if="game_node.script && is_instance && scope_cache">
+      <v-virtual-scroll :items="scope_cache" :height="300">
+        <template
+          v-slot:default="{ item: [scope_key, scope_type, scope_value] }"
+        >
+          <v-label class="form-label">{{ scope_key }}</v-label>
+          <v-text-field
+            v-if="scope_type === 'String'"
+            :model-value="scope_value"
+            density="compact"
+            @update:model-value="
+              (new_value) => scope_update(scope_key, new_value, scope_type)
+            "
+          ></v-text-field>
+          <v-number-input
+            v-if="scope_type === 'Number'"
+            control-variant="stacked"
+            density="compact"
+            hide-details="auto"
+            :step="0.1"
+            :model-value="scope_value"
+            @update:model-value="
+              (new_value) => scope_update(scope_key, new_value, scope_type)
+            "
+          ></v-number-input>
+          <v-number-input
+            v-if="scope_type === 'Integer'"
+            control-variant="stacked"
+            density="compact"
+            hide-details="auto"
+            :step="1"
+            :model-value="scope_value"
+            @update:model-value="
+              (new_value) => scope_update(scope_key, new_value, scope_type)
+            "
+          ></v-number-input>
+        </template>
+      </v-virtual-scroll>
     </div>
   </div>
 </template>
 
-<style>
+<style scoped>
 .node-container {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
   cursor: pointer;
-
   padding: 10px;
 }
 </style>
@@ -122,7 +130,8 @@ const scope_cache = computed<Array<[string, string, string | number]> | null>(
           )
             .filter(
               ([_, value]) =>
-                !["Map", "Unknown", "Empty"].includes(Object.keys(value)[0]),
+                value != "Empty" &&
+                !["Map", "Unknown"].includes(Object.keys(value)[0]),
             )
             .map(([key, value]) => [
               key,

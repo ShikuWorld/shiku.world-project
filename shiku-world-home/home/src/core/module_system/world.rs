@@ -316,10 +316,10 @@ impl World {
         FuncRegistration::new("get_state").set_into_module(&mut module, get_state);
 
         let ecs_shared = ecs.shared.clone();
-        let go_to_state = move |entity: Entity, state_id: StateId| {
+        let go_to_state = move |entity: Entity, state_id: i64| {
             if let Some(mut shared) = ecs_shared.try_borrow_mut() {
                 if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
-                    animation.go_to_state(state_id);
+                    animation.go_to_state(state_id as StateId);
                 }
             }
         };
