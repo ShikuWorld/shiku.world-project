@@ -489,10 +489,6 @@ impl TerrainManager {
 
             open_edge_option = polyline_bookkeeping.open_edges.keys().next().copied();
         }
-        debug!(
-            "Finished calculating polylines {:?}",
-            polyline_bookkeeping.lines
-        );
     }
 
     fn add_poly_to_physics(

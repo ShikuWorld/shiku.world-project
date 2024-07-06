@@ -4,7 +4,12 @@ import { RenderSystem } from "@/client/renderer";
 
 export function create_resource_manager(
   render_system: RenderSystem,
+  module_id: string,
 ): ResourceManager {
   //window.medium_gui.config.set_resource_base_url(Config.get_resource_url());
-  return new ResourceManager(`${Config.get_resource_url()}`, render_system);
+  return new ResourceManager(
+    `${Config.get_resource_url()}`,
+    render_system,
+    module_id,
+  );
 }

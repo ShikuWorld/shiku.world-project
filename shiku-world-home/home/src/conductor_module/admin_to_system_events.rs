@@ -27,7 +27,6 @@ use crate::core::module::{
     SceneNodeUpdate, TilesetUpdate,
 };
 use crate::core::module_system::def::DynamicGameModule;
-use crate::core::module_system::error::ResetWorldError;
 use crate::core::module_system::game_instance::{GameInstance, GameInstanceManager};
 use crate::core::{log_result_error, send_and_log_error};
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
@@ -183,6 +182,7 @@ pub async fn handle_admin_to_system_event(
                 .and_then(|module| module.game_instances.get_mut(&instance_id))
             {
                 if let Some(module_admin) = instance.dynamic_module.admins.get_mut(&admin.id) {
+                    instance.dynamic_module.connected_actor_set.insert(admin.id);
                     module_admin.resources_loaded = true;
                 }
                 instance.dynamic_module.send_initial_world_events_admin(

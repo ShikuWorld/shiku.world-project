@@ -24,7 +24,7 @@ use crate::core::module::{GuestInput, GuestToModuleEvent};
 use crate::core::module_system::def::{
     DynamicGameModule, GuestCommunication, GuestMap, ModuleAdmin, ModuleCommunication, ModuleGuest,
 };
-use crate::core::module_system::error::{CreateWorldError, DestroyWorldError, ResetWorldError};
+use crate::core::module_system::error::{CreateWorldError, DestroyWorldError};
 use crate::core::module_system::game_instance::{AstCache, GameInstanceId};
 use crate::core::module_system::world::{World, WorldId};
 use crate::core::{send_and_log_error, send_and_log_error_custom, LazyHashmapSet};
@@ -122,12 +122,12 @@ impl DynamicGameModule {
         Ok(game_map.world_id.clone())
     }
 
-    pub fn reset_world(&mut self, world_id: &WorldId) -> Result<(), ResetWorldError> {
+    pub fn reset_world(&mut self, world_id: &WorldId) -> Result<(), CreateWorldError> {
         if let Some(world) = self.world_map.get_mut(world_id) {
             return world.reset();
         }
 
-        Err(ResetWorldError::CouldNotFindWorld)
+        Err(CreateWorldError::CouldNotFindWorld)
     }
 
     pub fn remove_script(&mut self, resource_path: &ResourcePath) {
@@ -221,8 +221,13 @@ impl DynamicGameModule {
         }
     }
 
-    fn set_resources_loaded(guests: &mut GuestMap, guest_id: &ActorId) {
+    fn set_resources_loaded(
+        guests: &mut GuestMap,
+        connected_actors_set: &mut HashSet<ActorId>,
+        guest_id: &ActorId,
+    ) {
         if let Some(guest) = guests.get_mut(guest_id) {
+            connected_actors_set.insert(*guest_id);
             guest.guest_com.resources_loaded = true;
         }
     }
@@ -602,7 +607,11 @@ impl DynamicGameModule {
                     );
                 }
                 GuestToModuleEvent::GameSetupDone => {
-                    Self::set_resources_loaded(&mut self.guests, &guest_id);
+                    Self::set_resources_loaded(
+                        &mut self.guests,
+                        &mut self.connected_actor_set,
+                        &guest_id,
+                    );
                     if let Some(world_id) = self.guest_to_world.get(&guest_id) {
                         Self::send_initial_world_events(
                             &mut self
@@ -782,7 +791,6 @@ impl DynamicGameModule {
             connected: true,
             resources_loaded: false,
         });
-        self.connected_actor_set.insert(admin.id);
 
         if let Some(world) = self.world_map.get_mut(&world_id) {
             world.actor_joined_world(admin.id);
@@ -812,8 +820,13 @@ impl DynamicGameModule {
     pub fn try_enter(
         &mut self,
         guest: &Guest,
+        main_world_id: WorldId,
         _module_enter_slot: &ModuleEnterSlot,
     ) -> Result<EnterSuccessState, EnterFailedState> {
+        debug!("Guest entering world with id: {:?}", main_world_id);
+        self.guest_to_world.insert(guest.id, main_world_id.clone());
+        self.world_to_guest
+            .insert_entry(main_world_id.clone(), guest.id);
         self.guests.insert(
             guest.id,
             ModuleGuest {
@@ -823,10 +836,13 @@ impl DynamicGameModule {
                     resources_loaded: false,
                 },
                 last_input_time: Instant::now(),
-                world_id: None,
+                world_id: Some(main_world_id.clone()),
             },
         );
-        self.connected_actor_set.insert(guest.id);
+
+        if let Some(world) = self.world_map.get_mut(&main_world_id) {
+            world.actor_joined_world(guest.id);
+        }
 
         Ok(EnterSuccessState::Entered)
     }

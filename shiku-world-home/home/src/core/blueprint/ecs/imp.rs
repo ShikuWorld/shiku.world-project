@@ -38,8 +38,7 @@ impl From<&Scene> for ECS {
             new_ecs.scene_resource_path.clone_from(&scene.resource_path);
             new_ecs.scene_id.clone_from(&scene.id);
 
-            let engine = Engine::new();
-            Self::add_entity_from_game_node(&scene.root_node, &mut shared, &engine);
+            Self::add_entity_from_game_node(&scene.root_node, &mut shared);
         }
         new_ecs
     }
@@ -54,6 +53,7 @@ impl ECS {
             scene_id: SceneId::default(),
             entity_scripts: HashMap::new(),
             entities: HashSet::new(),
+            processed_added_entities: Vec::new(),
             shared: ApiShare::new(ECSShared {
                 entities: EntityMaps {
                     game_node_id: HashMap::new(),
@@ -78,6 +78,7 @@ impl ECS {
                     dirty: HashMap::new(),
                     view_dirty: HashMap::new(),
                 },
+                set_scope_variables: HashMap::new(),
                 added_entities: Vec::new(),
                 removed_entities: Vec::new(),
                 entity_counter: 0,
@@ -256,7 +257,6 @@ impl ECS {
         parent_entity: Entity,
         child: &GameNodeKind,
         shared: &mut ECSShared,
-        engine: &Engine,
     ) -> Entity {
         let child_entity = Entity(shared.entity_counter);
         shared
@@ -275,14 +275,10 @@ impl ECS {
                 .node_2d_entity_instance_parent
                 .insert(child_entity, parent_entity);
         }
-        Self::add_entity_from_game_node(child, shared, engine)
+        Self::add_entity_from_game_node(child, shared)
     }
 
-    fn add_entity_from_game_node(
-        node_kind: &GameNodeKind,
-        ecs: &mut ECSShared,
-        engine: &Engine,
-    ) -> Entity {
+    fn add_entity_from_game_node(node_kind: &GameNodeKind, ecs: &mut ECSShared) -> Entity {
         let entity = Entity(ecs.entity_counter);
         let mut script_path = None;
         ecs.entity_counter += 1;
@@ -370,13 +366,14 @@ impl ECS {
                 }
             }
         }
+        debug!("Adding entity: {:?} {:?}", entity, script_path);
         ecs.added_entities.push((entity, script_path));
         if let Some(instance_root_node) = Self::get_node_2d_instance_root_node(node_kind) {
             debug!("# Adding instance root node");
-            Self::add_child_to_entity(entity, &instance_root_node, ecs, engine);
+            Self::add_child_to_entity(entity, &instance_root_node, ecs);
         } else {
             for child in node_kind.get_children() {
-                Self::add_child_to_entity(entity, child, ecs, engine);
+                Self::add_child_to_entity(entity, child, ecs);
             }
         }
 
@@ -421,21 +418,43 @@ impl ECS {
             .retain(|_, script| script.path != *resource_path);
     }
 
-    pub fn process_added_and_removed_entities(&mut self) {
-        if let Some(mut shared) = self.shared.try_borrow_mut() {
-            for (new_entity, resource_path) in shared
-                .added_entities
-                .drain(..)
-                .filter_map(|(e, p)| p.map(|r| (e, r)))
-            {
-                debug!("Adding entity: {:?}", new_entity);
-                self.entity_scripts.insert(
-                    new_entity,
-                    GameNodeScript::new(new_entity, &Engine::new(), resource_path).unwrap(),
-                );
+    pub fn process_added_and_removed_entities_and_scope_sets(&mut self, engine: &Engine) {
+        let mut processing_done = false;
+        while !processing_done {
+            if let Some(mut shared) = self.shared.try_borrow_mut() {
+                for (new_entity, resource_path) in shared
+                    .added_entities
+                    .drain(..)
+                    .filter_map(|(e, p)| p.map(|r| (e, r)))
+                {
+                    match GameNodeScript::new(new_entity, &Engine::new(), resource_path.clone()) {
+                        Ok(game_node_script) => {
+                            self.entity_scripts.insert(new_entity, game_node_script);
+                            self.processed_added_entities.push(new_entity);
+                        }
+                        Err(e) => {
+                            error!("Error creating script in process added entities: {:?}", e);
+                        }
+                    };
+                }
+                for new_entity in shared.removed_entities.drain(..) {
+                    self.entity_scripts.remove(&new_entity);
+                }
+                for (entity, scope_cache) in shared.set_scope_variables.drain() {
+                    if let Some(game_node_script) = self.entity_scripts.get_mut(&entity) {
+                        for (key, value) in scope_cache {
+                            game_node_script.update_scope(key, value);
+                        }
+                    }
+                }
             }
-            for new_entity in shared.removed_entities.drain(..) {
-                self.entity_scripts.remove(&new_entity);
+            for entity in self.processed_added_entities.drain(..) {
+                if let Some(game_node_script) = self.entity_scripts.get_mut(&entity) {
+                    game_node_script.call(GameNodeScriptFunction::Init, engine, ());
+                }
+            }
+            if let Some(shared) = self.shared.try_borrow() {
+                processing_done = shared.added_entities.is_empty();
             }
         }
     }

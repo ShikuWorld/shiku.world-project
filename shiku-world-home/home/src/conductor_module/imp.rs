@@ -205,6 +205,8 @@ impl ConductorModule {
             .unwrap();
         }
 
+        let conductor = BlueprintService::load_conductor_blueprint().unwrap();
+
         ConductorModule {
             blueprint,
             blueprint_service,
@@ -214,7 +216,7 @@ impl ConductorModule {
             web_server_module: WebServerModule::new(),
             login_manager: LoginManager::new(),
             snowflake_gen,
-            module_connection_map: HashMap::new(),
+            module_connection_map: conductor.module_connection_map,
             resource_to_module_map,
             guests: HashMap::new(),
             admins: HashMap::new(),
@@ -309,77 +311,96 @@ impl ConductorModule {
                 .get(&ticket.session_id.unwrap_or_default())
                 .unwrap_or(&0);
 
-            let guest_id: Snowflake =
-                if let Some(guest) = self.guests.get_mut(guest_id_from_session_id) {
-                    debug!("Guest already existed with their session!");
-                    if guest.ws_connection_id.is_some() {
-                        error!("Guest already has a connection!");
-                        //TODO: Disconnect old connection and connect new connection
-                        self.websocket_module.send_event(
-                            &connection_id,
-                            serde_json::to_string(&CommunicationEvent::AlreadyConnected)
-                                .unwrap_or_else(|_| "AlreadyConnected".to_string()),
-                        );
-                        continue;
-                    }
-                    self.guest_timeout_map.remove(&guest.id);
-                    self.ws_to_guest_map.insert(connection_id, guest.id);
+            let guest_id: Snowflake = if let Some(guest) =
+                self.guests.get_mut(guest_id_from_session_id)
+            {
+                debug!("Guest already existed with their session!");
+                if guest.ws_connection_id.is_some() {
+                    error!("Guest already has a connection!");
+                    //TODO: Disconnect old connection and connect new connection
+                    self.websocket_module.send_event(
+                        &connection_id,
+                        serde_json::to_string(&CommunicationEvent::AlreadyConnected)
+                            .unwrap_or_else(|_| "AlreadyConnected".to_string()),
+                    );
+                    continue;
+                }
+                self.guest_timeout_map.remove(&guest.id);
+                self.ws_to_guest_map.insert(connection_id, guest.id);
 
-                    guest.ws_connection_id = Some(connection_id);
+                guest.ws_connection_id = Some(connection_id);
 
-                    if let (Some(current_module_id), Some(current_instance_id)) =
-                        (&guest.current_module_id, &guest.current_instance_id)
+                if let (Some(current_module_id), Some(current_instance_id)) =
+                    (&guest.current_module_id, &guest.current_instance_id)
+                {
+                    debug!("Guest had a module and instance to reconnect to.");
+                    if let Some(module_communication) =
+                        self.module_communication_map.get_mut(current_module_id)
                     {
-                        if let Some(module_communication) =
-                            self.module_communication_map.get_mut(current_module_id)
-                        {
-                            send_and_log_error_custom(
-                                &mut module_communication.sender.system_to_module_sender,
-                                ModuleInstanceEvent {
-                                    module_id: current_module_id.clone(),
-                                    instance_id: current_instance_id.clone(),
-                                    world_id: None,
-                                    event_type: SystemToModuleEvent::Reconnected(guest.id),
-                                },
-                                "Error sending reconnect event",
-                            );
-                            if let Some(module) = self.module_map.get(current_module_id) {
-                                if let Some((terrain_params, layer_parralax)) = module
-                                    .get_terrain_info_for_guest(&guest.id, current_instance_id)
-                                {
-                                    match BlueprintService::load_module_tilesets(
-                                        &module.module_blueprint.resources,
-                                    ) {
-                                        Ok(tilesets) => Self::send_prepare_game_event(
-                                            &guest,
-                                            &mut self.resource_module,
-                                            &mut self.websocket_module,
-                                            current_module_id,
-                                            current_instance_id,
-                                            terrain_params,
-                                            layer_parralax
-                                                .into_iter()
-                                                .map(|(kind, (x, y))| (kind, x, y))
-                                                .collect(),
-                                            tilesets,
-                                            module.module_blueprint.gid_map.clone(),
-                                            module
-                                                .module_blueprint
-                                                .char_animation_to_tileset_map
-                                                .clone(),
-                                        ),
-                                        Err(err) => {
-                                            error!("Could not load tilesets for module! {:?}", err)
-                                        }
+                        debug!("Sending reconnect event to module");
+                        send_and_log_error_custom(
+                            &mut module_communication.sender.system_to_module_sender,
+                            ModuleInstanceEvent {
+                                module_id: current_module_id.clone(),
+                                instance_id: current_instance_id.clone(),
+                                world_id: None,
+                                event_type: SystemToModuleEvent::Reconnected(guest.id),
+                            },
+                            "Error sending reconnect event",
+                        );
+                        if let Some(module) = self.module_map.get(current_module_id) {
+                            if let Some((terrain_params, layer_parralax)) =
+                                module.get_terrain_info_for_guest(&guest.id, current_instance_id)
+                            {
+                                debug!("Loading tilesets and sending prepare game event to guest");
+                                match BlueprintService::load_module_tilesets(
+                                    &module.module_blueprint.resources,
+                                ) {
+                                    Ok(tilesets) => Self::send_prepare_game_event(
+                                        &guest,
+                                        &mut self.resource_module,
+                                        &mut self.websocket_module,
+                                        current_module_id,
+                                        current_instance_id,
+                                        terrain_params,
+                                        layer_parralax
+                                            .into_iter()
+                                            .map(|(kind, (x, y))| (kind, x, y))
+                                            .collect(),
+                                        tilesets,
+                                        module.module_blueprint.gid_map.clone(),
+                                        module
+                                            .module_blueprint
+                                            .char_animation_to_tileset_map
+                                            .clone(),
+                                    ),
+                                    Err(err) => {
+                                        error!("Could not load tilesets for module! {:?}", err)
                                     }
                                 }
+                            } else {
+                                error!("Could not get terrain info for guest");
                             }
+                        } else {
+                            error!(
+                                "Module {} did not exist, so user cannot enter it, guest is stuck!",
+                                current_module_id
+                            );
                         }
+                    } else {
+                        error!(
+                            "Could not find module communication for module {} {:?}",
+                            current_module_id,
+                            self.module_communication_map.keys()
+                        );
                     }
-                    guest.id
                 } else {
-                    self.create_new_guest(connection_id)
-                };
+                    debug!("Guest did not have a module and instance to reconnect to.");
+                }
+                guest.id
+            } else {
+                self.create_new_guest(connection_id)
+            };
 
             if let Some(guest) = self.guests.get(&guest_id) {
                 if let Ok(event_as_string) =
@@ -524,12 +545,16 @@ impl ConductorModule {
     pub fn move_guests(&mut self) {
         for guest in self.guests.values_mut() {
             if let Some(module_exit_slot) = &guest.pending_module_exit {
-                if let Some((target_module_name, module_enter_slot)) =
+                if let Some((target_module_id, module_enter_slot)) =
                     self.module_connection_map.get(module_exit_slot)
                 {
+                    debug!(
+                        "Guest {:?} is trying to leave module {:?} to enter module {:?}",
+                        guest.id, module_exit_slot, target_module_id
+                    );
                     if let Some(current_module_id) = &guest.current_module_id {
-                        if current_module_id == target_module_name {
-                            error!("current module {} and target module {} are the same, this should never happen!", current_module_id, target_module_name);
+                        if current_module_id == target_module_id {
+                            error!("current module {} and target module {} are the same, this should never happen!", current_module_id, target_module_id);
                             continue;
                         }
                         let current_module_option = self.module_map.get_mut(current_module_id);
@@ -549,11 +574,11 @@ impl ConductorModule {
 
                     debug!(
                         "trying to get into {:?} {:?}",
-                        target_module_name,
+                        target_module_id,
                         self.module_map.len()
                     );
 
-                    if let Some(target_module) = self.module_map.get_mut(target_module_name) {
+                    if let Some(target_module) = self.module_map.get_mut(target_module_id) {
                         ConductorModule::try_enter_module(
                             guest,
                             module_enter_slot,
@@ -564,7 +589,7 @@ impl ConductorModule {
                     } else {
                         error!(
                             "Module {} did not exist, so user cannot enter it, guest is stuck!",
-                            target_module_name
+                            target_module_id
                         );
                     }
                 } else {
@@ -614,23 +639,28 @@ impl ConductorModule {
         websocket_module: &mut WebsocketModule,
     ) {
         let module_name = module.module_blueprint.name.clone();
-        match module.try_enter(guest, module_enter_slot) {
+        debug!("Trying to enter module {}", module_name);
+        let main_map = module.module_blueprint.main_map.clone();
+        match module.try_enter(guest, main_map, module_enter_slot) {
             Ok((instance_id, EnterSuccessState::Entered)) => {
-                debug!("Entered I think {:?}", instance_id);
-                guest.current_module_id = Some(module_name.clone());
+                guest.current_module_id = Some(module.module_blueprint.id.clone());
                 guest.current_instance_id = Some(instance_id.clone());
                 guest.pending_module_exit = None;
-                resource_module.activate_module_resource_updates(module_name.clone(), &guest.id);
+                resource_module.activate_module_resource_updates(
+                    module.module_blueprint.id.clone(),
+                    &guest.id,
+                );
                 if let Some((terrain_params, layer_parralax)) =
                     module.get_terrain_info_for_guest(&guest.id, &instance_id)
                 {
+                    debug!("Loading tilesets and sending prepare game event to guest");
                     match BlueprintService::load_module_tilesets(&module.module_blueprint.resources)
                     {
                         Ok(tilesets) => Self::send_prepare_game_event(
                             &guest,
                             resource_module,
                             websocket_module,
-                            &module_name,
+                            &module.module_blueprint.id,
                             &instance_id,
                             terrain_params,
                             layer_parralax
@@ -648,10 +678,18 @@ impl ConductorModule {
                             error!("Could not load tilesets for module! {:?}", err)
                         }
                     }
+                } else {
+                    error!("Could not get terrain info for guest");
                 }
             }
             Err(EnterFailedState::PersistedStateGoneMissingGoneWild) => {
                 error!("Guest state could not be loaded...? {}", module_name);
+            }
+            Err(EnterFailedState::NoMainMapSet) => {
+                error!(
+                    "No main map set so guest cannot join world! {}",
+                    module_name
+                );
             }
             Err(EnterFailedState::GameInstanceNotFoundWTF) => {
                 error!("Game instance not found wtf? {}", module_name);
@@ -677,8 +715,10 @@ impl ConductorModule {
         gid_map: GidMap,
         character_animation_to_tileset_map: CharAnimationToTilesetMap,
     ) {
+        debug!("Sending prepare game event to guest");
         if let Ok(resources) = resource_module.get_active_resources_for_module(module_id, &guest.id)
         {
+            debug!("Got active resources for module");
             if let Err(err) = Self::send_communication_event_to_guest_direct(
                 guest,
                 websocket_module,
@@ -699,6 +739,8 @@ impl ConductorModule {
             ) {
                 error!("Cold not send communicastion event to guest {:?}", err);
             }
+        } else {
+            error!("Could not get active resources for module");
         }
     }
 
@@ -796,7 +838,6 @@ impl ConductorModule {
         event: &CommunicationEvent,
     ) -> Result<(), ProcessModuleEventError> {
         if let Some(guest) = guests.get(&guest_id) {
-            debug!("Sending to guest {:?}", guest);
             return Self::send_communication_event_to_guest_direct(guest, websocket_module, event);
         }
 
@@ -1006,7 +1047,6 @@ impl ConductorModule {
         for (guest_id, guest) in &self.guests {
             if let Some(ws_connection_id) = &guest.ws_connection_id {
                 for message in self.websocket_module.drain_events(ws_connection_id) {
-                    println!("{}", message.to_string().as_str());
                     match serde_json::from_str::<GuestTo>(message.to_string().as_str()) {
                         Ok(guest_to) => match guest_to {
                             GuestTo::GuestToSystemEvent(event) => {
@@ -1110,11 +1150,16 @@ impl ConductorModule {
                         &login_data,
                         &actor_id,
                         guests,
-                    ws_to_guest_map,
+                        ws_to_guest_map,
                         session_id_to_guest_map,
+                        false,
                         |login_data, guest| {
                             if let Err(err) = Self::handle_guest_persistence(persistence_module, login_data, guest) {
                                 error!("Oh oh! There was an error while trying to get guest persistence!!! {:?}", err)
+                            }
+                            debug!("Guest login success!!!!! {:?}", guest);
+                            if guest.pending_module_exit.is_none() && guest.current_module_id.is_none() {
+                               guest.pending_module_exit = Some("LoginOut".to_string());
                             }
                         }));
                 } else {
@@ -1126,6 +1171,7 @@ impl ConductorModule {
                         admins,
                         ws_to_admin_map,
                         session_id_to_admin_map,
+                        true,
                         |_, _| {}));
                 };
             }
@@ -1172,6 +1218,7 @@ impl ConductorModule {
         sender: &mut Sender<(ActorId, CommunicationEvent)>,
         result: Result<ActorId, HandleLoginError>,
     ) {
+        error!("login result: {:?}", result);
         match result {
             Ok(actor_id) => {
                 debug!("handle login was successful for {}", actor_id);
@@ -1209,9 +1256,10 @@ impl ConductorModule {
         actors: &mut HashMap<Snowflake, T>,
         ws_to_actor_map: &mut HashMap<Snowflake, Snowflake>,
         session_to_actor_map: &mut HashMap<String, Snowflake>,
+        is_admin_login: bool,
         mut login_success_cb: F,
     ) -> Result<ActorId, HandleLoginError> {
-        if !Self::check_admin_login(login_data) {
+        if is_admin_login && !Self::check_admin_login(login_data) {
             return Err(HandleLoginError::NotAuthorized(*actor_id));
         }
 
@@ -1268,6 +1316,7 @@ impl ConductorModule {
 
             actor.set_login_data(login_data.clone());
             actor.set_is_logged_in(true);
+            login_success_cb(login_data, actor);
             return Ok(*actor_id);
         }
 
@@ -1290,9 +1339,6 @@ impl ConductorModule {
         Ok(())
     }
     fn send_system_events_to_guests(&mut self) {
-        if !self.system_to_guest_communication.receiver.is_empty() {
-            debug!("There are messages!");
-        }
         for (guest_id, communication_event) in self.system_to_guest_communication.receiver.drain() {
             debug!("Sending system event to guest? {:?}", communication_event);
             if let Err(err) = Self::send_communication_event_to_guest(

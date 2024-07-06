@@ -1,7 +1,3 @@
-use rapier2d::prelude::*;
-use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
-use std::collections::{HashMap, HashSet};
-
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpdate, ECS};
@@ -10,11 +6,14 @@ use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
 use crate::core::guest::ActorId;
 use crate::core::module::GuestInput;
-use crate::core::module_system::error::{CreateWorldError, ResetWorldError};
+use crate::core::module_system::error::CreateWorldError;
 use crate::core::module_system::script_types::CharacterDirectionModule;
 use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::{ApiShare, TARGET_FRAME_DURATION};
+use rapier2d::prelude::*;
+use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
+use std::collections::{HashMap, HashSet};
 
 pub type WorldId = String;
 
@@ -51,7 +50,6 @@ impl World {
         collision_shape_map: &HashMap<Gid, CollisionShape>,
     ) -> Result<World, CreateWorldError> {
         let world_scene = Blueprint::load_scene(game_map.main_scene.clone().into())?;
-        let mut ecs = ECS::from(&world_scene);
         let mut physics = RapierSimulation::new();
         let terrain_manager = TerrainManager::new(
             TerrainParams {
@@ -64,30 +62,46 @@ impl World {
             collision_shape_map,
             &mut physics,
         );
-        Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
 
+        let mut world = World {
+            world_id: game_map.world_id.clone(),
+            physics: ApiShare::new(physics),
+            game_map_path: game_map.get_full_resource_path(),
+            actor_api: ApiShare::new(ActorApi {
+                actor_inputs: HashMap::new(),
+                active_users: HashSet::new(),
+            }),
+            terrain_manager,
+            ecs: ECS::from(&world_scene),
+            script_engine: Engine::new(),
+        };
+
+        world.reset()?;
+
+        Ok(world)
+    }
+
+    pub fn reset(&mut self) -> Result<(), CreateWorldError> {
+        let game_map = Blueprint::load_map(self.game_map_path.clone().into())?;
+        let world_scene = Blueprint::load_scene(game_map.main_scene.clone().into())?;
+
+        let mut ecs = ECS::from(&world_scene);
+        let mut physics = RapierSimulation::new();
+        Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
+        self.terrain_manager.re_add_polylines(&mut physics);
+        let physics_share = ApiShare::new(physics);
         let mut script_engine = Engine::new();
         Self::register_types(&mut script_engine);
-        Self::setup_nodes_api(&mut script_engine, &mut ecs);
-        let physics_share = ApiShare::new(physics);
+        Self::setup_nodes_api(&mut script_engine, &mut ecs, &physics_share);
         Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
         Self::setup_animation_api(&mut script_engine, &mut ecs);
-        let actor_api = ApiShare::new(ActorApi {
-            actor_inputs: HashMap::new(),
-            active_users: HashSet::new(),
-        });
-        Self::setup_actor_api(&mut script_engine, &actor_api);
-        ecs.process_added_and_removed_entities();
-        Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
-        Ok(World {
-            world_id: game_map.world_id.clone(),
-            physics: physics_share,
-            game_map_path: game_map.get_full_resource_path(),
-            actor_api,
-            terrain_manager,
-            ecs,
-            script_engine,
-        })
+        Self::setup_actor_api(&mut script_engine, &self.actor_api);
+        ecs.process_added_and_removed_entities_and_scope_sets(&script_engine);
+        self.ecs = ecs;
+        self.physics = physics_share;
+        self.script_engine = script_engine;
+
+        Ok(())
     }
 
     pub fn update(&mut self) {
@@ -99,10 +113,11 @@ impl World {
                 Self::update_positions(&mut physics, &mut shared_ecs);
             }
         }
+        self.ecs
+            .process_added_and_removed_entities_and_scope_sets(&self.script_engine);
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
         }
-        self.ecs.process_added_and_removed_entities();
     }
 
     pub fn update_entities_gid_from_animations(shared: &mut ECSShared) {
@@ -145,30 +160,6 @@ impl World {
                 }
             }
         }
-    }
-
-    pub fn reset(&mut self) -> Result<(), ResetWorldError> {
-        let game_map = Blueprint::load_map(self.game_map_path.clone().into())?;
-        let world_scene = Blueprint::load_scene(game_map.main_scene.clone().into())?;
-
-        let mut ecs = ECS::from(&world_scene);
-        let mut physics = RapierSimulation::new();
-        Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
-        self.terrain_manager.re_add_polylines(&mut physics);
-        let physics_share = ApiShare::new(physics);
-        let mut script_engine = Engine::new();
-        Self::register_types(&mut script_engine);
-        Self::setup_nodes_api(&mut script_engine, &mut ecs);
-        Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
-        Self::setup_animation_api(&mut script_engine, &mut ecs);
-        Self::setup_actor_api(&mut script_engine, &self.actor_api);
-        ecs.process_added_and_removed_entities();
-        Self::call_init_func_on_game_nodes(&script_engine, &mut ecs);
-        self.ecs = ecs;
-        self.physics = physics_share;
-        self.script_engine = script_engine;
-
-        Ok(())
     }
 
     pub fn actor_joined_world(&mut self, actor_id: ActorId) {
@@ -280,7 +271,11 @@ impl World {
         );
     }
 
-    fn setup_nodes_api(engine: &mut Engine, ecs: &mut ECS) {
+    fn setup_nodes_api(
+        engine: &mut Engine,
+        ecs: &mut ECS,
+        physics_share: &ApiShare<RapierSimulation>,
+    ) {
         let mut module = RhaiModule::new();
 
         let ecs_shared = ecs.shared.clone();
@@ -298,6 +293,45 @@ impl World {
         };
         FuncRegistration::new("get_child_animation_entity")
             .set_into_module(&mut module, get_child_animation_entity);
+
+        let ecs_shared = ecs.shared.clone();
+        let physics_clone = physics_share.clone();
+        let spawn_entity_from_scene = move |entity: Entity, source: &str| -> Dynamic {
+            if let (Some(mut physics), Some(mut shared)) =
+                (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
+            {
+                match Blueprint::load_scene(source.into()) {
+                    Ok(scene) => {
+                        return Dynamic::from(Self::_add_entity(
+                            &mut shared,
+                            &mut physics,
+                            entity,
+                            &scene.root_node,
+                        ));
+                    }
+                    Err(err) => {
+                        eprintln!("Error loading scene when spawning entity in api: {:?}", err);
+                    }
+                }
+            }
+            Dynamic::from(())
+        };
+        FuncRegistration::new("spawn_entity_from_scene")
+            .set_into_module(&mut module, spawn_entity_from_scene);
+
+        let ecs_shared = ecs.shared.clone();
+        let set_entity_scope_variable = move |entity: Entity, key: &str, value: Dynamic| {
+            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                shared
+                    .set_scope_variables
+                    .entry(entity)
+                    .or_default()
+                    .insert(key.to_string(), value.into());
+            }
+        };
+        FuncRegistration::new("set_scope_variable_on_entity")
+            .set_into_module(&mut module, set_entity_scope_variable);
+
         engine.register_static_module("shiku::nodes", module.into());
     }
 
@@ -408,12 +442,6 @@ impl World {
         }
     }
 
-    fn call_init_func_on_game_nodes(script_engine: &Engine, ecs: &mut ECS) {
-        for game_node_script in ecs.entity_scripts.values_mut() {
-            game_node_script.call(GameNodeScriptFunction::Init, script_engine, ());
-        }
-    }
-
     fn init_physics_simulation_from_ecs(ecs: &mut ECS, physics: &mut RapierSimulation) {
         ecs.create_initial_rigid_bodies(physics);
         ecs.attach_initial_colliders_to_rigid_bodies(physics);
@@ -434,26 +462,28 @@ impl World {
         }
     }
 
+    fn _add_entity(
+        shared: &mut ECSShared,
+        physics: &mut RapierSimulation,
+        parent_entity: Entity,
+        child: &GameNodeKind,
+    ) -> Entity {
+        let entity = ECS::add_child_to_entity(parent_entity, child, shared);
+        if let Some(rigid_body_type) = shared.entities.rigid_body_type.get(&entity).cloned() {
+            let transform = Transform::default();
+            ECS::add_rigid_body_for_entity(&entity, &rigid_body_type, &transform, shared, physics);
+        }
+        ECS::attach_colliders_to_entity(&entity, shared, physics);
+        ECS::attach_collider_to_its_entity(&parent_entity, &entity, shared, physics);
+        entity
+    }
+
     pub fn add_entity(&mut self, parent_entity: Entity, child: &GameNodeKind) -> Option<Entity> {
         if let (Some(mut shared), Some(mut physics)) = (
             self.ecs.shared.try_borrow_mut(),
             self.physics.try_borrow_mut(),
         ) {
-            let entity =
-                ECS::add_child_to_entity(parent_entity, child, &mut shared, &self.script_engine);
-            if let Some(rigid_body_type) = shared.entities.rigid_body_type.get(&entity).cloned() {
-                let transform = Transform::default();
-                ECS::add_rigid_body_for_entity(
-                    &entity,
-                    &rigid_body_type,
-                    &transform,
-                    &mut shared,
-                    &mut physics,
-                );
-            }
-            ECS::attach_colliders_to_entity(&entity, &mut shared, &mut physics);
-            ECS::attach_collider_to_its_entity(&parent_entity, &entity, &mut shared, &mut physics);
-            return Some(entity);
+            Self::_add_entity(&mut shared, &mut physics, parent_entity, child);
         }
         None
     }

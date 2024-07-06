@@ -75,18 +75,29 @@ pub enum ScopeCacheValue {
     String(String),
     Number(f64),
     Integer(i64),
+    Entity(Entity),
     Map(HashMap<String, ScopeCacheValue>),
 }
 
 pub const MIN_EQUAL_FLOAT_VALUE: f64 = 0.0000001_f64;
 
 impl ScopeCacheValue {
+    pub(crate) fn is_unknown(&self) -> bool {
+        matches!(self, ScopeCacheValue::Unknown(_))
+    }
     pub(crate) fn equals_dynamic_value(
         scope_cache_value: &ScopeCacheValue,
         dynamic_value: &Dynamic,
     ) -> bool {
         match scope_cache_value {
             ScopeCacheValue::Empty => dynamic_value.is::<()>(),
+            ScopeCacheValue::Entity(entity) => {
+                if let Some(dynamic_entity) = dynamic_value.read_lock::<Entity>() {
+                    *entity == *dynamic_entity
+                } else {
+                    false
+                }
+            }
             ScopeCacheValue::Unknown(_) => false,
             ScopeCacheValue::String(value) => {
                 if let Some(dynamic_value) = dynamic_value.read_lock::<String>() {
@@ -112,6 +123,9 @@ impl ScopeCacheValue {
             ScopeCacheValue::Map(scope_cache_map) => {
                 if let Some(dynamic_map) = dynamic_value.read_lock::<DynamicMap>() {
                     scope_cache_map.iter().all(|(key, cache_val)| {
+                        if cache_val.is_unknown() {
+                            return true;
+                        }
                         let smart_string: SmartString<LazyCompact> = key.into();
                         match dynamic_map.get(&smart_string) {
                             Some(dyn_val) => {
@@ -176,68 +190,12 @@ impl GameNodeScript {
         let mut updated = false;
 
         for (key, value) in self.scope_cache.iter_mut() {
-            match value {
-                ScopeCacheValue::Empty => {}
-                ScopeCacheValue::Unknown(_) => {}
-                ScopeCacheValue::String(cache_value) => {
-                    if let Some(scope_value) = self
-                        .scope
-                        .get(key)
-                        .and_then(|v| v.read_lock::<ImmutableString>())
-                    {
-                        if *scope_value != *cache_value {
-                            *value = ScopeCacheValue::String(scope_value.clone().into());
-                            updated = true;
-                        }
-                    }
+            if let Some(dynamic_value) = self.scope.get(key) {
+                if ScopeCacheValue::equals_dynamic_value(value, self.scope.get(key).unwrap()) {
+                    continue;
                 }
-                ScopeCacheValue::Number(cache_value) => {
-                    if let Some(scope_value) =
-                        self.scope.get(key).and_then(|v| v.read_lock::<f64>())
-                    {
-                        if (*scope_value - *cache_value).abs() > MIN_EQUAL_FLOAT_VALUE {
-                            *value = ScopeCacheValue::Number(*scope_value);
-                            updated = true;
-                        }
-                    }
-                }
-                ScopeCacheValue::Integer(cache_value) => {
-                    if let Some(scope_value) =
-                        self.scope.get(key).and_then(|v| v.read_lock::<i64>())
-                    {
-                        if *scope_value != *cache_value {
-                            *value = ScopeCacheValue::Integer(*scope_value);
-                            updated = true;
-                        }
-                    }
-                }
-                ScopeCacheValue::Map(cache_value) => {
-                    if let Some(scope_value) = self
-                        .scope
-                        .get(key)
-                        .and_then(|v| v.read_lock::<DynamicMap>())
-                    {
-                        for (key, value) in scope_value.iter() {
-                            match cache_value.get(key.as_str()) {
-                                Some(cache_value) => {
-                                    if !ScopeCacheValue::equals_dynamic_value(cache_value, value) {
-                                        updated = true;
-                                    }
-                                }
-                                None => {
-                                    updated = true;
-                                }
-                            }
-                        }
-                        if updated {
-                            let mut new_map = HashMap::new();
-                            for (key, value) in scope_value.iter() {
-                                new_map.insert(key.clone().into(), value.clone().into());
-                            }
-                            *value = ScopeCacheValue::Map(new_map);
-                        }
-                    }
-                }
+                updated = true;
+                *value = dynamic_value.clone().into();
             }
         }
         if updated {
@@ -262,6 +220,7 @@ impl GameNodeScript {
                 }
                 self.scope.clear();
                 for (key, value) in scope_cache.iter() {
+                    debug!("Setting key: {} with value: {:?}", key, value);
                     let dynamic_value: Dynamic = value.clone().into();
                     self.scope.set_value(key.clone(), dynamic_value);
                 }
@@ -330,6 +289,7 @@ impl Into<Dynamic> for ScopeCacheValue {
             ScopeCacheValue::String(val) => Dynamic::from(val),
             ScopeCacheValue::Number(val) => Dynamic::from(val),
             ScopeCacheValue::Integer(val) => Dynamic::from(val),
+            ScopeCacheValue::Entity(entity) => Dynamic::from(entity),
             ScopeCacheValue::Map(map) => {
                 let mut dynamic_map: DynamicMap = BTreeMap::new();
                 for (key, value) in map {
@@ -366,6 +326,12 @@ impl Into<ScopeCacheValue> for Dynamic {
                     map.insert(key.into(), value.into());
                 }
                 ScopeCacheValue::Map(map)
+            }
+            "home::core::blueprint::ecs::def::Entity" => {
+                ScopeCacheValue::Entity(self.try_cast::<Entity>().unwrap_or_else(|| {
+                    error!("Error casting Dynamic to Entity");
+                    Entity(0)
+                }))
             }
             "()" => ScopeCacheValue::Empty,
             type_name => ScopeCacheValue::Unknown(format!("Unknown type: {type_name}")),

@@ -55,6 +55,7 @@ export class ResourceManager {
   constructor(
     private _base_url: string,
     renderer: RenderSystem,
+    public module_id: string,
   ) {
     this.dummy_texture_tileset_missing = renderer.dummy_texture_tileset_missing;
     this.dummy_texture_loading = renderer.dummy_texture_loading;
@@ -169,7 +170,7 @@ export class ResourceManager {
         this.set_tileset_map(tilesets);
       })
       .with({ UpdateGidMap: P.select() }, (gid_map) => {
-        console.log("gid_map", gid_map);
+        console.log("gid_map update", gid_map);
         this.gid_map = gid_map;
       })
       .with("UnLoadResources", () => console.log("unload"))
@@ -211,7 +212,7 @@ export class ResourceManager {
   ): Graphics {
     const tileset = this.tile_set_map[tileset_path];
     if (!tileset) {
-      console.error("No tileset for", tileset_path);
+      console.error("No tileset for", tileset_path, this.module_id);
       return {
         textures: [this.dummy_texture_tileset_missing],
         frame_objects: [],
@@ -237,6 +238,10 @@ export class ResourceManager {
         break;
       }
       selected_gid_index = i;
+    }
+    if (!this.gid_map[selected_gid_index]) {
+      console.error("No tileset for gid", gid, this.gid_map, this.module_id);
+      return [undefined, 0];
     }
     const [path, start_gid] = this.gid_map[selected_gid_index];
     return [this.tile_set_map[path], start_gid];

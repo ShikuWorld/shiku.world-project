@@ -283,6 +283,7 @@ impl GameInstanceManager {
     pub fn try_enter(
         &mut self,
         guest: &Guest,
+        main_map_resource_path_option: Option<ResourcePath>,
         module_enter_slot: &ModuleEnterSlot,
     ) -> Result<(GameInstanceId, EnterSuccessState), EnterFailedState> {
         if self.guest_to_game_instance_map.contains_key(&guest.id) {
@@ -290,11 +291,19 @@ impl GameInstanceManager {
         }
 
         let game_instance_id = self.lazy_get_game_instance_for_guest_to_join();
+        let main_world_id = main_map_resource_path_option
+            .ok_or(EnterFailedState::NoMainMapSet)
+            .and_then(|resource| {
+                Blueprint::load_map(resource.clone().into())
+                    .map_err(|_| EnterFailedState::NoMainMapSet)
+                    .map(|map| map.world_id)
+            })?;
         if let Some(game_instance) = self.game_instances.get_mut(&game_instance_id) {
-            return match game_instance
-                .dynamic_module
-                .try_enter(guest, module_enter_slot)
-            {
+            return match game_instance.dynamic_module.try_enter(
+                guest,
+                main_world_id,
+                module_enter_slot,
+            ) {
                 Ok(success_state) => {
                     let game_instance_id = game_instance.id.clone();
                     self.guest_to_game_instance_map
@@ -551,7 +560,11 @@ impl GameInstanceManager {
                         )
                     },
                 );
+            } else {
+                error!("Could not find world for guest {:?}!", guest_id);
             }
+        } else {
+            error!("Could not find game instance for guest {:?}!", guest_id);
         }
         None
     }

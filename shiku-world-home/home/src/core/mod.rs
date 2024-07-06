@@ -1,4 +1,4 @@
-use std::cell::{RefCell, RefMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::hash_map::Values;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -166,6 +166,16 @@ pub struct ApiShare<T>(Rc<RefCell<T>>);
 impl<T> ApiShare<T> {
     fn try_borrow_mut(&self) -> Option<RefMut<T>> {
         match self.0.try_borrow_mut() {
+            Ok(borrow) => Some(borrow),
+            Err(err) => {
+                error!("Could not borrow: {:?}", err);
+                None
+            }
+        }
+    }
+
+    fn try_borrow(&self) -> Option<Ref<T>> {
+        match self.0.try_borrow() {
             Ok(borrow) => Some(borrow),
             Err(err) => {
                 error!("Could not borrow: {:?}", err);

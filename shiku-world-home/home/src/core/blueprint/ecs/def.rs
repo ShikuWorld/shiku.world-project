@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::math::Vector;
 use rapier2d::prelude::{ColliderHandle, Real};
-use rhai::Dynamic;
+use rhai::{CustomType, Dynamic, TypeBuilder};
 use serde::{Deserialize, Serialize};
 use smartstring::{LazyCompact, SmartString};
 use ts_rs::TS;
@@ -20,7 +20,9 @@ use crate::core::blueprint::scene::def::{
     NodeInstanceId, RenderKind, RenderKindClean, RigidBodyType, SceneId, Transform,
 };
 
-#[derive(TS, Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(
+    TS, Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, Hash, CustomType,
+)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Entity(pub NodeInstanceId);
 
@@ -32,6 +34,7 @@ pub struct ECS {
     pub scene_id: SceneId,
     pub entities: HashSet<Entity>,
     pub entity_scripts: HashMap<Entity, GameNodeScript>,
+    pub processed_added_entities: Vec<Entity>,
     pub shared: ApiShare<ECSShared>,
 }
 
@@ -39,6 +42,7 @@ pub struct ECS {
 pub struct ECSShared {
     pub entities: EntityMaps,
     pub added_entities: Vec<(Entity, Option<ResourcePath>)>,
+    pub set_scope_variables: HashMap<Entity, HashMap<String, ScopeCacheValue>>,
     pub removed_entities: Vec<Entity>,
     pub entity_counter: NodeInstanceId,
 }

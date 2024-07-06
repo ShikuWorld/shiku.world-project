@@ -232,6 +232,8 @@ pub enum EnterFailedState {
     PersistedStateGoneMissingGoneWild,
     #[error("Already entered")]
     AlreadyEntered,
+    #[error("No Main map set")]
+    NoMainMapSet,
     #[error("Could not find game instance, wtf?")]
     GameInstanceNotFoundWTF,
 }

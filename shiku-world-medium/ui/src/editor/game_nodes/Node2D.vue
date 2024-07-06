@@ -10,6 +10,8 @@
       label="Script"
       :hide-details="true"
       :items="scripts"
+      :item-title="'label'"
+      :item-value="'value'"
       :model-value="game_node.script"
       @update:model-value="(newValue) => update_script(newValue)"
     ></v-select>
@@ -90,7 +92,12 @@ const scripts = computed(() => {
   if (module) {
     return [
       null,
-      ...module.resources.filter((r) => r.kind === "Script").map((r) => r.path),
+      ...module.resources
+        .filter((r) => r.kind === "Script")
+        .map((r) => ({
+          label: r.file_name,
+          value: r.path,
+        })),
     ];
   }
   return [null];
