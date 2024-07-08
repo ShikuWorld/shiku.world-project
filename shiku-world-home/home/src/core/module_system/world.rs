@@ -503,7 +503,12 @@ impl World {
             self.ecs.shared.try_borrow_mut(),
             self.physics.try_borrow_mut(),
         ) {
-            Self::_add_entity(&mut shared, &mut physics, parent_entity, child);
+            return Some(Self::_add_entity(
+                &mut shared,
+                &mut physics,
+                parent_entity,
+                child,
+            ));
         }
         None
     }

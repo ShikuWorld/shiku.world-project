@@ -260,7 +260,7 @@ export class ResourceManager {
     ///const animation_frames = tileset.tile_animation_map[id];
 
     if (tileset.image) {
-      const texture_source: TextureSource =
+      const texture_source: TextureSource | undefined =
         this.image_texture_map[tileset.image.path]?.source;
       if (!texture_source) {
         console.log("@@@@@@@@@@", Object.keys(this.image_texture_map));
@@ -278,7 +278,23 @@ export class ResourceManager {
       });
       graphics.textures.push(texture);
     } else {
-      graphics.textures.push(this.dummy_texture_loading);
+      const image_path = tileset.tiles[id].image?.path;
+      if (!image_path) {
+        graphics.textures.push(this.dummy_texture_loading);
+        console.error("Could not find image path for tile!?");
+        return graphics;
+      }
+      const texture_source: TextureSource | undefined =
+        this.image_texture_map[image_path]?.source;
+      if (!texture_source) {
+        graphics.textures.push(this.dummy_texture_loading);
+        console.error("Could not find image source for tile!?");
+        return graphics;
+      }
+      const texture = new Texture({
+        source: texture_source,
+      });
+      graphics.textures.push(texture);
     }
 
     return graphics;

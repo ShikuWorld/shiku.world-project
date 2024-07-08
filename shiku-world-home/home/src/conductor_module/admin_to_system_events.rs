@@ -912,7 +912,14 @@ pub async fn handle_admin_to_system_event(
                     instance
                         .dynamic_module
                         .add_entity(&world_id, parent_entity, game_node);
+                } else {
+                    error!(
+                        "Could not find instance {:?} in module {:?}",
+                        game_instance_id, module_id
+                    );
                 }
+            } else {
+                error!("Could not find module {:?}", module_id);
             }
         }
     }

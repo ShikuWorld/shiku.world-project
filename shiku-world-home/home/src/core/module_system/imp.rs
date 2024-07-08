@@ -451,7 +451,11 @@ impl DynamicGameModule {
                 } else {
                     error!("Could not create game node from entity!!");
                 }
+            } else {
+                error!("Could not add entity to world {:?}", world_id);
             }
+        } else {
+            error!("Could not find world {:?}", world_id);
         }
     }
 
