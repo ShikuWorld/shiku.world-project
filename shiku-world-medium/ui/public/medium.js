@@ -40606,7 +40606,7 @@ ${e3}`);
         });
         graphics.textures.push(texture);
       } else {
-        const image_path = tileset.tiles[id].image?.path;
+        const image_path = tileset.tiles[id]?.image?.path;
         if (!image_path) {
           graphics.textures.push(this.dummy_texture_loading);
           console.error("Could not find image path for tile!?");
@@ -40634,8 +40634,11 @@ ${e3}`);
       container.rotation = game_node.data.transform.rotation;
       N2(game_node.data.kind).with({ Node2D: _.select() }, { Instance: _.select() }, () => {
       }).with({ Render: _.select() }, (render2) => {
-        const display_object = N2(render2.kind).with({ Sprite: _.select() }, (gid) => {
-          const graphics = resource_manager.get_graphics_data_by_gid(gid);
+        const display_object = N2(render2.kind).with({ Sprite: _.select() }, ([tileset_path, id_in_tileset]) => {
+          const graphics = resource_manager.get_graphics_by_id_and_tileset_path(
+            id_in_tileset,
+            tileset_path
+          );
           return resource_manager.get_sprite_from_graphics(graphics);
         }).with(
           { AnimatedSprite: _.select() },

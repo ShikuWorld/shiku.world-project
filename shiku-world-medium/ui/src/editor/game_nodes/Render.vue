@@ -8,6 +8,18 @@
     @update:model-value="(new_value) => update_render_type(new_value)"
   ></v-select>
   <v-label class="form-label" v-if="render_kind == 'Sprite'">GID</v-label>
+  <v-select
+    v-if="render_kind == 'Sprite'"
+    :hide-details="true"
+    density="compact"
+    :items="tileset_options"
+    :item-title="'file_name'"
+    :item-value="'path'"
+    :model-value="sprite_tileset_path"
+    @update:model-value="
+      (new_value) => update_sprite_tileset_resource(new_value)
+    "
+  ></v-select>
   <v-text-field
     type="number"
     :hide-details="true"
@@ -63,6 +75,14 @@ const character_animations = computed(() => {
   return [];
 });
 
+const tileset_options = computed(() => {
+  const module = get_module(selected_module_id.value);
+  if (module) {
+    return module.resources.filter((r) => r.kind === "Tileset");
+  }
+  return [];
+});
+
 const render_kind = computed(() => {
   return Object.keys(data.value.kind)[0] as KeysOfUnion<RenderKind>;
 });
@@ -74,16 +94,23 @@ const character_animation_resource_path = computed(() => {
   return null;
 });
 
+const sprite_tileset_path = computed(() => {
+  if (Object.keys(data.value.kind)[0] === "Sprite") {
+    return Object.values(data.value.kind)[0][0];
+  }
+  return null;
+});
+
 const gid = computed(() => {
   return match(data.value.kind)
-    .with({ Sprite: P.select() }, (s) => s)
+    .with({ Sprite: P.select() }, ([_, gid]) => gid)
     .with({ AnimatedSprite: P.select() }, ([_, gid]) => gid)
     .exhaustive();
 });
 
 function update_render_type(kind: KeysOfUnion<RenderKind>) {
   if (kind === "Sprite") {
-    emit("entityUpdate", { RenderKind: { Sprite: gid.value } });
+    emit("entityUpdate", { RenderKind: { Sprite: ["", gid.value] } });
   } else if (
     kind === "AnimatedSprite" &&
     character_animations.value.length > 0
@@ -98,6 +125,10 @@ function update_render_type(kind: KeysOfUnion<RenderKind>) {
 
 function update_gid(gid: string) {
   emit("entityUpdate", { Gid: Number(gid) });
+}
+
+function update_sprite_tileset_resource(resource_path: string) {
+  emit("entityUpdate", { SpriteTilesetResource: resource_path });
 }
 
 function update_animated_sprite_resource(resource_path: string) {

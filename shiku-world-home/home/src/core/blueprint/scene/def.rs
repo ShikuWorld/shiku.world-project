@@ -197,7 +197,7 @@ pub struct Render {
 #[ts(export, export_to = "blueprints/")]
 pub enum RenderKind {
     AnimatedSprite(ResourcePath, Gid),
-    Sprite(Gid),
+    Sprite(ResourcePath, Gid),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

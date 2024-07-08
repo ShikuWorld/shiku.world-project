@@ -63,6 +63,7 @@ pub struct EntityMaps {
     pub render_offset: HashMap<Entity, (Real, Real)>,
     pub render_layer: HashMap<Entity, LayerKind>,
     pub render_gid: HashMap<Entity, Gid>,
+    pub render_gid_tileset_path: HashMap<Entity, ResourcePath>,
     pub character_animation: HashMap<Entity, CharacterAnimation>,
     pub transforms: HashMap<Entity, Transform>,
     pub rigid_body_type: HashMap<Entity, RigidBodyType>,
@@ -103,5 +104,6 @@ pub enum EntityUpdateKind {
     PositionRotation((Real, Real, Real)),
     RenderKind(RenderKind),
     AnimatedSpriteResource(ResourcePath),
+    SpriteTilesetResource(ResourcePath),
     Gid(Gid),
 }

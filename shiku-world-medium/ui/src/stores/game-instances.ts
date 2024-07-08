@@ -388,8 +388,14 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             .with({ Render: { kind: P.select() } }, (render_kind) =>
               match(render_kind)
                 .with({ Sprite: P.select() }, () => {
-                  (render_kind as { Sprite: number }).Sprite = gid;
-                  return resource_manager.get_graphics_data_by_gid(gid);
+                  const sprite_render = render_kind as {
+                    Sprite: [string, number];
+                  };
+                  sprite_render.Sprite[1] = gid;
+                  return resource_manager.get_graphics_by_id_and_tileset_path(
+                    sprite_render.Sprite[1],
+                    sprite_render.Sprite[0],
+                  );
                 })
                 .with({ AnimatedSprite: P.select() }, () => {
                   const animated_sprite_node = render_kind as {
@@ -401,6 +407,35 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                     resource_manager.character_animation_to_tileset_map[
                       animated_sprite_node.AnimatedSprite[0]
                     ],
+                  );
+                })
+                .exhaustive(),
+            )
+            .run();
+          render_node.container.removeChildAt(0);
+          render_node.container.addChildAt(
+            resource_manager.get_sprite_from_graphics(graphics),
+            0,
+          );
+        })
+        .with({ SpriteTilesetResource: P.select() }, (resource) => {
+          const graphics = match((game_node.data as Node2D).kind)
+            .with({ Render: { kind: P.select() } }, (render_kind) =>
+              match(render_kind)
+                .with({ Sprite: P.select() }, () => {
+                  const sprite_render = render_kind as {
+                    Sprite: [string, number];
+                  };
+                  sprite_render.Sprite[0] = resource;
+                  return resource_manager.get_graphics_by_id_and_tileset_path(
+                    sprite_render.Sprite[1],
+                    sprite_render.Sprite[0],
+                  );
+                })
+                .with({ AnimatedSprite: P.select() }, () => {
+                  return resource_manager.get_graphics_by_id_and_tileset_path(
+                    0,
+                    "TRIED_TO_SET_SPRITE_TILESET_ON_ANIMATED_SPRITE_WTF?",
                   );
                 })
                 .exhaustive(),
@@ -432,8 +467,11 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             node2D.kind.Render.kind = render_kind;
 
             const graphics = match(render_kind)
-              .with({ Sprite: P.select() }, (gid) =>
-                resource_manager.get_graphics_data_by_gid(gid),
+              .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) =>
+                resource_manager.get_graphics_by_id_and_tileset_path(
+                  id_in_tileset,
+                  tileset_path,
+                ),
               )
               .with(
                 { AnimatedSprite: P.select() },
@@ -645,7 +683,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
 function get_gid(node_2d: GameNode<Node2D>): number | undefined {
   if ("Render" in node_2d.data.kind) {
     return match(node_2d.data.kind.Render.kind)
-      .with({ Sprite: P.select() }, (gid) => gid)
+      .with({ Sprite: P.select() }, ([_, gid]) => gid)
       .with({ AnimatedSprite: P.select() }, ([_, gid]) => gid)
       .exhaustive();
   }

@@ -278,7 +278,7 @@ export class ResourceManager {
       });
       graphics.textures.push(texture);
     } else {
-      const image_path = tileset.tiles[id].image?.path;
+      const image_path = tileset.tiles[id]?.image?.path;
       if (!image_path) {
         graphics.textures.push(this.dummy_texture_loading);
         console.error("Could not find image path for tile!?");
@@ -318,8 +318,12 @@ export function create_display_object(
         })
         .with({ Render: P.select() }, (render) => {
           const display_object = match(render.kind)
-            .with({ Sprite: P.select() }, (gid) => {
-              const graphics = resource_manager.get_graphics_data_by_gid(gid);
+            .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) => {
+              const graphics =
+                resource_manager.get_graphics_by_id_and_tileset_path(
+                  id_in_tileset,
+                  tileset_path,
+                );
               return resource_manager.get_sprite_from_graphics(graphics);
             })
             .with(

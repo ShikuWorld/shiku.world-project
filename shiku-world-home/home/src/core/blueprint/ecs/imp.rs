@@ -68,6 +68,7 @@ impl ECS {
                     render_offset: HashMap::new(),
                     render_layer: HashMap::new(),
                     render_gid: HashMap::new(),
+                    render_gid_tileset_path: HashMap::new(),
                     character_animation: HashMap::new(),
                     transforms: HashMap::new(),
                     kinematic_character: HashMap::new(),
@@ -355,11 +356,14 @@ impl ECS {
                                     .insert(entity, RenderKindClean::AnimatedSprite);
                                 Self::add_character_animation(ecs, entity, resource_path);
                             }
-                            RenderKind::Sprite(gid) => {
+                            RenderKind::Sprite(resource_path, gid) => {
                                 ecs.entities
                                     .render_kind
                                     .insert(entity, RenderKindClean::Sprite);
                                 ecs.entities.render_gid.insert(entity, *gid);
+                                ecs.entities
+                                    .render_gid_tileset_path
+                                    .insert(entity, resource_path.clone());
                             }
                         }
                     }
@@ -594,20 +598,31 @@ impl ECS {
             EntityUpdateKind::Gid(gid) => {
                 shared.entities.render_gid.insert(entity, gid);
             }
+            EntityUpdateKind::SpriteTilesetResource(resource_path) => {
+                shared
+                    .entities
+                    .render_gid_tileset_path
+                    .insert(entity, resource_path);
+            }
             EntityUpdateKind::AnimatedSpriteResource(resource_path) => {
                 Self::add_character_animation(shared, entity, &resource_path);
             }
             EntityUpdateKind::RenderKind(render_kind) => match render_kind {
                 RenderKind::AnimatedSprite(resource_path, _) => {
+                    shared.entities.render_gid_tileset_path.remove(&entity);
                     Self::add_character_animation(shared, entity, &resource_path);
                 }
-                RenderKind::Sprite(gid) => {
+                RenderKind::Sprite(resource_path, gid) => {
                     shared.entities.character_animation.remove(&entity);
                     shared
                         .entities
                         .render_kind
                         .insert(entity, RenderKindClean::Sprite);
                     shared.entities.render_gid.insert(entity, gid);
+                    shared
+                        .entities
+                        .render_gid_tileset_path
+                        .insert(entity, resource_path.clone());
                 }
             },
             EntityUpdateKind::UpdateScriptScope(scope_key, scope_value) => {

@@ -86,11 +86,12 @@ fn get_render_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<Render> {
                         )
                     })
             }
-            RenderKindClean::Sprite => ecs
-                .entities
-                .render_gid
-                .get(entity)
-                .map(|gid| RenderKind::Sprite(*gid)),
+            RenderKindClean::Sprite => ecs.entities.render_gid.get(entity).and_then(|gid| {
+                ecs.entities
+                    .render_gid_tileset_path
+                    .get(entity)
+                    .map(|tileset_path| RenderKind::Sprite(tileset_path.clone(), *gid))
+            }),
         } {
             return Some(Render {
                 offset: *render_offset,
@@ -216,8 +217,22 @@ impl GameNodeKind {
                             RenderKind::AnimatedSprite(_, ref mut g) => {
                                 *g = gid;
                             }
-                            RenderKind::Sprite(ref mut g) => {
+                            RenderKind::Sprite(_, ref mut g) => {
                                 *g = gid;
+                            }
+                        }
+                    }
+                }
+            }
+            EntityUpdateKind::SpriteTilesetResource(resource_path) => {
+                if let GameNodeKind::Node2D(n) = self {
+                    if let Node2DKind::Render(render) = &mut n.data.kind {
+                        match render.kind {
+                            RenderKind::AnimatedSprite(ref mut r, _) => {
+                                *r = resource_path;
+                            }
+                            RenderKind::Sprite(ref mut r, _) => {
+                                *r = resource_path;
                             }
                         }
                     }
