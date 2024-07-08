@@ -188,6 +188,26 @@ impl World {
         }
     }
 
+    pub fn actor_disconnected(&mut self, actor_id: ActorId) {
+        for game_node_script in self.ecs.entity_scripts.values_mut() {
+            game_node_script.call(
+                GameNodeScriptFunction::ActorDisconnected,
+                &self.script_engine,
+                (actor_id,),
+            );
+        }
+    }
+
+    pub fn actor_reconnected(&mut self, actor_id: ActorId) {
+        for game_node_script in self.ecs.entity_scripts.values_mut() {
+            game_node_script.call(
+                GameNodeScriptFunction::ActorReconnected,
+                &self.script_engine,
+                (actor_id,),
+            );
+        }
+    }
+
     fn setup_physics_scripting_api(
         engine: &mut Engine,
         physics_share: &ApiShare<RapierSimulation>,

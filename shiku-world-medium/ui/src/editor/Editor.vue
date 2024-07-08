@@ -116,7 +116,7 @@
       </div>
       <div v-if="active_component === 'tile'">
         <TileEditor
-          v-if="selected_tileset && selected_tile_id"
+          v-if="selected_tileset && selected_tile_id != undefined"
           :tileset="selected_tileset"
           :tile_id="selected_tile_id"
         ></TileEditor>

@@ -18,7 +18,7 @@ use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication_input, EnterFailedState, EnterSuccessState, GameSystemToGuest,
     GameSystemToGuestEvent, GuestEvent, GuestToModule, LeaveFailedState, LeaveSuccessState,
-    ModuleInputSender, ModuleInstanceEvent, ModuleOutputSender,
+    ModuleInputSender, ModuleInstanceEvent, ModuleOutputSender, SystemToModuleEvent,
 };
 use crate::core::module::{GuestInput, GuestToModuleEvent};
 use crate::core::module_system::def::{
@@ -360,9 +360,21 @@ impl DynamicGameModule {
     pub fn actor_disconnected(&mut self, actor_id: &ActorId) {
         if let Some(guest) = self.guests.get_mut(actor_id) {
             guest.guest_com.connected = false;
+            if let Some(world_id) = &guest.world_id {
+                if let Some(world) = self.world_map.get_mut(world_id) {
+                    world.actor_disconnected(*actor_id);
+                }
+            }
         }
         if let Some(admin) = self.admins.get_mut(actor_id) {
             admin.connected = false;
+            if let Some(world_ids) = self.admin_to_world.hashset(actor_id) {
+                for world_id in world_ids {
+                    if let Some(world) = self.world_map.get_mut(world_id) {
+                        world.actor_disconnected(*actor_id);
+                    }
+                }
+            }
         }
     }
 
@@ -579,9 +591,21 @@ impl DynamicGameModule {
     pub fn actor_reconnected(&mut self, actor_id: &ActorId) {
         if let Some(guest) = self.guests.get_mut(actor_id) {
             guest.guest_com.connected = true;
+            if let Some(world_id) = &guest.world_id {
+                if let Some(world) = self.world_map.get_mut(world_id) {
+                    world.actor_reconnected(*actor_id);
+                }
+            }
         }
         if let Some(admin) = self.admins.get_mut(actor_id) {
             admin.connected = true;
+            if let Some(world_ids) = self.admin_to_world.hashset(actor_id) {
+                for world_id in world_ids {
+                    if let Some(world) = self.world_map.get_mut(world_id) {
+                        world.actor_reconnected(*actor_id);
+                    }
+                }
+            }
         }
     }
 

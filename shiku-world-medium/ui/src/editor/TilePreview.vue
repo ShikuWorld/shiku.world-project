@@ -27,6 +27,9 @@ const rows = computed(() => {
   return 0;
 });
 function get_x_y_from_gid(gId: number, rows: number): [number, number] {
+  if (tile.value.image) {
+    return [0, 0];
+  }
   const y = Math.floor((gId - 1) / rows) + 1;
   const x = ((gId - 1) % rows) + 1;
   return [y, x];

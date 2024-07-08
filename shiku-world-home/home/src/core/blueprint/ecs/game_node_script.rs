@@ -27,6 +27,8 @@ pub enum GameNodeScriptFunction {
     InstanceReset,
     ActorJoined,
     ActorLeft,
+    ActorDisconnected,
+    ActorReconnected,
     ScriptReload,
 }
 
@@ -50,6 +52,18 @@ impl GameNodeScriptFunction {
                 }
                 "actor_left" => {
                     hash_map.insert(GameNodeScriptFunction::ActorLeft, "actor_left");
+                }
+                "actor_disconnected" => {
+                    hash_map.insert(
+                        GameNodeScriptFunction::ActorDisconnected,
+                        "actor_disconnected",
+                    );
+                }
+                "actor_reconnected" => {
+                    hash_map.insert(
+                        GameNodeScriptFunction::ActorReconnected,
+                        "actor_reconnected",
+                    );
                 }
                 "script_reload" => {
                     hash_map.insert(GameNodeScriptFunction::ScriptReload, "script_reload");

@@ -247,10 +247,11 @@ impl GameInstanceManager {
     ) -> Result<AdminEnterSuccessState, EnterFailedState> {
         let admin_active_instances = self.active_admins.entry(admin.id).or_default();
         let mut success_state = AdminEnterSuccessState::EnteredWorld;
-        if !admin_active_instances.contains(&instance_id) {
-            admin_active_instances.insert(instance_id.clone());
-            success_state = AdminEnterSuccessState::EnteredInstanceAndWorld;
+        if admin_active_instances.contains(&instance_id) {
+            return Ok(AdminEnterSuccessState::AlreadyEntered);
         }
+        admin_active_instances.insert(instance_id.clone());
+        success_state = AdminEnterSuccessState::EnteredInstanceAndWorld;
         if let Some(instance) = self.game_instances.get_mut(&instance_id) {
             instance.dynamic_module.let_admin_enter(admin, world_id)?;
         }

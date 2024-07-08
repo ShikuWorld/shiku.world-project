@@ -22,6 +22,39 @@
         </div>
       </div>
     </div>
+    <div class="tileset-editor__separate_images" v-if="tileset.image === null">
+      <div v-for="(tile, key, index) in tileset.tiles" :key="key">
+        <div
+          class="tileset-editor__tile tileset-editor__independent_tile"
+          v-if="tile.image"
+          @click="select_tile(tile.id)"
+        >
+          <v-text-field
+            label="Image source"
+            class="tileset-editor__source"
+            :model-value="tile.image.path"
+            @update:model-value="(value) => change_tile_source(value, tile.id)"
+            density="compact"
+            hide-details="auto"
+          ></v-text-field>
+          <v-img
+            :src="`${resource_base_url}${tile.image.path}`"
+            class="tileset-editor__preview"
+            ref="previews"
+            @load="image_loaded(index, tile.id)"
+          ></v-img>
+          <div class="tileset-editor__independent_tile_info">
+            <span>{{ tile.image.width }} x {{ tile.image.height }}</span>
+            <v-btn
+              density="compact"
+              @click="remove_tile(tile.id)"
+              :icon="mdiTrashCan"
+            ></v-btn>
+          </div>
+        </div>
+      </div>
+      <v-btn @click="add_tile" :icon="mdiPlus"></v-btn>
+    </div>
   </div>
 </template>
 <script lang="ts" setup>
@@ -29,12 +62,88 @@ import { computed, ref, toRefs } from "vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
 import { use_config_store } from "@/editor/stores/config";
 import { Point, tileset_key } from "@/editor/stores/editor";
+import { use_resources_store } from "@/editor/stores/resources";
+import { Tile } from "@/editor/blueprints/Tile";
+import { VImg } from "vuetify/components";
+import { mdiPlus, mdiTrashCan } from "@mdi/js";
 
 const { resource_base_url } = use_config_store();
+const { update_tileset_server } = use_resources_store();
 const props = defineProps<{
   tileset: Tileset;
   enable_multi_tile_selection?: boolean;
 }>();
+const previews = ref<VImg[]>();
+function image_loaded(image_index: number, gid: number) {
+  const tile = tileset.value.tiles[gid];
+  const previewImage = previews.value?.[image_index]?.image;
+  console.log(tile, previews.value);
+  if (previewImage && tile.image) {
+    update_tileset_server(tileset_key(tileset.value), {
+      ChangeTileImage: [
+        gid,
+        {
+          ...tile.image,
+          ...{
+            width: previewImage.naturalWidth,
+            height: previewImage.naturalHeight,
+          },
+        },
+      ],
+    });
+  }
+}
+const change_tile_source_bounce_timeout = ref<number | null>(null);
+const change_tile_source = (path: string, gid: number) => {
+  if (change_tile_source_bounce_timeout.value !== null) {
+    clearTimeout(change_tile_source_bounce_timeout.value);
+  }
+  change_tile_source_bounce_timeout.value = setTimeout(() => {
+    const tile = tileset.value.tiles[gid];
+    if (tile && tile.image) {
+      update_tileset_server(tileset_key(tileset.value), {
+        ChangeTileImage: [gid, { ...tile.image, path }],
+      });
+    }
+  }, 500);
+};
+const next_gid = computed(() => {
+  const gids = Object.keys(tileset.value.tiles).map((x) => parseInt(x));
+
+  let i = 0;
+  while (gids.includes(i)) {
+    i++;
+  }
+  return i;
+});
+
+const add_tile = () => {
+  if (tileset.value.image === null) {
+    let next_id = next_gid.value;
+    let tile: Tile = {
+      id: next_id,
+      image: {
+        height: 0,
+        path: "",
+        width: 0,
+      },
+      animation: null,
+      collision_shape: null,
+    };
+    update_tileset_server(tileset_key(tileset.value), {
+      AddTile: [next_id, tile],
+    });
+  }
+};
+
+const remove_tile = (gid: number) => {
+  if (tileset.value.image === null) {
+    update_tileset_server(tileset_key(tileset.value), {
+      RemoveTile: gid,
+    });
+  }
+};
+
 const sel_start = ref({ y: 0, x: 0 });
 const sel_end = ref({ y: 0, x: 0 });
 let sel_running = false;
@@ -72,11 +181,15 @@ function move_selection_end(y: number, x: number) {
   }
 }
 
+function select_tile(gid: number) {
+  emit("tile_selected", gid, tileset_key(tileset.value));
+}
+
 function end_selection(y: number, x: number) {
   sel_end.value = { y, x };
   if (!enable_multi_tile_selection.value) {
     sel_start.value = { y, x };
-    emit("tile_selected", g_id(y, x), tileset_key(tileset.value));
+    select_tile(g_id(y, x));
   } else {
     const gid_selection = [];
     for (let y_i = sel_start.value.y; y_i <= sel_end.value.y; y_i++) {
@@ -137,6 +250,24 @@ const columns = computed(() => {
 .tileset-editor__tile-row {
   display: flex;
 }
+.tileset-editor__source {
+  margin-bottom: 16px;
+}
+.tileset-editor__independent_tile_info {
+  display: flex;
+  justify-content: space-around;
+  align-content: center;
+  margin-top: 16px;
+}
+.tileset-editor__separate_images {
+  display: flex;
+  flex-wrap: wrap;
+}
+.tileset-editor__independent_tile {
+  width: 200px;
+  justify-content: center;
+  display: flex;
+}
 .tileset-editor__tile {
   display: inline-block;
   border: 1px dashed rgba(9, 223, 181, 0.23);
@@ -147,6 +278,10 @@ const columns = computed(() => {
   background-color: rgba(200, 200, 200, 0.8);
   border: 1px solid rgb(185, 9, 244);
   mix-blend-mode: hard-light;
+}
+.tileset-editor__preview {
+  width: 100%;
+  height: 120px;
 }
 
 .tileset-editor__tile:hover {

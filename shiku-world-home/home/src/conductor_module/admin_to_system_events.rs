@@ -95,6 +95,25 @@ pub async fn handle_admin_to_system_event(
             }
         };
 
+    let mut update_module_gid_map =
+        |module: &mut GameInstanceManager, resource_module: &mut ResourceModule| {
+            match BlueprintService::generate_gid_and_char_anim_to_tileset_map(
+                &module.module_blueprint.resources,
+            ) {
+                Ok((gid_map, char_anim_to_tileset_map)) => {
+                    resource_module.send_resource_event_to(
+                        ResourceEvent::UpdateGidMap(gid_map.clone()),
+                        module.module_blueprint.id.clone(),
+                        module.get_active_actor_ids(),
+                    );
+                    module.module_blueprint.gid_map = gid_map;
+                    module.module_blueprint.char_animation_to_tileset_map =
+                        char_anim_to_tileset_map;
+                }
+                Err(err) => error!("Could not generate gid map! {:?}", err),
+            }
+        };
+
     let mut update_module_with_resource =
         |module_id: ModuleId, blueprint_resource: BlueprintResource| {
             if let Some(module) = module_map.get_mut(&module_id) {
@@ -478,6 +497,19 @@ pub async fn handle_admin_to_system_event(
         AdminToSystemEvent::UpdateTileset(resource_path, tileset_update) => {
             if let Ok(mut tileset) = Blueprint::load_tileset(resource_path.clone().into()) {
                 match tileset_update {
+                    TilesetUpdate::ChangeTileImage(gid, image) => {
+                        if let Some(tile) = tileset.tiles.get_mut(&gid) {
+                            tile.image = Some(image);
+                        }
+                    }
+                    TilesetUpdate::RemoveTile(gid) => {
+                        tileset.tiles.remove(&gid);
+                        tileset.tile_count = tileset.tiles.keys().cloned().max().unwrap_or(0);
+                    }
+                    TilesetUpdate::AddTile(gid, tile) => {
+                        tileset.tiles.insert(gid, tile);
+                        tileset.tile_count = tileset.tiles.keys().cloned().max().unwrap_or(0);
+                    }
                     TilesetUpdate::UpdateCollisionShape(tile_id, mut collision_shape) => {
                         let tile = tileset.tiles.entry(tile_id).or_default();
                         if let CollisionShape::Polygon(ref mut vertices) = &mut collision_shape {
@@ -512,6 +544,24 @@ pub async fn handle_admin_to_system_event(
                 }
                 match Blueprint::save_tileset(&tileset) {
                     Ok(()) => {
+                        if let Some(module_ids) = resource_to_module_map.get(&resource_path) {
+                            for module_id in module_ids {
+                                if let Some(module) = module_map.get_mut(module_id) {
+                                    update_module_gid_map(module, resource_module);
+                                    match Blueprint::save_module(&module.module_blueprint) {
+                                        Ok(()) => {
+                                            send_editor_event(EditorEvent::UpdatedModule(
+                                                module.module_blueprint.id.clone(),
+                                                module.module_blueprint.clone(),
+                                            ));
+                                        }
+                                        Err(err) => {
+                                            error!("Could not save module {:?}", err);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         send_editor_event(EditorEvent::SetTileset(tileset));
                     }
                     Err(err) => error!("Could not update tileset: {:?}", err),

@@ -108,7 +108,7 @@ const tile_height = computed(() => {
 });
 
 function update_collider(new_value: KeysOfUnion<CollisionShape> | null) {
-  if (tileset.value && tile_id.value) {
+  if (tileset.value && tile_id.value != undefined) {
     if (collision_shape_selection.value === new_value) {
       return;
     }

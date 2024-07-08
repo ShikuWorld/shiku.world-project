@@ -40418,8 +40418,9 @@ ${e3}`);
 
   // client/resources/index.ts
   var ResourceManager = class {
-    constructor(_base_url, renderer) {
+    constructor(_base_url, renderer, module_id) {
       this._base_url = _base_url;
+      this.module_id = module_id;
       this.dummy_texture_tileset_missing = renderer.dummy_texture_tileset_missing;
       this.dummy_texture_loading = renderer.dummy_texture_loading;
       this.graphic_id_map["0"] = { textures: [Texture.EMPTY], frame_objects: [] };
@@ -40519,7 +40520,7 @@ ${e3}`);
       }).with({ LoadTilesets: _.select() }, (tilesets) => {
         this.set_tileset_map(tilesets);
       }).with({ UpdateGidMap: _.select() }, (gid_map) => {
-        console.log("gid_map", gid_map);
+        console.log("gid_map update", gid_map);
         this.gid_map = gid_map;
       }).with("UnLoadResources", () => console.log("unload")).exhaustive();
     }
@@ -40549,7 +40550,7 @@ ${e3}`);
     get_graphics_by_id_and_tileset_path(id_in_tileset, tileset_path) {
       const tileset = this.tile_set_map[tileset_path];
       if (!tileset) {
-        console.error("No tileset for", tileset_path);
+        console.error("No tileset for", tileset_path, this.module_id);
         return {
           textures: [this.dummy_texture_tileset_missing],
           frame_objects: []
@@ -40573,6 +40574,10 @@ ${e3}`);
           break;
         }
         selected_gid_index = i3;
+      }
+      if (!this.gid_map[selected_gid_index]) {
+        console.error("No tileset for gid", gid, this.gid_map, this.module_id);
+        return [void 0, 0];
       }
       const [path2, start_gid] = this.gid_map[selected_gid_index];
       return [this.tile_set_map[path2], start_gid];
@@ -42381,8 +42386,12 @@ ${e3}`);
   }
 
   // client/resources/create_resource_manager.ts
-  function create_resource_manager(render_system) {
-    return new ResourceManager(`${config_exports.get_resource_url()}`, render_system);
+  function create_resource_manager(render_system, module_id) {
+    return new ResourceManager(
+      `${config_exports.get_resource_url()}`,
+      render_system,
+      module_id
+    );
   }
 
   // client/handle-editor-event.ts
@@ -42473,7 +42482,10 @@ ${e3}`);
     let current_active_module_id = null;
     function lazy_get_resource_manager(module_id) {
       if (!resource_manager_map[module_id]) {
-        resource_manager_map[module_id] = create_resource_manager(render_system);
+        resource_manager_map[module_id] = create_resource_manager(
+          render_system,
+          module_id
+        );
         resource_manager_map[module_id].resource_bundle_complete.sub(() => {
           if (!is_admin) {
             send_module_event("GameSetupDone", communication_system);
@@ -42537,6 +42549,7 @@ ${e3}`);
             char_anim_to_tileset_map
           ]) => {
             const resource_manager = lazy_get_resource_manager(module_id);
+            console.log("setting gid_map", gid_map, module_id);
             resource_manager.gid_map = gid_map;
             resource_manager.tilesets = tilesets;
             resource_manager.set_tileset_map(tilesets);

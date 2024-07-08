@@ -7,8 +7,8 @@ use ts_rs::TS;
 use crate::core::blueprint;
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
-    CharAnimationToTilesetMap, Chunk, Conductor, Gid, GidMap, LayerKind, ModuleId, ResourcePath,
-    TerrainParams, Tileset,
+    CharAnimationToTilesetMap, Chunk, Conductor, Gid, GidMap, Image, LayerKind, ModuleId,
+    ResourcePath, TerrainParams, Tile, Tileset,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{
@@ -149,6 +149,9 @@ pub enum SceneNodeUpdate {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub enum TilesetUpdate {
+    AddTile(Gid, Tile),
+    RemoveTile(Gid),
+    ChangeTileImage(Gid, Image),
     UpdateCollisionShape(Gid, CollisionShape),
     RemoveCollisionShape(Gid),
 }
@@ -218,6 +221,7 @@ pub enum EnterSuccessState {
 pub enum AdminEnterSuccessState {
     EnteredWorld,
     EnteredInstanceAndWorld,
+    AlreadyEntered,
 }
 
 #[derive(Debug)]
