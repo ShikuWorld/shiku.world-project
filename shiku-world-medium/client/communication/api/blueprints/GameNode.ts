@@ -2,4 +2,4 @@
 import type { Entity } from "./Entity";
 import type { GameNodeKind } from "./GameNodeKind";
 
-export interface GameNode<T> { id: string, name: string, entity_id: Entity | null, data: T, script: string | null, instance_resource_path: string | null, children: Array<GameNodeKind>, }
+export interface GameNode<T> { id: string, name: string, entity_id: Entity | null, data: T, script: string | null, tags: Array<string>, instance_resource_path: string | null, children: Array<GameNodeKind>, }

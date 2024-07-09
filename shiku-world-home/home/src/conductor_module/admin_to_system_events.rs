@@ -95,7 +95,7 @@ pub async fn handle_admin_to_system_event(
             }
         };
 
-    let mut update_module_gid_map =
+    let update_module_gid_map =
         |module: &mut GameInstanceManager, resource_module: &mut ResourceModule| {
             match BlueprintService::generate_gid_and_char_anim_to_tileset_map(
                 &module.module_blueprint.resources,
@@ -160,13 +160,12 @@ pub async fn handle_admin_to_system_event(
         AdminToSystemEvent::OverwriteSceneRoot(resource_path, mut root_node) => {
             match Blueprint::load_scene(resource_path.into()) {
                 Ok(mut scene) => {
-                    if let (
+                    let (
                         GameNodeKind::Node2D(ref mut old_node),
                         GameNodeKind::Node2D(ref mut new_node),
-                    ) = (&mut scene.root_node, &mut root_node)
-                    {
-                        new_node.data.transform = old_node.data.transform.clone();
-                    }
+                    ) = (&mut scene.root_node, &mut root_node);
+
+                    new_node.data.transform = old_node.data.transform.clone();
                     scene.root_node = root_node;
                     match Blueprint::save_scene(&scene) {
                         Ok(()) => {

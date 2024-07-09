@@ -98,6 +98,7 @@
             resource.kind === 'Tileset' && tileset_map[resource_key(resource)]
           "
           :tileset="tileset_map[resource_key(resource)]"
+          :start_gid="0"
           @tile_selected="on_tile_selected"
         ></TilesetEditor>
         <CharacterAnimationEditor

@@ -138,102 +138,83 @@ impl GameNodeKind {
     }
 
     pub fn update_with_entity_update(&mut self, update: EntityUpdateKind) {
+        let GameNodeKind::Node2D(n) = self;
         match update {
+            EntityUpdateKind::Tags(tags) => {
+                n.tags = tags;
+            }
             EntityUpdateKind::InstancePath(instance_path) => {
-                let GameNodeKind::Node2D(n) = self;
                 if let Node2DKind::Instance(path) = &mut n.data.kind {
                     *path = instance_path;
                 }
             }
             EntityUpdateKind::KinematicCharacterControllerProps(props) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
-                        rigid_body.kinematic_character_controller_props = Some(props);
-                    }
+                if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
+                    rigid_body.kinematic_character_controller_props = Some(props);
                 }
             }
             EntityUpdateKind::Transform(transform) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    n.data.transform = transform;
-                }
+                n.data.transform = transform;
             }
             EntityUpdateKind::ScriptPath(script_path_option) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    n.script = script_path_option;
-                }
+                n.script = script_path_option;
             }
             EntityUpdateKind::Name(name) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    n.name = name;
-                }
+                n.name = name;
             }
             EntityUpdateKind::RigidBodyType(rigid_body_type) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
-                        rigid_body.body = rigid_body_type;
-                        rigid_body.kinematic_character_controller_props = match rigid_body.body {
-                            RigidBodyType::KinematicPositionBased
-                            | RigidBodyType::KinematicVelocityBased => {
-                                Some(KinematicCharacterControllerProps::new())
-                            }
-                            RigidBodyType::Dynamic | RigidBodyType::Fixed => None,
+                if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
+                    rigid_body.body = rigid_body_type;
+                    rigid_body.kinematic_character_controller_props = match rigid_body.body {
+                        RigidBodyType::KinematicPositionBased
+                        | RigidBodyType::KinematicVelocityBased => {
+                            Some(KinematicCharacterControllerProps::new())
                         }
+                        RigidBodyType::Dynamic | RigidBodyType::Fixed => None,
                     }
                 }
             }
             EntityUpdateKind::RenderKind(render_kind) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    if let Node2DKind::Render(render) = &mut n.data.kind {
-                        render.kind = render_kind;
-                    }
+                if let Node2DKind::Render(render) = &mut n.data.kind {
+                    render.kind = render_kind;
                 }
             }
             EntityUpdateKind::PositionRotation((x, y, r)) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    n.data.transform.position = (x, y);
-                    n.data.transform.rotation = r;
-                }
+                n.data.transform.position = (x, y);
+                n.data.transform.rotation = r;
             }
             EntityUpdateKind::Collider(collider) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    if let Node2DKind::Collider(c) = &mut n.data.kind {
-                        *c = collider;
-                    }
+                if let Node2DKind::Collider(c) = &mut n.data.kind {
+                    *c = collider;
                 }
             }
             EntityUpdateKind::AnimatedSpriteResource(resource_path) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    if let Node2DKind::Render(r) = &mut n.data.kind {
-                        if let RenderKind::AnimatedSprite(ref mut r, _) = r.kind {
-                            *r = resource_path.clone();
-                        }
+                if let Node2DKind::Render(r) = &mut n.data.kind {
+                    if let RenderKind::AnimatedSprite(ref mut r, _) = r.kind {
+                        *r = resource_path.clone();
                     }
                 }
             }
             EntityUpdateKind::Gid(gid) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    if let Node2DKind::Render(r) = &mut n.data.kind {
-                        match r.kind {
-                            RenderKind::AnimatedSprite(_, ref mut g) => {
-                                *g = gid;
-                            }
-                            RenderKind::Sprite(_, ref mut g) => {
-                                *g = gid;
-                            }
+                if let Node2DKind::Render(r) = &mut n.data.kind {
+                    match r.kind {
+                        RenderKind::AnimatedSprite(_, ref mut g) => {
+                            *g = gid;
+                        }
+                        RenderKind::Sprite(_, ref mut g) => {
+                            *g = gid;
                         }
                     }
                 }
             }
             EntityUpdateKind::SpriteTilesetResource(resource_path) => {
-                if let GameNodeKind::Node2D(n) = self {
-                    if let Node2DKind::Render(render) = &mut n.data.kind {
-                        match render.kind {
-                            RenderKind::AnimatedSprite(ref mut r, _) => {
-                                *r = resource_path;
-                            }
-                            RenderKind::Sprite(ref mut r, _) => {
-                                *r = resource_path;
-                            }
+                if let Node2DKind::Render(render) = &mut n.data.kind {
+                    match render.kind {
+                        RenderKind::AnimatedSprite(ref mut r, _) => {
+                            *r = resource_path;
+                        }
+                        RenderKind::Sprite(ref mut r, _) => {
+                            *r = resource_path;
                         }
                     }
                 }
@@ -305,6 +286,12 @@ impl GameNodeKind {
                                 .get(possible_instance_root)
                                 .map(|s| s.path.clone()),
                             entity_id: Some(*possible_instance_root),
+                            tags: shared
+                                .entities
+                                .game_node_tags
+                                .get(original_entity)
+                                .cloned()
+                                .unwrap_or_default(),
                             instance_resource_path: shared
                                 .entities
                                 .node_2d_instance_path

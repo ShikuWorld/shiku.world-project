@@ -262,10 +262,7 @@ pub enum ModuleState {
 
 pub type ModuleName = String;
 pub trait SystemModule {
-    fn module_name(&self) -> ModuleName;
-    fn status(&self) -> &ModuleState;
     fn start(&mut self);
-    fn shutdown(&mut self);
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

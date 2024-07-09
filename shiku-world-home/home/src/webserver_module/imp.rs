@@ -6,24 +6,11 @@ use tokio::sync::Mutex;
 use warp::Filter;
 
 use crate::core::get_out_dir;
-use crate::core::module::{ModuleName, ModuleState};
 use crate::webserver_module::def::{DoorStatuses, WebServerModule};
 use crate::SystemModule;
 
 impl SystemModule for WebServerModule {
-    fn module_name(&self) -> ModuleName {
-        return "WebServerModule".to_string();
-    }
-
-    fn status(&self) -> &ModuleState {
-        todo!()
-    }
-
     fn start(&mut self) {
-        todo!()
-    }
-
-    fn shutdown(&mut self) {
         todo!()
     }
 }

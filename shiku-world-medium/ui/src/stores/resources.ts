@@ -566,6 +566,7 @@ export function create_game_node(
         id: uuidv4(),
         entity_id: null,
         instance_resource_path: null,
+        tags: [],
         data: {
           transform: {
             position: [0, 0],

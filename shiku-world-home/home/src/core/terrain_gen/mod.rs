@@ -1,7 +1,4 @@
-use crate::resource_module::map::def::Layer;
 use rapier2d::prelude::Real;
-
-use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct TerrainGenTerrainChunk {
@@ -20,6 +17,7 @@ pub struct TerrainTile {
     pub id: u32,
 }
 
+/*
 pub fn condense_terrain_from_tiles(layer: &Layer) -> Vec<TerrainGenTerrainChunk> {
     let mut chunks = Vec::new();
     let mut tile_map: HashMap<(i32, i32), u32> = HashMap::new();
@@ -92,3 +90,4 @@ pub fn condense_terrain_from_tiles(layer: &Layer) -> Vec<TerrainGenTerrainChunk>
 
     chunks
 }
+*/

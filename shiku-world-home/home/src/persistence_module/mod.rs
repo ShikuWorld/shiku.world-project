@@ -11,7 +11,6 @@ use thiserror::Error;
 use schema::found_secrets;
 use schema::persisted_guest_states;
 
-use crate::core::module::{ModuleName, ModuleState};
 use crate::persistence_module::models::{
     FoundSecret, NewFoundSecret, NewPersistedGuestState, PersistedGuest, PersistedGuestState,
     UpdatePersistedGuestState,
@@ -166,19 +165,7 @@ impl PersistenceModule {
 }
 
 impl SystemModule for PersistenceModule {
-    fn module_name(&self) -> ModuleName {
-        "WebServerModule".to_string()
-    }
-
-    fn status(&self) -> &ModuleState {
-        todo!()
-    }
-
     fn start(&mut self) {
-        todo!()
-    }
-
-    fn shutdown(&mut self) {
         todo!()
     }
 }

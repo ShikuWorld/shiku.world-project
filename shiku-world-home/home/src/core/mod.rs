@@ -67,7 +67,7 @@ impl<K: Eq + Hash, T: Eq + Hash> LazyHashmapSet<K, T> {
         self.data.entry(key).or_default().insert(value);
     }
 
-    pub fn filter<F>(&mut self, key: K, mut callback: F)
+    pub fn filter<F>(&mut self, key: K, callback: F)
     where
         F: FnMut(&T) -> bool,
     {

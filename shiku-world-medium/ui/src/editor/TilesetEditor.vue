@@ -71,6 +71,7 @@ const { resource_base_url } = use_config_store();
 const { update_tileset_server } = use_resources_store();
 const props = defineProps<{
   tileset: Tileset;
+  start_gid: number;
   enable_multi_tile_selection?: boolean;
 }>();
 const previews = ref<VImg[]>();
@@ -158,7 +159,7 @@ const selected_tiles = computed(() => {
   }
   return set;
 });
-const { tileset, enable_multi_tile_selection } = toRefs(props);
+const { tileset, start_gid, enable_multi_tile_selection } = toRefs(props);
 const emit = defineEmits<{
   (
     e: "tile_selection",
@@ -195,7 +196,7 @@ function end_selection(y: number, x: number) {
     for (let y_i = sel_start.value.y; y_i <= sel_end.value.y; y_i++) {
       const gid_selection_columns = [];
       for (let x_i = sel_start.value.x; x_i <= sel_end.value.x; x_i++) {
-        gid_selection_columns.push(g_id(y_i, x_i));
+        gid_selection_columns.push(g_id(y_i, x_i) + start_gid.value);
       }
       gid_selection.push(gid_selection_columns);
     }

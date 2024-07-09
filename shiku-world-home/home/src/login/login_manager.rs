@@ -15,7 +15,6 @@ use crate::login::twitch_login::{
 pub struct LoginManager {
     twitch_ext_access_token: String,
     twitch_login_process_running: HashMap<ActorId, TwitchApiLogin>,
-    twitch_admin_login_process_running: HashMap<ActorId, TwitchApiLogin>,
     finished_logins: Vec<ActorId>,
 }
 
@@ -57,7 +56,6 @@ impl LoginManager {
             finished_logins: Vec::new(),
             twitch_ext_access_token,
             twitch_login_process_running: HashMap::new(),
-            twitch_admin_login_process_running: HashMap::new(),
         }
     }
 

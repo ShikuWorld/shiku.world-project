@@ -10,7 +10,7 @@ use tokio_tungstenite::connect_async;
 use tungstenite::Message;
 use url::Url;
 
-use crate::core::blueprint::def::{BlueprintResource, ModuleId, ResourcePath};
+use crate::core::blueprint::def::{ModuleId, ResourcePath};
 use crate::core::guest::ActorId;
 use crate::core::{safe_unwrap, send_and_log_error_consume};
 use crate::resource_module::def::{

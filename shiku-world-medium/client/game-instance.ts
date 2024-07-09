@@ -211,6 +211,7 @@ export class GameInstance {
         { UpdateModuleMaps: P.select() },
         ([gid_map, char_anim_to_tileset_map]) => {
           resource_manager.gid_map = gid_map;
+          resource_manager.graphic_id_map = {};
           resource_manager.character_animation_to_tileset_map =
             char_anim_to_tileset_map;
         },

@@ -2,18 +2,17 @@
 extern crate diesel;
 extern crate thiserror;
 
-use std::io::Write;
-
 use dotenv::dotenv;
 use env_logger::Builder;
 use log::LevelFilter;
-use spin_sleep::LoopHelper;
+use std::io::Write;
+use std::time::Duration;
 
 use crate::conductor_module::def::ConductorModule;
-use crate::core::{blueprint, TARGET_FPS};
 use crate::core::blueprint::def::{BlueprintError, BlueprintService};
 use crate::core::blueprint::resource_cache::init_resource_cache;
 use crate::core::module::SystemModule;
+use crate::core::{blueprint, TARGET_FPS};
 use crate::resource_module::def::ResourceModule;
 use crate::websocket_module::WebsocketModule;
 
@@ -56,13 +55,11 @@ async fn main() {
     let mut conductor_module =
         ConductorModule::new(websocket_module, blueprint_service, conductor_blueprint).await;
 
-    let mut loop_helper = LoopHelper::builder().build_with_target_rate(TARGET_FPS);
+    let mut interval = spin_sleep_util::interval(Duration::from_secs(1) / TARGET_FPS as u32);
 
     loop {
-        loop_helper.loop_start();
-
         conductor_module.conduct().await;
 
-        loop_helper.loop_sleep();
+        interval.tick();
     }
 }

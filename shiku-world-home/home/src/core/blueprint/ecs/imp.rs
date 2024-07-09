@@ -1,31 +1,27 @@
-use std::cell::{BorrowMutError, RefCell, RefMut};
-use std::cmp::PartialEq;
-use std::collections::{BTreeMap, HashMap, HashSet};
-use std::rc::Rc;
+use std::cell::{RefCell, RefMut};
+use std::collections::{HashMap, HashSet};
 
 use log::{debug, error};
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::geometry::ColliderHandle;
 use rapier2d::math::Vector;
-use rhai::{Dynamic, Engine, ImmutableString, Scope, AST};
-use smartstring::{SmartString, SmartStringMode};
+use rhai::{Engine, ImmutableString, Scope, AST};
+use smartstring::SmartStringMode;
 
-use crate::core::blueprint::def::{Gid, ResourcePath};
+use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::def::{
-    DynamicMap, ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, KinematicCharacter,
-    ECS,
+    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, KinematicCharacter, ECS,
 };
 use crate::core::blueprint::ecs::game_node_script::{
-    GameNodeScript, GameNodeScriptError, GameNodeScriptFunction, ScopeCacheValue,
+    GameNodeScript, GameNodeScriptFunction, ScopeCacheValue,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     Collider, ColliderKind, ColliderShape, GameNodeKind, GameNodeKindClean,
     KinematicCharacterControllerProps, Node2DKind, Node2DKindClean, RenderKind, RenderKindClean,
-    RigidBodyType, Scene, SceneId, Script, Transform,
+    RigidBodyType, Scene, SceneId, Transform,
 };
-use crate::core::guest::ActorId;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::ApiShare;
 
@@ -60,6 +56,7 @@ impl ECS {
                     game_node_name: HashMap::new(),
                     game_node_children: HashMap::new(),
                     game_node_kind: HashMap::new(),
+                    game_node_tags: HashMap::new(),
                     node_2d_kind: HashMap::new(),
                     node_2d_instance_path: HashMap::new(),
                     node_2d_entity_instance_parent: HashMap::new(),
@@ -475,6 +472,9 @@ impl ECS {
         match entity_update.kind {
             EntityUpdateKind::InstancePath(_) => {
                 error!("Instances should not exist on themselves inside ECS for now!");
+            }
+            EntityUpdateKind::Tags(tags) => {
+                shared.entities.game_node_tags.insert(entity, tags);
             }
             EntityUpdateKind::Collider(collider) => {
                 shared.entities.collider.insert(entity, collider.clone());

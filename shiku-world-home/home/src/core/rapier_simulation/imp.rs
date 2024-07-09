@@ -1,14 +1,12 @@
-use futures_util::TryFutureExt;
 use std::ops::Deref;
 
-use crate::core::blueprint::scene::def::KinematicCharacterControllerProps;
-use crate::core::module_system::terrain_manager::{TerrainPolyLine, TerrainPolyLineBuilder};
 use log::error;
 use rapier2d::control::{CharacterAutostep, CharacterLength, KinematicCharacterController};
 use rapier2d::crossbeam;
-use rapier2d::na::{Point2, Translation2, Vector2};
+use rapier2d::na::{Point2, Vector2};
 use rapier2d::prelude::*;
 
+use crate::core::blueprint::scene::def::KinematicCharacterControllerProps;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::terrain_gen::TerrainGenTerrainChunk;
 
@@ -98,7 +96,7 @@ impl RapierSimulation {
     ) -> Vec<ColliderHandle> {
         self.narrow_phase
             .intersection_pairs_with(collider_handle)
-            .filter(|(c1, c2, intersecting)| *intersecting)
+            .filter(|(_, _, intersecting)| *intersecting)
             .map(|(c1, c2, _i)| if c1 == collider_handle { c2 } else { c1 })
             .collect()
     }
@@ -320,8 +318,8 @@ impl RapierSimulation {
     ) -> (RigidBodyHandle, ColliderHandle) {
         let rigid_body = RigidBodyBuilder::fixed()
             .translation(Vector::new(
-                ((chunk.x * chunk.tile_width) + (chunk.tile_width / 2.0)),
-                ((chunk.y * chunk.tile_height) - (chunk.tile_height / 2.0)),
+                (chunk.x * chunk.tile_width) + (chunk.tile_width / 2.0),
+                (chunk.y * chunk.tile_height) - (chunk.tile_height / 2.0),
             ))
             .build();
 
@@ -329,8 +327,8 @@ impl RapierSimulation {
 
         let collider_handle = self.colliders.insert_with_parent(
             ColliderBuilder::cuboid(
-                ((chunk.tile_width * chunk.tiles_in_x) / 2.0),
-                ((chunk.tile_height * chunk.tiles_in_y) / 2.0),
+                (chunk.tile_width * chunk.tiles_in_x) / 2.0,
+                (chunk.tile_height * chunk.tiles_in_y) / 2.0,
             )
             .friction(0.5)
             .collision_groups(COL_GROUP_A)

@@ -56,6 +56,7 @@ pub struct EntityMaps {
     pub game_node_children: HashMap<Entity, Vec<Entity>>,
     pub game_node_parent: HashMap<Entity, Entity>,
     pub game_node_kind: HashMap<Entity, GameNodeKindClean>,
+    pub game_node_tags: HashMap<Entity, Vec<String>>,
     pub node_2d_kind: HashMap<Entity, Node2DKindClean>,
     pub node_2d_instance_path: HashMap<Entity, ResourcePath>,
     pub node_2d_entity_instance_parent: HashMap<Entity, Entity>,
@@ -94,6 +95,7 @@ pub struct EntityUpdate {
 pub enum EntityUpdateKind {
     Transform(Transform),
     Name(String),
+    Tags(Vec<String>),
     InstancePath(ResourcePath),
     ScriptPath(Option<ResourcePath>),
     UpdateScriptScope(String, ScopeCacheValue),

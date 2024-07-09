@@ -108,7 +108,6 @@ export const use_editor_store = defineStore(
         state.selected_tile_layer = layer;
       },
       set_tile_brush(brush: number[][]) {
-        console.log(brush);
         state.tile_brush = brush;
         if (
           state.current_main_instance.instance_id &&

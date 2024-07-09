@@ -246,7 +246,7 @@ impl GameInstanceManager {
         world_id: WorldId,
     ) -> Result<AdminEnterSuccessState, EnterFailedState> {
         let admin_active_instances = self.active_admins.entry(admin.id).or_default();
-        let mut success_state = AdminEnterSuccessState::EnteredWorld;
+        let success_state;
         if admin_active_instances.contains(&instance_id) {
             return Ok(AdminEnterSuccessState::AlreadyEntered);
         }

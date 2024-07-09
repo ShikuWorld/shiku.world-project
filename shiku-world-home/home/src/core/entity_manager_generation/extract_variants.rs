@@ -29,7 +29,7 @@ pub fn extract_variants(
             let object_type_name = object_type.name.clone();
 
             for (variant_start_gid, tileset) in
-                name_to_tileset_map.values().filter(|(gid, tileset)| {
+                name_to_tileset_map.values().filter(|(_, tileset)| {
                     let possible_variants: Vec<&str> = tileset.name.split('_').collect();
                     if possible_variants.len() == 2 {
                         return possible_variants

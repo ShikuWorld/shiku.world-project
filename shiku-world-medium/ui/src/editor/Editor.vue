@@ -111,8 +111,11 @@
           :module_instances="module_instance_map[selected_module.id] || []"
         ></ModulesEditor>
       </div>
-      <div v-if="active_component === 'map'">
-        <TileSelector :tilesets="tilesets_of_current_module"></TileSelector>
+      <div v-if="active_component === 'map' && selected_module">
+        <TileSelector
+          :tilesets="tilesets_of_current_module"
+          :gid_map="selected_module.gid_map"
+        ></TileSelector>
       </div>
       <div v-if="active_component === 'tile'">
         <TileEditor

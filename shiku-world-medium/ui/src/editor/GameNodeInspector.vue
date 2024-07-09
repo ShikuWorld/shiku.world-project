@@ -3,6 +3,21 @@
     <v-btn v-if="instance_resource_path" @click="save_back_to_instance_scene"
       >Update Blueprint</v-btn
     >
+    <div class="tags">
+      <v-text-field
+        label="Add Tag"
+        v-model="new_tag_name"
+        v-on:keydown="add_new_tag"
+        density="compact"
+        hide-details="auto"
+      ></v-text-field>
+      <v-chip
+        v-for="tag in game_node.tags"
+        :append-icon="mdiTrashCan"
+        @click="remove_tag(tag)"
+        >{{ tag }}</v-chip
+      >
+    </div>
     <component
       :is="node_component"
       v-bind="{ game_node, is_instance }"
@@ -65,7 +80,7 @@
 </style>
 
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, toRefs } from "vue";
+import { computed, defineAsyncComponent, ref, toRefs } from "vue";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { VNumberInput } from "vuetify/labs/VNumberInput";
 import {
@@ -78,7 +93,22 @@ import { storeToRefs } from "pinia";
 import { use_editor_store } from "@/editor/stores/editor";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
 import { ScopeCacheValue } from "@/editor/blueprints/ScopeCacheValue";
+import { mdiTrashCan } from "@mdi/js";
 
+const new_tag_name = ref("");
+const remove_tag = (tag: string) => {
+  entity_update({
+    Tags: game_node.value.tags.filter((t) => t !== tag),
+  });
+};
+const add_new_tag = (event: KeyboardEvent) => {
+  if (event.key === "Enter") {
+    entity_update({
+      Tags: [...game_node.value.tags, new_tag_name.value],
+    });
+    new_tag_name.value = "";
+  }
+};
 const props = defineProps<{
   scene_resource_path: string;
   node: GameNodeKind;

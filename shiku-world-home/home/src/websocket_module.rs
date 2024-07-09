@@ -168,24 +168,12 @@ impl WebsocketModule {
 }
 
 impl SystemModule for WebsocketModule {
-    fn module_name(&self) -> ModuleName {
-        String::from("WebsocketModule")
-    }
-
-    fn status(&self) -> &ModuleState {
-        &self.module_state
-    }
-
     fn start(&mut self) {
         debug!("Starting websocket module");
         self.module_state = ModuleState::Starting;
         let (connection_sender, connection_receiver) = unbounded();
         spawn_websocket_server(connection_sender);
         self.new_connection_receiver = Some(connection_receiver);
-    }
-
-    fn shutdown(&mut self) {
-        debug!("Shutdown not implemented. :P");
     }
 }
 

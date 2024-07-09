@@ -317,6 +317,9 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       }
       const game_node = Object.values(node)[0];
       match(update.kind)
+        .with({ Tags: P.select() }, (tags) => {
+          game_node.tags = tags;
+        })
         .with({ Transform: P.select() }, (transform) => {
           if (!game_node.data.transform) {
             console.error("Tried to update Node without transform, wtf?");

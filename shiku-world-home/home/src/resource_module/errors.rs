@@ -1,18 +1,12 @@
 use anyhow::Error as AnyhowError;
-use flume::TrySendError;
 use serde_json::Error as SerdeJsonError;
 use std::io::Error as IOError;
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::ParseBoolError;
 use thiserror::Error;
 
-use crate::core::module::GuestEvent;
-use crate::resource_module::def::ResourceEvent;
-
 #[derive(Error, Debug)]
 pub enum SendLoadEventError {
-    #[error(transparent)]
-    TrySend(TrySendError<GuestEvent<ResourceEvent>>),
     #[error(transparent)]
     ReadResourceMap(#[from] ReadResourceMapError),
     #[error(transparent)]
@@ -31,8 +25,6 @@ pub enum ResourceParseError {
     IO(#[from] IOError),
     #[error("Could not parse resource.")]
     SerdeParse(#[from] SerdeJsonError),
-    #[error("Could not parse xml!")]
-    XMLParse(String),
     #[error("Some unknown error happened!")]
     Misc(#[from] AnyhowError),
     #[error("Could not parse a boolean value!")]

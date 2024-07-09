@@ -59,6 +59,7 @@
         <div class="tile-selector__brush">
           <TilesetEditor
             :tileset="tileset"
+            :start_gid="get_start_gid_for_tileset(tileset_key(tileset))"
             :enable_multi_tile_selection="true"
             @tile_selection="on_tile_selection"
           ></TilesetEditor>
@@ -79,6 +80,7 @@ import { match } from "ts-pattern";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { GameMap } from "@/editor/blueprints/GameMap";
 import { use_resources_store } from "@/editor/stores/resources";
+import { GidMap } from "@/editor/blueprints/GidMap";
 
 type BrushSize = "1x1" | "2x2" | "3x3" | "5x5";
 const { set_tile_brush, set_selected_tile_layer } = use_editor_store();
@@ -86,6 +88,9 @@ const { tile_brush, selected_tile_layer, current_main_instance } =
   storeToRefs(use_editor_store());
 const { update_map_server } = use_resources_store();
 const { game_map_map } = storeToRefs(use_resources_store());
+
+const props = defineProps<{ tilesets: Tileset[]; gid_map: GidMap }>();
+const { tilesets, gid_map } = toRefs(props);
 
 const current_main_map = computed<GameMap | undefined>(() => {
   if (current_main_instance.value?.world_id && game_map_map.value) {
@@ -95,6 +100,13 @@ const current_main_map = computed<GameMap | undefined>(() => {
   }
   return undefined;
 });
+
+const get_start_gid_for_tileset = (resource_path: string): number => {
+  if (gid_map.value) {
+    return gid_map.value.find(([r, _]) => r === resource_path)?.[1] || 0;
+  }
+  return 0;
+};
 
 function select_tile_layer(layer: LayerKind) {
   set_selected_tile_layer(layer);
@@ -227,9 +239,6 @@ function create_brush_with_gid(gid: number, size: number): number[][] {
   return brush;
 }
 
-const props = defineProps<{ tilesets: Tileset[] }>();
-const { tilesets } = toRefs(props);
-
 const eraser_active = computed(
   () =>
     tile_brush.value.length == 1 &&
@@ -255,6 +264,7 @@ function on_tile_selection(
   g_ids: number[][],
   _tileset_key: string,
 ) {
+  console.log(g_ids);
   selected_brush_size.value = "1x1";
   set_tile_brush(g_ids);
 }

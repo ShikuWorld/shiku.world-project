@@ -42,19 +42,7 @@ use crate::webserver_module::def::WebServerModule;
 use crate::{ResourceModule, SystemModule, WebsocketModule};
 
 impl SystemModule for ConductorModule {
-    fn module_name(&self) -> ModuleName {
-        String::from("ConductorModule")
-    }
-
-    fn status(&self) -> &ModuleState {
-        todo!()
-    }
-
     fn start(&mut self) {
-        todo!()
-    }
-
-    fn shutdown(&mut self) {
         todo!()
     }
 }
@@ -887,7 +875,7 @@ impl ConductorModule {
 
     fn handle_times_joined(
         persistence_module: &mut PersistenceModule,
-        mut persisted_guest: &mut PersistedGuest,
+        persisted_guest: &mut PersistedGuest,
     ) -> Result<usize, PersistenceError> {
         let now = Utc::now().naive_utc();
 

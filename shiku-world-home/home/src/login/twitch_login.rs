@@ -10,14 +10,6 @@ use url::ParseError as UrlParseError;
 use crate::core::guest::ActorId;
 use crate::core::module::{ModuleInputReceiver, ModuleOutputSender};
 
-pub struct LoginModule {
-    current_guests: HashSet<ActorId>,
-    twitch_ext_access_token: String,
-    twitch_login_process_running: HashMap<ActorId, TwitchApiLogin>,
-    input_receiver: ModuleInputReceiver,
-    output_sender: ModuleOutputSender,
-}
-
 pub struct TwitchApiLogin {
     receiver: Receiver<Result<TwitchUserResponseData, TwitchApiError>>,
     pub result: Option<Result<TwitchUserResponseData, TwitchApiError>>,

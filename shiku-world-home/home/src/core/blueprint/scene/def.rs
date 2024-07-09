@@ -48,6 +48,7 @@ pub struct GameNode<T> {
     pub entity_id: Option<Entity>,
     pub data: T,
     pub script: Option<String>,
+    pub tags: Vec<String>,
     pub instance_resource_path: Option<ResourcePath>,
     pub children: Vec<GameNodeKind>,
 }
