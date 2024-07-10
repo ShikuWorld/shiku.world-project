@@ -49,20 +49,6 @@
       </template>
     </v-text-field>
   </div>
-  <div>
-    <h4 class="header">Functions</h4>
-    <v-list lines="one"> </v-list>
-    <v-text-field
-      label="State name"
-      v-model="new_transition_name"
-      density="compact"
-      hide-details="auto"
-    >
-      <template v-slot:append>
-        <v-icon :icon="mdiPlus" @click="add_state"></v-icon>
-      </template>
-    </v-text-field>
-  </div>
   <div v-if="selected_state" class="state-editor">
     <h4>{{ selected_state.name }}</h4>
     <v-virtual-scroll :items="selected_state.frames" :height="300">
@@ -258,7 +244,6 @@ const { character_animation, selected_state_id } = toRefs(props);
 const { save_character_animation_server } = use_resources_store();
 
 const new_state_name = ref("");
-const new_transition_name = ref("");
 
 const character_animation_directions: CharacterDirection[] = [
   "Down",

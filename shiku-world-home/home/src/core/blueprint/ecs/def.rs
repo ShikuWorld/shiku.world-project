@@ -1,12 +1,12 @@
 use rapier2d::control::KinematicCharacterController;
-use std::collections::{BTreeMap, HashMap, HashSet};
-
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::math::Vector;
 use rapier2d::prelude::{ColliderHandle, Real};
 use rhai::{CustomType, Dynamic, TypeBuilder};
 use serde::{Deserialize, Serialize};
 use smartstring::{LazyCompact, SmartString};
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::fmt::Display;
 use ts_rs::TS;
 
 use crate::core::ApiShare;
@@ -25,6 +25,12 @@ use crate::core::blueprint::scene::def::{
 )]
 #[ts(export, export_to = "blueprints/")]
 pub struct Entity(pub NodeInstanceId);
+
+impl Display for Entity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Entity({})", self.0)
+    }
+}
 
 #[derive(Debug)]
 pub struct ECS {

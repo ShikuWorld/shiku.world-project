@@ -1,3 +1,9 @@
+use std::collections::{HashMap, HashSet};
+
+use log::{debug, error};
+use rapier2d::prelude::*;
+use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
+
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpdate, ECS};
@@ -11,9 +17,6 @@ use crate::core::module_system::script_types::CharacterDirectionModule;
 use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::{ApiShare, TARGET_FRAME_DURATION};
-use rapier2d::prelude::*;
-use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
-use std::collections::{HashMap, HashSet};
 
 pub type WorldId = String;
 
@@ -241,6 +244,8 @@ impl World {
                 if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
                     character.desired_translation.x = x as f32;
                     character.desired_translation.y = y as f32;
+                } else {
+                    error!("Could not find kinematic character for entity: {}", entity);
                 }
             }
         };

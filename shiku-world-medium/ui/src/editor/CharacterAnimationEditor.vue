@@ -96,7 +96,7 @@ onInit(() => {
 
 .animations {
   pointer-events: all;
-  width: 1400px;
+  width: 1200px;
   height: 800px;
 }
 .custom-node {

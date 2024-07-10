@@ -27,7 +27,7 @@ const rows = computed(() => {
   return 0;
 });
 function get_x_y_from_gid(gId: number, rows: number): [number, number] {
-  if (tile.value.image) {
+  if (tile.value?.image) {
     return [0, 0];
   }
   const y = Math.floor((gId - 1) / rows) + 1;
@@ -53,7 +53,7 @@ const style_window = computed(() => {
 const style_tile = computed(() => {
   const background_image = tileset.value.image
     ? `url(${get_resource_url()}/${tileset.value.image.path})`
-    : `url(${get_resource_url()}/${tile.value.image?.path})`;
+    : `url(${get_resource_url()}/${tile.value?.image?.path})`;
   const [y, x] = get_x_y_from_gid(tile_id.value, rows.value);
   return {
     width: "100%",
