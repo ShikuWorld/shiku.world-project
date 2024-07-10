@@ -1,9 +1,9 @@
 { config, pkgs, ... }:
 
-
 let
   golemPath = "/var/lib/podman/volumes/golem";
   shikuWorldResourcesPath = "/var/lib/podman/volumes/shiku-world-resources";
+  shikuWorldHomeDbDevPath = "/var/lib/podman/volumes/shiku-world-home-db-dev";
   shikuWorldResourcesConfigPath = "/var/lib/podman/volumes/shiku-world-resources-config";
   credentials = {
     registry = "build.shiku.world";
@@ -15,9 +15,18 @@ in
   imports = [
     ./ensure-paths.nix
   ];
-  ensurePaths = [ golemPath shikuWorldResourcesPath shikuWorldResourcesConfigPath ];
-
+  ensurePaths = [ golemPath shikuWorldResourcesPath shikuWorldResourcesConfigPath shikuWorldHomeDbDevPath ];
+  systemd.services.create-shikus-world-network = with config.virtualisation.oci-containers; {
+    serviceConfig.Type = "oneshot";
+    wantedBy = [ "podman-shiku-world-home-dev.service" "podman-shiku-world-home-dev-db.service" ];
+    script = ''
+      ${pkgs.podman}/bin/podman network exists shiku-dev-net || \
+      ${pkgs.podman}/bin/podman network create shiku-dev-net
+      '';
+  };
   secrets."docker-registry.password".file = ./secrets/docker-registry.password.age;
+  secrets."shiku-world-home-dev-credentials".file = ./secrets/shiku-world-home-dev-credentials.age;
+  secrets."shiku-world-home-dev-db-credentials".file = ./secrets/shiku-world-home-dev-db-credentials.age;
   virtualisation.oci-containers.containers = {
     "shiku-world-golem-bot" = {
       image = "build.shiku.world/golem-bot:latest";
@@ -27,11 +36,19 @@ in
       ];
       extraOptions = [ "--pull=always" ];
     };
-    "gpt-memory" = {
-      image = "build.shiku.world/gpt-memory:latest";
+    "shiku-world-home-dev" = {
+      image = "build.shiku.world/shiku-world-home-dev:latest";
       login = credentials;
-      ports = ["3334:3000"];
-      extraOptions = [ "--pull=always" ];
+      ports = ["9001:9001" "3030:3030"];
+      extraOptions = [ "--pull=always" "--network=shiku-dev-net" ];
+    };
+    "shiku-world-home-dev-db" = {
+      image = "postgres";
+      volumes = [
+        "${shikuWorldHomeDbDevPath}:/var/lib/mysql"
+      ];
+      extraOptions = [ "--network=shiku-dev-net" ];
+      environmentFiles = ["/run/secrets/shiku-world-home-dev-db-credentials"];
     };
     "shiku-world-status" = {
       image = "build.shiku.world/shiku-world-status:latest";

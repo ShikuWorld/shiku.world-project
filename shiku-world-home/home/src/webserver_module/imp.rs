@@ -5,7 +5,6 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::Filter;
 
-use crate::core::get_out_dir;
 use crate::webserver_module::def::{DoorStatuses, WebServerModule};
 use crate::SystemModule;
 
@@ -22,10 +21,6 @@ impl WebServerModule {
         for cors_origin in env::var("RESOURCE_SERVER_CORS").unwrap().split('|') {
             cors = cors.allow_origin(cors_origin);
         }
-
-        let hello = warp::path("resources")
-            .and(warp::fs::dir(get_out_dir().join("shared")))
-            .with(cors);
 
         let door_statuses = Arc::new(Mutex::new(DoorStatuses {
             main_door_status: false,
@@ -47,7 +42,7 @@ impl WebServerModule {
         };
 
         tokio::spawn(async move {
-            warp::serve(hello.or(main_door_status_get).or(back_door_status_get))
+            warp::serve(main_door_status_get.or(back_door_status_get))
                 .run(([0, 0, 0, 0], 3030))
                 .await;
         });
