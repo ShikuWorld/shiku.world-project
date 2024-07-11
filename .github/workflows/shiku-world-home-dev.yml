@@ -19,8 +19,18 @@ jobs:
   build-shiku-world-status:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get version from Cargo.toml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version =' shiku-world-home/home/Cargo.toml | cut -d '"' -f2)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: BastianGanze/checkout-build-push-docker@v1.0.1
         with:
           image-name: shiku-world-home
           suffix: dev
+          version: ${{ steps.get_version.outputs.VERSION }}
