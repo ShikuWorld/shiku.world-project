@@ -3,7 +3,6 @@
   security.acme.acceptTerms = true;
   security.acme.certs = {
     "status.shiku.world".email = "server@shiku.world";
-    "memory.shiku.world".email = "server@shiku.world";
     "files.shiku.world".email = "server@shiku.world";
     "resources.shiku.world".email = "server@shiku.world";
   };
