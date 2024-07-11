@@ -37,16 +37,17 @@ in
       extraOptions = [ "--pull=always" ];
     };
     "shiku-world-home-dev" = {
-      image = "build.shiku.world/shiku-world-home-dev:0.2.2";
+      image = "build.shiku.world/shiku-world-home-dev:0.2.3";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       volumes = [
         "${shikuWorldHomeDevResourcePath}:/app/target/release/out"
       ];
-      extraOptions = [ "--pull=always" "--network=shiku-dev-net" ];
+      extraOptions = [ "--network=shiku-dev-net" ];
     };
     "shiku-world-home-dev-db" = {
       image = "postgres";
+      wantedBy = [ "podman-shiku-world-home-dev.service" ];
       volumes = [
         "${shikuWorldHomeDbDevPath}:/var/lib/mysql"
       ];

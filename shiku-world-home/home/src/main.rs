@@ -4,7 +4,7 @@ extern crate thiserror;
 
 use dotenv::dotenv;
 use env_logger::Builder;
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use std::io::Write;
 use std::time::Duration;
 
@@ -56,7 +56,7 @@ async fn main() {
         ConductorModule::new(websocket_module, blueprint_service, conductor_blueprint).await;
 
     let mut interval = spin_sleep_util::interval(Duration::from_secs(1) / TARGET_FPS as u32);
-
+    debug!("Starting main loop.");
     loop {
         conductor_module.conduct().await;
 
