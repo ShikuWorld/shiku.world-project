@@ -266,7 +266,7 @@ impl ResourceModule {
         module_id: ModuleId,
         actor_id: &ActorId,
     ) -> Result<(), SendUnloadEventError> {
-        if !self.book_keeping.active_resources.contains_key(actor_id) {
+        if self.book_keeping.active_resources.get(actor_id).is_none() {
             return Ok(());
         }
 
