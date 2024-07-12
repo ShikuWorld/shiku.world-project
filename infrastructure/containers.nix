@@ -37,7 +37,7 @@ in
       extraOptions = [ "--pull=always" ];
     };
     "shiku-world-home-dev" = {
-      image = "build.shiku.world/shiku-world-home-dev:0.2.11";
+      image = "build.shiku.world/shiku-world-home-dev:0.2.12";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];
