@@ -18,13 +18,16 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 # Set the working directory
 WORKDIR /app
 
-# Copy the necessary files and folders
-COPY ./home ./home
+# Build the Rust dependencies
+COPY ./home/Cargo.toml ./home/Cargo.toml
+RUN mkdir -p home/src && echo "fn main() {}" > home/src/main.rs
 COPY ./remove_entity ./remove_entity
 COPY ./Cargo.toml ./
 COPY ./Cargo.lock ./
+RUN cargo build --release
 
-# Build the Rust application
+# Build the application
+COPY ./home ./home
 RUN cargo build --release
 
 # Expose the required ports
