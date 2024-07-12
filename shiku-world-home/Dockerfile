@@ -25,6 +25,10 @@ COPY ./remove_entity ./remove_entity
 COPY ./Cargo.toml ./
 COPY ./Cargo.lock ./
 RUN cargo build --release
+RUN rm -rf target/release/build/*
+RUN rm -rf target/release/build/home
+RUN rm -rf target/release/build/home.d
+RUN rm -rf target/release/build/incremental/*
 
 # Build the application
 COPY ./home ./home
@@ -42,6 +46,8 @@ ARG RUST_LOG=DEBUG
 ENV RUST_LOG $RUST_LOG
 ENV RESOURCE_SERVER_CORS $RESOURCE_SERVER_CORS
 ENV DATABASE_URL $DATABASE_URL
+
+RUN ls -lA target/release
 
 # Run the application
 CMD ["./target/release/home"]
