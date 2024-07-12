@@ -5,6 +5,9 @@
     "status.shiku.world".email = "server@shiku.world";
     "files.shiku.world".email = "server@shiku.world";
     "resources.shiku.world".email = "server@shiku.world";
+    "dev-home-status.shiku.world".email = "server@shiku.world";
+    "dev-home.shiku.world".email = "server@shiku.world";
+    "dev.shiku.world".email = "server@shiku.world";
   };
   services.nginx = {
     package = pkgs.nginxMainline;
@@ -33,6 +36,32 @@
             proxy_set_header Connection "Upgrade";
             proxy_set_header Host $host;
           '';
+        };
+      };
+      "dev.shiku.world" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:8088";
+        };
+      };
+      "dev-home-status.shiku.world" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:3030";
+        };
+      };
+      "dev-home.shiku.world" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:9001";
+          extraConfig = ''
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+         '';
         };
       };
       "files.shiku.world" = {

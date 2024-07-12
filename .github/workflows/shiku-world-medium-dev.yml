@@ -5,7 +5,7 @@ on:
     branches:
       - dev
     paths:
-      - 'shiku-world-home/**'
+      - 'shiku-world-medium/**'
 
 env:
   DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
@@ -13,7 +13,7 @@ env:
   DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
 
 jobs:
-  build-shiku-world-home-dev:
+  build-shiku-world-medium-dev:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -22,16 +22,17 @@ jobs:
       - name: Get version from VERSION file
         id: get_version
         run: |
-          VERSION=$(cat shiku-world-home/VERSION)
+          VERSION=$(cat shiku-world-medium/VERSION)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         uses: BastianGanze/checkout-build-push-docker@v1.0.6
         with:
-          image-name: shiku-world-home
+          image-name: shiku-world-medium
           suffix: dev
           version: ${{ steps.get_version.outputs.VERSION }}
           build-args: |
-            RESOURCE_SERVER_CORS=https://dev.shiku.world
-            DATABASE_URL=${{ secrets.SHIKU_WORLD_DATABASE_DEV_URL }}
-            RUST_LOG=DEBUG
+            RESOURCE_URL=https://resources.shiku.world/static
+            WS_SOCKET_URL=wss://dev-home.shiku.world
+            TWITCH_AUTH_REDIRECT=https://dev.shiku.world
+
