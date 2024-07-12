@@ -25,10 +25,8 @@ COPY ./remove_entity ./remove_entity
 COPY ./Cargo.toml ./
 COPY ./Cargo.lock ./
 RUN cargo build --release
-RUN rm -rf target/release/build/*
 RUN rm -rf target/release/build/home
 RUN rm -rf target/release/build/home.d
-RUN rm -rf target/release/build/incremental/*
 
 # Build the application
 COPY ./home ./home
