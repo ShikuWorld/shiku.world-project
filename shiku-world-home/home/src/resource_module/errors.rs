@@ -9,8 +9,6 @@ use thiserror::Error;
 pub enum SendLoadEventError {
     #[error(transparent)]
     ReadResourceMap(#[from] ReadResourceMapError),
-    #[error(transparent)]
-    SerdeParse(SerdeJsonError),
 }
 
 #[derive(Error, Debug)]

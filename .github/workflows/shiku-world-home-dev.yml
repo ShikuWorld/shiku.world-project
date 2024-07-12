@@ -11,9 +11,6 @@ env:
   DOCKER_REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
   DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
   DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
-  RESOURCE_SERVER_CORS: https://dev.shiku.world
-  DATABASE_URL: ${{ secrets.SHIKU_WORLD_DATABASE_DEV_URL }}
-  RUST_LOG: DEBUG
 
 jobs:
   build-shiku-world-home-dev:
@@ -29,8 +26,12 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
-        uses: BastianGanze/checkout-build-push-docker@v1.0.5
+        uses: BastianGanze/checkout-build-push-docker@v1.0.6
         with:
           image-name: shiku-world-home
           suffix: dev
           version: ${{ steps.get_version.outputs.VERSION }}
+          build-args: |
+            RESOURCE_SERVER_CORS=https://dev.shiku.world
+            DATABASE_URL=${{ secrets.SHIKU_WORLD_DATABASE_DEV_URL }}
+            RUST_LOG=DEBUG
