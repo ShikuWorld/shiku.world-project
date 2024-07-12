@@ -25,7 +25,7 @@ jobs:
       - name: Get version from Cargo.toml
         id: get_version
         run: |
-          VERSION=$(grep '^version =' shiku-world-home/home/Cargo.toml | cut -d '"' -f2)
+          VERSION=$(cat shiku-world-home/VERSION)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
