@@ -22,4 +22,4 @@ COPY --from=build /app/ui/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["tail", "-f", "/dev/null"]
