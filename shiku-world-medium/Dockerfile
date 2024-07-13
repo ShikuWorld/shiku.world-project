@@ -17,11 +17,9 @@ ENV RESOURCE_URL $RESOURCE_URL
 ENV TWITCH_AUTH_REDIRECT $TWITCH_AUTH_REDIRECT
 
 RUN yarn run env
-RUN yarn run build-code
-RUN yarn run build-ui
+RUN yarn run build
 FROM docker.io/library/nginx:alpine
-COPY --from=build /app/ui/dist /usr/share/nginx/html
-
+COPY --from=build /app/build /usr/share/nginx/html
 EXPOSE 80
 
 STOPSIGNAL SIGTERM

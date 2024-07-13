@@ -94,6 +94,7 @@ import { use_editor_store } from "@/editor/stores/editor";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
 import { ScopeCacheValue } from "@/editor/blueprints/ScopeCacheValue";
 import { mdiTrashCan } from "@mdi/js";
+import { get_game_node } from "@/editor/imports";
 
 const new_tag_name = ref("");
 const remove_tag = (tag: string) => {
@@ -219,8 +220,6 @@ function entity_update(entity_update: EntityUpdateKind) {
 }
 
 const node_component = computed(() => {
-  return defineAsyncComponent(
-    () => import(/* @vite-ignore */ `./game_nodes/${node_type.value}.vue`),
-  );
+  return defineAsyncComponent(() => get_game_node(node_type.value));
 });
 </script>

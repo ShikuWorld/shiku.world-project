@@ -40836,6 +40836,7 @@ ${e3}`);
 
   // client/api/index.ts
   var setup_medium_api = (communication_state, instances, resource_manager_map, render_system) => {
+    console.log("Setting up medium api");
     window.medium = {
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,

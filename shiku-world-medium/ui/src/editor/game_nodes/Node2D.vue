@@ -79,6 +79,7 @@ import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 import { storeToRefs } from "pinia";
 import { use_editor_store } from "@/editor/stores/editor";
 import { use_resources_store } from "@/editor/stores/resources";
+import { get_game_node } from "@/editor/imports";
 
 const props = defineProps<{
   game_node: GameNode<Node2D>;
@@ -108,9 +109,7 @@ const node_2d_type = computed(() => Object.keys(game_node.value.data.kind)[0]);
 const data = computed(() => Object.values(game_node.value.data.kind)[0]);
 
 const node_2d_component = computed(() => {
-  return defineAsyncComponent(
-    () => import(/* @vite-ignore */ `./${node_2d_type.value}.vue`),
-  );
+  return defineAsyncComponent(() => get_game_node(node_2d_type.value));
 });
 
 const emit = defineEmits<{

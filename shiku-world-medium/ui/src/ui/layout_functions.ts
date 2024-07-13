@@ -5,6 +5,7 @@ import {
   ResponsiveValue,
 } from "@/editor/ui/index";
 import { DisplayInstance } from "vuetify";
+import { get_gui_component } from "@/editor/imports";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const compute_input_value = (
@@ -19,9 +20,7 @@ const compute_input_value = (
 
 export const use_layout_functions = () => ({
   get_dynamic_component: (componentName: string) => {
-    return defineAsyncComponent(
-      () => import(/* @vite-ignore */ `../components/${componentName}.vue`),
-    );
+    return defineAsyncComponent(() => get_gui_component(componentName));
   },
   calc_responsive_value: <T>(
     responsive_value: ResponsiveValue<T>,

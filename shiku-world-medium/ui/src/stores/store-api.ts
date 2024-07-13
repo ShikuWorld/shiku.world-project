@@ -7,6 +7,7 @@ import { use_resources_store } from "@/editor/stores/resources";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
 
 export function setup_medium_gui_api() {
+  console.log("Setting up medium gui api");
   window.medium_gui = {
     ui: use_ui_store(),
     editor: use_editor_store(),

@@ -18,6 +18,7 @@ export const setup_medium_api = (
   resource_manager_map: ResourceManagerMap,
   render_system: RenderSystem,
 ) => {
+  console.log("Setting up medium api");
   window.medium = {
     twitch_login: (communication_state: CommunicationState) =>
       login(communication_state),

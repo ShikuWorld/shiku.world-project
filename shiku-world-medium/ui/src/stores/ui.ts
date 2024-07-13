@@ -21,6 +21,7 @@ export const use_ui_store = defineStore("ui", {
       this.menu_open = !this.menu_open;
     },
     set_menu(menu: ComponentConfig) {
+      console.log("Setting menu", menu);
       this.current_menu = menu;
     },
   },
