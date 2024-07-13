@@ -17,14 +17,8 @@ ENV RESOURCE_URL $RESOURCE_URL
 ENV TWITCH_AUTH_REDIRECT $TWITCH_AUTH_REDIRECT
 
 RUN yarn run env
-RUN cat client/environment.ts
+RUN yarn run build-code
 RUN yarn run build-ui
-RUN cat client/environment.ts
-RUN yarn run build-code
-RUN cat client/environment.ts
-RUN yarn run build-code
-RUN cat client/environment.ts
-
 FROM docker.io/library/nginx:alpine
 COPY --from=build /app/ui/dist /usr/share/nginx/html
 
