@@ -22,4 +22,5 @@ COPY --from=build /app/ui/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+STOPSIGNAL SIGTERM
+CMD ["nginx"]
