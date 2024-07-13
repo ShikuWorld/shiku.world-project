@@ -14,7 +14,7 @@
     "copy-to-ui": "ts-node-script scripts/main.ts copy-to-ui",
     "copy-statics": "ts-node-script scripts/main.ts copy-statics",
     "clear-build": "ts-node-script scripts/main.ts clear-build",
-    "build": "yarn run clear-build && yarn run env && yarn run build-ui && yarn run build-code && yarn run copy-statics",
+    "build": "yarn run clear-build && yarn run build-ui && yarn run build-code && yarn run copy-statics",
     "watch": "yarn run clear-build && yarn run build-ui && ts-node-script scripts/main.ts watch-everything",
     "eslint": "eslint --ext .js,.ts",
     "hot-reload": "ts-node-script scripts/main.ts hot-reload"

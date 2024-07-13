@@ -15,9 +15,12 @@ COPY . .
 ENV WS_SOCKET_URL $WS_SOCKET_URL
 ENV RESOURCE_URL $RESOURCE_URL
 ENV TWITCH_AUTH_REDIRECT $TWITCH_AUTH_REDIRECT
-RUN echo $WS_SOCKET_URL
-RUN yarn run build
-RUN cat client/environment.ts
+
+RUN yarn run env
+RUN yarn run build-ui
+RUN yarn run build-code
+RUN yarn run build-code
+
 FROM docker.io/library/nginx:alpine
 COPY --from=build /app/ui/dist /usr/share/nginx/html
 
