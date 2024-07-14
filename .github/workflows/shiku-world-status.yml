@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches:
+      - dev
       - master
     paths:
       - 'shiku-world-status/**'
@@ -16,7 +17,30 @@ jobs:
   build-shiku-world-status:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from VERSION file
+        id: get_version
+        run: |
+          VERSION=$(cat shiku-world-status/VERSION)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set suffix based on branch
+        id: set_suffix
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            echo "SUFFIX=dev" >> $GITHUB_OUTPUT
+          else
+            echo "SUFFIX=" >> $GITHUB_OUTPUT
+          fi          
+
       - name: Build and push Docker image
-        uses: BastianGanze/checkout-build-push-docker@v1
+        uses: BastianGanze/checkout-build-push-docker@v1.0.6
         with:
           image-name: shiku-world-status
+          suffix: ${{ steps.set_suffix.outputs.SUFFIX }}
+          version: ${{ steps.get_version.outputs.VERSION }}
+          build-args: |
+            GET_MAIN_DOOR_STATUS_URL=https://dev-home-status.shiku.world/main-door-status
+            GET_BACK_DOOR_STATUS_URL=https://dev-home-status.shiku.world/back-door-status

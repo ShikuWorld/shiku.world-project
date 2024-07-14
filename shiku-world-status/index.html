@@ -2,10 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>test</title>
-    <link type="text/css" rel="stylesheet" href="./public/index.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status</title>
 </head>
 <body>
-test23
+<h1>Status</h1>
+<p>Main-Door: <span id="main-door-status">Loading...</span></p>
+<p>Back-Door: <span id="back-door-status">Loading...</span></p>
+
+<script>
+    function updateStatus() {
+        fetch('/main-door-status')
+          .then(response => response.text())
+          .then(status => {
+              document.getElementById('main-door-status').textContent = status;
+          })
+          .catch(error => {
+              console.error('Error', error);
+          });
+
+        fetch('/back-door-status')
+          .then(response => response.text())
+          .then(status => {
+              document.getElementById('back-door-status').textContent = status;
+          })
+          .catch(error => {
+              console.error('Error', error);
+          });
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 5000);
+</script>
 </body>
 </html>

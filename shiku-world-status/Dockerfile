@@ -1,11 +1,11 @@
-FROM node:20-bookworm AS builder
+FROM node:22-bookworm AS builder
 
 WORKDIR /usr/src/app
 COPY . .
 RUN yarn install
 RUN yarn build
 
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 WORKDIR /usr/src/app
 COPY package.json yarn.lock ./
 RUN yarn install --production
