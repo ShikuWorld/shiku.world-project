@@ -60,7 +60,7 @@ in
       environmentFiles = ["/run/secrets/shiku-world-home-dev-db-credentials"];
     };
     "shiku-world-status" = {
-      image = "build.shiku.world/shiku-world-status:latest";
+      image = "build.shiku.world/shiku-world-status:0.1.1";
       login = credentials;
       ports = ["3333:3000"];
     };
