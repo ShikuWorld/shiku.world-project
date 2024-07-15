@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 
 use flume::{unbounded, Receiver};
 use futures_util::{SinkExt, StreamExt};
-use log::error;
+use log::{debug, error};
 use snowflake::SnowflakeIdBucket;
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
@@ -22,6 +22,7 @@ use crate::resource_module::errors::{ReadResourceMapError, SendUnloadEventError}
 
 impl PicUpdateWSConnection {
     pub async fn new() -> PicUpdateWSConnection {
+        debug!("Connecting to pic update ws");
         let url = Url::parse("wss://resources.shiku.world/ws").unwrap();
         let (ws_stream, _) = connect_async(url).await.unwrap();
         let (mut write, read) = ws_stream.split();
