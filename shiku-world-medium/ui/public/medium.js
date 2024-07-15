@@ -39438,6 +39438,8 @@ ${e3}`);
   // client/config/config.ts
   var config_exports = {};
   __export(config_exports, {
+    getBackDoorStatusUrl: () => getBackDoorStatusUrl,
+    getMainDoorStatusUrl: () => getMainDoorStatusUrl,
     getTwitchAuthRedirect: () => getTwitchAuthRedirect,
     getWsSocketUrl: () => getWsSocketUrl,
     get_bg_color: () => get_bg_color,
@@ -39463,35 +39465,30 @@ ${e3}`);
     get canIdentifyUser() {
       return Twitch.ext.viewer && Twitch.ext.viewer.isLinked;
     }
-    get wsSocketUrl() {
+    getConfigurationValue(key) {
       if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
         return void 0;
       }
       try {
-        return JSON.parse(Twitch.ext.configuration.broadcaster.content)?.websocketurl;
+        return JSON.parse(Twitch.ext.configuration.broadcaster.content)?.[key];
       } catch (e3) {
         return void 0;
       }
+    }
+    get wsSocketUrl() {
+      return this.getConfigurationValue("websocketurl");
+    }
+    get mainDoorStatusUrl() {
+      return this.getConfigurationValue("mainDoorStatusUrl");
+    }
+    get backDoorStatusUrl() {
+      return this.getConfigurationValue("backDoorStatusUrl");
     }
     get resourceUrl() {
-      if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
-        return void 0;
-      }
-      try {
-        return JSON.parse(Twitch.ext.configuration.broadcaster.content)?.resourceUrl;
-      } catch (e3) {
-        return void 0;
-      }
+      return this.getConfigurationValue("resourceUrl");
     }
     get twitchAuthRedirect() {
-      if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
-        return void 0;
-      }
-      try {
-        return JSON.parse(Twitch.ext.configuration.broadcaster.content)?.twitchAuthRedirect;
-      } catch (e3) {
-        return void 0;
-      }
+      return this.getConfigurationValue("twitchAuthRedirect");
     }
     requestIdShare() {
       Twitch.ext.actions.requestIdShare();
@@ -39568,6 +39565,12 @@ ${e3}`);
   };
   var getTwitchAuthRedirect = () => {
     return twitch_service.twitchAuthRedirect || environment.twitchAuthRedirect;
+  };
+  var getMainDoorStatusUrl = () => {
+    return twitch_service.mainDoorStatusUrl || environment.mainDoorStatusUrl;
+  };
+  var getBackDoorStatusUrl = () => {
+    return twitch_service.backDoorStatusUrl || environment.backDoorStatusUrl;
   };
 
   // client/camera/index.ts
@@ -39752,8 +39755,102 @@ ${e3}`);
   // client/is_admin.ts
   var is_admin = !!new URLSearchParams(window.location.search).get("admin");
 
+  // client/login-menu.ts
+  var loginMenuConfig = {
+    name: "HLayout",
+    config: {
+      columns: [
+        {
+          cols: { xs: 12, sm: 10, md: 8, lg: 6, xl: 5 },
+          component: { name: "LoginMenu" }
+        }
+      ]
+    }
+  };
+
+  // client/reconnect-menu.ts
+  var reconnectMenuConfig = {
+    name: "HLayout",
+    config: {
+      columns: [
+        {
+          cols: { xs: 12, sm: 10, md: 8, lg: 6, xl: 5 },
+          component: { name: "ReconnectMenu" }
+        }
+      ]
+    }
+  };
+
+  // client/menu/index.ts
+  var MenuSystem = class _MenuSystem {
+    _menus;
+    static static_menus = {
+      LoginMenu: "login-menu",
+      ReconnectMenu: "reconnect-menu"
+    };
+    constructor() {
+      this._menus = {};
+      this.create_menu_from_config(
+        loginMenuConfig,
+        _MenuSystem.static_menus.LoginMenu
+      );
+      this.create_menu_from_config(
+        reconnectMenuConfig,
+        _MenuSystem.static_menus.ReconnectMenu
+      );
+    }
+    create_menu_from_config(config, menu_name) {
+      if (!this._menus[menu_name]) {
+        this._menus[menu_name] = config;
+      } else {
+        throw Error("Menu already existed");
+      }
+    }
+    get(menu_name) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error(`Tried to get menu that did not exist. ${menu_name}`);
+      }
+      return menu;
+    }
+    activate(menu_name, context2) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error(`Tried to activate menu that did not exist. ${menu_name}`);
+      }
+      if (context2) {
+        window.medium_gui.ui.set_menu_context(context2);
+      }
+      window.medium_gui.ui.set_menu(menu);
+      window.medium_gui.ui.open_menu();
+    }
+    toggle(menu_name) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error("Tried to deactivate menu that did not exist.");
+      }
+      window.medium_gui.ui.set_menu(menu);
+      window.medium_gui.ui.toggle_menu();
+    }
+    deactivate(menu_name) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error("Tried to deactivate menu that did not exist.");
+      }
+      window.medium_gui.ui.close_menu();
+    }
+    remove(menu_name) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error("Tried to deactivate menu that did not exist.");
+      }
+      window.medium_gui.ui.close_menu();
+      delete this._menus[menu_name];
+    }
+  };
+
   // client/communication/setup_communication_system.ts
-  function setup_communication_system() {
+  function setup_communication_system(menu_system) {
     const ws_connection = new WebSocket(config_exports.getWsSocketUrl());
     const communication_state = {
       is_connection_open: false,
@@ -39765,15 +39862,26 @@ ${e3}`);
       communication_state.is_connection_open = true;
     };
     ws_connection.onclose = (close_event) => {
-      const message = document.createElement("div");
-      if (close_event.reason === "Logged in elsewhere") {
-        message.innerHTML = "You seem to have logged in somewhere else, please login again if you want to use this device.";
-      } else {
-        message.innerHTML = "Connection to server closed, please try and reload.";
-      }
-      communication_state.is_connection_open = false;
-      document.body.prepend(message);
-      document.querySelector("canvas")?.remove();
+      getMainDoorStatus().then((status) => {
+        if (close_event.reason === "Logged in elsewhere") {
+          menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+            connection_error: {
+              type: "logged_in_elsewhere",
+              message: "You seem to have logged in somewhere else, please login again if you want to use this device.",
+              mainDoorStatusType: status.type
+            }
+          });
+        } else {
+          menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+            connection_error: {
+              type: "connection_closed",
+              message: "Seems like the connection to the server was closed, please try to reconnect."
+            },
+            mainDoorStatusType: status.type
+          });
+        }
+        communication_state.is_connection_open = false;
+      });
     };
     ws_connection.onmessage = (message) => {
       try {
@@ -39785,22 +39893,39 @@ ${e3}`);
       }
     };
     ws_connection.onerror = (event) => {
-      console.error(event);
       communication_state.is_connection_open = false;
-      const message = document.createElement("div");
-      message.innerHTML = "Connection to server encountered error, please try and reload.";
-      document.body.prepend(message);
+      getMainDoorStatus().then((status) => {
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "connection_error",
+            message: "Connection to server encountered an error, please try to reconnect."
+          },
+          mainDoorStatusType: status.type
+        });
+      });
+      console.error(event);
     };
     return communication_state;
   }
   var last_message_send = Date.now();
-  function check_for_connection_ready(communication_state) {
+  async function getMainDoorStatus() {
+    const mainDoorStatusUrl = config_exports.getMainDoorStatusUrl();
+    try {
+      return await (await fetch(mainDoorStatusUrl)).json();
+    } catch (e3) {
+      return { type: "unknownError", error: e3 };
+    }
+  }
+  function check_for_connection_ready(menu_system, communication_state) {
     for (const communication of communication_state.inbox) {
       if (communication == "AlreadyConnected") {
         communication_state.ws_connection.close(1e3);
-        const message = document.createElement("div");
-        message.innerHTML = "You are already connected somewhere. Maybe check your browser tabs?";
-        document.body.prepend(message);
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "already_connected",
+            message: "You are already connected somewhere. Maybe check your browser tabs?"
+          }
+        });
         continue;
       }
       if ("ConnectionReady" in communication) {
@@ -39838,59 +39963,6 @@ ${e3}`);
   function send_ticket(ticket, communication_state) {
     communication_state.ws_connection.send(JSON.stringify(ticket));
   }
-
-  // client/menu/index.ts
-  var MenuSystem = class {
-    _menus;
-    constructor() {
-      this._menus = {};
-    }
-    create_menu_from_config(config, menu_name) {
-      if (!this._menus[menu_name]) {
-        this._menus[menu_name] = config;
-      } else {
-        throw Error("Menu already existed");
-      }
-    }
-    get(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error("Tried to get menu that did not exist.");
-      }
-      return menu;
-    }
-    activate(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error("Tried to activate menu that did not exist.");
-      }
-      window.medium_gui.ui.set_menu(menu);
-      window.medium_gui.ui.open_menu();
-    }
-    toggle(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error("Tried to deactivate menu that did not exist.");
-      }
-      window.medium_gui.ui.set_menu(menu);
-      window.medium_gui.ui.toggle_menu();
-    }
-    deactivate(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error("Tried to deactivate menu that did not exist.");
-      }
-      window.medium_gui.ui.close_menu();
-    }
-    remove(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error("Tried to deactivate menu that did not exist.");
-      }
-      window.medium_gui.ui.close_menu();
-      delete this._menus[menu_name];
-    }
-  };
 
   // client/input/create_guest_input.ts
   function create_guest_input() {
@@ -40842,6 +40914,7 @@ ${e3}`);
     window.medium = {
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
+      reconnect: () => Promise.resolve(),
       is_instance_ready: (instance_id, world_id) => {
         return !!instances[instance_id] && !!instances[instance_id][world_id];
       },
@@ -40918,19 +40991,6 @@ ${e3}`);
         }
       }
     };
-  };
-
-  // client/login-menu.ts
-  var loginMenuConfig = {
-    name: "HLayout",
-    config: {
-      columns: [
-        {
-          cols: { xs: 12, sm: 10, md: 8, lg: 6, xl: 5 },
-          component: { name: "LoginMenu" }
-        }
-      ]
-    }
   };
 
   // client/countdown.ts
@@ -42494,8 +42554,8 @@ ${e3}`);
     const canvas = document.getElementById("canvas");
     const door = document.getElementById("door");
     const render_system = await create_game_renderer();
-    const communication_system = setup_communication_system();
     const menu_system = new MenuSystem();
+    const communication_system = setup_communication_system(menu_system);
     const guest_input = create_guest_input();
     const button_feedback_update = setup_button_feedback();
     const instances = {};
@@ -42523,7 +42583,6 @@ ${e3}`);
       resource_manager_map,
       render_system
     );
-    menu_system.create_menu_from_config(loginMenuConfig, "login-menu");
     if (door && canvas) {
       door.addEventListener("click", () => {
         canvas.className = "canvas--active";
@@ -42548,7 +42607,7 @@ ${e3}`);
           ([_session_id, should_login]) => {
             console.log("Connection ready", should_login);
             if (should_login) {
-              menu_system.activate("login-menu");
+              menu_system.activate(MenuSystem.static_menus.LoginMenu);
             } else if (is_admin) {
               window.medium_gui.editor.show_editor();
             }
@@ -42659,7 +42718,7 @@ ${e3}`);
           }
         ).with({ Signal: _.select() }, (signal_to_guest) => {
           if (signal_to_guest === "LoginSuccess") {
-            menu_system.deactivate("login-menu");
+            menu_system.deactivate(MenuSystem.static_menus.LoginMenu);
             if (is_admin) {
               window.medium_gui.editor.show_editor();
             }
@@ -42717,7 +42776,7 @@ ${e3}`);
             "Seems like you block local storage or something, you'll have to login on every reload."
           );
         }
-        check_for_connection_ready(communication_system);
+        check_for_connection_ready(menu_system, communication_system);
         if (communication_system.is_connection_ready) {
           window.requestAnimationFrame(main_loop);
           if (canvas) {

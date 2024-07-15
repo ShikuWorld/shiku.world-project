@@ -42,17 +42,23 @@ import { use_current_module_store } from "@/editor/stores/current-module";
 import MediumToast from "@/editor/toast/MediumToast.vue";
 import Editor from "@/editor/editor/Editor.vue";
 import { use_editor_store } from "@/editor/stores/editor";
+import { storeToRefs } from "pinia";
+import { computed, Ref } from "vue";
 /*import { use_toast_store } from "@/editor/stores/toast";
 import { test_menu } from "@/editor/ui/test_menu";*/
 
 const ui = use_ui_store();
 const editor = use_editor_store();
 const current_module = use_current_module_store();
-
-const context: DataContext = {
-  current_module,
-  ui,
-};
+const { current_menu_context } = storeToRefs(use_ui_store());
+const context: Ref<DataContext> = computed(() => {
+  console.log(current_menu_context?.value);
+  return {
+    menu_context: current_menu_context?.value,
+    current_module,
+    ui,
+  };
+});
 
 /*
 const toast_store = use_toast_store();

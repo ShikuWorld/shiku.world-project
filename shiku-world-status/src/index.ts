@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
 import axios from 'axios';
+import cors from '@fastify/cors';
 import { configDotenv } from 'dotenv';
 
 configDotenv();
@@ -9,7 +10,9 @@ configDotenv();
 const fastify = Fastify({
   logger: true
 });
-
+fastify.register(cors, {
+  origin: '*'
+});
 fastify.register(fastifyStatic, {
   root: path.join(__dirname, 'public'),
   prefix: '/public/'

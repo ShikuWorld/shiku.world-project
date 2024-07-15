@@ -1,10 +1,25 @@
 import { ResourceManager } from "../resources";
 import { ComponentConfig } from "../../ui/src/ui";
+import { loginMenuConfig } from "@/client/login-menu";
+import { reconnectMenuConfig } from "@/client/reconnect-menu";
 
 export class MenuSystem {
   private _menus: { [name: string]: ComponentConfig };
+  static static_menus = {
+    LoginMenu: "login-menu",
+    ReconnectMenu: "reconnect-menu",
+  };
+
   constructor() {
     this._menus = {};
+    this.create_menu_from_config(
+      loginMenuConfig,
+      MenuSystem.static_menus.LoginMenu,
+    );
+    this.create_menu_from_config(
+      reconnectMenuConfig,
+      MenuSystem.static_menus.ReconnectMenu,
+    );
   }
 
   create_menu_from_config(config: ComponentConfig, menu_name: string) {
@@ -18,15 +33,27 @@ export class MenuSystem {
   get(menu_name: string): ComponentConfig {
     const menu = this._menus[menu_name];
     if (!menu) {
-      throw Error("Tried to get menu that did not exist.");
+      throw Error(`Tried to get menu that did not exist. ${menu_name}`);
     }
     return menu;
   }
 
-  activate(menu_name: string) {
+  activate(
+    menu_name: string,
+    context?: {
+      [key: string]:
+        | string
+        | number
+        | null
+        | { [key: string]: string | number | null };
+    },
+  ) {
     const menu = this._menus[menu_name];
     if (!menu) {
-      throw Error("Tried to activate menu that did not exist.");
+      throw Error(`Tried to activate menu that did not exist. ${menu_name}`);
+    }
+    if (context) {
+      window.medium_gui.ui.set_menu_context(context);
     }
     window.medium_gui.ui.set_menu(menu);
     window.medium_gui.ui.open_menu();

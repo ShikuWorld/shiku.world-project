@@ -1,4 +1,4 @@
-import { UiStore } from "@/editor/stores/ui";
+import { CurrentMenuContext, UiStore } from "@/editor/stores/ui";
 import { KeysOfType, Paths } from "@/editor/utils";
 import { CurrentModuleStore } from "@/editor/stores/current-module";
 import { HLayout } from "@/editor/components/HLayout.vue";
@@ -8,17 +8,23 @@ import { LoginMenu } from "@/editor/components/LoginMenu.vue";
 import { TutorialComponent } from "@/editor/components/TutorialComponent.vue";
 import { NumberStats } from "@/editor/components/NumberStats.vue";
 import { ImageHoverMap } from "@/editor/components/ImageHoverMap.vue";
+import { ReconnectMenu } from "@/editor/components/ReconnectMenu.vue";
 
 export * from "./layout_functions";
 
 export type DataContext = {
   current_module: CurrentModuleStore;
   ui: Omit<UiStore, "current_menu">;
+  menu_context?: CurrentMenuContext;
 };
 
 export type ExtractionObject =
   | {
       store: "current_module";
+      key: string;
+    }
+  | {
+      store: "menu_context";
       key: string;
     }
   | { store: "ui"; key: Paths<Omit<UiStore, "current_menu">> };
@@ -49,6 +55,7 @@ export type ComponentConfig =
   | VueComponentDef<MainMenu>
   | VueComponentDef<VLayout>
   | VueComponentDef<LoginMenu>
+  | VueComponentDef<ReconnectMenu>
   | VueComponentDef<TutorialComponent>
   | VueComponentDef<ImageHoverMap>;
 

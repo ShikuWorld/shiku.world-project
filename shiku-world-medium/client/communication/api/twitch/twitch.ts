@@ -1,4 +1,5 @@
 import { SimpleEventDispatcher } from "strongly-typed-events";
+import { getMainDoorStatusUrl } from "@/client/config/config";
 
 class TwitchService {
   auth?: Twitch.ext.Authorized;
@@ -12,40 +13,35 @@ class TwitchService {
     return Twitch.ext.viewer && Twitch.ext.viewer.isLinked;
   }
 
+  getConfigurationValue(key: string): string | undefined {
+    if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
+      return undefined;
+    }
+    try {
+      return JSON.parse(Twitch.ext.configuration.broadcaster.content)?.[key];
+    } catch (e) {
+      return undefined;
+    }
+  }
+
   get wsSocketUrl(): string | undefined {
-    if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
-      return void 0;
-    }
-    try {
-      return JSON.parse(Twitch.ext.configuration.broadcaster.content)
-        ?.websocketurl;
-    } catch (e) {
-      return void 0;
-    }
+    return this.getConfigurationValue("websocketurl");
   }
 
-  get resourceUrl() {
-    if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
-      return void 0;
-    }
-    try {
-      return JSON.parse(Twitch.ext.configuration.broadcaster.content)
-        ?.resourceUrl;
-    } catch (e) {
-      return void 0;
-    }
+  get mainDoorStatusUrl(): string | undefined {
+    return this.getConfigurationValue("mainDoorStatusUrl");
   }
 
-  get twitchAuthRedirect() {
-    if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {
-      return void 0;
-    }
-    try {
-      return JSON.parse(Twitch.ext.configuration.broadcaster.content)
-        ?.twitchAuthRedirect;
-    } catch (e) {
-      return void 0;
-    }
+  get backDoorStatusUrl(): string | undefined {
+    return this.getConfigurationValue("backDoorStatusUrl");
+  }
+
+  get resourceUrl(): string | undefined {
+    return this.getConfigurationValue("resourceUrl");
+  }
+
+  get twitchAuthRedirect(): string | undefined {
+    return this.getConfigurationValue("twitchAuthRedirect");
   }
 
   requestIdShare() {

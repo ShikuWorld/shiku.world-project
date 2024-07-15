@@ -16,7 +16,6 @@ import { signal_channel_name } from "./communication";
 import { initialize_input_plugins, update_input_plugins } from "./plugins";
 import { setup_button_feedback } from "./button-feedback";
 import { setup_medium_api } from "./api";
-import { loginMenuConfig } from "@/client/login-menu";
 import {
   create_new_game_instance,
   GameInstanceMap,
@@ -34,8 +33,8 @@ export async function start_medium() {
   const canvas = document.getElementById("canvas");
   const door = document.getElementById("door");
   const render_system = await create_game_renderer();
-  const communication_system = setup_communication_system();
   const menu_system = new MenuSystem();
+  const communication_system = setup_communication_system(menu_system);
   const guest_input = create_guest_input();
   const button_feedback_update = setup_button_feedback();
   const instances: GameInstanceMap = {};
@@ -65,8 +64,6 @@ export async function start_medium() {
     resource_manager_map,
     render_system,
   );
-
-  menu_system.create_menu_from_config(loginMenuConfig, "login-menu");
 
   /*renderer.onStageResize.sub((_resize) => {
         // TODO: Resize
@@ -112,7 +109,7 @@ export async function start_medium() {
           ([_session_id, should_login]) => {
             console.log("Connection ready", should_login);
             if (should_login) {
-              menu_system.activate("login-menu");
+              menu_system.activate(MenuSystem.static_menus.LoginMenu);
             } else if (is_admin) {
               window.medium_gui.editor.show_editor();
             }
@@ -241,7 +238,7 @@ export async function start_medium() {
         )
         .with({ Signal: P.select() }, (signal_to_guest) => {
           if (signal_to_guest === "LoginSuccess") {
-            menu_system.deactivate("login-menu");
+            menu_system.deactivate(MenuSystem.static_menus.LoginMenu);
             if (is_admin) {
               window.medium_gui.editor.show_editor();
             }
@@ -311,7 +308,7 @@ export async function start_medium() {
         );
       }
 
-      check_for_connection_ready(communication_system);
+      check_for_connection_ready(menu_system, communication_system);
       if (communication_system.is_connection_ready) {
         window.requestAnimationFrame(main_loop);
         if (canvas) {

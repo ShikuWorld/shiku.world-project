@@ -7,8 +7,11 @@ import { GuestTo } from "@/client/communication/api/bindings/GuestTo";
 import { GuestToSystemEvent } from "@/client/communication/api/bindings/GuestToSystemEvent";
 import { AdminToSystemEvent } from "@/client/communication/api/bindings/AdminToSystemEvent";
 import { is_admin } from "@/client/is_admin";
+import { MenuSystem } from "@/client/menu";
 
-export function setup_communication_system(): CommunicationState {
+export function setup_communication_system(
+  menu_system: MenuSystem,
+): CommunicationState {
   const ws_connection = new WebSocket(Config.getWsSocketUrl());
   const communication_state: CommunicationState = {
     is_connection_open: false,
@@ -21,16 +24,28 @@ export function setup_communication_system(): CommunicationState {
     communication_state.is_connection_open = true;
   };
   ws_connection.onclose = (close_event) => {
-    const message = document.createElement("div");
-    if (close_event.reason === "Logged in elsewhere") {
-      message.innerHTML =
-        "You seem to have logged in somewhere else, please login again if you want to use this device.";
-    } else {
-      message.innerHTML = "Connection to server closed, please try and reload.";
-    }
-    communication_state.is_connection_open = false;
-    document.body.prepend(message);
-    document.querySelector("canvas")?.remove();
+    getMainDoorStatus().then((status) => {
+      if (close_event.reason === "Logged in elsewhere") {
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "logged_in_elsewhere",
+            message:
+              "You seem to have logged in somewhere else, please login again if you want to use this device.",
+            mainDoorStatusType: status.type,
+          },
+        });
+      } else {
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "connection_closed",
+            message:
+              "Seems like the connection to the server was closed, please try to reconnect.",
+          },
+          mainDoorStatusType: status.type,
+        });
+      }
+      communication_state.is_connection_open = false;
+    });
   };
 
   ws_connection.onmessage = (message: MessageEvent) => {
@@ -44,12 +59,18 @@ export function setup_communication_system(): CommunicationState {
   };
 
   ws_connection.onerror = (event) => {
-    console.error(event);
     communication_state.is_connection_open = false;
-    const message = document.createElement("div");
-    message.innerHTML =
-      "Connection to server encountered error, please try and reload.";
-    document.body.prepend(message);
+    getMainDoorStatus().then((status) => {
+      menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+        connection_error: {
+          type: "connection_error",
+          message:
+            "Connection to server encountered an error, please try to reconnect.",
+        },
+        mainDoorStatusType: status.type,
+      });
+    });
+    console.error(event);
   };
 
   return communication_state;
@@ -57,16 +78,38 @@ export function setup_communication_system(): CommunicationState {
 
 let last_message_send = Date.now();
 
+type DoorStatusCheck =
+  | { type: "open" }
+  | { type: "lightsOn" }
+  | { type: "lightsOut" }
+  | { type: "urlNotConfigured" }
+  | { type: "unknownError"; error: Error };
+
+async function getMainDoorStatus() {
+  const mainDoorStatusUrl = Config.getMainDoorStatusUrl();
+  try {
+    return (await (
+      await fetch(mainDoorStatusUrl)
+    ).json()) as unknown as DoorStatusCheck;
+  } catch (e) {
+    return { type: "unknownError", error: e };
+  }
+}
+
 export function check_for_connection_ready(
+  menu_system: MenuSystem,
   communication_state: CommunicationState,
 ) {
   for (const communication of communication_state.inbox) {
     if (communication == "AlreadyConnected") {
       communication_state.ws_connection.close(1000);
-      const message = document.createElement("div");
-      message.innerHTML =
-        "You are already connected somewhere. Maybe check your browser tabs?";
-      document.body.prepend(message);
+      menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+        connection_error: {
+          type: "already_connected",
+          message:
+            "You are already connected somewhere. Maybe check your browser tabs?",
+        },
+      });
       continue;
     }
     if ("ConnectionReady" in communication) {

@@ -26,6 +26,7 @@ declare global {
     medium: {
       twitch_login: typeof login;
       communication_state: CommunicationState;
+      reconnect: () => Promise<void>;
       is_instance_ready: (instance_id: string, world_id: string) => boolean;
       get_resource_manager: (module_id: string) => ResourceManager | undefined;
       set_blueprint_renderer: (

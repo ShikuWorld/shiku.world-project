@@ -55,3 +55,11 @@ export const get_resource_url = () => {
 export const getTwitchAuthRedirect = () => {
   return twitch_service.twitchAuthRedirect || environment.twitchAuthRedirect;
 };
+
+export const getMainDoorStatusUrl = () => {
+  return twitch_service.mainDoorStatusUrl || environment.mainDoorStatusUrl;
+};
+
+export const getBackDoorStatusUrl = () => {
+  return twitch_service.backDoorStatusUrl || environment.backDoorStatusUrl;
+};
