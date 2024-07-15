@@ -5,8 +5,7 @@ use log::{debug, error};
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::geometry::ColliderHandle;
 use rapier2d::math::Vector;
-use rhai::{Engine, ImmutableString, Scope, AST};
-use smartstring::SmartStringMode;
+use rhai::{Engine, Scope, AST};
 
 use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
