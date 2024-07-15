@@ -7,6 +7,7 @@ use flume::Receiver;
 use notify::event::ModifyKind;
 use serde::{Deserialize, Serialize};
 use snowflake::SnowflakeIdBucket;
+use tokio::task::JoinHandle;
 use ts_rs::TS;
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -64,9 +65,14 @@ pub struct ResourceModuleBookKeeping {
     pub(super) resource_hash_gen: SnowflakeIdBucket,
 }
 
+pub struct PicUpdateWSConnection {
+    pub(super) receiver: Receiver<PicUpdateEvent>,
+    pub(super) join_handle: JoinHandle<()>,
+}
+
 pub struct ResourceModulePicUpdates {
     pub(super) pic_changed_events_hash: HashSet<String>,
-    pub(super) pic_update_receiver: Receiver<PicUpdateEvent>,
+    pub(super) pic_update_ws_connection: PicUpdateWSConnection,
     pub(super) last_insert: Instant,
 }
 

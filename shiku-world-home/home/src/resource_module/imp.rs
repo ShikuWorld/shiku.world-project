@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
-use flume::unbounded;
+use flume::{unbounded, Receiver};
 use futures_util::{SinkExt, StreamExt};
 use log::error;
 use snowflake::SnowflakeIdBucket;
+use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_tungstenite::connect_async;
 use tungstenite::Message;
@@ -14,13 +15,13 @@ use crate::core::blueprint::def::{ModuleId, ResourcePath};
 use crate::core::guest::ActorId;
 use crate::core::{safe_unwrap, send_and_log_error_consume};
 use crate::resource_module::def::{
-    LoadResource, PicUpdateEvent, ResourceBundle, ResourceEvent, ResourceModule,
-    ResourceModuleBookKeeping, ResourceModulePicUpdates,
+    LoadResource, PicUpdateEvent, PicUpdateWSConnection, ResourceBundle, ResourceEvent,
+    ResourceModule, ResourceModuleBookKeeping, ResourceModulePicUpdates,
 };
 use crate::resource_module::errors::{ReadResourceMapError, SendUnloadEventError};
 
-impl ResourceModule {
-    pub async fn new() -> ResourceModule {
+impl PicUpdateWSConnection {
+    pub async fn new() -> PicUpdateWSConnection {
         let url = Url::parse("wss://resources.shiku.world/ws").unwrap();
         let (ws_stream, _) = connect_async(url).await.unwrap();
         let (mut write, read) = ws_stream.split();
@@ -30,10 +31,11 @@ impl ResourceModule {
                 sleep(Duration::from_millis(15000)).await;
                 if let Err(err) = write.send(Message::Text("Ping".into())).await {
                     error!("Could not send ping?! {:?}", err);
+                    break;
                 }
             }
         });
-        tokio::spawn(async move {
+        let join_handle = tokio::spawn(async move {
             let read_future = read.for_each(|message| async {
                 if let Ok(d) = message.unwrap().into_text() {
                     match serde_json::from_str(d.as_str()) {
@@ -48,6 +50,15 @@ impl ResourceModule {
             read_future.await;
         });
 
+        PicUpdateWSConnection {
+            receiver,
+            join_handle,
+        }
+    }
+}
+
+impl ResourceModule {
+    pub async fn new() -> ResourceModule {
         ResourceModule {
             book_keeping: ResourceModuleBookKeeping {
                 active_resources: HashMap::new(),
@@ -58,15 +69,26 @@ impl ResourceModule {
             },
             pic_updates: ResourceModulePicUpdates {
                 pic_changed_events_hash: HashSet::new(),
-                pic_update_receiver: receiver,
+                pic_update_ws_connection: PicUpdateWSConnection::new().await,
                 last_insert: Instant::now(),
             },
             resource_events: Vec::new(),
         }
     }
 
+    pub async fn check_reconnect(&mut self) {
+        if self
+            .pic_updates
+            .pic_update_ws_connection
+            .join_handle
+            .is_finished()
+        {
+            self.pic_updates.pic_update_ws_connection = PicUpdateWSConnection::new().await;
+        }
+    }
+
     pub fn receive_all_picture_updates(&mut self) {
-        for d in self.pic_updates.pic_update_receiver.drain() {
+        for d in self.pic_updates.pic_update_ws_connection.receiver.drain() {
             self.pic_updates.pic_changed_events_hash.insert(d.path);
             self.pic_updates.last_insert = Instant::now();
         }

@@ -65,6 +65,7 @@ impl ConductorModule {
         self.handle_timeouts();
 
         self.handle_admin_events().await;
+        self.resource_module.check_reconnect().await;
     }
 
     pub fn update_resource_to_module_map(

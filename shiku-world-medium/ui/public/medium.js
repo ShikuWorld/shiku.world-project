@@ -39523,7 +39523,9 @@ ${e3}`);
   var environment = {
     wsSocketUrl: "ws://127.0.0.1:9001",
     resourceUrl: "https://resources.shiku.world/static",
-    twitchAuthRedirect: "https://localhost:8080"
+    twitchAuthRedirect: "https://localhost:8080",
+    mainDoorStatusUrl: "https://dev-status.shiku.world/main-door-status",
+    backDoorStatusUrl: "https://dev-status.shiku.world/back-door-status"
   };
 
   // client/config/config.ts

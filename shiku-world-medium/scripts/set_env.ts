@@ -13,6 +13,8 @@ export const set_env = () => {
    wsSocketUrl: '${process.env.WS_SOCKET_URL}',
    resourceUrl: '${process.env.RESOURCE_URL}',
    twitchAuthRedirect: '${process.env.TWITCH_AUTH_REDIRECT}',
+   mainDoorStatusUrl: '${process.env.MAIN_DOOR_STATUS_URL}',
+   backDoorStatusUrl: '${process.env.BACK_DOOR_STATUS_URL}',
 };
 `;
 

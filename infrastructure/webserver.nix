@@ -3,6 +3,7 @@
   security.acme.acceptTerms = true;
   security.acme.certs = {
     "status.shiku.world".email = "server@shiku.world";
+    "dev-status.shiku.world".email = "server@shiku.world";
     "files.shiku.world".email = "server@shiku.world";
     "resources.shiku.world".email = "server@shiku.world";
     "dev-home-status.shiku.world".email = "server@shiku.world";
@@ -36,6 +37,13 @@
             proxy_set_header Connection "Upgrade";
             proxy_set_header Host $host;
           '';
+        };
+      };
+      "dev-status.shiku.world" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:3334";
         };
       };
       "dev.shiku.world" = {
