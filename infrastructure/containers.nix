@@ -65,7 +65,7 @@ in
       ports = ["3333:3000"];
     };
     "shiku-world-status-dev" = {
-      image = "build.shiku.world/shiku-world-status-dev:0.1.1";
+      image = "build.shiku.world/shiku-world-status-dev:0.1.2";
       login = credentials;
       ports = ["3334:3000"];
     };

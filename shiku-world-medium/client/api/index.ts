@@ -11,19 +11,37 @@ import { Container } from "pixi.js";
 import { set_blueprint_render } from "@/client/renderer/create_game_renderer";
 import { adjust_selected_tile_size, toggle_grid } from "@/client/renderer/grid";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { reset_communication_system } from "@/client/communication/setup_communication_system";
+import { MenuSystem } from "@/client/menu";
 
 export const setup_medium_api = (
   communication_state: CommunicationState,
   instances: GameInstanceMap,
   resource_manager_map: ResourceManagerMap,
   render_system: RenderSystem,
+  menu_system: MenuSystem,
+  loading_indicator: HTMLElement,
 ) => {
   console.log("Setting up medium api");
   window.medium = {
     twitch_login: (communication_state: CommunicationState) =>
       login(communication_state),
     communication_state: communication_state,
-    reconnect: () => Promise.resolve(),
+    reconnect: () => {
+      return new Promise((resolve) => {
+        reset_communication_system(communication_state, menu_system, () => {
+          menu_system.deactivate(MenuSystem.static_menus.ReconnectMenu);
+          render_system.stage.removeChildren();
+          for (const game_instance_id in instances) {
+            delete instances[game_instance_id];
+          }
+          resolve();
+        });
+      });
+    },
+    hide_loading_indicator: () => {
+      loading_indicator.className = "hidden";
+    },
     is_instance_ready: (instance_id: string, world_id: string) => {
       return !!instances[instance_id] && !!instances[instance_id][world_id];
     },

@@ -31,6 +31,11 @@ export async function start_medium() {
 
   const GUEST_SINGLE_WORLD_ID = "default";
   const canvas = document.getElementById("canvas");
+  const loading_indicator = document.getElementById("loading-indicator");
+  if (!loading_indicator) {
+    console.error("No loading_indicator....?");
+    return;
+  }
   const door = document.getElementById("door");
   const render_system = await create_game_renderer();
   const menu_system = new MenuSystem();
@@ -63,6 +68,8 @@ export async function start_medium() {
     instances,
     resource_manager_map,
     render_system,
+    menu_system,
+    loading_indicator,
   );
 
   /*renderer.onStageResize.sub((_resize) => {
@@ -107,7 +114,6 @@ export async function start_medium() {
         .with(
           { ConnectionReady: P.select() },
           ([_session_id, should_login]) => {
-            console.log("Connection ready", should_login);
             if (should_login) {
               menu_system.activate(MenuSystem.static_menus.LoginMenu);
             } else if (is_admin) {

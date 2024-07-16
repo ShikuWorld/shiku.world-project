@@ -22,7 +22,6 @@ export type InspectorComponent =
 
 export interface EditorStore {
   editor_open: boolean;
-  main_door_status: boolean;
   selected_module_id: string;
   current_main_instance_id: string;
   current_map_path: string;
@@ -30,7 +29,7 @@ export interface EditorStore {
   tile_brush: number[][];
   current_map_index: number;
   module_instance_map: { [module_id: string]: string[] };
-  selected_nav_top_tab: "current" | "modules" | "resources";
+  selected_nav_top_tab: "current" | "modules" | "resources" | "settings";
   selected_resource_tab: number;
   open_resource_paths: string[];
   selected_tileset_path: string;
@@ -63,7 +62,6 @@ export const use_editor_store = defineStore(
       active_component: "nothing",
       editor_open: false,
       module_instance_map: {},
-      main_door_status: false,
       tile_brush: [[0]],
       selected_module_id: "",
       selected_tileset_path: "",
@@ -199,9 +197,6 @@ export const use_editor_store = defineStore(
       },
       set_current_main_instance_id(id: string) {
         state.current_main_instance_id = id;
-      },
-      set_main_door_status(status: boolean) {
-        state.main_door_status = status;
       },
 
       open_game_instance_server(module_id: string) {

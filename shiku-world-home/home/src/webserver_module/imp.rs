@@ -26,6 +26,10 @@ impl WebServerModule {
             main_door_status: false,
             back_door_status: false,
         }));
+        let door_statuses_raw = DoorStatuses {
+            main_door_status: false,
+            back_door_status: false,
+        };
 
         let main_door_status_get = {
             let door_statuses = door_statuses.clone();
@@ -47,15 +51,20 @@ impl WebServerModule {
                 .await;
         });
 
-        WebServerModule { door_statuses }
+        WebServerModule {
+            door_statuses,
+            door_statuses_raw,
+        }
     }
 
     pub async fn set_main_door_status(&mut self, status: bool) {
+        self.door_statuses_raw.main_door_status = status;
         let mut statuses = self.door_statuses.lock().await;
         statuses.main_door_status = status;
     }
 
     pub async fn set_back_door_status(&mut self, status: bool) {
+        self.door_statuses_raw.back_door_status = status;
         let mut statuses = self.door_statuses.lock().await;
         statuses.back_door_status = status;
     }

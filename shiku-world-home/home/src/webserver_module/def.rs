@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 pub struct WebServerModule {
     pub door_statuses: Arc<Mutex<DoorStatuses>>,
+    pub door_statuses_raw: DoorStatuses,
 }
 
 pub struct DoorStatuses {

@@ -441,10 +441,12 @@ pub async fn handle_admin_to_system_event(
         AdminToSystemEvent::SetMainDoorStatus(status) => {
             debug!("Setting main door status");
             web_server_module.set_main_door_status(status).await;
+            send_editor_event(EditorEvent::MainDoorStatus(status));
         }
         AdminToSystemEvent::SetBackDoorStatus(status) => {
             debug!("Setting back door status");
             web_server_module.set_back_door_status(status).await;
+            send_editor_event(EditorEvent::BackDoorStatus(status));
         }
         AdminToSystemEvent::ProviderLoggedIn(_) => {
             error!("Admin should already be logged in!")

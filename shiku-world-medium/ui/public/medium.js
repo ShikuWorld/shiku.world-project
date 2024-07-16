@@ -39521,8 +39521,8 @@ ${e3}`);
     wsSocketUrl: "ws://127.0.0.1:9001",
     resourceUrl: "https://resources.shiku.world/static",
     twitchAuthRedirect: "https://localhost:8080",
-    mainDoorStatusUrl: "https://dev-status.shiku.world/main-door-status",
-    backDoorStatusUrl: "https://dev-status.shiku.world/back-door-status"
+    mainDoorStatusUrl: "http://localhost:3000/main-door-status",
+    backDoorStatusUrl: "http://localhost:3000/back-door-status"
   };
 
   // client/config/config.ts
@@ -39858,30 +39858,43 @@ ${e3}`);
       inbox: [],
       ws_connection
     };
+    reset_communication_system(
+      communication_state,
+      menu_system,
+      void 0,
+      ws_connection
+    );
+    return communication_state;
+  }
+  function reset_communication_system(communication_state, menu_system, on_open_callback, websocket) {
+    const ws_connection = websocket ? websocket : new WebSocket(config_exports.getWsSocketUrl());
+    const mainDoorStatusUrl = config_exports.getMainDoorStatusUrl();
     ws_connection.onopen = () => {
       communication_state.is_connection_open = true;
+      if (on_open_callback) {
+        on_open_callback();
+      }
     };
     ws_connection.onclose = (close_event) => {
-      getMainDoorStatus().then((status) => {
-        if (close_event.reason === "Logged in elsewhere") {
-          menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-            connection_error: {
-              type: "logged_in_elsewhere",
-              message: "You seem to have logged in somewhere else, please login again if you want to use this device.",
-              mainDoorStatusType: status.type
-            }
-          });
-        } else {
-          menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-            connection_error: {
-              type: "connection_closed",
-              message: "Seems like the connection to the server was closed, please try to reconnect."
-            },
-            mainDoorStatusType: status.type
-          });
-        }
-        communication_state.is_connection_open = false;
-      });
+      window.medium.hide_loading_indicator();
+      if (close_event.reason === "Logged in elsewhere") {
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "logged_in_elsewhere",
+            message: "You seem to have logged in somewhere else, please login again if you want to use this device.",
+            mainDoorStatusUrl
+          }
+        });
+      } else {
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "connection_closed",
+            message: "Seems like the connection to the server was closed, please try to reconnect.",
+            mainDoorStatusUrl
+          }
+        });
+      }
+      communication_state.is_connection_open = false;
     };
     ws_connection.onmessage = (message) => {
       try {
@@ -39894,28 +39907,22 @@ ${e3}`);
     };
     ws_connection.onerror = (event) => {
       communication_state.is_connection_open = false;
-      getMainDoorStatus().then((status) => {
-        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-          connection_error: {
-            type: "connection_error",
-            message: "Connection to server encountered an error, please try to reconnect."
-          },
-          mainDoorStatusType: status.type
-        });
+      window.medium.hide_loading_indicator();
+      menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+        connection_error: {
+          type: "connection_error",
+          message: "Connection to server encountered an error, please try to reconnect.",
+          mainDoorStatusUrl
+        }
       });
       console.error(event);
     };
-    return communication_state;
+    communication_state.is_connection_open = false;
+    communication_state.is_connection_ready = false;
+    communication_state.inbox = [];
+    communication_state.ws_connection = ws_connection;
   }
   var last_message_send = Date.now();
-  async function getMainDoorStatus() {
-    const mainDoorStatusUrl = config_exports.getMainDoorStatusUrl();
-    try {
-      return await (await fetch(mainDoorStatusUrl)).json();
-    } catch (e3) {
-      return { type: "unknownError", error: e3 };
-    }
-  }
   function check_for_connection_ready(menu_system, communication_state) {
     for (const communication of communication_state.inbox) {
       if (communication == "AlreadyConnected") {
@@ -40909,12 +40916,26 @@ ${e3}`);
   }
 
   // client/api/index.ts
-  var setup_medium_api = (communication_state, instances, resource_manager_map, render_system) => {
+  var setup_medium_api = (communication_state, instances, resource_manager_map, render_system, menu_system, loading_indicator) => {
     console.log("Setting up medium api");
     window.medium = {
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
-      reconnect: () => Promise.resolve(),
+      reconnect: () => {
+        return new Promise((resolve) => {
+          reset_communication_system(communication_state, menu_system, () => {
+            menu_system.deactivate(MenuSystem.static_menus.ReconnectMenu);
+            render_system.stage.removeChildren();
+            for (const game_instance_id in instances) {
+              delete instances[game_instance_id];
+            }
+            resolve();
+          });
+        });
+      },
+      hide_loading_indicator: () => {
+        loading_indicator.className = "hidden";
+      },
       is_instance_ready: (instance_id, world_id) => {
         return !!instances[instance_id] && !!instances[instance_id][world_id];
       },
@@ -42479,7 +42500,9 @@ ${e3}`);
   // client/handle-editor-event.ts
   function handle_editor_event(event) {
     N2(event).with({ MainDoorStatus: _.select() }, (status) => {
-      window.medium_gui.editor.set_main_door_status(status);
+      window.medium_gui.config.set_main_door_status(status);
+    }).with({ BackDoorStatus: _.select() }, (status) => {
+      window.medium_gui.config.set_back_door_status(status);
     }).with({ Modules: _.select() }, (modules) => {
       window.medium_gui.resources.set_modules(modules);
     }).with({ CreatedModule: _.select() }, (d3) => {
@@ -42552,6 +42575,11 @@ ${e3}`);
     const signal_broadcast_channel = new BroadcastChannel(signal_channel_name);
     const GUEST_SINGLE_WORLD_ID = "default";
     const canvas = document.getElementById("canvas");
+    const loading_indicator = document.getElementById("loading-indicator");
+    if (!loading_indicator) {
+      console.error("No loading_indicator....?");
+      return;
+    }
     const door = document.getElementById("door");
     const render_system = await create_game_renderer();
     const menu_system = new MenuSystem();
@@ -42581,7 +42609,9 @@ ${e3}`);
       communication_system,
       instances,
       resource_manager_map,
-      render_system
+      render_system,
+      menu_system,
+      loading_indicator
     );
     if (door && canvas) {
       door.addEventListener("click", () => {
@@ -42605,7 +42635,6 @@ ${e3}`);
         }).with({ EditorEvent: _.select() }, handle_editor_event).with(
           { ConnectionReady: _.select() },
           ([_session_id, should_login]) => {
-            console.log("Connection ready", should_login);
             if (should_login) {
               menu_system.activate(MenuSystem.static_menus.LoginMenu);
             } else if (is_admin) {

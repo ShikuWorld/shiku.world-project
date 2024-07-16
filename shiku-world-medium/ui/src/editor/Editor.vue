@@ -12,6 +12,7 @@
         <v-tab value="current">Current</v-tab>
         <v-tab value="modules">Modules</v-tab>
         <v-tab value="resources">Resources</v-tab>
+        <v-tab value="settings">Settings</v-tab>
       </v-tabs>
     </div>
     <RhaiEditor
@@ -82,6 +83,9 @@
         </v-window-item>
         <v-window-item value="resources">
           <ResourcesEditor class="resources-editor"></ResourcesEditor>
+        </v-window-item>
+        <v-window-item value="settings">
+          <SettingsEditor class="settings-editor"></SettingsEditor>
         </v-window-item>
       </v-window>
     </div>
@@ -172,6 +176,7 @@ import { Scene } from "@/editor/blueprints/Scene";
 import RhaiEditor from "@/editor/editor/RhaiEditor.vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
 import CharacterAnimationNodeInspector from "@/editor/editor/CharacterAnimationNodeInspector.vue";
+import SettingsEditor from "@/editor/editor/SettingsEditor.vue";
 
 const {
   selected_module_id,

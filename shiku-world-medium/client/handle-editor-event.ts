@@ -4,7 +4,10 @@ import { EditorEvent } from "@/client/communication/api/bindings/EditorEvent";
 export function handle_editor_event(event: EditorEvent) {
   match(event)
     .with({ MainDoorStatus: P.select() }, (status) => {
-      window.medium_gui.editor.set_main_door_status(status);
+      window.medium_gui.config.set_main_door_status(status);
+    })
+    .with({ BackDoorStatus: P.select() }, (status) => {
+      window.medium_gui.config.set_back_door_status(status);
     })
     .with({ Modules: P.select() }, (modules) => {
       window.medium_gui.resources.set_modules(modules);

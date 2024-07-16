@@ -19,33 +19,54 @@ export function setup_communication_system(
     inbox: [],
     ws_connection,
   };
+  reset_communication_system(
+    communication_state,
+    menu_system,
+    undefined,
+    ws_connection,
+  );
 
+  return communication_state;
+}
+
+export function reset_communication_system(
+  communication_state: CommunicationState,
+  menu_system: MenuSystem,
+  on_open_callback?: () => void,
+  websocket?: WebSocket,
+) {
+  const ws_connection = websocket
+    ? websocket
+    : new WebSocket(Config.getWsSocketUrl());
+  const mainDoorStatusUrl = Config.getMainDoorStatusUrl();
   ws_connection.onopen = () => {
     communication_state.is_connection_open = true;
+    if (on_open_callback) {
+      on_open_callback();
+    }
   };
   ws_connection.onclose = (close_event) => {
-    getMainDoorStatus().then((status) => {
-      if (close_event.reason === "Logged in elsewhere") {
-        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-          connection_error: {
-            type: "logged_in_elsewhere",
-            message:
-              "You seem to have logged in somewhere else, please login again if you want to use this device.",
-            mainDoorStatusType: status.type,
-          },
-        });
-      } else {
-        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-          connection_error: {
-            type: "connection_closed",
-            message:
-              "Seems like the connection to the server was closed, please try to reconnect.",
-          },
-          mainDoorStatusType: status.type,
-        });
-      }
-      communication_state.is_connection_open = false;
-    });
+    window.medium.hide_loading_indicator();
+    if (close_event.reason === "Logged in elsewhere") {
+      menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+        connection_error: {
+          type: "logged_in_elsewhere",
+          message:
+            "You seem to have logged in somewhere else, please login again if you want to use this device.",
+          mainDoorStatusUrl,
+        },
+      });
+    } else {
+      menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+        connection_error: {
+          type: "connection_closed",
+          message:
+            "Seems like the connection to the server was closed, please try to reconnect.",
+          mainDoorStatusUrl,
+        },
+      });
+    }
+    communication_state.is_connection_open = false;
   };
 
   ws_connection.onmessage = (message: MessageEvent) => {
@@ -60,41 +81,24 @@ export function setup_communication_system(
 
   ws_connection.onerror = (event) => {
     communication_state.is_connection_open = false;
-    getMainDoorStatus().then((status) => {
-      menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-        connection_error: {
-          type: "connection_error",
-          message:
-            "Connection to server encountered an error, please try to reconnect.",
-        },
-        mainDoorStatusType: status.type,
-      });
+    window.medium.hide_loading_indicator();
+    menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+      connection_error: {
+        type: "connection_error",
+        message:
+          "Connection to server encountered an error, please try to reconnect.",
+        mainDoorStatusUrl,
+      },
     });
     console.error(event);
   };
-
-  return communication_state;
+  communication_state.is_connection_open = false;
+  communication_state.is_connection_ready = false;
+  communication_state.inbox = [];
+  communication_state.ws_connection = ws_connection;
 }
 
 let last_message_send = Date.now();
-
-type DoorStatusCheck =
-  | { type: "open" }
-  | { type: "lightsOn" }
-  | { type: "lightsOut" }
-  | { type: "urlNotConfigured" }
-  | { type: "unknownError"; error: Error };
-
-async function getMainDoorStatus() {
-  const mainDoorStatusUrl = Config.getMainDoorStatusUrl();
-  try {
-    return (await (
-      await fetch(mainDoorStatusUrl)
-    ).json()) as unknown as DoorStatusCheck;
-  } catch (e) {
-    return { type: "unknownError", error: e };
-  }
-}
 
 export function check_for_connection_ready(
   menu_system: MenuSystem,

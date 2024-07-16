@@ -25,6 +25,7 @@ declare global {
     register_input_plugin: (plugin: InputPlugin) => void;
     medium: {
       twitch_login: typeof login;
+      hide_loading_indicator: () => void;
       communication_state: CommunicationState;
       reconnect: () => Promise<void>;
       is_instance_ready: (instance_id: string, world_id: string) => boolean;

@@ -293,6 +293,13 @@ impl ConductorModule {
                     }
                 }
                 continue;
+            } else if !self.web_server_module.door_statuses_raw.main_door_status {
+                self.websocket_module.close_connection(
+                    &connection_id,
+                    CloseCode::Normal,
+                    "Server is closed".into(),
+                );
+                continue;
             }
 
             let guest_id_from_session_id = self

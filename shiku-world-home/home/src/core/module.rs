@@ -94,6 +94,7 @@ pub enum EditorEvent {
     ModuleInstanceOpened(ModuleId, GameInstanceId),
     ModuleInstanceClosed(ModuleId, GameInstanceId),
     MainDoorStatus(bool),
+    BackDoorStatus(bool),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

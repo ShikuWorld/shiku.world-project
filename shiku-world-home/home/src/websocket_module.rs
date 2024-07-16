@@ -15,6 +15,7 @@ use ts_rs::TS;
 
 use crate::core::guest::SessionId;
 use crate::core::Snowflake;
+use crate::webserver_module::def::DoorStatuses;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::WebSocketStream;
 use tungstenite::protocol::frame::coding::CloseCode;
