@@ -238,6 +238,29 @@ impl DynamicGameModule {
         for world in self.world_map.values_mut() {
             world.update();
 
+            if let Some(mut event_cache) = world.event_cache.try_borrow_mut() {
+                for (parent, child) in event_cache.add_entity_events.drain(..) {
+                    if let Some(game_node) =
+                        GameNodeKind::get_game_node_kind_from_ecs(&child, &world.ecs)
+                    {
+                        Self::send_event_to_actors(
+                            &world.world_id,
+                            &mut self.module_communication,
+                            &self.world_to_guest,
+                            &self.world_to_admin,
+                            &self.connected_actor_set,
+                            ModuleInstanceEvent {
+                                world_id: None,
+                                module_id: self.module_id.clone(),
+                                instance_id: self.instance_id.clone(),
+                                event_type: GameSystemToGuestEvent::AddEntity(parent, game_node),
+                            },
+                            "Could not send event to actors from api",
+                        );
+                    }
+                }
+            }
+
             let position_updates = Self::get_position_updates(world);
             if !position_updates.is_empty() {
                 let update_position_event = ModuleInstanceEvent {
@@ -260,7 +283,7 @@ impl DynamicGameModule {
             let gid_updates = Self::get_gid_updates(world);
             if !gid_updates.is_empty() {
                 for (entity, gid) in gid_updates {
-                    let update_position_event = ModuleInstanceEvent {
+                    let update_entity_event = ModuleInstanceEvent {
                         world_id: None,
                         module_id: self.module_id.clone(),
                         instance_id: self.instance_id.clone(),
@@ -275,7 +298,7 @@ impl DynamicGameModule {
                         &self.world_to_guest,
                         &self.world_to_admin,
                         &self.connected_actor_set,
-                        update_position_event,
+                        update_entity_event,
                         "Could not send entity update",
                     );
                 }
@@ -356,7 +379,6 @@ impl DynamicGameModule {
             Vec::new()
         }
     }
-
     pub fn actor_disconnected(&mut self, actor_id: &ActorId) {
         if let Some(guest) = self.guests.get_mut(actor_id) {
             guest.guest_com.connected = false;

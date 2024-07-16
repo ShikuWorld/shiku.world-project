@@ -88,8 +88,9 @@ const connection_error: Ref<
   return extracted_error ? extracted_error : undefined;
 });
 
-let get_status_interval_handler: number | undefined;
 let update_status_check_interval_handler: number | undefined;
+let status_check_running = false;
+let unmounted = false;
 onMounted(() => {
   setTimeout(() => {
     if (connection_error.value) {
@@ -104,13 +105,14 @@ onMounted(() => {
 });
 
 const main_status_check = (time: number) => {
-  if (get_status_interval_handler) {
-    clearInterval(get_status_interval_handler);
+  if (status_check_running || unmounted) {
+    return;
   }
+  status_check_running = true;
+
   if (update_status_check_interval_handler) {
     clearInterval(update_status_check_interval_handler);
   }
-
   re_check_text.value = "Checking door status...";
   update_status_check_interval_handler = setInterval(() => {
     if (current_check_progress.value >= 100) {
@@ -120,7 +122,7 @@ const main_status_check = (time: number) => {
     }
   }, 100);
 
-  get_status_interval_handler = setTimeout(() => {
+  setTimeout(() => {
     if (connection_error.value) {
       getMainDoorStatus(connection_error.value.mainDoorStatusUrl).then(
         (status) => {
@@ -133,6 +135,7 @@ const main_status_check = (time: number) => {
           setTimeout(() => {
             current_check_progress.value = 0;
             setTimeout(() => {
+              status_check_running = false;
               main_status_check(time);
             }, 2000);
           }, 2000);
@@ -143,12 +146,7 @@ const main_status_check = (time: number) => {
 };
 
 onUnmounted(() => {
-  if (get_status_interval_handler) {
-    clearInterval(get_status_interval_handler);
-  }
-  if (update_status_check_interval_handler) {
-    clearInterval(update_status_check_interval_handler);
-  }
+  unmounted = true;
 });
 
 async function getMainDoorStatus(mainDoorStatusUrl: string) {

@@ -11,7 +11,7 @@ use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
 use crate::core::guest::ActorId;
-use crate::core::module::GuestInput;
+use crate::core::module::{GameSystemToGuestEvent, GuestInput};
 use crate::core::module_system::error::CreateWorldError;
 use crate::core::module_system::script_types::CharacterDirectionModule;
 use crate::core::module_system::terrain_manager::TerrainManager;
@@ -21,12 +21,18 @@ use crate::core::{ApiShare, TARGET_FRAME_DURATION};
 pub type WorldId = String;
 
 const MIN_EQUAL_FLOAT_VALUE: f32 = 0.00001;
+pub type ParentEntity = Entity;
+pub type ChildEntity = Entity;
+pub struct Events {
+    pub add_entity_events: Vec<(ParentEntity, ChildEntity)>,
+}
 
 pub struct World {
     pub world_id: WorldId,
     pub game_map_path: ResourcePath,
     pub physics: ApiShare<RapierSimulation>,
     pub actor_api: ApiShare<ActorApi>,
+    pub event_cache: ApiShare<Events>,
     pub terrain_manager: TerrainManager,
     pub ecs: ECS,
     pub script_engine: Engine,
@@ -70,6 +76,9 @@ impl World {
             world_id: game_map.world_id.clone(),
             physics: ApiShare::new(physics),
             game_map_path: game_map.get_full_resource_path(),
+            event_cache: ApiShare::new(Events {
+                add_entity_events: Vec::new(),
+            }),
             actor_api: ApiShare::new(ActorApi {
                 actor_inputs: HashMap::new(),
                 active_users: HashSet::new(),
@@ -95,7 +104,12 @@ impl World {
         let physics_share = ApiShare::new(physics);
         let mut script_engine = Engine::new();
         Self::register_types(&mut script_engine);
-        Self::setup_nodes_api(&mut script_engine, &mut ecs, &physics_share);
+        Self::setup_nodes_api(
+            &mut script_engine,
+            &mut ecs,
+            &physics_share,
+            &self.event_cache,
+        );
         Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
         Self::setup_animation_api(&mut script_engine, &mut ecs);
         Self::setup_actor_api(&mut script_engine, &self.actor_api);
@@ -300,6 +314,7 @@ impl World {
         engine: &mut Engine,
         ecs: &mut ECS,
         physics_share: &ApiShare<RapierSimulation>,
+        event_cache: &ApiShare<Events>,
     ) {
         let mut module = RhaiModule::new();
 
@@ -321,18 +336,25 @@ impl World {
 
         let ecs_shared = ecs.shared.clone();
         let physics_clone = physics_share.clone();
-        let spawn_entity_from_scene = move |entity: Entity, source: &str| -> Dynamic {
-            if let (Some(mut physics), Some(mut shared)) =
-                (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
-            {
+        let event_cache_clone = event_cache.clone();
+        let spawn_entity_from_scene = move |parent_entity: Entity, source: &str| -> Dynamic {
+            if let (Some(mut physics), Some(mut shared), Some(mut events)) = (
+                physics_clone.try_borrow_mut(),
+                ecs_shared.try_borrow_mut(),
+                event_cache_clone.try_borrow_mut(),
+            ) {
                 match Blueprint::load_scene(source.into()) {
                     Ok(scene) => {
-                        return Dynamic::from(Self::_add_entity(
+                        let new_child_id = Self::_add_entity(
                             &mut shared,
                             &mut physics,
-                            entity,
+                            parent_entity,
                             &scene.root_node,
-                        ));
+                        );
+
+                        events.add_entity_events.push((parent_entity, new_child_id));
+
+                        return Dynamic::from(new_child_id);
                     }
                     Err(err) => {
                         eprintln!("Error loading scene when spawning entity in api: {:?}", err);
