@@ -34,6 +34,24 @@
     ></v-text-field>
     <ModuleSlots :slots="module.exit_points" @delete="delete_exit_point" />
     <v-divider></v-divider>
+    <v-number-input
+      label="Min Guests"
+      controlVariant="stacked"
+      density="compact"
+      :hide-details="true"
+      :step="1"
+      :model-value="module.min_guests"
+      @update:model-value="save_min_guests"
+    ></v-number-input>
+    <v-number-input
+      label="Max Guests"
+      controlVariant="stacked"
+      density="compact"
+      :hide-details="true"
+      :step="1"
+      :model-value="module.max_guests"
+      @update:model-value="save_max_guests"
+    ></v-number-input>
     <div v-if="module_instances.length === 0">
       <v-btn @click="open_game_instance_server(module.id)">Get Instance</v-btn>
     </div>
@@ -106,6 +124,7 @@ import { storeToRefs } from "pinia";
 import ModuleInstanceList from "@/editor/editor/ModuleInstanceList.vue";
 import { use_resources_store } from "@/editor/stores/resources";
 import { use_game_instances_store } from "@/editor/stores/game-instances";
+import { VNumberInput } from "vuetify/labs/VNumberInput";
 
 const props = defineProps<{ module: Module; module_instances: string[] }>();
 const { module, module_instances } = toRefs(props);
@@ -174,6 +193,18 @@ function delete_exit_point(exit_point_name: string) {
 function change_module_main_map(resource_path: string) {
   save_module_server(module.value.id, {
     main_map: resource_path,
+  });
+}
+
+function save_min_guests(val: number) {
+  save_module_server(module.value.id, {
+    min_guests: val,
+  });
+}
+
+function save_max_guests(val: number) {
+  save_module_server(module.value.id, {
+    max_guests: val,
   });
 }
 

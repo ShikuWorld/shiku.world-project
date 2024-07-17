@@ -1,5 +1,4 @@
 import { SimpleEventDispatcher } from "strongly-typed-events";
-import { getMainDoorStatusUrl } from "@/client/config/config";
 
 class TwitchService {
   auth?: Twitch.ext.Authorized;

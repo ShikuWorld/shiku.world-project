@@ -146,6 +146,11 @@ pub async fn handle_admin_to_system_event(
                                 module_id.clone(),
                                 false,
                             );
+                            instance.dynamic_module.send_initial_world_events_guests(
+                                &world_id,
+                                module_id.clone(),
+                                false,
+                            );
                         }
                         Err(err) => {
                             error!(
@@ -673,6 +678,12 @@ pub async fn handle_admin_to_system_event(
                         new_name,
                     ));
                 }
+                if let Some(min_guests) = module_update.min_guests {
+                    module.module_blueprint.min_guests = min_guests;
+                }
+                if let Some(max_guests) = module_update.max_guests {
+                    module.module_blueprint.max_guests = max_guests;
+                }
                 if let Some(main_map) = module_update.main_map {
                     module.module_blueprint.main_map = main_map;
                 }
@@ -906,13 +917,16 @@ pub async fn handle_admin_to_system_event(
             game_instance_id,
             world_id,
             parent_entity,
-            game_node,
+            mut game_node,
         ) => {
             if let Some(module) = module_map.get_mut(&module_id) {
                 if let Some(instance) = module.game_instances.get_mut(&game_instance_id) {
-                    instance
-                        .dynamic_module
-                        .add_entity(&world_id, parent_entity, game_node);
+                    instance.dynamic_module.add_entity(
+                        &world_id,
+                        parent_entity,
+                        &mut game_node,
+                        (0.0, 0.0),
+                    );
                 } else {
                     error!(
                         "Could not find instance {:?} in module {:?}",

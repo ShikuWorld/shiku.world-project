@@ -447,10 +447,11 @@ impl DynamicGameModule {
         &mut self,
         world_id: &WorldId,
         parent_entity: Entity,
-        game_node: GameNodeKind,
+        game_node: &mut GameNodeKind,
+        start_pos: (Real, Real),
     ) {
         if let Some(world) = self.world_map.get_mut(world_id) {
-            if let Some(entity) = world.add_entity(parent_entity, &game_node) {
+            if let Some(entity) = world.add_entity(parent_entity, game_node, start_pos) {
                 if let Some(game_node) =
                     GameNodeKind::get_game_node_kind_from_ecs(&entity, &world.ecs)
                 {
@@ -705,6 +706,31 @@ impl DynamicGameModule {
             true,
             send_terrain,
         );
+    }
+
+    pub fn send_initial_world_events_guests(
+        &mut self,
+        world_id: &WorldId,
+        module_id: ModuleId,
+        send_terrain: bool,
+    ) {
+        if let Some(guests) = self.world_to_guest.hashset(world_id) {
+            for guest_id in guests {
+                Self::send_initial_world_events(
+                    &mut self
+                        .module_communication
+                        .output_sender
+                        .game_system_to_guest_sender,
+                    &self.world_map,
+                    self.instance_id.clone(),
+                    *guest_id,
+                    world_id,
+                    module_id.clone(),
+                    false,
+                    send_terrain,
+                );
+            }
+        }
     }
 
     pub fn send_initial_world_events(

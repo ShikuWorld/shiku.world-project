@@ -111,16 +111,20 @@ export async function start_medium() {
       match(communication_event)
         .with("AlreadyConnected", () => {})
         .with({ EditorEvent: P.select() }, handle_editor_event)
-        .with(
-          { ConnectionReady: P.select() },
-          ([_session_id, should_login]) => {
-            if (should_login) {
-              menu_system.activate(MenuSystem.static_menus.LoginMenu);
-            } else if (is_admin) {
-              window.medium_gui.editor.show_editor();
-            }
-          },
-        )
+        .with({ ConnectionReady: P.select() }, ([session_id, should_login]) => {
+          try {
+            sessionStorage.setItem("session_id", session_id);
+          } catch (e) {
+            console.error(
+              "Seems like you block local storage or something, you'll have to login on every reload.",
+            );
+          }
+          if (should_login) {
+            menu_system.activate(MenuSystem.static_menus.LoginMenu);
+          } else if (is_admin) {
+            window.medium_gui.editor.show_editor();
+          }
+        })
         .with({ ResourceEvent: P.select() }, ([module_id, resource_event]) => {
           lazy_get_resource_manager(module_id).handle_resource_event(
             resource_event,

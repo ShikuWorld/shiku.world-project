@@ -529,7 +529,9 @@ impl GameInstanceManager {
         let mut game_instance_id_found = None;
 
         for game_instance in self.game_instances.values_mut() {
-            if !game_instance.closed && game_instance.dynamic_module.guests.len() < max_guest_count
+            if !game_instance.closed
+                && (game_instance.dynamic_module.guests.len() < max_guest_count
+                    || max_guest_count == 0)
             {
                 game_instance_id_found = Some(game_instance.id.clone());
                 break;

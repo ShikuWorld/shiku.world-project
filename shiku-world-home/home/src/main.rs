@@ -31,8 +31,18 @@ async fn main() {
     let mut builder = Builder::from_default_env();
 
     builder
-        .format(|buf, record| writeln!(buf, "{} - {}", record.level(), record.args()))
-        .filter(None, LevelFilter::Debug)
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "[{}|{}] - {}",
+                record.level(),
+                record.target(),
+                record.args()
+            )
+        })
+        .filter(None, LevelFilter::Error)
+        .filter(Some("home"), LevelFilter::Debug)
+        .filter(Some("hyper"), LevelFilter::Error)
         .init();
 
     init_resource_cache().expect("Resource cache should initialize without problems.");

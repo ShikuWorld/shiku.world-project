@@ -4,7 +4,7 @@
       class="node-component"
       :class="{
         'node-container--selected':
-          game_node.id === selected_node_id &&
+          render_key(game_node) === selected_id &&
           node_is_instance === scene_is_instance,
       }"
       @click="on_node_click($event, game_node)"
@@ -48,6 +48,7 @@ import { storeToRefs } from "pinia";
 import { get_generic_game_node } from "@/editor/stores/resources";
 import ContextMenu from "@imengyu/vue3-context-menu";
 import { use_editor_store } from "@/editor/stores/editor";
+import { render_key } from "@/editor/stores/game-instances";
 
 const props = defineProps<{
   node: GameNodeKind;
@@ -61,8 +62,11 @@ const { node, path, scene_resource_path, scene_is_instance, node_is_instance } =
 const game_node = computed(() => get_generic_game_node(node.value));
 const comp = ref<HTMLElement>();
 const { component_stores } = storeToRefs(use_inspector_store());
-const selected_node_id = computed(() => {
-  return component_stores.value.game_node.selected_game_node_id;
+const selected_id = computed(() => {
+  return (
+    component_stores.value.game_node.selected_entity_id ||
+    component_stores.value.game_node.selected_game_node_id
+  );
 });
 
 const emit = defineEmits<{

@@ -556,7 +556,15 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         console.error("Could not add child to node!");
         return;
       }
-      this.add_node_to_graph(
+      const node_to_insert_generic = get_generic_game_node(node_to_insert);
+      if (
+        node_to_insert_generic.entity_id &&
+        render_graph_data.entity_node_map[node_to_insert_generic.entity_id]
+      ) {
+        console.warn("Node already exists in render graph!");
+        return;
+      }
+      const new_node = this.add_node_to_graph(
         render_graph_data.entity_node_to_render_node_map,
         render_graph_data.entity_node_map,
         parent_node_render_node,
@@ -569,7 +577,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       this.generate_render_graph(
         render_graph_data.entity_node_to_render_node_map,
         render_graph_data.entity_node_map,
-        parent_node_render_node,
+        new_node,
         node_to_insert,
         resource_manager,
       );
@@ -620,14 +628,15 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       resource_manager: ResourceManager,
     ) {
       const generic_game_node = get_generic_game_node(game_node_to_add);
-      const new_node_container = markRaw(
-        window.medium.create_display_object(game_node_to_add, resource_manager),
+      const new_node_container = window.medium.create_display_object(
+        game_node_to_add,
+        resource_manager,
       );
       const parent_container = parent.container;
       const new_node: Node = {
         children: [],
         parent,
-        container: new_node_container,
+        container: markRaw(new_node_container),
         node_id: render_key(generic_game_node),
       };
       parent.children.push(new_node);
@@ -694,7 +703,7 @@ function get_gid(node_2d: GameNode<Node2D>): number | undefined {
   return undefined;
 }
 
-function render_key(game_node: GameNode<unknown>) {
+export function render_key(game_node: GameNode<unknown>) {
   return typeof game_node.entity_id === "number"
     ? game_node.entity_id
     : game_node.id;

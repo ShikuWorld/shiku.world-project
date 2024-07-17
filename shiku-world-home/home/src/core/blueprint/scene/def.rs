@@ -127,6 +127,17 @@ impl Default for Transform {
     }
 }
 
+impl Transform {
+    pub fn from_position(position: (Real, Real)) -> Self {
+        Self {
+            position,
+            scale: (1.0, 1.0),
+            velocity: (0.0, 0.0),
+            rotation: 0.0,
+        }
+    }
+}
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct AutoStepProps {

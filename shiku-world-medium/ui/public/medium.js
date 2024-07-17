@@ -42632,16 +42632,20 @@ ${e3}`);
       button_feedback_update(guest_input);
       for (const communication_event of communication_system.inbox) {
         N2(communication_event).with("AlreadyConnected", () => {
-        }).with({ EditorEvent: _.select() }, handle_editor_event).with(
-          { ConnectionReady: _.select() },
-          ([_session_id, should_login]) => {
-            if (should_login) {
-              menu_system.activate(MenuSystem.static_menus.LoginMenu);
-            } else if (is_admin) {
-              window.medium_gui.editor.show_editor();
-            }
+        }).with({ EditorEvent: _.select() }, handle_editor_event).with({ ConnectionReady: _.select() }, ([session_id, should_login]) => {
+          try {
+            sessionStorage.setItem("session_id", session_id);
+          } catch (e3) {
+            console.error(
+              "Seems like you block local storage or something, you'll have to login on every reload."
+            );
           }
-        ).with({ ResourceEvent: _.select() }, ([module_id, resource_event]) => {
+          if (should_login) {
+            menu_system.activate(MenuSystem.static_menus.LoginMenu);
+          } else if (is_admin) {
+            window.medium_gui.editor.show_editor();
+          }
+        }).with({ ResourceEvent: _.select() }, ([module_id, resource_event]) => {
           lazy_get_resource_manager(module_id).handle_resource_event(
             resource_event
           );

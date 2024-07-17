@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use log::{debug, error};
+use rand::{thread_rng, Rng};
+use rapier2d::na::Dyn;
 use rapier2d::prelude::*;
 use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
@@ -110,6 +112,7 @@ impl World {
             &physics_share,
             &self.event_cache,
         );
+        Self::setup_utils_scripting_api(&mut script_engine);
         Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
         Self::setup_animation_api(&mut script_engine, &mut ecs);
         Self::setup_actor_api(&mut script_engine, &self.actor_api);
@@ -225,6 +228,19 @@ impl World {
         }
     }
 
+    fn setup_utils_scripting_api(engine: &mut Engine) {
+        let mut module = RhaiModule::new();
+        let add_fixed_rigid_body = move |start: f64, length: f64| -> Dynamic {
+            let mut rng = thread_rng();
+            let random_num: f64 = rng.gen();
+            Dynamic::from(start + length * random_num)
+        };
+        FuncRegistration::new("random_num_in_range")
+            .set_into_module(&mut module, add_fixed_rigid_body);
+
+        engine.register_static_module("shiku::utils", module.into());
+    }
+
     fn setup_physics_scripting_api(
         engine: &mut Engine,
         physics_share: &ApiShare<RapierSimulation>,
@@ -337,32 +353,34 @@ impl World {
         let ecs_shared = ecs.shared.clone();
         let physics_clone = physics_share.clone();
         let event_cache_clone = event_cache.clone();
-        let spawn_entity_from_scene = move |parent_entity: Entity, source: &str| -> Dynamic {
-            if let (Some(mut physics), Some(mut shared), Some(mut events)) = (
-                physics_clone.try_borrow_mut(),
-                ecs_shared.try_borrow_mut(),
-                event_cache_clone.try_borrow_mut(),
-            ) {
-                match Blueprint::load_scene(source.into()) {
-                    Ok(scene) => {
-                        let new_child_id = Self::_add_entity(
-                            &mut shared,
-                            &mut physics,
-                            parent_entity,
-                            &scene.root_node,
-                        );
+        let spawn_entity_from_scene =
+            move |parent_entity: Entity, source: &str, x: f64, y: f64| -> Dynamic {
+                if let (Some(mut physics), Some(mut shared), Some(mut events)) = (
+                    physics_clone.try_borrow_mut(),
+                    ecs_shared.try_borrow_mut(),
+                    event_cache_clone.try_borrow_mut(),
+                ) {
+                    match Blueprint::load_scene(source.into()) {
+                        Ok(mut scene) => {
+                            let new_child_id = Self::_add_entity(
+                                &mut shared,
+                                &mut physics,
+                                parent_entity,
+                                &mut scene.root_node,
+                                (x as Real, y as Real),
+                            );
 
-                        events.add_entity_events.push((parent_entity, new_child_id));
+                            events.add_entity_events.push((parent_entity, new_child_id));
 
-                        return Dynamic::from(new_child_id);
-                    }
-                    Err(err) => {
-                        eprintln!("Error loading scene when spawning entity in api: {:?}", err);
+                            return Dynamic::from(new_child_id);
+                        }
+                        Err(err) => {
+                            eprintln!("Error loading scene when spawning entity in api: {:?}", err);
+                        }
                     }
                 }
-            }
-            Dynamic::from(())
-        };
+                Dynamic::from(())
+            };
         FuncRegistration::new("spawn_entity_from_scene")
             .set_into_module(&mut module, spawn_entity_from_scene);
 
@@ -513,11 +531,15 @@ impl World {
         shared: &mut ECSShared,
         physics: &mut RapierSimulation,
         parent_entity: Entity,
-        child: &GameNodeKind,
+        child: &mut GameNodeKind,
+        start_position: (Real, Real),
     ) -> Entity {
+        if let GameNodeKind::Node2D(node_2d) = child {
+            node_2d.data.transform.position = start_position;
+        }
         let entity = ECS::add_child_to_entity(parent_entity, child, shared);
         if let Some(rigid_body_type) = shared.entities.rigid_body_type.get(&entity).cloned() {
-            let transform = Transform::default();
+            let transform = Transform::from_position(start_position);
             ECS::add_rigid_body_for_entity(&entity, &rigid_body_type, &transform, shared, physics);
         }
         ECS::attach_colliders_to_entity(&entity, shared, physics);
@@ -525,7 +547,12 @@ impl World {
         entity
     }
 
-    pub fn add_entity(&mut self, parent_entity: Entity, child: &GameNodeKind) -> Option<Entity> {
+    pub fn add_entity(
+        &mut self,
+        parent_entity: Entity,
+        child: &mut GameNodeKind,
+        start_pos: (Real, Real),
+    ) -> Option<Entity> {
         if let (Some(mut shared), Some(mut physics)) = (
             self.ecs.shared.try_borrow_mut(),
             self.physics.try_borrow_mut(),
@@ -535,6 +562,7 @@ impl World {
                 &mut physics,
                 parent_entity,
                 child,
+                start_pos,
             ));
         }
         None
