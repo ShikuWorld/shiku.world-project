@@ -55,14 +55,14 @@ in
       extraOptions = [ "--pull=always" ];
     };
     "shiku-world-home-dev" = {
-      image = "dreg.shiku.world/shiku-world-home-dev:0.2.20";
+      image = "dreg.shiku.world/shiku-world-home-dev:0.2.19";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];
       volumes = [
         "${shikuWorldHomeDevResourcePath}:/app/target/release/out"
       ];
-      extraOptions = [ "--network=shiku-dev-net" "--pull=always" ];
+      extraOptions = [ "--network=shiku-dev-net"];
     };
     "shiku-world-home-dev-db" = {
       image = "postgres:14.3";
