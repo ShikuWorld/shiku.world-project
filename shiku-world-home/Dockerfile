@@ -30,7 +30,7 @@ RUN rm -rf target/release/build/home.d
 
 # Build the application
 COPY ./home ./home
-RUN cargo build
+RUN cargo build --release
 
 # Expose the required ports
 EXPOSE 9001
@@ -48,4 +48,4 @@ ENV DATABASE_URL $DATABASE_URL
 RUN ls -lA target/release
 
 # Run the application
-CMD ["./target/debug/home"]
+CMD ["./target/release/home"]
