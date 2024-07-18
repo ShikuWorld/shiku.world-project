@@ -248,7 +248,7 @@ function try_reconnect() {
   pointer-events: all;
 
   &__status-message {
-    white-space: pre;
+    white-space: pre-wrap;
   }
 
   &__card-actions {
