@@ -35,12 +35,17 @@ async function getDoorStatus(
     if (!statusUrl) {
       return { type: 'urlNotConfigured' };
     }
-    return (await axios.get<boolean>(statusUrl)).data
-      ? { type: 'open' }
-      : { type: 'lightsOn' };
+    const response = await axios.get<boolean>(statusUrl);
+    if (response.status === 218) {
+      return { type: 'lightsOut' };
+    }
+    return response.data ? { type: 'open' } : { type: 'lightsOn' };
   } catch (e) {
     if (e instanceof Error) {
       if (e.message.includes('ECONNREFUSED')) {
+        return { type: 'lightsOut' };
+      }
+      if (e.message.includes('502')) {
         return { type: 'lightsOut' };
       }
       return { type: 'unknownError', error: e };

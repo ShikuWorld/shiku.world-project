@@ -70,6 +70,13 @@
         forceSSL = true;
         locations."/" = {
           proxyPass = "http://127.0.0.1:3030";
+          extraConfig = ''
+            proxy_intercept_errors on;
+            error_page 502 = @custom_error;
+          '';
+        };
+        locations."@custom_error" = {
+          return = "218";
         };
       };
       "dev-home.shiku.world" = {
