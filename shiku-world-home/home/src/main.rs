@@ -41,6 +41,8 @@ async fn main() {
             )
         })
         .filter(None, LevelFilter::Debug)
+        .filter(Some("home"), LevelFilter::Debug)
+        .filter(Some("hyper"), LevelFilter::Error)
         .init();
 
     init_resource_cache().expect("Resource cache should initialize without problems.");

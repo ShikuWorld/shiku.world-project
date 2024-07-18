@@ -1,7 +1,13 @@
-# Use Ubuntu Jammy as the base image
-FROM ubuntu:jammy
+FROM docker.io/lukemathwalker/cargo-chef:latest-rust-1 AS chef
+WORKDIR /app
 
-# Install necessary dependencies
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
@@ -11,26 +17,25 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     wget
 
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --recipe-path recipe.json
+# Build application
 
-# Set the working directory
+COPY . .
+RUN cargo build --release
+
+
+FROM debian:bookworm-slim AS runtime
 WORKDIR /app
-
-# Build the Rust dependencies
-COPY ./home/Cargo.toml ./home/Cargo.toml
-RUN mkdir -p home/src && echo "fn main() {}" > home/src/main.rs
-COPY ./remove_entity ./remove_entity
-COPY ./Cargo.toml ./
-COPY ./Cargo.lock ./
-RUN cargo build --release
-RUN rm -rf target/release/build/home
-RUN rm -rf target/release/build/home.d
-
-# Build the application
-COPY ./home ./home
-RUN cargo build --release
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    libpq-dev \
+    libpq5 \
+    libssl-dev \
+    pkg-config \
+    wget
+COPY --from=builder /app/target/release/home /app/target/release
 
 # Expose the required ports
 EXPOSE 9001
@@ -45,7 +50,4 @@ ENV RUST_LOG $RUST_LOG
 ENV RESOURCE_SERVER_CORS $RESOURCE_SERVER_CORS
 ENV DATABASE_URL $DATABASE_URL
 
-RUN ls -lA target/release
-
-# Run the application
-CMD ["./target/release/home"]
+ENTRYPOINT ["/app/target/release"]
