@@ -127,7 +127,10 @@ const main_status_check = (time: number) => {
       getMainDoorStatus(connection_error.value.mainDoorStatusUrl).then(
         (status) => {
           if (main_door_status.value === status.type) {
-            re_check_text.value = "Still the same...";
+            re_check_text.value =
+              main_door_status.value === "open"
+                ? "Still open. :)"
+                : "Still closed...";
           } else {
             re_check_text.value = "Uhhh something happened :o!";
           }

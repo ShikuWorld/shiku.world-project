@@ -122,6 +122,7 @@ export const use_editor_store = defineStore(
         state.selected_nav_top_tab = index;
       },
       select_tile_position(tile_position: { x: number; y: number }) {
+        console.log("select_tile_position", tile_position);
         state.selected_tile_position = tile_position;
       },
       set_camera_position(

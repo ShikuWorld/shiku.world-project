@@ -80,6 +80,7 @@ export function init_grid(
       click_start: { x: number; y: number };
       camera_iso_start: Isometry;
     } | null = null;
+    let left_click_down = false;
     grid.grid_container.addChild(grid.sprite);
     grid.grid_container.interactive = true;
     grid.grid_container.on("pointerdown", (mouse_event) => {
@@ -91,6 +92,7 @@ export function init_grid(
             -(grid.sprite.tilePosition.y - grid.selected_tile.y) /
               renderer.terrain_params.tile_height,
           ];
+          left_click_down = true;
           window.medium_gui.editor.select_tile_position({ x, y: y - 1 });
         })
         .with(1, () => {
@@ -104,6 +106,9 @@ export function init_grid(
 
     grid.grid_container.on("pointerup", (mouse_event) => {
       match(mouse_event.button)
+        .with(0, () => {
+          left_click_down = false;
+        })
         .with(1, () => {
           middle_click_start = null;
         })
@@ -124,7 +129,31 @@ export function init_grid(
         });
       }
       grid.last_mouse_move_position = mouse_event;
-      update_tile_position(renderer);
+      const new_selected_tile_position =
+        get_current_selected_tile_position(renderer);
+      if (new_selected_tile_position !== null) {
+        const [new_selected_tile_x, new_selected_tile_y] =
+          new_selected_tile_position;
+        if (
+          new_selected_tile_x != grid.selected_tile.x ||
+          new_selected_tile_y != grid.selected_tile.y
+        ) {
+          if (left_click_down) {
+            const [x, y] = [
+              -(grid.sprite.tilePosition.x - new_selected_tile_x) /
+                renderer.terrain_params.tile_width,
+              -(grid.sprite.tilePosition.y - new_selected_tile_y) /
+                renderer.terrain_params.tile_height,
+            ];
+            window.medium_gui.editor.select_tile_position({
+              x,
+              y: y - 1,
+            });
+          }
+          grid.selected_tile.x = new_selected_tile_x;
+          grid.selected_tile.y = new_selected_tile_y;
+        }
+      }
     });
     renderer.grid = grid;
     renderer.main_container.addChild(renderer.grid.grid_container);
@@ -137,30 +166,33 @@ export function toggle_grid(renderer: InstanceRendering) {
   }
 }
 
-export function update_tile_position(renderer: InstanceRendering) {
+export function get_current_selected_tile_position(
+  renderer: InstanceRendering,
+): [number, number] | null {
   const grid = renderer.grid;
   if (!grid) {
-    return;
+    return null;
   }
   const localPosition = grid.grid_container.toLocal(grid.sprite.tilePosition);
   const diff = {
     x: localPosition.x - grid.last_mouse_move_position.x,
     y: localPosition.y - grid.last_mouse_move_position.y,
   };
-  grid.selected_tile.x =
+  const selected_new_x =
     localPosition.x -
     Math.floor(
       (diff.x + renderer.terrain_params.tile_width) /
         renderer.terrain_params.tile_width,
     ) *
       renderer.terrain_params.tile_width;
-  grid.selected_tile.y =
+  const selected_new_y =
     localPosition.y -
     Math.floor(
       (diff.y + renderer.terrain_params.tile_height) /
         renderer.terrain_params.tile_height,
     ) *
       renderer.terrain_params.tile_height;
+  return [selected_new_x, selected_new_y];
 }
 
 export function update_grid(
@@ -175,6 +207,6 @@ export function update_grid(
     renderer.grid.sprite.tilePosition.x = new_iso.x;
     renderer.grid.sprite.tilePosition.y = new_iso.y;
 
-    update_tile_position(renderer);
+    get_current_selected_tile_position(renderer);
   }
 }

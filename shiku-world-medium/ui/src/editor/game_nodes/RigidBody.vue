@@ -34,6 +34,34 @@
         (newValue) => update_kinematic_body_props('offset', newValue)
       "
     ></v-number-input>
+    <v-number-input
+      control-variant="stacked"
+      :step="1"
+      :hide-details="true"
+      density="compact"
+      :label="'Min slope slide angle'"
+      :model-value="
+        data.kinematic_character_controller_props.min_slope_slide_angle
+      "
+      @update:model-value="
+        (newValue) =>
+          update_kinematic_body_props('min_slope_slide_angle', newValue)
+      "
+    ></v-number-input>
+    <v-number-input
+      control-variant="stacked"
+      :step="1"
+      :hide-details="true"
+      density="compact"
+      :label="'Max slope slide angle'"
+      :model-value="
+        data.kinematic_character_controller_props.max_slope_climb_angle
+      "
+      @update:model-value="
+        (newValue) =>
+          update_kinematic_body_props('max_slope_climb_angle', newValue)
+      "
+    ></v-number-input>
     <v-switch
       :hide-details="true"
       density="compact"
