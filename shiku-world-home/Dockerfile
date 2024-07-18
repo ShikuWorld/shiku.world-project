@@ -48,4 +48,4 @@ ENV DATABASE_URL $DATABASE_URL
 RUN ls -lA target/release
 
 # Run the application
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+CMD ["./target/debug/home"]
