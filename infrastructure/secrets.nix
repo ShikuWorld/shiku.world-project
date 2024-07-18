@@ -23,7 +23,7 @@ let
 
     envVars = "LANG=${config.i18n.defaultLocale}";
     postCommands = ''
-      chmod ${secretType.mode} "$TMP_FILE"
+      chmod 777 "$TMP_FILE"
       chown ${secretType.owner}:${secretType.group} "$TMP_FILE"
     '';
   }; };

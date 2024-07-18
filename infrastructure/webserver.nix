@@ -9,6 +9,7 @@
     "dev-home-status.shiku.world".email = "server@shiku.world";
     "dev-home.shiku.world".email = "server@shiku.world";
     "dev.shiku.world".email = "server@shiku.world";
+    "dreg.shiku.world".email = "server@shiku.world";
   };
   services.nginx = {
     package = pkgs.nginxMainline;
@@ -17,6 +18,14 @@
     recommendedProxySettings = true;
     recommendedTlsSettings = true;
     virtualHosts = {
+      "dreg.shiku.world" = {
+        enableACME = true;
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:5000";
+        };
+        basicAuthFile = "/run/secrets/htpasswd";
+      };
       "status.shiku.world" = {
         enableACME = true;
         forceSSL = true;

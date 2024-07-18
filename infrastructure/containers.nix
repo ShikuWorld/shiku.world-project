@@ -8,7 +8,7 @@ let
   shikuWorldResourcesConfigPath = "/var/lib/podman/volumes/shiku-world-resources-config";
   registryDataPath = "/var/lib/podman/volumes/docker-registry-data";
   credentials = {
-    registry = "build.shiku.world";
+    registry = "dreg.shiku.world";
     username = "dockerreg";
     passwordFile = "/run/secrets/docker-registry.password";
   };
@@ -27,8 +27,20 @@ in
       '';
   };
   secrets."docker-registry.password".file = ./secrets/docker-registry.password.age;
+  secrets."htpasswd".file = ./secrets/dockerreg-htpasswd.age;
   secrets."shiku-world-home-dev-db-credentials".file = ./secrets/shiku-world-home-dev-db-credentials.age;
   virtualisation.oci-containers.containers = {
+    "shiku-world-docker-registry" = {
+      image = "registry:2";
+      ports = ["5000:5000"];
+      volumes = [
+        "${registryDataPath}:/var/lib/registry"
+      ];
+      environment = {
+        REGISTRY_HTTP_ADDR = "0.0.0.0:5000";
+        REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY = "/var/lib/registry";
+      };
+    };
     "shiku-world-golem-bot" = {
       image = "build.shiku.world/golem-bot:latest";
       login = credentials;
@@ -37,20 +49,20 @@ in
       ];
     };
     "shiku-world-medium-dev" = {
-      image = "build.shiku.world/shiku-world-medium-dev:0.5.9";
+      image = "dreg.shiku.world/shiku-world-medium-dev:0.5.10";
       login = credentials;
       ports = ["8089:80"];
       extraOptions = [ "--pull=always" ];
     };
     "shiku-world-home-dev" = {
-      image = "build.shiku.world/shiku-world-home-dev:0.2.18";
+      image = "dreg.shiku.world/shiku-world-home-dev:0.2.18";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];
       volumes = [
         "${shikuWorldHomeDevResourcePath}:/app/target/release/out"
       ];
-      extraOptions = [ "--network=shiku-dev-net" ];
+      extraOptions = [ "--network=shiku-dev-net" "--pull=always" ];
     };
     "shiku-world-home-dev-db" = {
       image = "postgres:14.3";
@@ -61,7 +73,7 @@ in
       environmentFiles = ["/run/secrets/shiku-world-home-dev-db-credentials"];
     };
     "shiku-world-status" = {
-      image = "build.shiku.world/shiku-world-status:latest";
+      image = "dreg.shiku.world/shiku-world-status:0.1.3";
       login = credentials;
       ports = ["3333:3000"];
     };
