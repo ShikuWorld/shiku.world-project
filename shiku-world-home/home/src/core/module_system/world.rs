@@ -12,7 +12,7 @@ use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpda
 use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
-use crate::core::guest::ActorId;
+use crate::core::guest::{ActorId, LoginData};
 use crate::core::module::{GameSystemToGuestEvent, GuestInput};
 use crate::core::module_system::error::CreateWorldError;
 use crate::core::module_system::script_types::CharacterDirectionModule;
@@ -41,8 +41,9 @@ pub struct World {
 }
 
 pub struct ActorApi {
-    active_users: HashSet<ActorId>,
-    actor_inputs: HashMap<ActorId, GuestInput>,
+    pub active_users: HashSet<ActorId>,
+    pub actor_inputs: HashMap<ActorId, GuestInput>,
+    pub actor_login_data: HashMap<ActorId, LoginData>,
 }
 
 impl ActorApi {
@@ -84,6 +85,7 @@ impl World {
             actor_api: ApiShare::new(ActorApi {
                 actor_inputs: HashMap::new(),
                 active_users: HashSet::new(),
+                actor_login_data: HashMap::new(),
             }),
             terrain_manager,
             ecs: ECS::from(&world_scene),
@@ -184,9 +186,12 @@ impl World {
         }
     }
 
-    pub fn actor_joined_world(&mut self, actor_id: ActorId) {
+    pub fn actor_joined_world(&mut self, actor_id: ActorId, login_data_option: Option<LoginData>) {
         if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
             actor_api.active_users.insert(actor_id);
+            if let Some(login_data) = login_data_option {
+                actor_api.actor_login_data.insert(actor_id, login_data);
+            }
         }
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(
@@ -200,6 +205,8 @@ impl World {
     pub fn actor_left_world(&mut self, actor_id: ActorId) {
         if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
             actor_api.active_users.remove(&actor_id);
+            actor_api.actor_inputs.remove(&actor_id);
+            actor_api.actor_login_data.remove(&actor_id);
         }
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(
@@ -475,6 +482,35 @@ impl World {
                 false
             },
         );
+
+        let actor_api_share_clone = actor_api_share.clone();
+        FuncRegistration::new("get_actor_display_name").set_into_module(
+            &mut module,
+            move |actor_id: ActorId| -> Dynamic {
+                if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
+                    if let Some(guest_input) = actor_api.actor_login_data.get(&actor_id) {
+                        return Dynamic::from(guest_input.display_name.clone());
+                    }
+                }
+                error!("Not able to get display name in api, what?!");
+                Dynamic::from(())
+            },
+        );
+
+        let actor_api_share_clone = actor_api_share.clone();
+        FuncRegistration::new("get_actor_provider_id").set_into_module(
+            &mut module,
+            move |actor_id: ActorId| -> Dynamic {
+                if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
+                    if let Some(guest_input) = actor_api.actor_login_data.get(&actor_id) {
+                        return Dynamic::from(guest_input.provider_user_id.clone());
+                    }
+                }
+                error!("Not able to get provider id in api, what?!");
+                Dynamic::from(())
+            },
+        );
+
         let actor_api_share_clone = actor_api_share.clone();
         FuncRegistration::new("get_active_actors").set_into_module(
             &mut module,

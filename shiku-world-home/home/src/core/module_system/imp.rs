@@ -869,7 +869,7 @@ impl DynamicGameModule {
         });
 
         if let Some(world) = self.world_map.get_mut(&world_id) {
-            world.actor_joined_world(admin.id);
+            world.actor_joined_world(admin.id, admin.login_data.clone());
         }
 
         Ok(EnterSuccessState::Entered)
@@ -917,7 +917,7 @@ impl DynamicGameModule {
         );
 
         if let Some(world) = self.world_map.get_mut(&main_world_id) {
-            world.actor_joined_world(guest.id);
+            world.actor_joined_world(guest.id, guest.login_data.clone());
         }
 
         Ok(EnterSuccessState::Entered)
