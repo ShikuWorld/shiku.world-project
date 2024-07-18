@@ -6,6 +6,7 @@ let
   shikuWorldHomeDbDevPath = "/var/lib/podman/volumes/shiku-world-home-db-dev";
   shikuWorldHomeDevResourcePath = "/var/lib/podman/volumes/shiku-world-home-dev-resources";
   shikuWorldResourcesConfigPath = "/var/lib/podman/volumes/shiku-world-resources-config";
+  registryDataPath = "/var/lib/podman/volumes/docker-registry-data";
   credentials = {
     registry = "build.shiku.world";
     username = "dockerreg";
@@ -16,7 +17,7 @@ in
   imports = [
     ./ensure-paths.nix
   ];
-  ensurePaths = [ golemPath shikuWorldResourcesPath shikuWorldResourcesConfigPath shikuWorldHomeDbDevPath shikuWorldHomeDevResourcePath ];
+  ensurePaths = [ golemPath shikuWorldResourcesPath shikuWorldResourcesConfigPath shikuWorldHomeDbDevPath shikuWorldHomeDevResourcePath registryDataPath ];
   systemd.services.create-shikus-world-network = with config.virtualisation.oci-containers; {
     serviceConfig.Type = "oneshot";
     wantedBy = [ "podman-shiku-world-home-dev.service" "podman-shiku-world-home-dev-db.service" ];
@@ -42,7 +43,7 @@ in
       extraOptions = [ "--pull=always" ];
     };
     "shiku-world-home-dev" = {
-      image = "build.shiku.world/shiku-world-home-dev:0.2.17";
+      image = "build.shiku.world/shiku-world-home-dev:0.2.18";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];
