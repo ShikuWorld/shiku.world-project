@@ -86,6 +86,7 @@ pub enum GameNodeScriptError {
 pub enum ScopeCacheValue {
     Unknown(String),
     Empty,
+    Bool(bool),
     String(String),
     Number(f64),
     Integer(i64),
@@ -113,6 +114,13 @@ impl ScopeCacheValue {
                 }
             }
             ScopeCacheValue::Unknown(_) => false,
+            ScopeCacheValue::Bool(value) => {
+                if let Some(dynamic_value) = dynamic_value.read_lock::<bool>() {
+                    *value == *dynamic_value
+                } else {
+                    false
+                }
+            }
             ScopeCacheValue::String(value) => {
                 if let Some(dynamic_value) = dynamic_value.read_lock::<String>() {
                     *value == *dynamic_value
@@ -299,6 +307,7 @@ impl Into<Dynamic> for ScopeCacheValue {
     fn into(self) -> Dynamic {
         match self {
             ScopeCacheValue::Empty => Dynamic::from(()),
+            ScopeCacheValue::Bool(val) => Dynamic::from(val),
             ScopeCacheValue::Unknown(val) => Dynamic::from(val),
             ScopeCacheValue::String(val) => Dynamic::from(val),
             ScopeCacheValue::Number(val) => Dynamic::from(val),
@@ -318,6 +327,10 @@ impl Into<Dynamic> for ScopeCacheValue {
 impl Into<ScopeCacheValue> for Dynamic {
     fn into(self) -> ScopeCacheValue {
         match self.type_name() {
+            "bool" => ScopeCacheValue::Bool(self.try_cast::<bool>().unwrap_or_else(|| {
+                error!("Error casting Dynamic to String");
+                bool::default()
+            })),
             "string" => ScopeCacheValue::String(self.try_cast::<String>().unwrap_or_else(|| {
                 error!("Error casting Dynamic to String");
                 String::default()

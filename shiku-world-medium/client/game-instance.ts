@@ -51,7 +51,12 @@ export class GameInstance {
     this.terrain_manager = create_terrain_manager(terrain_params);
     this.layer_map_keys = Object.keys(this.renderer.layer_map) as LayerKind[];
     this.collision_lines = new Container();
+    this.collision_lines.visible = false;
     this.renderer.layer_map.ObjectsFront.addChild(this.collision_lines);
+  }
+
+  toggle_terrain_collisions() {
+    this.collision_lines.visible = !this.collision_lines.visible;
   }
 
   update() {

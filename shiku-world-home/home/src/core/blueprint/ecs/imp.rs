@@ -112,6 +112,7 @@ impl ECS {
         shared: &mut ECSShared,
         physics: &mut RapierSimulation,
     ) {
+        debug!("Adding rigid body for entity: {:?}", original_entity);
         let rigid_body_handle =
             Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
         shared
@@ -162,6 +163,7 @@ impl ECS {
         ecs: &mut ECSShared,
         physics: &mut RapierSimulation,
     ) {
+        debug!("Attaching colliders to entity: {:?}", entity);
         if let (Some(children), Some(rigid_body_handle)) = (
             ecs.entities.game_node_children.get(entity),
             ecs.entities.rigid_body_handle.get(entity),
@@ -173,7 +175,7 @@ impl ECS {
                     ecs.entities
                         .collider_handle
                         .insert(*child_entity, child_collider_handle);
-                    debug!("Successfully attached collider 1");
+                    debug!("Successfully attached collider");
                 }
             }
         }
@@ -327,6 +329,8 @@ impl ECS {
                                         ),
                                     props: kinematic_character_controller_props.clone(),
                                     desired_translation: Vector::zeros(),
+                                    is_sliding_down_slope: false,
+                                    grounded: false,
                                 },
                             );
                         }

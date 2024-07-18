@@ -40707,7 +40707,7 @@ ${e3}`);
       return graphics;
     }
   };
-  function create_display_object(node, resource_manager) {
+  function create_display_object(node, resource_manager, show_colliders = false) {
     const container = new Container();
     N2(node).with({ Node2D: _.select() }, (game_node) => {
       container.x = game_node.data.transform.position[0] * RENDER_SCALE;
@@ -40738,6 +40738,7 @@ ${e3}`);
         container.addChild(graphics);
         container.pivot.x = pivot_x * RENDER_SCALE;
         container.pivot.y = pivot_y * RENDER_SCALE;
+        container.visible = show_colliders;
       }).exhaustive();
     }).exhaustive();
     return container;
@@ -40932,6 +40933,13 @@ ${e3}`);
             resolve();
           });
         });
+      },
+      toggle_terrain_collisions: () => {
+        for (const instance_id in instances) {
+          for (const world_id in instances[instance_id]) {
+            instances[instance_id][world_id].toggle_terrain_collisions();
+          }
+        }
       },
       hide_loading_indicator: () => {
         loading_indicator.className = "hidden";
@@ -42333,6 +42341,7 @@ ${e3}`);
       this.terrain_manager = create_terrain_manager(terrain_params);
       this.layer_map_keys = Object.keys(this.renderer.layer_map);
       this.collision_lines = new Container();
+      this.collision_lines.visible = false;
       this.renderer.layer_map.ObjectsFront.addChild(this.collision_lines);
     }
     renderer;
@@ -42340,6 +42349,9 @@ ${e3}`);
     terrain_manager;
     layer_map_keys;
     collision_lines;
+    toggle_terrain_collisions() {
+      this.collision_lines.visible = !this.collision_lines.visible;
+    }
     update() {
       this.renderer.camera.update_camera_position_from_ref(this.entity_manager);
       for (const layerName of this.layer_map_keys) {

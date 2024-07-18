@@ -36,13 +36,13 @@ in
       ];
     };
     "shiku-world-medium-dev" = {
-      image = "build.shiku.world/shiku-world-medium-dev:0.5.7";
+      image = "build.shiku.world/shiku-world-medium-dev:0.5.8";
       login = credentials;
       ports = ["8089:80"];
       extraOptions = [ "--pull=always" ];
     };
     "shiku-world-home-dev" = {
-      image = "build.shiku.world/shiku-world-home-dev:0.2.14";
+      image = "build.shiku.world/shiku-world-home-dev:0.2.15";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];

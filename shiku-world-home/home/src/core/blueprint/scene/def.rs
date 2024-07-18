@@ -167,7 +167,7 @@ impl KinematicCharacterControllerProps {
             slide: true,
             autostep: None,
             max_slope_climb_angle: 45.0,
-            min_slope_slide_angle: 45.0,
+            min_slope_slide_angle: 30.0,
             snap_to_ground: None,
             normal_nudge_factor: 0.001,
         }

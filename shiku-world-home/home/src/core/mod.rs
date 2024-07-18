@@ -21,6 +21,7 @@ pub mod managed_map;
 pub mod medium_data_storage;
 pub mod module_system;
 
+pub mod basic_kinematic_character_controller;
 pub mod blueprint;
 pub mod guest;
 pub mod module;

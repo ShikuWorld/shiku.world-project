@@ -39,6 +39,13 @@ export const setup_medium_api = (
         });
       });
     },
+    toggle_terrain_collisions: () => {
+      for (const instance_id in instances) {
+        for (const world_id in instances[instance_id]) {
+          instances[instance_id][world_id].toggle_terrain_collisions();
+        }
+      }
+    },
     hide_loading_indicator: () => {
       loading_indicator.className = "hidden";
     },

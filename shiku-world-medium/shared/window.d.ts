@@ -46,6 +46,7 @@ declare global {
       ) => void;
       create_display_object: typeof create_display_object;
       create_collider_graphic: typeof create_collider_graphic;
+      toggle_terrain_collisions: () => void;
       create_container: () => Container;
       set_camera_iso: (
         instance_id: string,

@@ -1,4 +1,3 @@
-use rapier2d::control::KinematicCharacterController;
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::math::Vector;
 use rapier2d::prelude::{ColliderHandle, Real};
@@ -9,9 +8,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Display;
 use ts_rs::TS;
 
-use crate::core::ApiShare;
-use remove_entity::RemoveEntity;
-
+use crate::core::basic_kinematic_character_controller::BasicKinematicCharacterController;
 use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
@@ -19,6 +16,8 @@ use crate::core::blueprint::scene::def::{
     Collider, GameNodeId, GameNodeKindClean, KinematicCharacterControllerProps, Node2DKindClean,
     NodeInstanceId, RenderKind, RenderKindClean, RigidBodyType, SceneId, Transform,
 };
+use crate::core::ApiShare;
+use remove_entity::RemoveEntity;
 
 #[derive(
     TS, Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, Hash, CustomType,
@@ -84,9 +83,11 @@ pub struct EntityMaps {
 
 #[derive(Debug, Clone)]
 pub struct KinematicCharacter {
-    pub controller: KinematicCharacterController,
+    pub controller: BasicKinematicCharacterController,
     pub props: KinematicCharacterControllerProps,
     pub desired_translation: Vector<Real>,
+    pub grounded: bool,
+    pub is_sliding_down_slope: bool,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

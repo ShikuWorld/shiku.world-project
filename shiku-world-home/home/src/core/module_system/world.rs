@@ -129,7 +129,7 @@ impl World {
             physics.update();
             if let Some(mut shared_ecs) = self.ecs.shared.try_borrow_mut() {
                 Self::update_entities_gid_from_animations(&mut shared_ecs);
-                Self::update_kinematic_character_controllers(&shared_ecs, &mut physics);
+                Self::update_kinematic_character_controllers(&mut shared_ecs, &mut physics);
                 Self::update_positions(&mut physics, &mut shared_ecs);
             }
         }
@@ -153,11 +153,11 @@ impl World {
     }
 
     pub fn update_kinematic_character_controllers(
-        ecs_shared: &ECSShared,
+        ecs_shared: &mut ECSShared,
         physics: &mut RapierSimulation,
     ) {
         for (entity, kinematic_character_controller) in
-            ecs_shared.entities.kinematic_character.iter()
+            ecs_shared.entities.kinematic_character.iter_mut()
         {
             if let (Some(children), Some(rigid_body_handle)) = (
                 ecs_shared.entities.game_node_children.get(entity),
@@ -171,12 +171,14 @@ impl World {
                     }
                 }
                 if let Some(collider_handle) = child_collider_handle {
-                    physics.move_character(
+                    let (grounded, is_sliding_down_slope) = physics.move_character(
                         &kinematic_character_controller.controller,
                         *rigid_body_handle,
                         collider_handle,
                         kinematic_character_controller.desired_translation,
                     );
+                    kinematic_character_controller.grounded = grounded;
+                    kinematic_character_controller.is_sliding_down_slope = is_sliding_down_slope;
                 }
             }
         }
@@ -247,14 +249,16 @@ impl World {
         ecs: &mut ECS,
     ) {
         let mut module = RhaiModule::new();
-        let physics_clone = physics_share.clone();
-        let add_fixed_rigid_body = move |x: Real, y: Real| {
-            if let Some(mut physics) = physics_clone.try_borrow_mut() {
-                physics.add_fixed_rigid_body(x, y);
+        let ecs_shared = ecs.shared.clone();
+        let is_grounded = move |entity: Entity| -> Dynamic {
+            if let Some(shared) = ecs_shared.try_borrow_mut() {
+                if let Some(character) = shared.entities.kinematic_character.get(&entity) {
+                    return Dynamic::from(character.grounded);
+                }
             }
+            Dynamic::from(false)
         };
-        FuncRegistration::new("add_fixed_rigid_body")
-            .set_into_module(&mut module, add_fixed_rigid_body);
+        FuncRegistration::new("is_grounded").set_into_module(&mut module, is_grounded);
 
         let ecs_shared = ecs.shared.clone();
         let get_rigid_body_handle = move |entity: Entity| -> Dynamic {

@@ -42,6 +42,7 @@ export interface GameInstancesStore {
       };
     };
   };
+  show_entity_colliders: boolean;
   blueprint_render: {
     render_graph_data?: RenderGraphData;
     scene_resource_path: string;
@@ -57,6 +58,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
   const state: GameInstancesStore = reactive({
     game_instance_data_map: {},
     blueprint_render: null,
+    show_entity_colliders: false,
   });
 
   const actions = {
@@ -177,6 +179,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             window.medium.create_display_object(
               scene.root_node,
               resource_manager,
+              state.show_entity_colliders,
             ),
           ),
           parent: null,
@@ -295,6 +298,26 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         render_node.container.position.y =
           node_2d.transform.position[1] * RENDER_SCALE;
         render_node.container.rotation = node_2d.transform.rotation;
+      }
+    },
+    toggle_entity_colliders() {
+      state.show_entity_colliders = !state.show_entity_colliders;
+      for (const game_instance_data of Object.values(
+        state.game_instance_data_map,
+      )) {
+        for (const render_graph_data of Object.values(game_instance_data)) {
+          for (const node_id in render_graph_data.render_graph_data
+            .entity_node_map) {
+            const render_node =
+              render_graph_data.render_graph_data
+                .entity_node_to_render_node_map[node_id];
+            const game_node =
+              render_graph_data.render_graph_data.entity_node_map[node_id];
+            if ("Collider" in game_node.Node2D.data.kind) {
+              render_node.container.visible = state.show_entity_colliders;
+            }
+          }
+        }
       }
     },
     apply_entity_update(
@@ -520,6 +543,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           render_node.container.addChildAt(graphics, 0);
           render_node.container.x = pivot_x;
           render_node.container.y = pivot_y;
+          render_node.container.visible = state.show_entity_colliders;
         })
         .with(
           { UpdateScriptScope: P.select() },
@@ -631,6 +655,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       const new_node_container = window.medium.create_display_object(
         game_node_to_add,
         resource_manager,
+        state.show_entity_colliders,
       );
       const parent_container = parent.container;
       const new_node: Node = {

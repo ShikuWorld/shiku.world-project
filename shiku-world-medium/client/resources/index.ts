@@ -304,6 +304,7 @@ export class ResourceManager {
 export function create_display_object(
   node: GameNodeKind,
   resource_manager: ResourceManager,
+  show_colliders: boolean = false,
 ): Container {
   const container = new Container();
   match(node)
@@ -349,6 +350,7 @@ export function create_display_object(
           container.addChild(graphics);
           container.pivot.x = pivot_x * RENDER_SCALE;
           container.pivot.y = pivot_y * RENDER_SCALE;
+          container.visible = show_colliders;
         })
         .exhaustive();
     })

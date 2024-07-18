@@ -63,6 +63,15 @@
               (new_value) => scope_update(scope_key, new_value, scope_type)
             "
           ></v-number-input>
+          <v-switch
+            v-if="scope_type === 'Bool'"
+            density="compact"
+            hide-details="auto"
+            :model-value="scope_value"
+            @update:model-value="
+              (new_value) => scope_update(scope_key, new_value, scope_type)
+            "
+          ></v-switch>
         </template>
       </v-virtual-scroll>
     </div>
@@ -176,7 +185,14 @@ const scope_cache = computed<Array<[string, string, string | number]> | null>(
   },
 );
 
-function scope_update(key: string, value: string | number, type: string) {
+function scope_update(
+  key: string,
+  value: string | number | boolean | null,
+  type: string,
+) {
+  if (value === null) {
+    return;
+  }
   if (type === "Number") {
     value = Number(value);
     if (Number.isNaN(value)) {

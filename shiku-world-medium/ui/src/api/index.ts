@@ -9,6 +9,7 @@ export const use_medium_api = (): typeof window.medium =>
     : {
         create_collider_graphic: () => [new Graphics(), 1, 2],
         hide_loading_indicator: () => {},
+        toggle_terrain_collisions: () => {},
         reconnect: () => Promise.resolve(),
         is_instance_ready: (_instance_id: string, _world_id: string) => false,
         toggle_grid: (_instance_id: string, _world_id: string) => {},

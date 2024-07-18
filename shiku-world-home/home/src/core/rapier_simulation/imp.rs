@@ -1,14 +1,15 @@
 use std::ops::Deref;
 
-use log::error;
-use rapier2d::control::{CharacterAutostep, CharacterLength, KinematicCharacterController};
-use rapier2d::crossbeam;
-use rapier2d::na::{Point2, Vector2};
-use rapier2d::prelude::*;
-
+use crate::core::basic_kinematic_character_controller::{
+    BasicKinematicCharacterController, CharacterAutostep, CharacterLength,
+};
 use crate::core::blueprint::scene::def::KinematicCharacterControllerProps;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::terrain_gen::TerrainGenTerrainChunk;
+use log::{debug, error};
+use rapier2d::crossbeam;
+use rapier2d::na::{Point2, Vector2};
+use rapier2d::prelude::*;
 
 pub const COL_GROUP_A: InteractionGroups = InteractionGroups::new(Group::GROUP_1, Group::GROUP_1);
 pub const COL_GROUP_B: InteractionGroups = InteractionGroups::new(Group::GROUP_2, Group::GROUP_2);
@@ -34,16 +35,18 @@ impl RapierSimulation {
 
     pub fn move_character(
         &mut self,
-        character_controller: &KinematicCharacterController,
+        character_controller: &BasicKinematicCharacterController,
         rigid_body_handle: RigidBodyHandle,
         collider_handle: ColliderHandle,
         desired_translation: Vector<Real>,
-    ) {
+    ) -> (bool, bool) {
         let mut rigid_body_position = self
             .bodies
             .get(rigid_body_handle)
             .map(|body| *body.position())
             .unwrap_or_default();
+        let mut grounded = false;
+        let mut is_sliding_down_slope = false;
         if let Some(collider) = self.colliders.get(collider_handle) {
             let corrected_movement = character_controller.move_shape(
                 self.integration_parameters.dt,
@@ -62,31 +65,45 @@ impl RapierSimulation {
             if corrected_movement.translation.x.abs() > 0.0001 {
                 rigid_body_position.translation.x += corrected_movement.translation.x;
             }
+            grounded = corrected_movement.grounded;
+            is_sliding_down_slope = corrected_movement.is_sliding_down_slope;
         }
         if let Some(rigid_body) = self.bodies.get_mut(rigid_body_handle) {
             rigid_body.set_position(rigid_body_position, true);
         }
+        (grounded, is_sliding_down_slope)
     }
 
     pub fn create_kinematic_character_controller(
         props: &KinematicCharacterControllerProps,
-    ) -> KinematicCharacterController {
-        let mut kinematic = KinematicCharacterController::default();
+    ) -> BasicKinematicCharacterController {
+        debug!(
+            "Creating kinematic character controller with props: {:?}",
+            props
+        );
+        let mut kinematic = BasicKinematicCharacterController::default();
         if let Some(auto_step_props) = &props.autostep {
             kinematic.autostep = Some(CharacterAutostep {
                 max_height: CharacterLength::Absolute(auto_step_props.max_height),
                 min_width: CharacterLength::Absolute(auto_step_props.min_width),
                 include_dynamic_bodies: auto_step_props.include_dynamic_bodies,
             });
+        } else {
+            kinematic.autostep = None;
         }
-        kinematic.offset = CharacterLength::Absolute(props.offset);
+        kinematic.offset = CharacterLength::Absolute(props.offset.abs());
+        debug!("Kinematic offset: {:?}", props.slide);
         kinematic.slide = props.slide;
         kinematic.up = UnitVector::new_normalize(Vector2::new(props.up.0, props.up.1));
+        kinematic.normal_nudge_factor = props.normal_nudge_factor.abs();
         kinematic.max_slope_climb_angle = props.max_slope_climb_angle;
         kinematic.min_slope_slide_angle = props.min_slope_slide_angle;
         if let Some(snap_to_ground) = props.snap_to_ground {
             kinematic.snap_to_ground = Some(CharacterLength::Absolute(snap_to_ground));
+        } else {
+            kinematic.snap_to_ground = None;
         }
+        debug!("{:?}", kinematic);
         kinematic
     }
 
