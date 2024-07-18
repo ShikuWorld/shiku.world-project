@@ -55,7 +55,7 @@ in
       extraOptions = [ "--pull=always" ];
     };
     "shiku-world-home-dev" = {
-      image = "dreg.shiku.world/shiku-world-home-dev:0.2.18";
+      image = "dreg.shiku.world/shiku-world-home-dev:0.2.20";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];
@@ -73,12 +73,12 @@ in
       environmentFiles = ["/run/secrets/shiku-world-home-dev-db-credentials"];
     };
     "shiku-world-status" = {
-      image = "dreg.shiku.world/shiku-world-status:0.1.3";
+      image = "build.shiku.world/shiku-world-status:latest";
       login = credentials;
       ports = ["3333:3000"];
     };
     "shiku-world-status-dev" = {
-      image = "build.shiku.world/shiku-world-status-dev:0.1.2";
+      image = "dreg.shiku.world/shiku-world-status-dev:0.1.3";
       login = credentials;
       ports = ["3334:3000"];
     };

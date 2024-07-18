@@ -25,6 +25,9 @@
           proxyPass = "http://127.0.0.1:5000";
         };
         basicAuthFile = "/run/secrets/htpasswd";
+        extraConfig = ''
+           client_max_body_size 0;
+        '';
       };
       "status.shiku.world" = {
         enableACME = true;

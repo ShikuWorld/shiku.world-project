@@ -35,4 +35,6 @@ jobs:
             RESOURCE_URL=https://resources.shiku.world/static
             WS_SOCKET_URL=wss://dev-home.shiku.world
             TWITCH_AUTH_REDIRECT=https://dev.shiku.world
+            MAIN_DOOR_STATUS_URL=https://dev-status.shiku.world/main-door-status
+            BACK_DOOR_STATUS_URL=https://dev-status.shiku.world/back-door-status
 
