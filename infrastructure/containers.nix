@@ -49,7 +49,7 @@ in
       ];
     };
     "shiku-world-medium-dev" = {
-      image = "dreg.shiku.world/shiku-world-medium-dev:0.5.12";
+      image = "dreg.shiku.world/shiku-world-medium-dev:0.5.13";
       login = credentials;
       ports = ["8089:80"];
       extraOptions = [ "--pull=always" ];
