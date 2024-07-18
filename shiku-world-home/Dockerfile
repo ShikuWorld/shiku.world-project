@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     pkg-config \
     wget
-COPY --from=builder /app/target/release/home /app/target/release
+COPY --from=builder /app/target/release /app/target/release
 
 # Expose the required ports
 EXPOSE 9001
