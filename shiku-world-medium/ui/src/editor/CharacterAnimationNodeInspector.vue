@@ -215,12 +215,9 @@ const remove_frame = (index: number) => {
 
 const add_frame = () => {
   if (selected_state.value) {
-    const last_frame_ms = selected_state.value.frames[
-      selected_state.value.frames.length - 1
-    ]?.duration_in_ms
-      ? selected_state.value.frames[selected_state.value.frames.length - 1]
-          ?.duration_in_ms
-      : 100;
+    const last_frame_ms =
+      selected_state.value.frames[selected_state.value.frames.length - 1]
+        ?.duration_in_ms ?? 100;
     const frame = {
       duration_in_ms: last_frame_ms,
       gid_map: {},

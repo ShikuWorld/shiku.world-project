@@ -4,35 +4,37 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, ref, toRefs, watch } from "vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
+import { CharacterAnimationState } from "@/editor/blueprints/CharacterAnimationState";
+import { CharacterDirection } from "@/editor/blueprints/CharacterDirection";
 import TilePreview from "@/editor/editor/TilePreview.vue";
 
 interface Props {
   tileset: Tileset;
-  tile_id: number;
+  character_direction: CharacterDirection;
+  animation_state: CharacterAnimationState;
 }
 
 const props = defineProps<Props>();
 let frame_timeout: number | null = null;
-const { tileset, tile_id } = toRefs(props);
+const { tileset, character_direction, animation_state } = toRefs(props);
 
 let current_frame_index = ref(0);
 
-const tile_animation = computed(() => {
-  return tileset.value.tiles[tile_id.value]?.animation ?? [];
-});
-
 const current_tile_id = computed(() => {
-  return tile_animation.value[current_frame_index.value]?.id ?? 0;
+  const frame = animation_state.value.frames[current_frame_index.value];
+  return frame && frame.gid_map[character_direction.value]
+    ? frame.gid_map[character_direction.value]
+    : 0;
 });
 
-watch([tileset, tile_id], () => {
+watch([animation_state, character_direction], () => {
   if (frame_timeout === null) {
     animate_to_next_frame();
   }
 });
 
 onMounted(() => {
-  if (tile_animation.value.length > 0) {
+  if (animation_state.value.frames.length > 0) {
     animate_to_next_frame();
   }
 });
@@ -49,12 +51,12 @@ const animate_to_next_frame = () => {
     clearTimeout(frame_timeout);
     frame_timeout = null;
   }
-  const frame_duration = tile_animation.value[current_frame_index.value]
-    ? tile_animation.value[current_frame_index.value].duration
+  const frame_duration = animation_state.value.frames[current_frame_index.value]
+    ? animation_state.value.frames[current_frame_index.value].duration_in_ms
     : 100;
   frame_timeout = setTimeout(() => {
     current_frame_index.value =
-      (current_frame_index.value + 1) % tile_animation.value.length;
+      (current_frame_index.value + 1) % animation_state.value.frames.length;
     animate_to_next_frame();
   }, frame_duration);
 };

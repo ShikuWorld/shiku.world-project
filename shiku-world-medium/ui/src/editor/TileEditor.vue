@@ -22,6 +22,54 @@
       @update:model-value="(new_value) => (collision_data_tmp = new_value)"
     ></v-textarea>
     <v-btn @click="update_collider_data(collision_data_tmp)">Save</v-btn>
+    <v-divider></v-divider>
+    <v-label>Animation</v-label>
+    <div v-if="tile && tile.animation">
+      <TilePreviewAnimation
+        :tileset="tileset"
+        :tile_id="tile_id"
+      ></TilePreviewAnimation>
+      <v-virtual-scroll :items="tile.animation" :height="300">
+        <template v-slot:default="{ item: frame, index }">
+          <v-number-input
+            :reverse="false"
+            controlVariant="stacked"
+            density="compact"
+            :hide-details="true"
+            variant="outlined"
+            :step="1"
+            :model-value="frame.duration"
+            @update:model-value="
+              (new_value) => update_animation('set_duration', index, new_value)
+            "
+          >
+            <template v-slot:append>
+              <v-icon
+                :icon="mdiTrashCan"
+                @click="update_animation('remove_frame', index)"
+              ></v-icon>
+            </template>
+          </v-number-input>
+          <v-number-input
+            :reverse="false"
+            controlVariant="stacked"
+            density="compact"
+            :hide-details="true"
+            variant="outlined"
+            :step="1"
+            :model-value="frame.id"
+            @update:model-value="
+              (new_value) => update_animation('set_gid', index, new_value)
+            "
+          >
+            <template v-slot:append>
+              <TilePreview :tileset="tileset" :tile_id="frame.id" />
+            </template>
+          </v-number-input>
+        </template>
+      </v-virtual-scroll>
+    </div>
+    <v-btn :icon="mdiPlus" @click="update_animation('add_frame')"></v-btn>
   </div>
 </template>
 <script lang="ts" setup>
@@ -35,6 +83,10 @@ import { match } from "ts-pattern";
 import { use_resources_store } from "@/editor/stores/resources";
 import CollisionEditor from "@/editor/editor/CollisionEditor.vue";
 import TilePreview from "@/editor/editor/TilePreview.vue";
+import { mdiPlus, mdiTrashCan } from "@mdi/js";
+import { VNumberInput } from "vuetify/labs/VNumberInput";
+import { SimpleAnimationFrame } from "@/editor/blueprints/SimpleAnimationFrame";
+import TilePreviewAnimation from "@/editor/editor/TilePreviewAnimation.vue";
 
 const { update_tileset_server } = use_resources_store();
 
@@ -55,6 +107,43 @@ const collision_shape = computed(() => {
   }
   return null;
 });
+
+const update_animation = (
+  action: "add_frame" | "set_duration" | "remove_frame" | "set_gid",
+  index: null | number = null,
+  new_value: null | number = null,
+) => {
+  const animation: SimpleAnimationFrame[] = tile?.value?.animation ?? [];
+  const updated_animation: SimpleAnimationFrame[] = match(action)
+    .with("add_frame", (): SimpleAnimationFrame[] => [
+      ...animation,
+      {
+        id: tile_id.value,
+        duration: animation[animation.length - 1]?.duration ?? 100,
+      },
+    ])
+    .with("remove_frame", (): SimpleAnimationFrame[] =>
+      animation.filter((_, i) => i !== index),
+    )
+    .with("set_duration", (): SimpleAnimationFrame[] =>
+      animation.map((frame, i) =>
+        i === index ? { ...frame, duration: new_value ?? 0 } : frame,
+      ),
+    )
+    .with("set_gid", (): SimpleAnimationFrame[] =>
+      animation.map((frame, i) =>
+        i === index ? { ...frame, id: new_value ?? 0 } : frame,
+      ),
+    )
+    .exhaustive();
+
+  update_tileset_server(tileset_key(tileset.value), {
+    ChangeTileAnimation: [
+      tile_id.value,
+      updated_animation.length === 0 ? null : updated_animation,
+    ],
+  });
+};
 
 const collision_shape_tmp = computed(() => {
   if (collision_data_tmp.value) {

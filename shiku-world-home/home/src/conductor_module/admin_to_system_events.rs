@@ -503,28 +503,32 @@ pub async fn handle_admin_to_system_event(
                 }
             }
         }
-        AdminToSystemEvent::UpdateTileset(resource_path, tileset_update) => {
+        AdminToSystemEvent::UpdateTileset(resource_path, ref tileset_update) => {
             if let Ok(mut tileset) = Blueprint::load_tileset(resource_path.clone().into()) {
                 match tileset_update {
                     TilesetUpdate::ChangeTileImage(gid, image) => {
-                        if let Some(tile) = tileset.tiles.get_mut(&gid) {
-                            tile.image = Some(image);
-                        }
+                        let tile = tileset.tiles.entry(*gid).or_default();
+                        tile.image = Some(image.clone());
+                    }
+                    TilesetUpdate::ChangeTileAnimation(gid, animation) => {
+                        let tile = tileset.tiles.entry(*gid).or_default();
+                        tile.animation.clone_from(animation);
                     }
                     TilesetUpdate::RemoveTile(gid) => {
-                        tileset.tiles.remove(&gid);
+                        tileset.tiles.remove(gid);
                         tileset.tile_count = tileset.tiles.keys().cloned().max().unwrap_or(0);
                     }
                     TilesetUpdate::AddTile(gid, tile) => {
-                        tileset.tiles.insert(gid, tile);
+                        tileset.tiles.insert(*gid, tile.clone());
                         tileset.tile_count = tileset.tiles.keys().cloned().max().unwrap_or(0);
                     }
-                    TilesetUpdate::UpdateCollisionShape(tile_id, mut collision_shape) => {
-                        let tile = tileset.tiles.entry(tile_id).or_default();
-                        if let CollisionShape::Polygon(ref mut vertices) = &mut collision_shape {
+                    TilesetUpdate::UpdateCollisionShape(tile_id, collision_shape) => {
+                        let tile = tileset.tiles.entry(*tile_id).or_default();
+                        let mut collision_shape_clone = collision_shape.clone();
+                        if let CollisionShape::Polygon(ref mut vertices) = collision_shape_clone {
                             bring_polygon_in_clockwise_order(vertices);
                         }
-                        tile.collision_shape = Some(collision_shape);
+                        tile.collision_shape = Some(collision_shape_clone);
                         for m in module_map.values_mut() {
                             if let Some(gid_start) =
                                 m.module_blueprint
@@ -547,7 +551,7 @@ pub async fn handle_admin_to_system_event(
                         }
                     }
                     TilesetUpdate::RemoveCollisionShape(gid) => {
-                        let tile = tileset.tiles.entry(gid).or_default();
+                        let tile = tileset.tiles.entry(*gid).or_default();
                         tile.collision_shape = None;
                     }
                 }
@@ -574,6 +578,22 @@ pub async fn handle_admin_to_system_event(
                         send_editor_event(EditorEvent::SetTileset(tileset));
                     }
                     Err(err) => error!("Could not update tileset: {:?}", err),
+                }
+                for module_id in resource_to_module_map
+                    .entry(resource_path.clone())
+                    .or_default()
+                    .iter()
+                {
+                    if let Some(module) = module_map.get_mut(module_id) {
+                        resource_module.send_resource_event_to(
+                            ResourceEvent::UpdateTileset(
+                                resource_path.clone(),
+                                tileset_update.clone(),
+                            ),
+                            module_id.clone(),
+                            module.get_active_actor_ids(),
+                        );
+                    }
                 }
             }
         }

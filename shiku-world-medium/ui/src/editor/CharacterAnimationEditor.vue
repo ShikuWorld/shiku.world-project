@@ -9,7 +9,7 @@
       <template #node-custom="props">
         <div class="custom-node">
           {{ props.label }} | {{ props.id }}
-          <TilePreviewAnimation
+          <CharacterTilePreviewAnimation
             v-if="
               character_animation_tileset &&
               character_animation.states[Number(props.id)]
@@ -17,7 +17,7 @@
             :tileset="character_animation_tileset"
             :character_direction="character_animation.start_direction"
             :animation_state="character_animation.states[Number(props.id)]"
-          ></TilePreviewAnimation>
+          ></CharacterTilePreviewAnimation>
         </div>
       </template>
     </VueFlow>
@@ -29,8 +29,8 @@ import { computed, toRefs } from "vue";
 import { VueFlow, useVueFlow, NodeMouseEvent } from "@vue-flow/core";
 import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
 import { use_resources_store } from "@/editor/stores/resources";
-import TilePreviewAnimation from "@/editor/editor/TilePreviewAnimation.vue";
 import { storeToRefs } from "pinia";
+import CharacterTilePreviewAnimation from "@/editor/editor/CharacterTilePreviewAnimation.vue";
 
 function on_node_selected(event: NodeMouseEvent) {
   emit("select_animation_node", parseInt(event.node.id));

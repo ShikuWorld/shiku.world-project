@@ -1,4 +1,4 @@
-import { Container, Sprite } from "pixi.js";
+import { AnimatedSprite, Container, Sprite, Ticker } from "pixi.js";
 import { ResourceManager } from "../resources";
 import { InstanceRendering } from "../renderer";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
@@ -50,19 +50,59 @@ export class TerrainManager {
     Map<number, { container: Container; data: Chunk }>
   >;
 
-  private _animations: TileEffectMap;
+  private _effects: TileEffectMap;
   private _active_animations: TileEffect[];
+  sprite_animation_sync_map: {
+    [gid: string]: {
+      sprites: { [unique_key: string]: AnimatedSprite };
+      main_sprite_key: string;
+    };
+  } = {};
 
   constructor(public terrain_params: TerrainParams) {
     this._chunk_map = new Map();
-    this._animations = {};
+    this._effects = {};
     this._active_animations = [];
+    Ticker.shared.add(() => {
+      this.sync_sprite_animations();
+    });
   }
 
   remove_all_chunks_for_module(renderer: InstanceRendering) {
     for (const [layer, layer_chunks] of this._chunk_map.entries()) {
       for (const chunk of Object.values(layer_chunks)) {
         renderer.layer_map[layer].removeChild(chunk.container);
+      }
+    }
+  }
+
+  update_animations_for_animated_sprites(
+    resource_manager: ResourceManager,
+    gid: number,
+  ) {
+    if (!this.sprite_animation_sync_map[gid]) {
+      return;
+    }
+    const graphics = resource_manager.get_graphics_data_by_gid(gid);
+    for (const sprite of Object.values(
+      this.sprite_animation_sync_map[gid].sprites,
+    )) {
+      sprite.textures = graphics.frame_objects;
+    }
+    this.sprite_animation_sync_map[gid].sprites[
+      this.sprite_animation_sync_map[gid].main_sprite_key
+    ].play();
+  }
+
+  sync_sprite_animations() {
+    for (const sprite_map of Object.values(this.sprite_animation_sync_map)) {
+      const main_sprite = sprite_map.sprites[sprite_map.main_sprite_key];
+      const current_frame = main_sprite.currentFrame;
+      for (const [tile_key, sprite] of Object.entries(sprite_map.sprites)) {
+        if (tile_key === sprite_map.main_sprite_key) {
+          continue;
+        }
+        sprite.currentFrame = current_frame;
       }
     }
   }
@@ -158,9 +198,9 @@ export class TerrainManager {
         x,
         y,
       );
-      const animation = this._animations[tile_key];
+      const effects = this._effects[tile_key];
 
-      if (!animation) {
+      if (!effects) {
         if (gid === 0) {
           continue;
         }
@@ -173,18 +213,19 @@ export class TerrainManager {
           chunk_map_entry,
         );
       } else {
-        if (gid === animation.gid) {
+        if (gid === effects.gid) {
           continue;
         }
-        if (!this._active_animations.includes(animation)) {
-          this._active_animations.push(animation);
+        if (!this._active_animations.includes(effects)) {
+          this._active_animations.push(effects);
         }
-        delete this._animations[tile_key];
-        animation.fade_out.tween.start(window.performance.now());
-        animation.fade_out.all_tweens[
-          animation.fade_out.all_tweens.length - 1
+        delete this._effects[tile_key];
+        effects.fade_out.tween.start(window.performance.now());
+        effects.fade_out.all_tweens[
+          effects.fade_out.all_tweens.length - 1
         ].onComplete(() => {
-          chunk_map_entry.container.removeChild(animation.sprite);
+          this._remove_animated_sprite_from_animation_map(effects, tile_key);
+          chunk_map_entry.container.removeChild(effects.sprite);
         });
         if (gid !== 0) {
           this._create_new_tile(
@@ -195,6 +236,30 @@ export class TerrainManager {
             tile_key,
             chunk_map_entry,
           );
+        }
+      }
+    }
+  }
+
+  private _remove_animated_sprite_from_animation_map(
+    tile_effect: TileEffect,
+    tile_key: string,
+  ) {
+    const gid = tile_effect.gid;
+    if (tile_effect.sprite instanceof AnimatedSprite) {
+      if (
+        Object.keys(this.sprite_animation_sync_map[gid].sprites).length === 1
+      ) {
+        delete this.sprite_animation_sync_map[gid];
+      } else {
+        delete this.sprite_animation_sync_map[gid].sprites[tile_key];
+        if (this.sprite_animation_sync_map[gid].main_sprite_key === tile_key) {
+          this.sprite_animation_sync_map[gid].main_sprite_key = Object.keys(
+            this.sprite_animation_sync_map[gid].sprites,
+          )[0];
+          this.sprite_animation_sync_map[gid].sprites[
+            this.sprite_animation_sync_map[gid].main_sprite_key
+          ].play();
         }
       }
     }
@@ -213,9 +278,10 @@ export class TerrainManager {
   ) {
     const graphics = resource_manager.get_graphics_data_by_gid(gid);
     const sprite = resource_manager.get_sprite_from_graphics(graphics);
+    this._add_animated_sprite_to_sprite_animation_map(sprite, gid, tile_key);
     sprite.y = y;
     sprite.rotation = 0;
-    this._animations[tile_key] = {
+    this._effects[tile_key] = {
       base_props: {
         pos_x: x,
         pos_y: y,
@@ -227,12 +293,29 @@ export class TerrainManager {
       fade_in: create_basic_fade_in_animation(300, Math.random() * 600),
       fade_out: create_basic_fade_out_animation(300, Math.random() * 600),
       sprite,
-      gid,
+      gid: gid,
     };
-    const new_animation = this._animations[tile_key];
-    new_animation.fade_in.tween.start(window.performance.now());
-    this._active_animations.push(new_animation);
+    const new_tile_effect = this._effects[tile_key];
+    new_tile_effect.fade_in.tween.start(window.performance.now());
+    this._active_animations.push(new_tile_effect);
     chunk_map_entry.container.addChild(sprite);
+  }
+
+  private _add_animated_sprite_to_sprite_animation_map(
+    sprite: Sprite | AnimatedSprite,
+    gid: number,
+    tile_key: string,
+  ) {
+    if (sprite instanceof AnimatedSprite) {
+      if (!this.sprite_animation_sync_map[gid]) {
+        this.sprite_animation_sync_map[gid] = {
+          sprites: { [tile_key]: sprite },
+          main_sprite_key: tile_key,
+        };
+        sprite.play();
+      }
+      this.sprite_animation_sync_map[gid].sprites[tile_key] = sprite;
+    }
   }
 }
 

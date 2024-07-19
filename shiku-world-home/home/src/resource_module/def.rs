@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use crate::core::blueprint::def::{GidMap, ModuleId, ResourcePath, Tileset};
 use crate::core::guest::ActorId;
+use crate::core::module::TilesetUpdate;
 use flume::Receiver;
 use notify::event::ModifyKind;
 use serde::{Deserialize, Serialize};
@@ -48,6 +49,7 @@ pub enum ResourceEvent {
     LoadTilesets(Vec<Tileset>),
     UpdateGidMap(GidMap),
     LoadResource(ResourceBundle),
+    UpdateTileset(ResourcePath, TilesetUpdate),
     UnLoadResources,
 }
 

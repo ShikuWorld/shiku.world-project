@@ -151,7 +151,6 @@ impl BlueprintService {
         let mut gid_map = Vec::new();
         let mut current_count = 0;
         for resource in resources.iter().filter(|r| ResourceKind::Tileset == r.kind) {
-            debug!("tileset path {:?}", resources);
             let tileset = Blueprint::load_tileset(resource.path.clone().into())?;
             gid_map.push((resource.path.clone(), current_count));
             if tileset.image.is_some() {
@@ -173,7 +172,6 @@ impl BlueprintService {
             .iter()
             .filter(|r| ResourceKind::CharacterAnimation == r.kind)
         {
-            debug!("character animation path {:?}", resources);
             let character_animation =
                 Blueprint::load_character_animation(resource.path.clone().into())?;
             animation_to_tileset_map

@@ -18,7 +18,7 @@ use crate::core::guest::{Admin, Guest, ModuleEnterSlot};
 use crate::core::module::{
     create_module_communication_input, EnterFailedState, EnterSuccessState, GameSystemToGuest,
     GameSystemToGuestEvent, GuestEvent, GuestToModule, LeaveFailedState, LeaveSuccessState,
-    ModuleInputSender, ModuleInstanceEvent, ModuleOutputSender,
+    ModuleInputSender, ModuleInstanceEvent, ModuleOutputSender, TilesetUpdate,
 };
 use crate::core::module::{GuestInput, GuestToModuleEvent};
 use crate::core::module_system::def::{

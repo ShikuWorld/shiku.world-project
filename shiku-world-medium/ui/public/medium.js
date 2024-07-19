@@ -39366,6 +39366,7 @@ ${e3}`);
   init_Container();
   init_Graphics();
   init_Sprite();
+  init_Ticker();
   init_eventemitter3();
   var import_earcut2 = __toESM(require_earcut(), 1);
   extensions.add(browserExt, webworkerExt);
@@ -40580,7 +40581,7 @@ ${e3}`);
         }
       }
     }
-    handle_resource_event(resource_event) {
+    handle_resource_event(resource_event, game_instance_map) {
       N2(resource_event).with({ LoadResource: _.select() }, (resource_bundle) => {
         Assets.addBundle(
           resource_bundle.name,
@@ -40603,14 +40604,33 @@ ${e3}`);
       }).with({ UpdateGidMap: _.select() }, (gid_map) => {
         console.log("gid_map update", gid_map);
         this.gid_map = gid_map;
-      }).with("UnLoadResources", () => console.log("unload")).exhaustive();
+      }).with(
+        { UpdateTileset: _.select() },
+        ([resource_path, tileset_update]) => {
+          N2(tileset_update).with(
+            { ChangeTileAnimation: _.select() },
+            ([gid, simple_animation_frames]) => {
+              if (this.tile_set_map[resource_path] && this.tile_set_map[resource_path].tiles[gid] && simple_animation_frames) {
+                this.tile_set_map[resource_path].tiles[gid].animation = simple_animation_frames;
+                delete this.graphic_id_map[gid];
+                for (const worlds of Object.values(game_instance_map)) {
+                  for (const game_instance of Object.values(worlds)) {
+                    game_instance.terrain_manager.update_animations_for_animated_sprites(
+                      this,
+                      gid
+                    );
+                  }
+                }
+              }
+            }
+          ).run();
+        }
+      ).with("UnLoadResources", () => console.log("unload")).exhaustive();
     }
     get_sprite_from_graphics(graphics) {
       let sprite;
       if (graphics.frame_objects.length > 0) {
-        const animated_sprite = new AnimatedSprite(graphics.frame_objects);
-        animated_sprite.play();
-        sprite = animated_sprite;
+        sprite = new AnimatedSprite(graphics.frame_objects);
       } else {
         sprite = Sprite.from(graphics.textures[0]);
       }
@@ -40679,13 +40699,26 @@ ${e3}`);
           );
           return graphics;
         }
-        const x3 = (id - 1) % tileset.columns * tileset.tile_width;
-        const y3 = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
-        const texture = new Texture({
-          source: texture_source,
-          frame: new Rectangle(x3, y3, tileset.tile_width, tileset.tile_height)
-        });
-        graphics.textures.push(texture);
+        const animation_frames = tileset.tiles[id]?.animation ?? [];
+        if (animation_frames.length === 0) {
+          const x3 = (id - 1) % tileset.columns * tileset.tile_width;
+          const y3 = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
+          const texture = new Texture({
+            source: texture_source,
+            frame: new Rectangle(x3, y3, tileset.tile_width, tileset.tile_height)
+          });
+          graphics.textures.push(texture);
+        } else {
+          for (const frame of animation_frames) {
+            const x3 = (frame.id - 1) % tileset.columns * tileset.tile_width;
+            const y3 = Math.floor((frame.id - 1) / tileset.columns) * tileset.tile_height;
+            const texture = new Texture({
+              source: texture_source,
+              frame: new Rectangle(x3, y3, tileset.tile_width, tileset.tile_height)
+            });
+            graphics.frame_objects.push({ texture, time: frame.duration });
+          }
+        }
       } else {
         const image_path = tileset.tiles[id]?.image?.path;
         if (!image_path) {
@@ -42218,16 +42251,44 @@ ${e3}`);
     constructor(terrain_params) {
       this.terrain_params = terrain_params;
       this._chunk_map = /* @__PURE__ */ new Map();
-      this._animations = {};
+      this._effects = {};
       this._active_animations = [];
+      Ticker.shared.add(() => {
+        this.sync_sprite_animations();
+      });
     }
     _chunk_map;
-    _animations;
+    _effects;
     _active_animations;
+    sprite_animation_sync_map = {};
     remove_all_chunks_for_module(renderer) {
       for (const [layer, layer_chunks] of this._chunk_map.entries()) {
         for (const chunk of Object.values(layer_chunks)) {
           renderer.layer_map[layer].removeChild(chunk.container);
+        }
+      }
+    }
+    update_animations_for_animated_sprites(resource_manager, gid) {
+      if (!this.sprite_animation_sync_map[gid]) {
+        return;
+      }
+      const graphics = resource_manager.get_graphics_data_by_gid(gid);
+      for (const sprite of Object.values(
+        this.sprite_animation_sync_map[gid].sprites
+      )) {
+        sprite.textures = graphics.frame_objects;
+      }
+      this.sprite_animation_sync_map[gid].sprites[this.sprite_animation_sync_map[gid].main_sprite_key].play();
+    }
+    sync_sprite_animations() {
+      for (const sprite_map of Object.values(this.sprite_animation_sync_map)) {
+        const main_sprite = sprite_map.sprites[sprite_map.main_sprite_key];
+        const current_frame = main_sprite.currentFrame;
+        for (const [tile_key, sprite] of Object.entries(sprite_map.sprites)) {
+          if (tile_key === sprite_map.main_sprite_key) {
+            continue;
+          }
+          sprite.currentFrame = current_frame;
         }
       }
     }
@@ -42272,8 +42333,8 @@ ${e3}`);
           x3,
           y3
         );
-        const animation = this._animations[tile_key];
-        if (!animation) {
+        const effects = this._effects[tile_key];
+        if (!effects) {
           if (gid === 0) {
             continue;
           }
@@ -42286,16 +42347,17 @@ ${e3}`);
             chunk_map_entry
           );
         } else {
-          if (gid === animation.gid) {
+          if (gid === effects.gid) {
             continue;
           }
-          if (!this._active_animations.includes(animation)) {
-            this._active_animations.push(animation);
+          if (!this._active_animations.includes(effects)) {
+            this._active_animations.push(effects);
           }
-          delete this._animations[tile_key];
-          animation.fade_out.tween.start(window.performance.now());
-          animation.fade_out.all_tweens[animation.fade_out.all_tweens.length - 1].onComplete(() => {
-            chunk_map_entry.container.removeChild(animation.sprite);
+          delete this._effects[tile_key];
+          effects.fade_out.tween.start(window.performance.now());
+          effects.fade_out.all_tweens[effects.fade_out.all_tweens.length - 1].onComplete(() => {
+            this._remove_animated_sprite_from_animation_map(effects, tile_key);
+            chunk_map_entry.container.removeChild(effects.sprite);
           });
           if (gid !== 0) {
             this._create_new_tile(
@@ -42310,12 +42372,29 @@ ${e3}`);
         }
       }
     }
+    _remove_animated_sprite_from_animation_map(tile_effect, tile_key) {
+      const gid = tile_effect.gid;
+      if (tile_effect.sprite instanceof AnimatedSprite) {
+        if (Object.keys(this.sprite_animation_sync_map[gid].sprites).length === 1) {
+          delete this.sprite_animation_sync_map[gid];
+        } else {
+          delete this.sprite_animation_sync_map[gid].sprites[tile_key];
+          if (this.sprite_animation_sync_map[gid].main_sprite_key === tile_key) {
+            this.sprite_animation_sync_map[gid].main_sprite_key = Object.keys(
+              this.sprite_animation_sync_map[gid].sprites
+            )[0];
+            this.sprite_animation_sync_map[gid].sprites[this.sprite_animation_sync_map[gid].main_sprite_key].play();
+          }
+        }
+      }
+    }
     _create_new_tile(resource_manager, gid, x3, y3, tile_key, chunk_map_entry) {
       const graphics = resource_manager.get_graphics_data_by_gid(gid);
       const sprite = resource_manager.get_sprite_from_graphics(graphics);
+      this._add_animated_sprite_to_sprite_animation_map(sprite, gid, tile_key);
       sprite.y = y3;
       sprite.rotation = 0;
-      this._animations[tile_key] = {
+      this._effects[tile_key] = {
         base_props: {
           pos_x: x3,
           pos_y: y3,
@@ -42329,10 +42408,22 @@ ${e3}`);
         sprite,
         gid
       };
-      const new_animation = this._animations[tile_key];
-      new_animation.fade_in.tween.start(window.performance.now());
-      this._active_animations.push(new_animation);
+      const new_tile_effect = this._effects[tile_key];
+      new_tile_effect.fade_in.tween.start(window.performance.now());
+      this._active_animations.push(new_tile_effect);
       chunk_map_entry.container.addChild(sprite);
+    }
+    _add_animated_sprite_to_sprite_animation_map(sprite, gid, tile_key) {
+      if (sprite instanceof AnimatedSprite) {
+        if (!this.sprite_animation_sync_map[gid]) {
+          this.sprite_animation_sync_map[gid] = {
+            sprites: { [tile_key]: sprite },
+            main_sprite_key: tile_key
+          };
+          sprite.play();
+        }
+        this.sprite_animation_sync_map[gid].sprites[tile_key] = sprite;
+      }
     }
   };
   function get_tile_key(layer_kind, chunk_x, chunk_y, tile_x, tile_y) {
@@ -42681,7 +42772,8 @@ ${e3}`);
           }
         }).with({ ResourceEvent: _.select() }, ([module_id, resource_event]) => {
           lazy_get_resource_manager(module_id).handle_resource_event(
-            resource_event
+            resource_event,
+            instances
           );
         }).with(
           { PrepareGame: _.select() },

@@ -2,5 +2,6 @@
 import type { GidMap } from "../blueprints/GidMap";
 import type { ResourceBundle } from "./ResourceBundle";
 import type { Tileset } from "../blueprints/Tileset";
+import type { TilesetUpdate } from "./TilesetUpdate";
 
-export type ResourceEvent = { LoadTilesets: Array<Tileset> } | { UpdateGidMap: GidMap } | { LoadResource: ResourceBundle } | "UnLoadResources";
+export type ResourceEvent = { LoadTilesets: Array<Tileset> } | { UpdateGidMap: GidMap } | { LoadResource: ResourceBundle } | { UpdateTileset: [string, TilesetUpdate] } | "UnLoadResources";

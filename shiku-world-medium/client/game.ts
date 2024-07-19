@@ -128,6 +128,7 @@ export async function start_medium() {
         .with({ ResourceEvent: P.select() }, ([module_id, resource_event]) => {
           lazy_get_resource_manager(module_id).handle_resource_event(
             resource_event,
+            instances,
           );
         })
         .with(

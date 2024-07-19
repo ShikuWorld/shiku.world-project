@@ -22,6 +22,7 @@ import { RENDER_SCALE } from "@/shared/index";
 import { Collider } from "@/editor/blueprints/Collider";
 import { create_dummy_pic } from "@/client/renderer/create_game_renderer";
 import { CharAnimationToTilesetMap } from "@/editor/blueprints/CharAnimationToTilesetMap";
+import { GameInstanceMap } from "@/client/game-instance";
 
 export interface Graphics {
   textures: Texture[];
@@ -144,7 +145,10 @@ export class ResourceManager {
     }
   }
 
-  handle_resource_event(resource_event: ResourceEvent) {
+  handle_resource_event(
+    resource_event: ResourceEvent,
+    game_instance_map: GameInstanceMap,
+  ) {
     match(resource_event)
       .with({ LoadResource: P.select() }, (resource_bundle) => {
         Assets.addBundle(
@@ -173,6 +177,35 @@ export class ResourceManager {
         console.log("gid_map update", gid_map);
         this.gid_map = gid_map;
       })
+      .with(
+        { UpdateTileset: P.select() },
+        ([resource_path, tileset_update]) => {
+          match(tileset_update)
+            .with(
+              { ChangeTileAnimation: P.select() },
+              ([gid, simple_animation_frames]) => {
+                if (
+                  this.tile_set_map[resource_path] &&
+                  this.tile_set_map[resource_path].tiles[gid] &&
+                  simple_animation_frames
+                ) {
+                  this.tile_set_map[resource_path].tiles[gid].animation =
+                    simple_animation_frames;
+                  delete this.graphic_id_map[gid];
+                  for (const worlds of Object.values(game_instance_map)) {
+                    for (const game_instance of Object.values(worlds)) {
+                      game_instance.terrain_manager.update_animations_for_animated_sprites(
+                        this,
+                        gid,
+                      );
+                    }
+                  }
+                }
+              },
+            )
+            .run();
+        },
+      )
       .with("UnLoadResources", () => console.log("unload"))
       .exhaustive();
   }
@@ -181,10 +214,7 @@ export class ResourceManager {
     let sprite: Sprite;
 
     if (graphics.frame_objects.length > 0) {
-      const animated_sprite = new AnimatedSprite(graphics.frame_objects);
-
-      animated_sprite.play();
-      sprite = animated_sprite;
+      sprite = new AnimatedSprite(graphics.frame_objects);
     } else {
       sprite = Sprite.from(graphics.textures[0]);
     }
@@ -270,13 +300,27 @@ export class ResourceManager {
         );
         return graphics;
       }
-      const x = ((id - 1) % tileset.columns) * tileset.tile_width;
-      const y = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
-      const texture = new Texture({
-        source: texture_source,
-        frame: new Rectangle(x, y, tileset.tile_width, tileset.tile_height),
-      });
-      graphics.textures.push(texture);
+      const animation_frames = tileset.tiles[id]?.animation ?? [];
+      if (animation_frames.length === 0) {
+        const x = ((id - 1) % tileset.columns) * tileset.tile_width;
+        const y = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
+        const texture = new Texture({
+          source: texture_source,
+          frame: new Rectangle(x, y, tileset.tile_width, tileset.tile_height),
+        });
+        graphics.textures.push(texture);
+      } else {
+        for (const frame of animation_frames) {
+          const x = ((frame.id - 1) % tileset.columns) * tileset.tile_width;
+          const y =
+            Math.floor((frame.id - 1) / tileset.columns) * tileset.tile_height;
+          const texture = new Texture({
+            source: texture_source,
+            frame: new Rectangle(x, y, tileset.tile_width, tileset.tile_height),
+          });
+          graphics.frame_objects.push({ texture, time: frame.duration });
+        }
+      }
     } else {
       const image_path = tileset.tiles[id]?.image?.path;
       if (!image_path) {
