@@ -60,8 +60,8 @@ export function handle_editor_event(event: EditorEvent) {
     .with({ SetMap: P.select() }, (d) => {
       window.medium_gui.resources.set_map(d);
     })
-    .with({ UpdatedMap: P.select() }, (d) => {
-      window.medium_gui.resources.update_map(d);
+    .with({ UpdatedMap: P.select() }, ([d, chunk_size]) => {
+      window.medium_gui.resources.update_map(d, chunk_size);
     })
     .with({ DeletedMap: P.select() }, (d) => {
       window.medium_gui.resources.delete_map(d);

@@ -77,7 +77,7 @@ pub enum EditorEvent {
     DeletedScript(Script),
     CreatedMap(blueprint::def::GameMap),
     SetMap(blueprint::def::GameMap),
-    UpdatedMap(blueprint::def::MapUpdate),
+    UpdatedMap(blueprint::def::MapUpdate, u32),
     DeletedMap(blueprint::def::GameMap),
     CreatedScene(blueprint::scene::def::Scene),
     SetScene(blueprint::scene::def::Scene),

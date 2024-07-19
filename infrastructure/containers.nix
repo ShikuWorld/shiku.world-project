@@ -58,6 +58,7 @@ in
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];
+      autoStart = false;
       volumes = [
         "${shikuWorldHomeDevResourcePath}:/app/target/release/out"
       ];

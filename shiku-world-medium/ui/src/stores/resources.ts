@@ -142,7 +142,7 @@ export const use_resources_store = defineStore("resources", () => {
         [map_key(game_map)]: game_map,
       };
     },
-    update_map(map_update: MapUpdate) {
+    update_map(map_update: MapUpdate, chunk_size: number) {
       const key = map_key(map_update);
       const game_map = state.game_map_map[key];
       if (game_map) {
@@ -163,10 +163,24 @@ export const use_resources_store = defineStore("resources", () => {
           },
         };
         if (map_update.chunk) {
-          const [layer_kind, chunk] = map_update.chunk;
-          state.game_map_map[key].terrain[layer_kind][
-            cantor_pair(chunk.position[0], chunk.position[1])
-          ] = chunk;
+          const [layer_kind, chunk_update] = map_update.chunk;
+          const chunk_id = cantor_pair(
+            chunk_update.position[0],
+            chunk_update.position[1],
+          );
+          if (!state.game_map_map[key].terrain[layer_kind][chunk_id]) {
+            state.game_map_map[key].terrain[layer_kind][chunk_id] = {
+              position: chunk_update.position,
+              data: new Array(chunk_size * chunk_size).fill(0),
+            };
+          }
+          const chunk = state.game_map_map[key].terrain[layer_kind][chunk_id];
+          for (const [y, tile] of Object.entries(chunk_update.tile_updates)) {
+            for (const [x, gid] of Object.entries(tile)) {
+              const i = Number(y) * chunk_size + Number(x);
+              chunk.data[i] = gid;
+            }
+          }
         }
         if (map_update.layer_parallax) {
           const [layer_kind, [x, y]] = map_update.layer_parallax;

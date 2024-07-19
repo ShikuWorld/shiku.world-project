@@ -328,18 +328,21 @@ pub async fn handle_admin_to_system_event(
             let map_path = map_update.get_full_resource_path();
             match Blueprint::load_map(PathBuf::from(map_path.clone())) {
                 Ok(mut map) => {
-                    if let Some((layer, chunk)) = map_update.chunk.clone() {
-                        map.set_chunk(layer, chunk);
+                    let mut updated_chunk = None;
+                    if let Some((layer, chunk_update)) = map_update.chunk.clone() {
+                        updated_chunk = map.apply_chunk_update(layer, chunk_update);
                     }
                     if let Some((layer_kind, (x, y))) = &map_update.layer_parallax {
                         map.layer_parallax.insert(layer_kind.clone(), (*x, *y));
                     }
                     match Blueprint::save_map(&map) {
                         Ok(()) => {
-                            if let (Some(module), Some((layer_kind, chunk))) =
-                                (module_map.get_mut(&map.module_id), &map_update.chunk)
-                            {
-                                module.update_world_map(&map.world_id, layer_kind, chunk);
+                            if let (Some(module), Some((layer_kind, _)), Some(chunk)) = (
+                                module_map.get_mut(&map.module_id),
+                                &map_update.chunk,
+                                updated_chunk,
+                            ) {
+                                module.update_world_map(&map.world_id, layer_kind, &chunk);
                             }
                             if let Some(layer_parallax) = &map_update.layer_parallax {
                                 if let Some(modules) = resource_to_module_map.get(&map_path) {
@@ -353,7 +356,7 @@ pub async fn handle_admin_to_system_event(
                                     }
                                 }
                             }
-                            send_editor_event(EditorEvent::UpdatedMap(map_update));
+                            send_editor_event(EditorEvent::UpdatedMap(map_update, map.chunk_size));
                         }
                         Err(err) => {
                             error!("Could not update map {:?}", err);

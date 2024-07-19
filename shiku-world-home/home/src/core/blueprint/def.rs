@@ -153,7 +153,23 @@ pub struct Tile {
 #[ts(export, export_to = "blueprints/")]
 pub struct Chunk {
     pub position: (i32, i32),
-    pub data: Vec<u32>,
+    pub data: Vec<Gid>,
+}
+
+impl Chunk {
+    pub fn new(position: (i32, i32), chunk_size: usize) -> Chunk {
+        Chunk {
+            position,
+            data: vec![0; chunk_size * chunk_size],
+        }
+    }
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct ChunkUpdate {
+    pub position: (i32, i32),
+    pub tile_updates: HashMap<i32, HashMap<i32, Gid>>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -264,7 +280,7 @@ pub struct GameMap {
 pub struct MapUpdate {
     pub name: String,
     pub resource_path: ResourcePath,
-    pub chunk: Option<(LayerKind, Chunk)>,
+    pub chunk: Option<(LayerKind, ChunkUpdate)>,
     pub scene: Option<ResourcePath>,
     pub layer_parallax: Option<(LayerKind, (f32, f32))>,
 }

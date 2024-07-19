@@ -349,7 +349,7 @@ impl TerrainManager {
         for x in min_x..=max_x {
             for y in min_y..=max_y {
                 if (x == min_x || x == max_x) && (y == min_y || y == max_y) {
-                    // Ignore edges
+                    // Ignore corners as polylines can only go to 4-neighbours
                     continue;
                 }
                 if let Some(tile) = polyline_bookkeeping.terrain_grid.get(&(x, y)) {

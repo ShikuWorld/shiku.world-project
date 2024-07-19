@@ -10,8 +10,8 @@ use walkdir::WalkDir;
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, BlueprintService, CharAnimationToTilesetMap, Chunk,
-    Conductor, FileBrowserFileKind, FileBrowserResult, GameMap, Gid, GidMap, JsonResource,
-    LayerKind, MapUpdate, Module, ResourceKind, ResourceLoaded, Tileset,
+    ChunkUpdate, Conductor, FileBrowserFileKind, FileBrowserResult, GameMap, Gid, GidMap,
+    JsonResource, LayerKind, MapUpdate, Module, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, Scene, Script};
@@ -271,11 +271,35 @@ impl From<FileBrowserFileKind> for ResourceKind {
 }
 
 impl GameMap {
-    pub fn set_chunk(&mut self, layer_kind: LayerKind, chunk: Chunk) {
-        self.terrain
-            .entry(layer_kind)
+    pub fn apply_chunk_update(
+        &mut self,
+        layer_kind: LayerKind,
+        chunk_update: ChunkUpdate,
+    ) -> Option<Chunk> {
+        let chunk_id = cantor_pair(chunk_update.position.0, chunk_update.position.1);
+        let chunk = self
+            .terrain
+            .entry(layer_kind.clone())
             .or_default()
-            .insert(cantor_pair(chunk.position.0, chunk.position.1), chunk);
+            .entry(chunk_id)
+            .or_insert_with(|| Chunk::new(chunk_update.position, self.chunk_size as usize));
+
+        let mut has_updated = false;
+        for (y, tile) in chunk_update.tile_updates {
+            for (x, gid) in tile {
+                let i = y * self.chunk_size as i32 + x;
+                if (chunk.data.len() as i32) > i && i >= 0 {
+                    if chunk.data[i as usize] != gid {
+                        chunk.data[i as usize] = gid;
+                        has_updated = true;
+                    }
+                } else {
+                    error!("Invalid index for chunk insertion!!!: {}", i);
+                }
+            }
+        }
+
+        has_updated.then_some(chunk.clone())
     }
 }
 

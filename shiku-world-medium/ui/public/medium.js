@@ -42571,8 +42571,8 @@ ${e3}`);
       window.medium_gui.resources.set_map(d3);
     }).with({ SetMap: _.select() }, (d3) => {
       window.medium_gui.resources.set_map(d3);
-    }).with({ UpdatedMap: _.select() }, (d3) => {
-      window.medium_gui.resources.update_map(d3);
+    }).with({ UpdatedMap: _.select() }, ([d3, chunk_size]) => {
+      window.medium_gui.resources.update_map(d3, chunk_size);
     }).with({ DeletedMap: _.select() }, (d3) => {
       window.medium_gui.resources.delete_map(d3);
     }).with({ CreatedCharacterAnimation: _.select() }, (d3) => {

@@ -177,6 +177,7 @@ import RhaiEditor from "@/editor/editor/RhaiEditor.vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
 import CharacterAnimationNodeInspector from "@/editor/editor/CharacterAnimationNodeInspector.vue";
 import SettingsEditor from "@/editor/editor/SettingsEditor.vue";
+import { ChunkUpdate } from "@/editor/blueprints/ChunkUpdate";
 
 const {
   selected_module_id,
@@ -306,7 +307,6 @@ const load_modules_interval = setInterval(() => {
                 inspecting_worlds.value.main.instance_id,
                 inspecting_worlds.value.main.world_id,
               );
-              console.log(selected_scene_props.value, scene);
               set_and_render_blueprint_render(
                 inspecting_worlds.value.main.module_id,
                 selected_scene_props.value.scene_path,
@@ -538,18 +538,17 @@ watch(selected_tile_position, () =>
 function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
   if (current_main_map.value) {
     let game_map = current_main_map.value;
-    for (const chunk_id of fill_map(
+    const chunk_updates = get_chunk_updates(
       game_map,
-      layer_kind,
       tile_x,
       tile_y,
       tile_brush.value,
-    ).values()) {
-      const updated_chunk = game_map.terrain[layer_kind][chunk_id];
+    );
+    for (const chunk_update of Object.values(chunk_updates)) {
       update_map_server({
         name: game_map.name,
         resource_path: game_map.resource_path,
-        chunk: [layer_kind, updated_chunk],
+        chunk: [layer_kind, chunk_update],
         scene: null,
         layer_parallax: null,
       });
@@ -557,34 +556,36 @@ function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
   }
 }
 
-function fill_map(
+function get_chunk_updates(
   game_map: GameMap,
-  layer_kind: LayerKind,
   start_x: number,
   start_y: number,
   brush: number[][],
-): Set<number> {
-  const filled_chunks = new Set<number>();
+): { [key: number]: ChunkUpdate } {
+  const chunk_updates: { [key: number]: ChunkUpdate } = {};
   for (let y = 0; y < brush.length; y++) {
     for (let x = 0; x < brush[0].length; x++) {
       let chunk_x = Math.floor((start_x + x) / game_map.chunk_size);
       let chunk_y = Math.floor((start_y + y) / game_map.chunk_size);
-      if (!game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)]) {
-        game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)] = {
+      const chunk_id = cantorPair(chunk_x, chunk_y);
+      if (!chunk_updates[chunk_id]) {
+        chunk_updates[chunk_id] = {
           position: [chunk_x, chunk_y],
-          data: new Array(game_map.chunk_size * game_map.chunk_size).fill(0),
+          tile_updates: {},
         };
       }
-      const chunk = game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)];
-      filled_chunks.add(cantorPair(chunk_x, chunk_y));
+      // maybe for tile brush later?
+      // const chunk = game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)];
+      const chunk_update = chunk_updates[chunk_id];
       let chunk_tile_x = start_x + x - chunk_x * game_map.chunk_size;
       let chunk_tile_y = start_y + y - chunk_y * game_map.chunk_size;
-
-      chunk.data[chunk_tile_y * game_map.chunk_size + chunk_tile_x] =
-        brush[y][x];
+      if (!chunk_update.tile_updates[chunk_tile_y]) {
+        chunk_update.tile_updates[chunk_tile_y] = {};
+      }
+      chunk_update.tile_updates[chunk_tile_y][chunk_tile_x] = brush[y][x];
     }
   }
-  return filled_chunks;
+  return chunk_updates;
 }
 
 function toNatural(num: number): number {
