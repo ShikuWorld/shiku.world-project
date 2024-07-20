@@ -210,6 +210,16 @@ export class ResourceManager {
       .exhaustive();
   }
 
+  get_animated_sprite_from_graphics(graphics: Graphics): AnimatedSprite {
+    const sprite = new AnimatedSprite(
+      graphics.frame_objects.length > 0
+        ? graphics.frame_objects
+        : graphics.textures,
+    );
+    sprite.anchor.set(0.5, 0.5);
+    return sprite;
+  }
+
   get_sprite_from_graphics(graphics: Graphics): Sprite {
     let sprite: Sprite;
 
