@@ -184,6 +184,15 @@ export class ResourceManager {
             .with(
               { ChangeTileAnimation: P.select() },
               ([gid, simple_animation_frames]) => {
+                if (simple_animation_frames !== null) {
+                  this.tile_set_map[resource_path].tiles[gid] = {
+                    id: gid,
+                    animation: simple_animation_frames,
+                    image: null,
+                    collision_shape: null,
+                  };
+                }
+
                 if (
                   this.tile_set_map[resource_path] &&
                   this.tile_set_map[resource_path].tiles[gid] &&
@@ -192,6 +201,7 @@ export class ResourceManager {
                   this.tile_set_map[resource_path].tiles[gid].animation =
                     simple_animation_frames;
                   delete this.graphic_id_map[gid];
+                  console.log("update animation", gid, simple_animation_frames);
                   for (const worlds of Object.values(game_instance_map)) {
                     for (const game_instance of Object.values(worlds)) {
                       game_instance.terrain_manager.update_animations_for_animated_sprites(

@@ -40610,9 +40610,18 @@ ${e3}`);
           N2(tileset_update).with(
             { ChangeTileAnimation: _.select() },
             ([gid, simple_animation_frames]) => {
+              if (simple_animation_frames !== null) {
+                this.tile_set_map[resource_path].tiles[gid] = {
+                  id: gid,
+                  animation: simple_animation_frames,
+                  image: null,
+                  collision_shape: null
+                };
+              }
               if (this.tile_set_map[resource_path] && this.tile_set_map[resource_path].tiles[gid] && simple_animation_frames) {
                 this.tile_set_map[resource_path].tiles[gid].animation = simple_animation_frames;
                 delete this.graphic_id_map[gid];
+                console.log("update animation", gid, simple_animation_frames);
                 for (const worlds of Object.values(game_instance_map)) {
                   for (const game_instance of Object.values(worlds)) {
                     game_instance.terrain_manager.update_animations_for_animated_sprites(
@@ -42284,11 +42293,13 @@ ${e3}`);
         return;
       }
       const effects_for_gid = this.sprite_by_gid_map[gid];
+      console.log(effects_for_gid);
       const graphics = resource_manager.get_graphics_data_by_gid(gid);
       const is_animated = graphics.frame_objects.length > 0;
       for (const tile_key of effects_for_gid.effects.values()) {
         this.tile_effects_map[tile_key].sprite.textures = graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures;
       }
+      console.log("is_animated: ", is_animated, "gid: ", gid);
       if (is_animated) {
         if (effects_for_gid.main_animation_sprite_key == null) {
           effects_for_gid.main_animation_sprite_key = effects_for_gid.effects.values().next().value;

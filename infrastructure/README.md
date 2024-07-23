@@ -10,6 +10,8 @@ NIX_SSHOPTS='-i /home/shiku/.ssh/netcup/shikus-world-main/id_ed25519' nix run ni
 
 ssh -i /home/shiku/.ssh/netcup/shikus-world-main/id_ed25519 root@v2202302194870220598.powersrv.de
 
+sudo sshfs -o allow_other,IdentityFile=/home/shiku/.ssh/netcup/shikus-world-main/id_ed25519 root@v2202302194870220598.powersrv.de:/var/lib/podman/volumes/shiku-world-home-dev-resources /home/shiku/RustroverProjects/shiku.world-project/shiku-world-home-out-mount/
+
 nix flake update --extra-experimental-features nix-command --extra-experimental-features flakes
 
 dependencies: nix-env -iA nixpkgs.yarn2nix
