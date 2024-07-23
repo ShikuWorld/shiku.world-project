@@ -27,6 +27,7 @@ declare global {
       twitch_login: typeof login;
       hide_loading_indicator: () => void;
       communication_state: CommunicationState;
+      reset_instances: () => void;
       reconnect: () => Promise<void>;
       is_instance_ready: (instance_id: string, world_id: string) => boolean;
       get_resource_manager: (module_id: string) => ResourceManager | undefined;

@@ -108,6 +108,38 @@ pub struct Tileset {
     pub tile_count: u32,
     pub columns: u32,
     pub tiles: HashMap<u32, Tile>,
+    pub brushes: Vec<TerrainBrush>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct StandardKernelThree {
+    top_left_corner: Gid,
+    top_right_corner: Gid,
+    bottom_left_corner: Gid,
+    bottom_right_corner: Gid,
+
+    top_left_inner_corner: Gid,
+    top_right_inner_corner: Gid,
+    bottom_left_inner_corner: Gid,
+    bottom_right_inner_corner: Gid,
+
+    top_edge: Gid,
+    bottom_edge: Gid,
+    left_edge: Gid,
+    right_edge: Gid,
+
+    inside: Gid,
+
+    left_top_bottom_right_inner_corner: Gid,
+}
+
+type BrushName = String;
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum TerrainBrush {
+    StandardKernelThree(BrushName, StandardKernelThree),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

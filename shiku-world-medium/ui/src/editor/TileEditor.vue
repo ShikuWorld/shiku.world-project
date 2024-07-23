@@ -10,6 +10,7 @@
         :collision_shape="collision_shape_tmp"
       ></CollisionEditor>
     </div>
+    <div>{{ tile_id }}</div>
     <v-select
       label="Collider"
       :hide-details="true"

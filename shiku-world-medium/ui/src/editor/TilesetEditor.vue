@@ -1,5 +1,14 @@
 <template>
   <div>
+    <div class="tileset_editor__terrain_brushes" v-if="enable_brushing">
+      <v-select
+        :items="tileset_brushes"
+        item-title="label"
+        item-value="value"
+        :model-value="selected_brush"
+        @update:model-value="select_brush"
+      ></v-select>
+    </div>
     <div class="tileset-editor__main-image" v-if="tileset.image">
       <div class="tileset-editor__main-image-backdrop"><img :src="img" /></div>
       <div class="tileset-editor__tiles">
@@ -55,6 +64,31 @@
       </div>
       <v-btn @click="add_tile" :icon="mdiPlus"></v-btn>
     </div>
+    <div class="tileset-editor__brushes" v-if="!enable_brushing">
+      <h2 class="tileset-editor__brushes_title">Brushes</h2>
+      <div
+        class="tileset_editor__brush"
+        v-for="(brush, index) in tileset.brushes"
+        :key="index"
+      >
+        <StandardKernelThreeTileBrushEditor
+          v-if="brush.StandardKernelThree"
+          :tileset="tileset"
+          :brush_name="brush.StandardKernelThree[0]"
+          :brush="brush.StandardKernelThree[1]"
+          @brush_name_update="(new_name) => update_brush_name(index, new_name)"
+          @brush_kernel_update="
+            (new_kernels) => update_brush_kernel(index, new_kernels)
+          "
+        ></StandardKernelThreeTileBrushEditor>
+        <v-btn
+          density="compact"
+          @click="remove_brush(index)"
+          :icon="mdiTrashCan"
+        ></v-btn>
+      </div>
+      <v-btn @click="add_brush" :icon="mdiPlus"></v-btn>
+    </div>
   </div>
 </template>
 <script lang="ts" setup>
@@ -66,19 +100,29 @@ import { use_resources_store } from "@/editor/stores/resources";
 import { Tile } from "@/editor/blueprints/Tile";
 import { VImg } from "vuetify/components";
 import { mdiPlus, mdiTrashCan } from "@mdi/js";
+import StandardKernelThreeTileBrushEditor from "@/editor/editor/StandardKernelThreeTileBrushEditor.vue";
+import { StandardKernelThree } from "@/editor/blueprints/StandardKernelThree";
+import { TerrainBrush } from "@/editor/blueprints/TerrainBrush";
 
 const { resource_base_url } = use_config_store();
 const { update_tileset_server } = use_resources_store();
 const props = defineProps<{
   tileset: Tileset;
   start_gid: number;
-  enable_multi_tile_selection?: boolean;
+  selected_brush?: TerrainBrush | null;
+  enable_brushing?: boolean;
+  show_brush_selection?: boolean;
 }>();
 const previews = ref<VImg[]>();
+const tileset_brushes = computed(() => {
+  return props.tileset.brushes.map((b) => ({
+    label: b.StandardKernelThree[0],
+    value: b,
+  }));
+});
 function image_loaded(image_index: number, gid: number) {
   const tile = tileset.value.tiles[gid];
   const previewImage = previews.value?.[image_index]?.image;
-  console.log(tile, previews.value);
   if (previewImage && tile.image) {
     update_tileset_server(tileset_key(tileset.value), {
       ChangeTileImage: [
@@ -107,6 +151,9 @@ const change_tile_source = (path: string, gid: number) => {
       });
     }
   }, 500);
+};
+const select_brush = (brush: TerrainBrush) => {
+  emit("select_terrain_brush", brush);
 };
 const next_gid = computed(() => {
   const gids = Object.keys(tileset.value.tiles).map((x) => parseInt(x));
@@ -159,7 +206,7 @@ const selected_tiles = computed(() => {
   }
   return set;
 });
-const { tileset, start_gid, enable_multi_tile_selection } = toRefs(props);
+const { tileset, start_gid, enable_brushing } = toRefs(props);
 const emit = defineEmits<{
   (
     e: "tile_selection",
@@ -168,6 +215,7 @@ const emit = defineEmits<{
     g_ids: number[][],
     tileset_key: string,
   ): void;
+  (e: "select_terrain_brush", brush: TerrainBrush): void;
   (e: "tile_selected", g_id: number, tileset_key: string): void;
 }>();
 function start_selection(y: number, x: number) {
@@ -177,7 +225,7 @@ function start_selection(y: number, x: number) {
 }
 
 function move_selection_end(y: number, x: number) {
-  if (sel_running && enable_multi_tile_selection.value) {
+  if (sel_running && enable_brushing.value) {
     sel_end.value = { y, x };
   }
 }
@@ -188,7 +236,7 @@ function select_tile(gid: number) {
 
 function end_selection(y: number, x: number) {
   sel_end.value = { y, x };
-  if (!enable_multi_tile_selection.value) {
+  if (!enable_brushing.value) {
     sel_start.value = { y, x };
     select_tile(g_id(y, x));
   } else {
@@ -234,10 +282,85 @@ const columns = computed(() => {
   }
   return 0;
 });
+
+const add_brush = () => {
+  update_tileset_server(tileset_key(tileset.value), {
+    AddBrush: {
+      StandardKernelThree: [
+        "Default",
+        {
+          top_left_corner: 0,
+          top_right_corner: 0,
+          bottom_left_corner: 0,
+          bottom_right_corner: 0,
+          top_left_inner_corner: 0,
+          top_right_inner_corner: 0,
+          bottom_left_inner_corner: 0,
+          bottom_right_inner_corner: 0,
+          top_edge: 0,
+          bottom_edge: 0,
+          left_edge: 0,
+          right_edge: 0,
+          inside: 0,
+          left_top_bottom_right_inner_corner: 0,
+        },
+      ],
+    },
+  });
+};
+
+const remove_brush = (index: number) => {
+  update_tileset_server(tileset_key(tileset.value), {
+    RemoveBrush: index,
+  });
+};
+
+const update_brush_name = (index: number, new_name: string) => {
+  const brush = tileset.value.brushes[index];
+  if (brush) {
+    update_tileset_server(tileset_key(tileset.value), {
+      UpdateBrush: [
+        index,
+        {
+          ...brush,
+          StandardKernelThree: [new_name, brush.StandardKernelThree[1]],
+        },
+      ],
+    });
+  }
+};
+
+const update_brush_kernel = (
+  index: number,
+  new_kernels: StandardKernelThree,
+) => {
+  const brush = tileset.value.brushes[index];
+  if (brush) {
+    update_tileset_server(tileset_key(tileset.value), {
+      UpdateBrush: [
+        index,
+        {
+          ...brush,
+          StandardKernelThree: [brush.StandardKernelThree[0], new_kernels],
+        },
+      ],
+    });
+  }
+};
 </script>
 <style>
 .tileset-editor__main-image {
   position: relative;
+}
+.tileset-editor__brushes {
+  display: flex;
+  flex-wrap: wrap;
+}
+.tileset-editor__brushes_title {
+  width: 100%;
+}
+.tileset_editor__brush {
+  width: 50%;
 }
 .tileset-editor__tiles {
   position: absolute;

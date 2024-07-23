@@ -8,7 +8,7 @@ use crate::core::blueprint;
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     CharAnimationToTilesetMap, Chunk, Conductor, Gid, GidMap, Image, LayerKind, ModuleId,
-    ResourcePath, SimpleAnimationFrame, TerrainParams, Tile, Tileset,
+    ResourcePath, SimpleAnimationFrame, TerrainBrush, TerrainParams, Tile, Tileset,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{
@@ -153,6 +153,9 @@ pub enum TilesetUpdate {
     AddTile(Gid, Tile),
     RemoveTile(Gid),
     ChangeTileImage(Gid, Image),
+    AddBrush(TerrainBrush),
+    RemoveBrush(usize),
+    UpdateBrush(usize, TerrainBrush),
     ChangeTileAnimation(Gid, Option<Vec<SimpleAnimationFrame>>),
     UpdateCollisionShape(Gid, CollisionShape),
     RemoveCollisionShape(Gid),

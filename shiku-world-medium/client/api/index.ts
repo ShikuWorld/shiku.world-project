@@ -27,6 +27,12 @@ export const setup_medium_api = (
     twitch_login: (communication_state: CommunicationState) =>
       login(communication_state),
     communication_state: communication_state,
+    reset_instances: () => {
+      render_system.stage.removeChildren();
+      for (const game_instance_id in instances) {
+        delete instances[game_instance_id];
+      }
+    },
     reconnect: () => {
       return new Promise((resolve) => {
         reset_communication_system(communication_state, menu_system, () => {

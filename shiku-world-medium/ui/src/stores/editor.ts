@@ -9,6 +9,7 @@ import { use_resources_store } from "@/editor/stores/resources";
 import { Entity } from "@/editor/blueprints/Entity";
 import { GameNodeKind } from "@/editor/blueprints/GameNodeKind";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { TerrainBrush } from "@/editor/blueprints/TerrainBrush";
 
 export type Point = { y: number; x: number };
 
@@ -27,6 +28,8 @@ export interface EditorStore {
   current_map_path: string;
   edit_module_id: string;
   tile_brush: number[][];
+  terrain_brush: TerrainBrush | null;
+  terrain_brush_size: number;
   current_map_index: number;
   module_instance_map: { [module_id: string]: string[] };
   selected_nav_top_tab: "current" | "modules" | "resources" | "settings";
@@ -63,6 +66,8 @@ export const use_editor_store = defineStore(
       editor_open: false,
       module_instance_map: {},
       tile_brush: [[0]],
+      terrain_brush: null,
+      terrain_brush_size: 1,
       selected_module_id: "",
       selected_tileset_path: "",
       selected_tile_id: 0,
@@ -105,7 +110,26 @@ export const use_editor_store = defineStore(
       set_selected_tile_layer(layer: LayerKind) {
         state.selected_tile_layer = layer;
       },
+      set_terrain_brush(brush: TerrainBrush | null, size: number) {
+        state.terrain_brush = brush;
+        state.terrain_brush_size = size;
+        if (
+          state.terrain_brush &&
+          state.current_main_instance.instance_id &&
+          state.current_main_instance.world_id
+        ) {
+          window.medium.adjust_brush_hover(
+            state.current_main_instance.instance_id,
+            state.current_main_instance.world_id,
+            new Array(size).fill(new Array(size).fill(0, 0), 0),
+          );
+        }
+      },
       set_tile_brush(brush: number[][]) {
+        if (!brush.every((row) => row.every((v) => v === 0))) {
+          this.set_terrain_brush(null, brush.length);
+        }
+
         state.tile_brush = brush;
         if (
           state.current_main_instance.instance_id &&
@@ -122,7 +146,6 @@ export const use_editor_store = defineStore(
         state.selected_nav_top_tab = index;
       },
       select_tile_position(tile_position: { x: number; y: number }) {
-        console.log("select_tile_position", tile_position);
         state.selected_tile_position = tile_position;
       },
       set_camera_position(

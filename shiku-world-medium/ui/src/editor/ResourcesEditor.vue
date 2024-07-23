@@ -211,7 +211,7 @@ function ensure_resources_are_loaded() {
         console.log("hm Script?", r);
       })
       .with({ kind: "CharacterAnimation" }, (r) => {
-        if (!tileset_map.value[resource_key(r)]) {
+        if (!character_animation_map.value[resource_key(r)]) {
           get_resource_server(r.path);
         }
       })

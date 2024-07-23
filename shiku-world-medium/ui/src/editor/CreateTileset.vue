@@ -88,6 +88,7 @@ const tileset = reactive<Tileset>({
   tile_height: 16,
   tiles: {},
   tile_width: 16,
+  brushes: [],
 });
 const { resource_base_url } = use_config_store();
 const img = computed(

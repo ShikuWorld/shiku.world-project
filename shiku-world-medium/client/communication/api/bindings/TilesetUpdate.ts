@@ -2,6 +2,7 @@
 import type { CollisionShape } from "../blueprints/CollisionShape";
 import type { Image } from "../blueprints/Image";
 import type { SimpleAnimationFrame } from "../blueprints/SimpleAnimationFrame";
+import type { TerrainBrush } from "../blueprints/TerrainBrush";
 import type { Tile } from "../blueprints/Tile";
 
-export type TilesetUpdate = { AddTile: [number, Tile] } | { RemoveTile: number } | { ChangeTileImage: [number, Image] } | { ChangeTileAnimation: [number, Array<SimpleAnimationFrame> | null] } | { UpdateCollisionShape: [number, CollisionShape] } | { RemoveCollisionShape: number };
+export type TilesetUpdate = { AddTile: [number, Tile] } | { RemoveTile: number } | { ChangeTileImage: [number, Image] } | { AddBrush: TerrainBrush } | { RemoveBrush: number } | { UpdateBrush: [number, TerrainBrush] } | { ChangeTileAnimation: [number, Array<SimpleAnimationFrame> | null] } | { UpdateCollisionShape: [number, CollisionShape] } | { RemoveCollisionShape: number };

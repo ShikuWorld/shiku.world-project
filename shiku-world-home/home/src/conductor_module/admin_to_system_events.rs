@@ -506,6 +506,17 @@ pub async fn handle_admin_to_system_event(
         AdminToSystemEvent::UpdateTileset(resource_path, ref tileset_update) => {
             if let Ok(mut tileset) = Blueprint::load_tileset(resource_path.clone().into()) {
                 match tileset_update {
+                    TilesetUpdate::AddBrush(brush) => {
+                        tileset.brushes.push(brush.clone());
+                    }
+                    TilesetUpdate::RemoveBrush(i) => {
+                        tileset.brushes.remove(*i);
+                    }
+                    TilesetUpdate::UpdateBrush(i, brush_update) => {
+                        if let Some(brush) = tileset.brushes.get_mut(*i) {
+                            brush.clone_from(brush_update);
+                        }
+                    }
                     TilesetUpdate::ChangeTileImage(gid, image) => {
                         let tile = tileset.tiles.entry(*gid).or_default();
                         tile.image = Some(image.clone());

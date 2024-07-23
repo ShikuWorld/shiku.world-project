@@ -14,7 +14,7 @@ export function adjust_selected_tile_size(
   renderer: InstanceRendering,
   brush: number[][],
 ) {
-  if (renderer.grid) {
+  if (renderer.grid && brush.length > 0 && brush[0].length > 0) {
     const height = brush.length;
     const width = brush[0].length;
     renderer.grid.grid_container.removeChild(renderer.grid.selected_tile);

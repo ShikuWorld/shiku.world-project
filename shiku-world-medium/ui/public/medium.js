@@ -40623,7 +40623,8 @@ ${e3}`);
                 }
               }
             }
-          ).run();
+          ).otherwise(() => {
+          });
         }
       ).with("UnLoadResources", () => console.log("unload")).exhaustive();
     }
@@ -40827,7 +40828,7 @@ ${e3}`);
 
   // client/renderer/grid.ts
   function adjust_selected_tile_size(renderer, brush) {
-    if (renderer.grid) {
+    if (renderer.grid && brush.length > 0 && brush[0].length > 0) {
       const height = brush.length;
       const width = brush[0].length;
       renderer.grid.grid_container.removeChild(renderer.grid.selected_tile);
@@ -40984,6 +40985,12 @@ ${e3}`);
     window.medium = {
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
+      reset_instances: () => {
+        render_system.stage.removeChildren();
+        for (const game_instance_id in instances) {
+          delete instances[game_instance_id];
+        }
+      },
       reconnect: () => {
         return new Promise((resolve) => {
           reset_communication_system(communication_state, menu_system, () => {

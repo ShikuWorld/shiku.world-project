@@ -42,7 +42,11 @@
       ></v-number-input>
       <v-btn @click="toggle_grid">Toggle grid</v-btn>
     </div>
-    <v-tabs v-model="tab" bg-color="primary">
+    <v-tabs
+      class="tile-selector__tileset-selector"
+      v-model="tab"
+      bg-color="primary"
+    >
       <v-tab
         v-for="tileset in tilesets"
         :key="tileset_key(tileset)"
@@ -50,7 +54,7 @@
         >{{ tileset.name }}</v-tab
       >
     </v-tabs>
-    <v-window v-model="tab">
+    <v-window class="tile-selector__tilesets" v-model="tab">
       <v-window-item
         v-for="tileset in tilesets"
         :key="tileset_key(tileset)"
@@ -60,8 +64,10 @@
           <TilesetEditor
             :tileset="tileset"
             :start_gid="get_start_gid_for_tileset(tileset_key(tileset))"
-            :enable_multi_tile_selection="true"
+            :enable_brushing="true"
+            :selected_brush="terrain_brush"
             @tile_selection="on_tile_selection"
+            @select_terrain_brush="select_terrain_brush"
           ></TilesetEditor>
         </div>
       </v-window-item>
@@ -81,11 +87,17 @@ import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { GameMap } from "@/editor/blueprints/GameMap";
 import { use_resources_store } from "@/editor/stores/resources";
 import { GidMap } from "@/editor/blueprints/GidMap";
+import { TerrainBrush } from "@/editor/blueprints/TerrainBrush";
 
 type BrushSize = "1x1" | "2x2" | "3x3" | "5x5";
-const { set_tile_brush, set_selected_tile_layer } = use_editor_store();
-const { tile_brush, selected_tile_layer, current_main_instance } =
-  storeToRefs(use_editor_store());
+const { set_tile_brush, set_selected_tile_layer, set_terrain_brush } =
+  use_editor_store();
+const {
+  tile_brush,
+  terrain_brush,
+  selected_tile_layer,
+  current_main_instance,
+} = storeToRefs(use_editor_store());
 const { update_map_server } = use_resources_store();
 const { game_map_map } = storeToRefs(use_resources_store());
 
@@ -171,6 +183,9 @@ const parralax_y = computed(() => {
   return 1.0;
 });
 const selected_brush_size = ref<BrushSize>("1x1");
+const select_terrain_brush = (terrain_brush: TerrainBrush) => {
+  set_terrain_brush(terrain_brush, brush_size_as_number.value);
+};
 const brush_sizes: BrushSize[] = ["1x1", "2x2", "3x3", "5x5"];
 const tile_layers: LayerKind[] = [
   "BG10",
@@ -201,6 +216,7 @@ const tile_layers: LayerKind[] = [
 ];
 function set_selected_brush_size(size: BrushSize) {
   selected_brush_size.value = size;
+  set_terrain_brush(terrain_brush.value, brush_size_as_number.value);
   if (gids_inside_brush.value.length === 1) {
     const single_gid = gids_inside_brush.value[0];
     set_tile_brush(
@@ -264,7 +280,6 @@ function on_tile_selection(
   g_ids: number[][],
   _tileset_key: string,
 ) {
-  console.log(g_ids);
   selected_brush_size.value = "1x1";
   set_tile_brush(g_ids);
 }
@@ -280,9 +295,20 @@ watch(tilesets, () => {
 });
 </script>
 <style>
-.tile-selector__brush {
+.tile-selector {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+.tile-selector__tileset-selector {
+  height: 100px;
   width: 100%;
-  overflow-x: scroll;
+}
+.tile-selector__tilesets {
+  overflow: scroll;
+}
+.tile-selector > div {
+  flex-grow: 1;
 }
 
 .tile-selector__eraser {

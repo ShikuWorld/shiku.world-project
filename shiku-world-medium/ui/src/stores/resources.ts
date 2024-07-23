@@ -333,6 +333,7 @@ export const use_resources_store = defineStore("resources", () => {
       state.scene_map = scene_map;
     },
     load_editor_data() {
+      window.medium.reset_instances();
       send_admin_event("LoadEditorData");
     },
     save_module_server(

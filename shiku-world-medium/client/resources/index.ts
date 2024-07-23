@@ -203,7 +203,7 @@ export class ResourceManager {
                 }
               },
             )
-            .run();
+            .otherwise(() => {});
         },
       )
       .with("UnLoadResources", () => console.log("unload"))

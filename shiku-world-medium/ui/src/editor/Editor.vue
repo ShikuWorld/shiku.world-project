@@ -178,6 +178,8 @@ import { Tileset } from "@/editor/blueprints/Tileset";
 import CharacterAnimationNodeInspector from "@/editor/editor/CharacterAnimationNodeInspector.vue";
 import SettingsEditor from "@/editor/editor/SettingsEditor.vue";
 import { ChunkUpdate } from "@/editor/blueprints/ChunkUpdate";
+import { TerrainBrush } from "@/editor/blueprints/TerrainBrush";
+import { match, P } from "ts-pattern";
 
 const {
   selected_module_id,
@@ -192,6 +194,8 @@ const {
   selected_nav_top_tab,
   active_component,
   inspecting_worlds,
+  terrain_brush,
+  terrain_brush_size,
 } = storeToRefs(use_editor_store());
 const {
   add_open_resource_path,
@@ -537,13 +541,19 @@ watch(selected_tile_position, () =>
 
 function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
   if (current_main_map.value) {
-    let game_map = current_main_map.value;
-    const chunk_updates = get_chunk_updates(
-      game_map,
-      tile_x,
-      tile_y,
-      tile_brush.value,
-    );
+    const game_map = current_main_map.value;
+    const chunk_updates =
+      terrain_brush.value !== null
+        ? draw_terrain_brush_on_chunks(
+            game_map,
+            tile_x,
+            tile_y,
+            terrain_brush.value,
+            terrain_brush_size.value,
+            layer_kind,
+            tile_brush.value.every((row) => row.every((v) => v === 0)),
+          )
+        : draw_tile_brush_on_chunks(game_map, tile_x, tile_y, tile_brush.value);
     for (const chunk_update of Object.values(chunk_updates)) {
       update_map_server({
         name: game_map.name,
@@ -556,7 +566,223 @@ function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
   }
 }
 
-function get_chunk_updates(
+type TerrainBrushComputeCache = {
+  brush_gid_set: Set<number>;
+  kernel_bitmasks: [number, number, number][];
+};
+
+function compute_terrain_brush_cache(
+  brush: TerrainBrush,
+): TerrainBrushComputeCache {
+  const brush_gid_set = new Set<number>();
+  const kernel_bitmasks: [number, number, number][] = [];
+  match(brush)
+    .with({ StandardKernelThree: P.select() }, ([_, brush]) => {
+      for (const gid of Object.values(brush)) {
+        brush_gid_set.add(gid);
+      }
+      const top_left = 0b000000001;
+      const top = 0b000000010;
+      const top_right = 0b000000100;
+      const left = 0b000001000;
+      const center = 0b000010000;
+      const right = 0b000100000;
+      const bottom_left = 0b001000000;
+      const bottom = 0b010000000;
+      const bottom_right = 0b100000000;
+
+      kernel_bitmasks.push(
+        create_kernel(0b111111111, 0, brush.inside),
+        create_kernel(
+          center | right | bottom,
+          left | top,
+          brush.top_left_corner,
+        ),
+        create_kernel(
+          center | left | bottom,
+          right | top,
+          brush.top_right_corner,
+        ),
+        create_kernel(
+          center | right | top,
+          left | bottom,
+          brush.bottom_left_corner,
+        ),
+        create_kernel(
+          center | left | top,
+          right | bottom,
+          brush.bottom_right_corner,
+        ),
+        create_kernel(center | left | right, top, brush.top_edge),
+        create_kernel(center | top | bottom, right, brush.right_edge),
+        create_kernel(center | left | right, bottom, brush.bottom_edge),
+        create_kernel(center | top | bottom, left, brush.left_edge),
+        create_kernel(
+          center | left | top,
+          top_left,
+          brush.top_left_inner_corner,
+        ),
+        create_kernel(
+          center | right | top,
+          top_right,
+          brush.top_right_inner_corner,
+        ),
+        create_kernel(
+          center | left | bottom,
+          bottom_left,
+          brush.bottom_left_inner_corner,
+        ),
+        create_kernel(
+          center | right | bottom,
+          bottom_right,
+          brush.bottom_right_inner_corner,
+        ),
+      );
+    })
+    .exhaustive();
+
+  return { brush_gid_set, kernel_bitmasks };
+}
+
+function create_kernel(
+  fields_with_terrain: number,
+  fields_without_terrain: number,
+  gid: number,
+): [number, number, number] {
+  const applicable_fields = fields_with_terrain | fields_without_terrain;
+  return [applicable_fields, fields_with_terrain, gid];
+}
+
+function draw_terrain_brush_on_chunks(
+  game_map: GameMap,
+  start_x: number,
+  start_y: number,
+  brush: TerrainBrush,
+  size: number,
+  layer_kind: LayerKind,
+  clear: boolean = false,
+): { [key: number]: ChunkUpdate } {
+  const terrain_brush_cache = compute_terrain_brush_cache(brush);
+  const some_terrain_gid = terrain_brush_cache.brush_gid_set.values().next()
+    .value as number;
+  const kernel_size = 3; //Will change with higher kernel sizes
+  const affected_neighbours = kernel_size - 1; //Will change with higher kernel sizes
+  const brush_data_map: { [y: number]: { [x: number]: number } } = {};
+  const chunk_updates: { [key: number]: ChunkUpdate } = {};
+
+  // Fill brush_data_map with chunk data
+  for (let y = -affected_neighbours; y < size + affected_neighbours; y++) {
+    for (let x = -affected_neighbours; x < size + affected_neighbours; x++) {
+      let chunk_x = Math.floor((start_x + x) / game_map.chunk_size);
+      let chunk_y = Math.floor((start_y + y) / game_map.chunk_size);
+      const chunk_id = cantorPair(chunk_x, chunk_y);
+
+      const chunk = game_map.terrain[layer_kind][chunk_id];
+      let tile_x = start_x + x;
+      let chunk_tile_x = tile_x - chunk_x * game_map.chunk_size;
+      let tile_y = start_y + y;
+      let chunk_tile_y = tile_y - chunk_y * game_map.chunk_size;
+      if (!brush_data_map[tile_y]) {
+        brush_data_map[tile_y] = {};
+      }
+      brush_data_map[tile_y][tile_x] =
+        chunk?.data[chunk_tile_y * game_map.chunk_size + chunk_tile_x] || 0;
+    }
+  }
+  // overwrite brush_data_map with terrain brush data
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let tile_x = start_x + x;
+      let tile_y = start_y + y;
+      brush_data_map[tile_y][tile_x] = clear ? 0 : some_terrain_gid;
+    }
+  }
+  // adjust brush by matching kernel rules
+  for (
+    let y = -affected_neighbours + 1;
+    y < size + affected_neighbours - 1;
+    y++
+  ) {
+    for (
+      let x = -affected_neighbours + 1;
+      x < size + affected_neighbours - 1;
+      x++
+    ) {
+      let tile_x = start_x + x;
+      let tile_y = start_y + y;
+      const data_bitmask = get_kernel_bitmap(
+        terrain_brush_cache.brush_gid_set,
+        brush_data_map,
+        tile_x,
+        tile_y,
+        kernel_size,
+      );
+      if (x === 0 && y === 0) {
+        console.log(data_bitmask.toString(2));
+      }
+      const new_gid = get_fitting_gid_from_kernel_match(
+        data_bitmask,
+        terrain_brush_cache.kernel_bitmasks,
+      );
+      if (new_gid !== null) {
+        brush_data_map[tile_y][tile_x] = new_gid;
+      }
+
+      let chunk_x = Math.floor(tile_x / game_map.chunk_size);
+      let chunk_y = Math.floor(tile_y / game_map.chunk_size);
+      const chunk_id = cantorPair(chunk_x, chunk_y);
+      if (!chunk_updates[chunk_id]) {
+        chunk_updates[chunk_id] = {
+          position: [chunk_x, chunk_y],
+          tile_updates: {},
+        };
+      }
+      const chunk_update = chunk_updates[chunk_id];
+      let chunk_tile_x = tile_x - chunk_x * game_map.chunk_size;
+      let chunk_tile_y = tile_y - chunk_y * game_map.chunk_size;
+      if (!chunk_update.tile_updates[chunk_tile_y]) {
+        chunk_update.tile_updates[chunk_tile_y] = {};
+      }
+      chunk_update.tile_updates[chunk_tile_y][chunk_tile_x] =
+        brush_data_map[tile_y][tile_x];
+    }
+  }
+  return chunk_updates;
+}
+
+function get_fitting_gid_from_kernel_match(
+  data_bitmask: number,
+  kernel_bitmasks: [number, number, number][],
+): number | null {
+  for (const [applicable_fields, fields_with_terrain, gid] of kernel_bitmasks) {
+    if ((data_bitmask & applicable_fields) === fields_with_terrain) {
+      return gid;
+    }
+  }
+  return null;
+}
+
+function get_kernel_bitmap(
+  brush_gid_set: Set<number>,
+  brush_data_map: { [y: number]: { [x: number]: number } },
+  tile_x: number,
+  tile_y: number,
+  kernel_size: number,
+): number {
+  let kernel_bitmap = 0;
+  let ks = Math.floor(kernel_size / 2);
+  for (let y = 0; y < kernel_size; y++) {
+    for (let x = 0; x < kernel_size; x++) {
+      const brush_gid = brush_data_map[tile_y + y - ks][tile_x + x - ks];
+      if (brush_gid_set.has(brush_gid)) {
+        kernel_bitmap |= 1 << (y * kernel_size + x);
+      }
+    }
+  }
+  return kernel_bitmap;
+}
+
+function draw_tile_brush_on_chunks(
   game_map: GameMap,
   start_x: number,
   start_y: number,
@@ -574,8 +800,6 @@ function get_chunk_updates(
           tile_updates: {},
         };
       }
-      // maybe for tile brush later?
-      // const chunk = game_map.terrain[layer_kind][cantorPair(chunk_x, chunk_y)];
       const chunk_update = chunk_updates[chunk_id];
       let chunk_tile_x = start_x + x - chunk_x * game_map.chunk_size;
       let chunk_tile_y = start_y + y - chunk_y * game_map.chunk_size;
