@@ -114,6 +114,8 @@ pub struct Tileset {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct StandardKernelThree {
+    inside: Gid,
+
     top_left_corner: Gid,
     top_right_corner: Gid,
     bottom_left_corner: Gid,
@@ -129,9 +131,8 @@ pub struct StandardKernelThree {
     left_edge: Gid,
     right_edge: Gid,
 
-    inside: Gid,
-
-    left_top_bottom_right_inner_corner: Gid,
+    left_top_bottom_right_middle_piece: Gid,
+    right_top_bottom_left_middle_piece: Gid,
 }
 
 type BrushName = String;

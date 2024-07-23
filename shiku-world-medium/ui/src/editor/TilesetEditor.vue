@@ -66,31 +66,35 @@
     </div>
     <div class="tileset-editor__brushes" v-if="!enable_brushing">
       <h2 class="tileset-editor__brushes_title">Brushes</h2>
-      <div
+      <v-virtual-scroll
         class="tileset_editor__brush"
-        v-for="(brush, index) in tileset.brushes"
-        :key="index"
+        :items="tileset.brushes"
+        :height="300"
       >
-        <StandardKernelThreeTileBrushEditor
-          v-if="brush.StandardKernelThree"
-          :tileset="tileset"
-          :brush_name="brush.StandardKernelThree[0]"
-          :brush="brush.StandardKernelThree[1]"
-          @brush_name_update="(new_name) => update_brush_name(index, new_name)"
-          @brush_kernel_update="
-            (new_kernels) => update_brush_kernel(index, new_kernels)
-          "
-        ></StandardKernelThreeTileBrushEditor>
-        <v-btn
-          density="compact"
-          @click="remove_brush(index)"
-          :icon="mdiTrashCan"
-        ></v-btn>
-      </div>
+        <template v-slot:default="{ item: brush, index }">
+          <StandardKernelThreeTileBrushEditor
+            v-if="brush.StandardKernelThree"
+            :tileset="tileset"
+            :brush_name="brush.StandardKernelThree[0]"
+            :brush="brush.StandardKernelThree[1]"
+            @brush_name_update="
+              (new_name) => update_brush_name(index, new_name)
+            "
+            @brush_kernel_update="
+              (new_kernels) => update_brush_kernel(index, new_kernels)
+            "
+          ></StandardKernelThreeTileBrushEditor>
+          <v-btn
+            density="compact"
+            @click="remove_brush(index)"
+            :icon="mdiTrashCan"
+          ></v-btn> </template
+      ></v-virtual-scroll>
       <v-btn @click="add_brush" :icon="mdiPlus"></v-btn>
     </div>
   </div>
 </template>
+
 <script lang="ts" setup>
 import { computed, ref, toRefs } from "vue";
 import { Tileset } from "@/editor/blueprints/Tileset";
@@ -262,7 +266,9 @@ function end_selection(y: number, x: number) {
 const img = computed(
   () =>
     `${resource_base_url}${
-      tileset.value.image?.path ? tileset.value.image.path : ""
+      tileset.value.image?.path
+        ? `${tileset.value.image.path}?${Date.now()}`
+        : ""
     }`,
 );
 
@@ -302,7 +308,8 @@ const add_brush = () => {
           left_edge: 0,
           right_edge: 0,
           inside: 0,
-          left_top_bottom_right_inner_corner: 0,
+          left_top_bottom_right_middle_piece: 0,
+          right_top_bottom_left_middle_piece: 0,
         },
       ],
     },

@@ -618,24 +618,34 @@ function compute_terrain_brush_cache(
         create_kernel(center | left | right, bottom, brush.bottom_edge),
         create_kernel(center | top | bottom, left, brush.left_edge),
         create_kernel(
-          center | left | top,
+          center | left | top | bottom_right,
           top_left,
           brush.top_left_inner_corner,
         ),
         create_kernel(
-          center | right | top,
+          center | right | top | bottom_left,
           top_right,
           brush.top_right_inner_corner,
         ),
         create_kernel(
-          center | left | bottom,
+          center | left | bottom | top_right,
           bottom_left,
           brush.bottom_left_inner_corner,
         ),
         create_kernel(
-          center | right | bottom,
+          center | right | bottom | top_left,
           bottom_right,
           brush.bottom_right_inner_corner,
+        ),
+        create_kernel(
+          left | center | right | bottom | top_left | bottom_right,
+          bottom_left | top_right,
+          brush.left_top_bottom_right_middle_piece,
+        ),
+        create_kernel(
+          left | center | right | bottom | bottom_left | top_right,
+          top_left | bottom_right,
+          brush.right_top_bottom_left_middle_piece,
         ),
       );
     })
