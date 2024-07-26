@@ -9,6 +9,7 @@ import { InstanceRendering, RenderSystem } from "@/client/renderer/index";
 import { Isometry } from "@/client/entities";
 import { camera_iso_to_scaled_viewport } from "@/client/camera";
 import { match } from "ts-pattern";
+import { SimpleEventDispatcher } from "strongly-typed-events";
 
 export function adjust_selected_tile_size(
   renderer: InstanceRendering,
@@ -71,6 +72,7 @@ export function init_grid(
         height: 1440,
         width: 2560,
       }),
+      mouse_wheel_event: new SimpleEventDispatcher<number>(),
       grid_container: new Container(),
       p_scaling: { x: 1, y: 1 },
       last_mouse_move_position: { x: 0, y: 0 },
@@ -93,7 +95,10 @@ export function init_grid(
               renderer.terrain_params.tile_height,
           ];
           left_click_down = true;
-          window.medium_gui.editor.select_tile_position({ x, y: y - 1 });
+          window.medium_gui.editor.select_tile_position({
+            x: x,
+            y: y - 1,
+          });
         })
         .with(1, () => {
           middle_click_start = {
@@ -102,6 +107,10 @@ export function init_grid(
           };
         })
         .otherwise(() => {});
+    });
+
+    grid.grid_container.on("wheel", (wheel) => {
+      grid.mouse_wheel_event.dispatch(wheel.deltaY);
     });
 
     grid.grid_container.on("pointerup", (mouse_event) => {
@@ -131,6 +140,7 @@ export function init_grid(
       grid.last_mouse_move_position = mouse_event;
       const new_selected_tile_position =
         get_current_selected_tile_position(renderer);
+
       if (new_selected_tile_position !== null) {
         const [new_selected_tile_x, new_selected_tile_y] =
           new_selected_tile_position;
@@ -174,19 +184,24 @@ export function get_current_selected_tile_position(
     return null;
   }
   const localPosition = grid.grid_container.toLocal(grid.sprite.tilePosition);
+
+  const [local_x, local_y] = [
+    Math.round(localPosition.x * (1 / renderer.camera.zoom)),
+    Math.round(localPosition.y * (1 / renderer.camera.zoom)),
+  ];
   const diff = {
-    x: localPosition.x - grid.last_mouse_move_position.x,
-    y: localPosition.y - grid.last_mouse_move_position.y,
+    x: local_x - grid.last_mouse_move_position.x * renderer.camera.zoom,
+    y: local_y - grid.last_mouse_move_position.y * renderer.camera.zoom,
   };
   const selected_new_x =
-    localPosition.x -
+    local_x -
     Math.floor(
       (diff.x + renderer.terrain_params.tile_width) /
         renderer.terrain_params.tile_width,
     ) *
       renderer.terrain_params.tile_width;
   const selected_new_y =
-    localPosition.y -
+    local_y -
     Math.floor(
       (diff.y + renderer.terrain_params.tile_height) /
         renderer.terrain_params.tile_height,
@@ -204,9 +219,13 @@ export function update_grid(
       y_pscaling: renderer.grid.p_scaling.y,
       x_pscaling: renderer.grid.p_scaling.x,
     });
-    renderer.grid.sprite.tilePosition.x = new_iso.x;
-    renderer.grid.sprite.tilePosition.y = new_iso.y;
 
-    get_current_selected_tile_position(renderer);
+    if (
+      renderer.grid.sprite.tilePosition.x !== new_iso.x ||
+      renderer.grid.sprite.tilePosition.y !== new_iso.y
+    ) {
+      renderer.grid.sprite.tilePosition.x = new_iso.x;
+      renderer.grid.sprite.tilePosition.y = new_iso.y;
+    }
   }
 }

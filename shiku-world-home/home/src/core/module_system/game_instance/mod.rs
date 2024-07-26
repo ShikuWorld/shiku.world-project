@@ -10,8 +10,8 @@ use thiserror::Error;
 
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, Chunk, GameMap, Gid, JsonResource, Layer, LayerKind,
-    LayerParralaxMap, ModuleId, ResourceKind, TerrainParams,
+    BlueprintError, BlueprintResource, CameraSettings, Chunk, GameMap, Gid, JsonResource, Layer,
+    LayerKind, LayerParralaxMap, ModuleId, ResourceKind, TerrainParams, WorldParams,
 };
 use crate::core::blueprint::def::{Module, ResourcePath};
 use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
@@ -142,6 +142,18 @@ impl GameInstanceManager {
             game_instance
                 .dynamic_module
                 .save_and_send_parallax_update_to_actors(world_id, parallax);
+        }
+    }
+
+    pub fn save_and_send_camera_settings_to_actors(
+        &mut self,
+        world_id: &WorldId,
+        camera_settings: &CameraSettings,
+    ) {
+        for game_instance in self.game_instances.values_mut() {
+            game_instance
+                .dynamic_module
+                .save_and_send_camera_settings_to_actors(world_id, camera_settings);
         }
     }
 
@@ -545,15 +557,17 @@ impl GameInstanceManager {
         self.create_new_game_instance()
     }
 
-    pub fn get_terrain_info_for_guest(
+    pub fn get_world_info_for_guest(
         &self,
         guest_id: &ActorId,
         game_instance_id: &GameInstanceId,
-    ) -> Option<(TerrainParams, LayerParralaxMap)> {
+    ) -> Option<(WorldParams, LayerParralaxMap)> {
         if let Some(instance) = self.game_instances.get(game_instance_id) {
             if let Some(world_id) = instance.dynamic_module.guest_to_world.get(guest_id) {
-                return instance.dynamic_module.get_terrain_params(world_id).map(
-                    |terrain_params| {
+                return instance
+                    .dynamic_module
+                    .get_world_params(world_id)
+                    .map(|terrain_params| {
                         (
                             terrain_params,
                             instance
@@ -561,8 +575,7 @@ impl GameInstanceManager {
                                 .get_parallax(world_id)
                                 .unwrap_or_default(),
                         )
-                    },
-                );
+                    });
             } else {
                 error!("Could not find world for guest {:?}!", guest_id);
             }
@@ -572,19 +585,19 @@ impl GameInstanceManager {
         None
     }
 
-    pub fn get_terrain_info_for_admin(
+    pub fn get_world_info_for_admin(
         &self,
         _guest_id: &ActorId,
         game_instance_id: &GameInstanceId,
         world_id: &WorldId,
-    ) -> Option<(TerrainParams, LayerParralaxMap)> {
+    ) -> Option<(WorldParams, LayerParralaxMap)> {
         if let Some(instance) = self.game_instances.get(game_instance_id) {
             return instance
                 .dynamic_module
-                .get_terrain_params(world_id)
-                .map(|terrain_params| {
+                .get_world_params(world_id)
+                .map(|world_params| {
                     (
-                        terrain_params,
+                        world_params,
                         instance
                             .dynamic_module
                             .get_parallax(world_id)

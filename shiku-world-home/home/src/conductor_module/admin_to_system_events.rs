@@ -234,8 +234,8 @@ pub async fn handle_admin_to_system_event(
                         match resource_module.get_active_resources_for_module(&module_id, &admin.id)
                         {
                             Ok(assets) => {
-                                if let Some((terrain_params, layer_parralax)) = module
-                                    .get_terrain_info_for_admin(
+                                if let Some((world_params, layer_parralax)) = module
+                                    .get_world_info_for_admin(
                                         &admin.id,
                                         &game_instance_id,
                                         &world_id,
@@ -256,7 +256,7 @@ pub async fn handle_admin_to_system_event(
                                                         ),
                                                         assets,
                                                     },
-                                                    terrain_params,
+                                                    world_params,
                                                     layer_parralax
                                                         .into_iter()
                                                         .map(|(k, (x, y))| (k, x, y))
@@ -335,6 +335,9 @@ pub async fn handle_admin_to_system_event(
                     if let Some((layer_kind, (x, y))) = &map_update.layer_parallax {
                         map.layer_parallax.insert(layer_kind.clone(), (*x, *y));
                     }
+                    if let Some(camera_settings) = &map_update.camera_settings {
+                        map.camera_settings = camera_settings.clone();
+                    }
                     match Blueprint::save_map(&map) {
                         Ok(()) => {
                             if let (Some(module), Some((layer_kind, _)), Some(chunk)) = (
@@ -344,13 +347,20 @@ pub async fn handle_admin_to_system_event(
                             ) {
                                 module.update_world_map(&map.world_id, layer_kind, &chunk);
                             }
-                            if let Some(layer_parallax) = &map_update.layer_parallax {
-                                if let Some(modules) = resource_to_module_map.get(&map_path) {
-                                    for module_id in modules {
-                                        if let Some(module) = module_map.get_mut(module_id) {
+
+                            if let Some(modules) = resource_to_module_map.get(&map_path) {
+                                for module_id in modules {
+                                    if let Some(module) = module_map.get_mut(module_id) {
+                                        if let Some(layer_parallax) = &map_update.layer_parallax {
                                             module.save_and_send_parallax_update_to_actors(
                                                 &map.world_id,
                                                 layer_parallax,
+                                            );
+                                        }
+                                        if let Some(camera_settings) = &map_update.camera_settings {
+                                            module.save_and_send_camera_settings_to_actors(
+                                                &map.world_id,
+                                                camera_settings,
                                             );
                                         }
                                     }

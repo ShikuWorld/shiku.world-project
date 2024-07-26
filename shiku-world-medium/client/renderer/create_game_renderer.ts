@@ -20,10 +20,10 @@ import {
   set_stage_width,
 } from "../config/config";
 import { create_camera } from "@/client/camera";
-import { TerrainParams } from "@/client/communication/api/blueprints/TerrainParams";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { GameInstancesStore } from "@/editor/stores/game-instances";
 import { GameInstanceMap } from "@/client/game-instance";
+import { WorldParams } from "@/editor/blueprints/WorldParams";
 
 export interface ParallaxContainer extends Container {
   x_pscaling: number;
@@ -133,7 +133,7 @@ export const create_dummy_pic = async (color: string): Promise<ImageBitmap> => {
 };
 
 export const create_instance_rendering = (
-  terrain_params: TerrainParams,
+  world_params: WorldParams,
 ): InstanceRendering => {
   const main_container = new Container();
   const main_container_wrapper = new Container();
@@ -142,13 +142,14 @@ export const create_instance_rendering = (
   addLayerMapToContainer(main_container, layer_map);
   layer_map.ObjectsFront.addChild(blueprint_container);
   main_container_wrapper.addChild(main_container);
+  const camera = create_camera();
   return {
-    camera: create_camera(),
+    camera,
     layer_map,
     main_container,
     blueprint_container,
     main_container_wrapper,
-    terrain_params,
+    terrain_params: world_params.terrain_params,
   };
 };
 

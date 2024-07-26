@@ -110,6 +110,10 @@ const game_map = reactive<GameMap>({
   },
   tile_height: 16,
   tile_width: 16,
+  camera_settings: {
+    zoom: 1.0,
+    bounds: null,
+  },
 });
 
 const emit = defineEmits<{

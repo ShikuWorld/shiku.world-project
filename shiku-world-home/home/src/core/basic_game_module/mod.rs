@@ -1,4 +1,4 @@
-use crate::core::entity::render::CameraSettings;
+use crate::core::blueprint::def::CameraSettings;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use log::error;
 use rapier2d::prelude::{Real, Vector};

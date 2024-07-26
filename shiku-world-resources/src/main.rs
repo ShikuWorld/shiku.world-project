@@ -47,7 +47,7 @@ async fn main() {
                 for client in current_clients.values() {
                     if let EventKind::Modify(d) = event.kind {
                         if let Some(full_path) =
-                            event.paths.get(0).unwrap_or(&PathBuf::new()).to_str()
+                            event.paths.first().unwrap_or(&PathBuf::new()).to_str()
                         {
                             let search_str = "./static/";
                             if let Some(index) = full_path.find(search_str) {

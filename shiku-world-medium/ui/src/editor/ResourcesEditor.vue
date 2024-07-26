@@ -111,6 +111,10 @@
             (state_id) => on_node_selected(state_id, resource_key(resource))
           "
         ></CharacterAnimationEditor>
+        <GameMapEditor
+          v-if="resource.kind === 'Map' && game_map_map[resource_key(resource)]"
+          :game_map="game_map_map[resource_key(resource)]"
+        ></GameMapEditor>
       </v-window-item>
     </v-window>
   </div>
@@ -136,6 +140,7 @@ import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
 import CreateCharacterAnimation from "@/editor/editor/CreateCharacterAnimation.vue";
 import CharacterAnimationEditor from "@/editor/editor/CharacterAnimationEditor.vue";
 import { use_inspector_store } from "@/editor/stores/inspector";
+import GameMapEditor from "@/editor/editor/GameMapEditor.vue";
 
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
@@ -157,9 +162,8 @@ const {
   create_script_server,
   create_character_animation_server,
 } = use_resources_store();
-const { modules, tileset_map, character_animation_map } = storeToRefs(
-  use_resources_store(),
-);
+const { modules, tileset_map, character_animation_map, game_map_map } =
+  storeToRefs(use_resources_store());
 const available_resources = computed(
   () =>
     new Map(
@@ -202,7 +206,9 @@ function ensure_resources_are_loaded() {
         }
       })
       .with({ kind: "Map" }, (r) => {
-        console.log("hm Map?", r);
+        if (!game_map_map.value[resource_key(r)]) {
+          get_resource_server(r.path);
+        }
       })
       .with({ kind: "Scene" }, (r) => {
         console.log("hm Scene?", r);

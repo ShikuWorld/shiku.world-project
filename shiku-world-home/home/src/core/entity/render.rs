@@ -40,22 +40,6 @@ pub enum ShowEffect {
     ShakeScreenEffect(ShakeScreenEffect),
 }
 
-#[derive(TS, Debug, Serialize, Deserialize, Clone)]
-#[ts(export)]
-pub struct CameraSettings {
-    pub(crate) zoom: Option<Real>,
-    pub(crate) bounds: Option<((Real, Real), (Real, Real))>,
-}
-
-impl CameraSettings {
-    pub fn default() -> CameraSettings {
-        CameraSettings {
-            bounds: None,
-            zoom: Some(1.0),
-        }
-    }
-}
-
 pub trait Renderable {
     fn get_entity_render_data(&self) -> EntityRenderData;
 }

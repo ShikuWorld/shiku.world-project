@@ -4,15 +4,15 @@ use std::ffi::OsString;
 use std::hash::Hash;
 
 use crate::core::blueprint::character_animation::CharacterAnimation;
+use crate::core::blueprint::scene::def::{CollisionShape, Scene, Script};
+use crate::core::guest::{ModuleEnterSlot, ModuleExitSlot};
+use crate::core::module::ModuleName;
 use log::error;
+use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use ts_rs::TS;
 use walkdir::Error as WalkDirError;
-
-use crate::core::blueprint::scene::def::{CollisionShape, Scene, Script};
-use crate::core::guest::{ModuleEnterSlot, ModuleExitSlot};
-use crate::core::module::ModuleName;
 
 pub type EntityId = usize;
 pub type JointId = usize;
@@ -149,6 +149,13 @@ pub struct TerrainParams {
     pub chunk_size: u32,
     pub tile_width: u32,
     pub tile_height: u32,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct WorldParams {
+    pub terrain_params: TerrainParams,
+    pub camera_settings: CameraSettings,
 }
 
 pub type LayerParralaxMap = HashMap<LayerKind, (f32, f32)>;
@@ -304,6 +311,7 @@ pub struct GameMap {
     pub tile_width: u32,
     pub tile_height: u32,
     pub main_scene: ResourcePath,
+    pub camera_settings: CameraSettings,
     pub terrain: HashMap<LayerKind, HashMap<u32, Chunk>>,
     pub layer_parallax: HashMap<LayerKind, (f32, f32)>,
 }
@@ -316,6 +324,7 @@ pub struct MapUpdate {
     pub chunk: Option<(LayerKind, ChunkUpdate)>,
     pub scene: Option<ResourcePath>,
     pub layer_parallax: Option<(LayerKind, (f32, f32))>,
+    pub camera_settings: Option<CameraSettings>,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -391,4 +400,11 @@ pub enum BlueprintError {
     FileBrowsing(#[from] WalkDirError),
     #[error("OS String parsing error")]
     OsParsing,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct CameraSettings {
+    pub(crate) zoom: Real,
+    pub(crate) bounds: Option<((Real, Real), (Real, Real))>,
 }

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, toRefs } from "vue";
-import { EditorView, basicSetup } from "codemirror";
+import { EditorView } from "codemirror";
 import { rust } from "@codemirror/lang-rust";
 import { cobalt } from "thememirror";
 import { use_resources_store } from "@/editor/stores/resources";
 import { storeToRefs } from "pinia";
+import { basicSetup } from "@/editor/utils/basic-setup";
 
 const props = defineProps<{
   script_resource_path: string;

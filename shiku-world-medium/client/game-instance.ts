@@ -9,12 +9,13 @@ import { get_plugin } from "@/client/plugins";
 import { MousePluginType } from "../plugins/mouse-input";
 import { MenuSystem } from "@/client/menu";
 import { ResourceManager } from "@/client/resources";
-import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { set_container_to_viewport_coordinate } from "@/client/camera";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { update_grid } from "@/client/renderer/grid";
 import { Container, Graphics } from "pixi.js";
 import { RENDER_SCALE } from "@/shared/index";
+import { WorldParams } from "@/editor/blueprints/WorldParams";
+import { CameraSettings } from "@/editor/blueprints/CameraSettings";
 
 const collision_graphic_colors = [
   "#FFD400",
@@ -39,20 +40,41 @@ export class GameInstance {
     public id: string,
     public module_name: string,
     public world_id: string,
-    terrain_params: TerrainParams,
+    world_params: WorldParams,
   ) {
     window.medium_gui.game_instances.add_game_instance_data(
       id,
       world_id,
       () => new Container(),
     );
-    this.renderer = create_instance_rendering(terrain_params);
+    this.renderer = create_instance_rendering(world_params);
     this.entity_manager = create_entity_manager();
-    this.terrain_manager = create_terrain_manager(terrain_params);
+    this.terrain_manager = create_terrain_manager(world_params.terrain_params);
     this.layer_map_keys = Object.keys(this.renderer.layer_map) as LayerKind[];
     this.collision_lines = new Container();
     this.collision_lines.visible = false;
     this.renderer.layer_map.ObjectsFront.addChild(this.collision_lines);
+    this.set_camera_settings(world_params.camera_settings);
+  }
+
+  set_camera_settings(camera_settings: CameraSettings) {
+    this.renderer.camera.set_camera_settings(camera_settings);
+    this.update_main_container_scale_from_zoom();
+  }
+
+  zoom_in() {
+    this.renderer.camera.zoom_in();
+    this.update_main_container_scale_from_zoom();
+  }
+
+  zoom_out() {
+    this.renderer.camera.zoom_out();
+    this.update_main_container_scale_from_zoom();
+  }
+
+  update_main_container_scale_from_zoom() {
+    const zoom = 1 / this.renderer.camera.zoom;
+    this.renderer.main_container.scale = { x: zoom, y: zoom };
   }
 
   toggle_terrain_collisions() {
@@ -85,9 +107,11 @@ export class GameInstance {
     resource_manager: ResourceManager,
   ) {
     match(game_system_event)
-      .with({ SetCamera: P.select() }, ([entity_id, camera_settings]) => {
+      .with({ SetCameraSettings: P.select() }, (camera_settings) => {
+        this.set_camera_settings(camera_settings);
+      })
+      .with({ SetCameraFollowEntity: P.select() }, (entity_id) => {
         this.renderer.camera.set_camera_ref(entity_id, this.module_name);
-        this.renderer.camera.set_camera_settings(camera_settings);
       })
       .with({ OpenMenu: P.select() }, (menuName) => {
         menu_system.activate(menuName);
@@ -257,7 +281,7 @@ export function create_new_game_instance(
   id: string,
   module_name: string,
   world_id: string,
-  terrain_params: TerrainParams,
+  world_params: WorldParams,
 ) {
-  return new GameInstance(id, module_name, world_id, terrain_params);
+  return new GameInstance(id, module_name, world_id, world_params);
 }

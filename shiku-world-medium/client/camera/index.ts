@@ -5,7 +5,7 @@ import {
   get_stage_width,
 } from "../config/config";
 import { ParallaxContainer } from "../renderer/create_game_renderer";
-import { CameraSettings } from "../communication/api/bindings/CameraSettings";
+import { CameraSettings } from "@/editor/blueprints/CameraSettings";
 export function create_camera(): Camera {
   return new Camera();
 }
@@ -41,17 +41,20 @@ export class Camera {
   set_camera_settings(camera_settings: CameraSettings) {
     this._camera_settings = camera_settings;
     if (this._camera_settings.zoom) {
-      //TODO: change zoom
-      /*const canvas_wrapper = document.getElementById("canvas") as HTMLElement;
-      const width = canvas_wrapper.offsetWidth;
-      const height = canvas_wrapper.offsetHeight;
-      set_camera_zoom(this._camera_settings.zoom);
-      viewPortResize(width, height, renderer);*/
+      this.set_camera_zoom(this._camera_settings.zoom);
     }
   }
 
+  zoom_in() {
+    this._camera_settings.zoom = 1 / (1 / this._camera_settings.zoom - 0.1);
+  }
+
+  zoom_out() {
+    this._camera_settings.zoom = 1 / (1 / this._camera_settings.zoom + 0.1);
+  }
+
   set_camera_zoom(zoom: number) {
-    this._camera_settings.zoom = zoom;
+    this._camera_settings.zoom = 1 / zoom;
   }
 
   update_camera_position(entity: { x: number; y: number; rotation: number }) {

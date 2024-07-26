@@ -138,7 +138,7 @@ export async function start_medium() {
             instance_id,
             w_id,
             resource_bundle,
-            terrain_params,
+            world_params,
             parralax_map,
             tilesets,
             gid_map,
@@ -167,30 +167,33 @@ export async function start_medium() {
               instance_id,
               module_id,
               world_id,
-              terrain_params,
+              world_params,
             );
+            const new_instance = instances[instance_id][world_id];
             current_active_instance_id = instance_id;
             current_active_module_id = module_id;
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.addChild(
-                instances[instance_id][world_id].renderer
-                  .main_container_wrapper,
+                new_instance.renderer.main_container_wrapper,
               );
             }
             for (const [layer_kind, x, y] of parralax_map) {
-              instances[instance_id][world_id].renderer.layer_map[
-                layer_kind
-              ].x_pscaling = x;
-              instances[instance_id][world_id].renderer.layer_map[
-                layer_kind
-              ].y_pscaling = y;
+              new_instance.renderer.layer_map[layer_kind].x_pscaling = x;
+              new_instance.renderer.layer_map[layer_kind].y_pscaling = y;
             }
             if (is_admin) {
-              init_grid(
-                render_system,
-                instances[instance_id][world_id].renderer,
-              );
-              toggle_grid(instances[instance_id][world_id].renderer);
+              init_grid(render_system, new_instance.renderer);
+
+              if (new_instance.renderer.grid) {
+                new_instance.renderer.grid.mouse_wheel_event.sub((delta_y) => {
+                  if (delta_y > 0) {
+                    new_instance.zoom_in();
+                  } else {
+                    new_instance.zoom_out();
+                  }
+                });
+              }
+              toggle_grid(new_instance.renderer);
               const guaranteed_world_id_as_admin = w_id!;
               send_admin_event(
                 {

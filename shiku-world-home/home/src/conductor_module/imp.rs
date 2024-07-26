@@ -17,7 +17,7 @@ use crate::conductor_module::errors::{
 use crate::conductor_module::game_instances::create_game_instance_manager;
 use crate::core::blueprint::def::{
     BlueprintResource, BlueprintService, CharAnimationToTilesetMap, GidMap, LayerKind, ModuleId,
-    ResourceKind, ResourcePath, TerrainParams, Tileset,
+    ResourceKind, ResourcePath, TerrainParams, Tileset, WorldParams,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::guest::{
@@ -345,8 +345,8 @@ impl ConductorModule {
                             "Error sending reconnect event",
                         );
                         if let Some(module) = self.module_map.get(current_module_id) {
-                            if let Some((terrain_params, layer_parralax)) =
-                                module.get_terrain_info_for_guest(&guest.id, current_instance_id)
+                            if let Some((world_params, layer_parralax)) =
+                                module.get_world_info_for_guest(&guest.id, current_instance_id)
                             {
                                 debug!("Loading tilesets and sending prepare game event to guest");
                                 match BlueprintService::load_module_tilesets(
@@ -358,7 +358,7 @@ impl ConductorModule {
                                         &mut self.websocket_module,
                                         current_module_id,
                                         current_instance_id,
-                                        terrain_params,
+                                        world_params,
                                         layer_parralax
                                             .into_iter()
                                             .map(|(kind, (x, y))| (kind, x, y))
@@ -647,7 +647,7 @@ impl ConductorModule {
                     &guest.id,
                 );
                 if let Some((terrain_params, layer_parralax)) =
-                    module.get_terrain_info_for_guest(&guest.id, &instance_id)
+                    module.get_world_info_for_guest(&guest.id, &instance_id)
                 {
                     debug!("Loading tilesets and sending prepare game event to guest");
                     match BlueprintService::load_module_tilesets(&module.module_blueprint.resources)
@@ -705,7 +705,7 @@ impl ConductorModule {
         websocket_module: &mut WebsocketModule,
         module_id: &ModuleId,
         instance_id: &GameInstanceId,
-        terrain_params: TerrainParams,
+        world_params: WorldParams,
         parallax_params: Vec<(LayerKind, f32, f32)>,
         tilesets: Vec<Tileset>,
         gid_map: GidMap,
@@ -726,7 +726,7 @@ impl ConductorModule {
                         name: "Init".into(),
                         assets: resources,
                     },
-                    terrain_params,
+                    world_params,
                     parallax_params,
                     tilesets,
                     gid_map,

@@ -6,8 +6,8 @@ use tokio::time::Instant;
 
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
-    BlueprintService, Chunk, GameMap, Gid, LayerKind, LayerParralaxMap, Module, ModuleId,
-    ResourcePath, TerrainParams,
+    BlueprintService, CameraSettings, Chunk, GameMap, Gid, LayerKind, LayerParralaxMap, Module,
+    ModuleId, ResourcePath, TerrainParams, WorldParams,
 };
 use crate::core::blueprint::ecs::character_animation::Animation;
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
@@ -136,9 +136,12 @@ impl DynamicGameModule {
         }
     }
 
-    pub fn get_terrain_params(&self, world_id: &WorldId) -> Option<TerrainParams> {
+    pub fn get_world_params(&self, world_id: &WorldId) -> Option<WorldParams> {
         if let Some(world) = self.world_map.get(world_id) {
-            return Some(world.terrain_manager.params.clone());
+            return Some(WorldParams {
+                terrain_params: world.terrain_manager.params.clone(),
+                camera_settings: world.camera_settings.clone(),
+            });
         }
         None
     }
@@ -174,6 +177,32 @@ impl DynamicGameModule {
                     ),
                 },
                 "Could not send parallax update",
+            );
+        }
+    }
+
+    pub fn save_and_send_camera_settings_to_actors(
+        &mut self,
+        world_id: &WorldId,
+        camera_settings: &CameraSettings,
+    ) {
+        if let Some(world) = self.world_map.get_mut(world_id) {
+            world.camera_settings = camera_settings.clone();
+            Self::send_event_to_actors(
+                world_id,
+                &mut self.module_communication,
+                &self.world_to_guest,
+                &self.world_to_admin,
+                &self.connected_actor_set,
+                ModuleInstanceEvent {
+                    module_id: self.module_id.clone(),
+                    instance_id: self.instance_id.clone(),
+                    world_id: Some(world_id.clone()),
+                    event_type: GameSystemToGuestEvent::SetCameraSettings(
+                        world.camera_settings.clone(),
+                    ),
+                },
+                "Could not send camera settings update",
             );
         }
     }
@@ -300,6 +329,27 @@ impl DynamicGameModule {
                         &self.connected_actor_set,
                         update_entity_event,
                         "Could not send entity update",
+                    );
+                }
+            }
+
+            if let Some(mut actor_api) = world.actor_api.try_borrow_mut() {
+                for (actor_id, event) in actor_api.game_system_to_guest_events.drain(..) {
+                    send_and_log_error_custom(
+                        &mut self
+                            .module_communication
+                            .output_sender
+                            .game_system_to_guest_sender,
+                        GuestEvent {
+                            guest_id: actor_id,
+                            event_type: ModuleInstanceEvent {
+                                module_id: self.module_id.clone(),
+                                instance_id: self.instance_id.clone(),
+                                world_id: None,
+                                event_type: event,
+                            },
+                        },
+                        "Could not send event to actor from actor api",
                     );
                 }
             }

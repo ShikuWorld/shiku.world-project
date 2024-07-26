@@ -118,6 +118,7 @@ export interface InstanceRendering {
     sprite: TilingSprite;
     selected_tile: Graphics;
     grid_container: Container;
+    mouse_wheel_event: SimpleEventDispatcher<number>;
     p_scaling: { x: number; y: number };
     last_mouse_move_position: { x: number; y: number };
   };

@@ -35663,7 +35663,7 @@ ${parts.join("\n")}
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.SimpleEventDispatcher = void 0;
       var ste_core_1 = require_dist();
-      var SimpleEventDispatcher5 = class extends ste_core_1.DispatcherBase {
+      var SimpleEventDispatcher6 = class extends ste_core_1.DispatcherBase {
         /**
          * Creates an instance of SimpleEventDispatcher.
          *
@@ -35709,7 +35709,7 @@ ${parts.join("\n")}
           return super.asEvent();
         }
       };
-      exports.SimpleEventDispatcher = SimpleEventDispatcher5;
+      exports.SimpleEventDispatcher = SimpleEventDispatcher6;
     }
   });
 
@@ -39604,10 +39604,17 @@ ${e3}`);
     set_camera_settings(camera_settings) {
       this._camera_settings = camera_settings;
       if (this._camera_settings.zoom) {
+        this.set_camera_zoom(this._camera_settings.zoom);
       }
     }
+    zoom_in() {
+      this._camera_settings.zoom = 1 / (1 / this._camera_settings.zoom - 0.1);
+    }
+    zoom_out() {
+      this._camera_settings.zoom = 1 / (1 / this._camera_settings.zoom + 0.1);
+    }
     set_camera_zoom(zoom) {
-      this._camera_settings.zoom = zoom;
+      this._camera_settings.zoom = 1 / zoom;
     }
     update_camera_position(entity) {
       const iso = this._get_camera_iso(entity);
@@ -39735,7 +39742,7 @@ ${e3}`);
       return new ImageBitmap();
     }
   };
-  var create_instance_rendering = (terrain_params) => {
+  var create_instance_rendering = (world_params) => {
     const main_container = new Container();
     const main_container_wrapper = new Container();
     const layer_map = createLayerMap();
@@ -39743,13 +39750,14 @@ ${e3}`);
     addLayerMapToContainer(main_container, layer_map);
     layer_map.ObjectsFront.addChild(blueprint_container);
     main_container_wrapper.addChild(main_container);
+    const camera = create_camera();
     return {
-      camera: create_camera(),
+      camera,
       layer_map,
       main_container,
       blueprint_container,
       main_container_wrapper,
-      terrain_params
+      terrain_params: world_params.terrain_params
     };
   };
 
@@ -40525,6 +40533,7 @@ ${e3}`);
     async add_loading_to_texture_map(path2) {
       const loading = Texture.from(await create_dummy_pic("#FF00ff"));
       this.image_texture_map[path2] = Texture.from(loading.source);
+      this.image_texture_map[path2].source.scaleMode = SCALE_MODES.NEAREST;
       this.image_texture_map[path2].source.update();
     }
     async load_resource_bundle(module_id, instance_id, resource_bundle, dispatch_resource_bundle_complete = false) {
@@ -40560,6 +40569,7 @@ ${e3}`);
           }
           N2(path_to_resource_map[path2].kind).with("Image", () => {
             this.image_texture_map[path2].source.resource = loaded_resource.source.resource;
+            this.image_texture_map[path2].source.scaleMode = SCALE_MODES.NEAREST;
             this.image_texture_map[path2].source.update();
           }).with("Unknown", () => {
           }).exhaustive();
@@ -40595,6 +40605,7 @@ ${e3}`);
             (a3) => a3.kind === "Image"
           )) {
             this.image_texture_map[res.path].source.resource = r3[res.path].source.resource;
+            this.image_texture_map[res.path].source.scaleMode = SCALE_MODES.NEAREST;
             this.image_texture_map[res.path].source.update();
           }
           this._update_uv_maps();
@@ -40835,6 +40846,7 @@ ${e3}`);
   }
 
   // client/renderer/grid.ts
+  var import_strongly_typed_events5 = __toESM(require_dist8());
   function adjust_selected_tile_size(renderer, brush) {
     if (renderer.grid && brush.length > 0 && brush[0].length > 0) {
       const height = brush.length;
@@ -40882,6 +40894,7 @@ ${e3}`);
           height: 1440,
           width: 2560
         }),
+        mouse_wheel_event: new import_strongly_typed_events5.SimpleEventDispatcher(),
         grid_container: new Container(),
         p_scaling: { x: 1, y: 1 },
         last_mouse_move_position: { x: 0, y: 0 },
@@ -40898,7 +40911,10 @@ ${e3}`);
             -(grid.sprite.tilePosition.y - grid.selected_tile.y) / renderer.terrain_params.tile_height
           ];
           left_click_down = true;
-          window.medium_gui.editor.select_tile_position({ x: x3, y: y3 - 1 });
+          window.medium_gui.editor.select_tile_position({
+            x: x3,
+            y: y3 - 1
+          });
         }).with(1, () => {
           middle_click_start = {
             click_start: { x: mouse_event.x, y: mouse_event.y },
@@ -40906,6 +40922,9 @@ ${e3}`);
           };
         }).otherwise(() => {
         });
+      });
+      grid.grid_container.on("wheel", (wheel) => {
+        grid.mouse_wheel_event.dispatch(wheel.deltaY);
       });
       grid.grid_container.on("pointerup", (mouse_event) => {
         N2(mouse_event.button).with(0, () => {
@@ -40963,14 +40982,18 @@ ${e3}`);
       return null;
     }
     const localPosition = grid.grid_container.toLocal(grid.sprite.tilePosition);
+    const [local_x, local_y] = [
+      Math.round(localPosition.x * (1 / renderer.camera.zoom)),
+      Math.round(localPosition.y * (1 / renderer.camera.zoom))
+    ];
     const diff = {
-      x: localPosition.x - grid.last_mouse_move_position.x,
-      y: localPosition.y - grid.last_mouse_move_position.y
+      x: local_x - grid.last_mouse_move_position.x * renderer.camera.zoom,
+      y: local_y - grid.last_mouse_move_position.y * renderer.camera.zoom
     };
-    const selected_new_x = localPosition.x - Math.floor(
+    const selected_new_x = local_x - Math.floor(
       (diff.x + renderer.terrain_params.tile_width) / renderer.terrain_params.tile_width
     ) * renderer.terrain_params.tile_width;
-    const selected_new_y = localPosition.y - Math.floor(
+    const selected_new_y = local_y - Math.floor(
       (diff.y + renderer.terrain_params.tile_height) / renderer.terrain_params.tile_height
     ) * renderer.terrain_params.tile_height;
     return [selected_new_x, selected_new_y];
@@ -40981,9 +41004,10 @@ ${e3}`);
         y_pscaling: renderer.grid.p_scaling.y,
         x_pscaling: renderer.grid.p_scaling.x
       });
-      renderer.grid.sprite.tilePosition.x = new_iso.x;
-      renderer.grid.sprite.tilePosition.y = new_iso.y;
-      get_current_selected_tile_position(renderer);
+      if (renderer.grid.sprite.tilePosition.x !== new_iso.x || renderer.grid.sprite.tilePosition.y !== new_iso.y) {
+        renderer.grid.sprite.tilePosition.x = new_iso.x;
+        renderer.grid.sprite.tilePosition.y = new_iso.y;
+      }
     }
   }
 
@@ -42463,7 +42487,7 @@ ${e3}`);
     "#F032E6"
   ];
   var GameInstance = class {
-    constructor(id, module_name, world_id, terrain_params) {
+    constructor(id, module_name, world_id, world_params) {
       this.id = id;
       this.module_name = module_name;
       this.world_id = world_id;
@@ -42472,19 +42496,36 @@ ${e3}`);
         world_id,
         () => new Container()
       );
-      this.renderer = create_instance_rendering(terrain_params);
+      this.renderer = create_instance_rendering(world_params);
       this.entity_manager = create_entity_manager();
-      this.terrain_manager = create_terrain_manager(terrain_params);
+      this.terrain_manager = create_terrain_manager(world_params.terrain_params);
       this.layer_map_keys = Object.keys(this.renderer.layer_map);
       this.collision_lines = new Container();
       this.collision_lines.visible = false;
       this.renderer.layer_map.ObjectsFront.addChild(this.collision_lines);
+      this.set_camera_settings(world_params.camera_settings);
     }
     renderer;
     entity_manager;
     terrain_manager;
     layer_map_keys;
     collision_lines;
+    set_camera_settings(camera_settings) {
+      this.renderer.camera.set_camera_settings(camera_settings);
+      this.update_main_container_scale_from_zoom();
+    }
+    zoom_in() {
+      this.renderer.camera.zoom_in();
+      this.update_main_container_scale_from_zoom();
+    }
+    zoom_out() {
+      this.renderer.camera.zoom_out();
+      this.update_main_container_scale_from_zoom();
+    }
+    update_main_container_scale_from_zoom() {
+      const zoom = 1 / this.renderer.camera.zoom;
+      this.renderer.main_container.scale = { x: zoom, y: zoom };
+    }
     toggle_terrain_collisions() {
       this.collision_lines.visible = !this.collision_lines.visible;
     }
@@ -42505,9 +42546,10 @@ ${e3}`);
       this.terrain_manager.update_effects();
     }
     handle_game_system_event(game_system_event, menu_system, resource_manager) {
-      N2(game_system_event).with({ SetCamera: _.select() }, ([entity_id, camera_settings]) => {
+      N2(game_system_event).with({ SetCameraSettings: _.select() }, (camera_settings) => {
+        this.set_camera_settings(camera_settings);
+      }).with({ SetCameraFollowEntity: _.select() }, (entity_id) => {
         this.renderer.camera.set_camera_ref(entity_id, this.module_name);
-        this.renderer.camera.set_camera_settings(camera_settings);
       }).with({ OpenMenu: _.select() }, (menuName) => {
         menu_system.activate(menuName);
       }).with({ CloseMenu: _.select() }, (menuName) => {
@@ -42632,8 +42674,8 @@ ${e3}`);
       }
     }
   };
-  function create_new_game_instance(id, module_name, world_id, terrain_params) {
-    return new GameInstance(id, module_name, world_id, terrain_params);
+  function create_new_game_instance(id, module_name, world_id, world_params) {
+    return new GameInstance(id, module_name, world_id, world_params);
   }
 
   // client/resources/create_resource_manager.ts
@@ -42805,7 +42847,7 @@ ${e3}`);
             instance_id,
             w_id,
             resource_bundle,
-            terrain_params,
+            world_params,
             parralax_map,
             tilesets,
             gid_map,
@@ -42831,25 +42873,32 @@ ${e3}`);
               instance_id,
               module_id,
               world_id,
-              terrain_params
+              world_params
             );
+            const new_instance = instances[instance_id][world_id];
             current_active_instance_id = instance_id;
             current_active_module_id = module_id;
             if (world_id === GUEST_SINGLE_WORLD_ID) {
               render_system.stage.addChild(
-                instances[instance_id][world_id].renderer.main_container_wrapper
+                new_instance.renderer.main_container_wrapper
               );
             }
             for (const [layer_kind, x3, y3] of parralax_map) {
-              instances[instance_id][world_id].renderer.layer_map[layer_kind].x_pscaling = x3;
-              instances[instance_id][world_id].renderer.layer_map[layer_kind].y_pscaling = y3;
+              new_instance.renderer.layer_map[layer_kind].x_pscaling = x3;
+              new_instance.renderer.layer_map[layer_kind].y_pscaling = y3;
             }
             if (is_admin) {
-              init_grid(
-                render_system,
-                instances[instance_id][world_id].renderer
-              );
-              toggle_grid(instances[instance_id][world_id].renderer);
+              init_grid(render_system, new_instance.renderer);
+              if (new_instance.renderer.grid) {
+                new_instance.renderer.grid.mouse_wheel_event.sub((delta_y) => {
+                  if (delta_y > 0) {
+                    new_instance.zoom_in();
+                  } else {
+                    new_instance.zoom_out();
+                  }
+                });
+              }
+              toggle_grid(new_instance.renderer);
               const guaranteed_world_id_as_admin = w_id;
               send_admin_event(
                 {

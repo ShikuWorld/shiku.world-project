@@ -7,11 +7,13 @@ use rapier2d::prelude::*;
 use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
+use crate::core::blueprint::def::CameraSettings;
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpdate, ECS};
 use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
+use crate::core::entity::def::EntityId;
 use crate::core::guest::{ActorId, LoginData};
 use crate::core::module::{GameSystemToGuestEvent, GuestInput};
 use crate::core::module_system::error::CreateWorldError;
@@ -36,23 +38,25 @@ pub struct World {
     pub actor_api: ApiShare<ActorApi>,
     pub event_cache: ApiShare<Events>,
     pub terrain_manager: TerrainManager,
+    pub camera_settings: CameraSettings,
     pub ecs: ECS,
     pub script_engine: Engine,
 }
 
 pub struct ActorApi {
-    pub active_users: HashSet<ActorId>,
-    pub actor_inputs: HashMap<ActorId, GuestInput>,
-    pub actor_login_data: HashMap<ActorId, LoginData>,
+    pub active_set: HashSet<ActorId>,
+    pub inputs: HashMap<ActorId, GuestInput>,
+    pub login_data: HashMap<ActorId, LoginData>,
+    pub game_system_to_guest_events: Vec<(ActorId, GameSystemToGuestEvent)>,
 }
 
 impl ActorApi {
     pub fn get_actor_input(&self, actor_id: &ActorId) -> Option<&GuestInput> {
-        self.actor_inputs.get(actor_id)
+        self.inputs.get(actor_id)
     }
 
     pub fn set_actor_input(&mut self, actor_id: ActorId, guest_input: GuestInput) {
-        self.actor_inputs.insert(actor_id, guest_input);
+        self.inputs.insert(actor_id, guest_input);
     }
 }
 
@@ -83,10 +87,12 @@ impl World {
                 add_entity_events: Vec::new(),
             }),
             actor_api: ApiShare::new(ActorApi {
-                actor_inputs: HashMap::new(),
-                active_users: HashSet::new(),
-                actor_login_data: HashMap::new(),
+                inputs: HashMap::new(),
+                active_set: HashSet::new(),
+                login_data: HashMap::new(),
+                game_system_to_guest_events: Vec::new(),
             }),
+            camera_settings: game_map.camera_settings.clone(),
             terrain_manager,
             ecs: ECS::from(&world_scene),
             script_engine: Engine::new(),
@@ -188,9 +194,9 @@ impl World {
 
     pub fn actor_joined_world(&mut self, actor_id: ActorId, login_data_option: Option<LoginData>) {
         if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
-            actor_api.active_users.insert(actor_id);
+            actor_api.active_set.insert(actor_id);
             if let Some(login_data) = login_data_option {
-                actor_api.actor_login_data.insert(actor_id, login_data);
+                actor_api.login_data.insert(actor_id, login_data);
             }
         }
         for game_node_script in self.ecs.entity_scripts.values_mut() {
@@ -204,9 +210,9 @@ impl World {
 
     pub fn actor_left_world(&mut self, actor_id: ActorId) {
         if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
-            actor_api.active_users.remove(&actor_id);
-            actor_api.actor_inputs.remove(&actor_id);
-            actor_api.actor_login_data.remove(&actor_id);
+            actor_api.active_set.remove(&actor_id);
+            actor_api.inputs.remove(&actor_id);
+            actor_api.login_data.remove(&actor_id);
         }
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(
@@ -488,7 +494,7 @@ impl World {
             &mut module,
             move |actor_id: ActorId| -> Dynamic {
                 if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
-                    if let Some(guest_input) = actor_api.actor_login_data.get(&actor_id) {
+                    if let Some(guest_input) = actor_api.login_data.get(&actor_id) {
                         return Dynamic::from(guest_input.display_name.clone());
                     }
                 }
@@ -498,11 +504,24 @@ impl World {
         );
 
         let actor_api_share_clone = actor_api_share.clone();
+        FuncRegistration::new("camera_follow_entity").set_into_module(
+            &mut module,
+            move |actor_id: ActorId, entity: Entity| {
+                if let Some(mut actor_api) = actor_api_share_clone.try_borrow_mut() {
+                    actor_api.game_system_to_guest_events.push((
+                        actor_id,
+                        GameSystemToGuestEvent::SetCameraFollowEntity(entity),
+                    ));
+                }
+            },
+        );
+
+        let actor_api_share_clone = actor_api_share.clone();
         FuncRegistration::new("get_actor_provider_id").set_into_module(
             &mut module,
             move |actor_id: ActorId| -> Dynamic {
                 if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
-                    if let Some(guest_input) = actor_api.actor_login_data.get(&actor_id) {
+                    if let Some(guest_input) = actor_api.login_data.get(&actor_id) {
                         return Dynamic::from(guest_input.provider_user_id.clone());
                     }
                 }
@@ -519,7 +538,7 @@ impl World {
                     .try_borrow_mut()
                     .map(|actor_api| {
                         actor_api
-                            .active_users
+                            .active_set
                             .iter()
                             .cloned()
                             .map(Dynamic::from)

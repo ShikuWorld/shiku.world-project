@@ -5,6 +5,7 @@ import {
   FrameObject,
   Graphics as PixijsGraphics,
   Rectangle,
+  SCALE_MODES,
   Sprite,
   Texture,
   TextureSource,
@@ -74,6 +75,7 @@ export class ResourceManager {
   async add_loading_to_texture_map(path: string) {
     const loading = Texture.from(await create_dummy_pic("#FF00ff"));
     this.image_texture_map[path] = Texture.from(loading.source);
+    this.image_texture_map[path].source.scaleMode = SCALE_MODES.NEAREST;
     this.image_texture_map[path].source.update();
   }
 
@@ -121,6 +123,7 @@ export class ResourceManager {
             this.image_texture_map[path].source.resource = (
               loaded_resource as Texture
             ).source.resource;
+            this.image_texture_map[path].source.scaleMode = SCALE_MODES.NEAREST;
             this.image_texture_map[path].source.update();
           })
           .with("Unknown", () => {})
@@ -165,6 +168,8 @@ export class ResourceManager {
             this.image_texture_map[res.path].source.resource = (
               r[res.path] as Texture
             ).source.resource;
+            this.image_texture_map[res.path].source.scaleMode =
+              SCALE_MODES.NEAREST;
             this.image_texture_map[res.path].source.update();
           }
           this._update_uv_maps();

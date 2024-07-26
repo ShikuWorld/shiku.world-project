@@ -470,7 +470,10 @@ export const use_resources_store = defineStore("resources", () => {
     update_map_server(
       map_update: Partial<Omit<MapUpdate, "layer_parallax">> & {
         layer_parallax: [LayerKind, [number, number]] | null;
-      } & Pick<MapUpdate, "resource_path" | "name" | "scene">,
+      } & Pick<
+          MapUpdate,
+          "resource_path" | "name" | "scene" | "camera_settings"
+        >,
     ) {
       send_admin_event({
         UpdateMap: {

@@ -6,16 +6,16 @@ use ts_rs::TS;
 
 use crate::core::blueprint;
 use crate::core::blueprint::character_animation::CharacterAnimation;
+use crate::core::blueprint::def::CameraSettings;
 use crate::core::blueprint::def::{
     CharAnimationToTilesetMap, Chunk, Conductor, Gid, GidMap, Image, LayerKind, ModuleId,
-    ResourcePath, SimpleAnimationFrame, TerrainBrush, TerrainParams, Tile, Tileset,
+    ResourcePath, SimpleAnimationFrame, TerrainBrush, Tile, Tileset, WorldParams,
 };
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::scene::def::{
     CollisionShape, GameNodeId, GameNodeKind, Scene, SceneId, Script,
 };
 use crate::core::entity::def::EntityId;
-use crate::core::entity::render::CameraSettings;
 use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::module_system::world::WorldId;
@@ -289,7 +289,7 @@ pub enum CommunicationEvent {
         GameInstanceId,
         Option<WorldId>,
         ResourceBundle,
-        TerrainParams,
+        WorldParams,
         Vec<(LayerKind, f32, f32)>,
         Vec<Tileset>,
         GidMap,
@@ -340,7 +340,8 @@ pub enum GameSystemToGuestEvent {
     RemoveEntity(Entity),
     AddEntity(Entity, GameNodeKind),
     SetMouseInputSchema(MouseInputSchema),
-    SetCamera(EntityId, CameraSettings),
+    SetCameraFollowEntity(Entity),
+    SetCameraSettings(CameraSettings),
     PositionEvent(Vec<(Entity, Real, Real, Real)>),
 }
 
