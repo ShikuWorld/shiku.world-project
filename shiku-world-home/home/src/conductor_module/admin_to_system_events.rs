@@ -1,8 +1,8 @@
-use std::collections::HashSet;
-use std::path::PathBuf;
-
 use flume::Sender;
 use log::{debug, error};
+use std::collections::HashSet;
+use std::path::PathBuf;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::conductor_module::blueprint_helper::{
@@ -29,6 +29,7 @@ use crate::core::module::{
 use crate::core::module_system::def::DynamicGameModule;
 use crate::core::module_system::game_instance::{GameInstance, GameInstanceManager};
 use crate::core::{log_result_error, send_and_log_error};
+use crate::log_collector::LogCollector;
 use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
 
@@ -39,6 +40,7 @@ pub async fn handle_admin_to_system_event(
     module_map: &mut ModuleMap,
     resource_to_module_map: &mut ResourceToModuleMap,
     system_to_admin_communication_sender: &mut Sender<(ActorId, CommunicationEvent)>,
+    log_collector: &Arc<LogCollector>,
     admin: &Admin,
     event: AdminToSystemEvent,
 ) {
@@ -501,6 +503,8 @@ pub async fn handle_admin_to_system_event(
                     })
                     .collect(),
             ));
+
+            send_editor_event(EditorEvent::ServerLogs(log_collector.get_log_archive()));
         }
         AdminToSystemEvent::CreateTileset(module_id, tileset) => {
             match Blueprint::create_tileset(&tileset) {

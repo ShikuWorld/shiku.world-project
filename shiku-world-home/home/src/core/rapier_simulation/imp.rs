@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
 use crate::core::basic_kinematic_character_controller::{
-    BasicKinematicCharacterController, CharacterAutostep, CharacterLength,
+    BasicKinematicCharacterController, CharacterAutostep, CharacterCollision, CharacterLength,
 };
 use crate::core::blueprint::scene::def::KinematicCharacterControllerProps;
 use crate::core::rapier_simulation::def::RapierSimulation;
@@ -31,6 +31,10 @@ impl RapierSimulation {
             &self.physics_hooks,
             self.events.deref(),
         );
+
+        while let Ok(collision_event) = self.intersection_receiver.try_recv() {
+            println!("Received contact collision event: {:?}", collision_event);
+        }
     }
 
     pub fn move_character(
@@ -39,6 +43,7 @@ impl RapierSimulation {
         rigid_body_handle: RigidBodyHandle,
         collider_handle: ColliderHandle,
         desired_translation: Vector<Real>,
+        character_collisions: &mut Vec<CharacterCollision>,
     ) -> (bool, bool) {
         let mut rigid_body_position = self
             .bodies
@@ -57,8 +62,22 @@ impl RapierSimulation {
                 &rigid_body_position,
                 desired_translation,
                 QueryFilter::default().exclude_rigid_body(rigid_body_handle),
-                |_| {},
+                |collision| {
+                    character_collisions.push(collision);
+                },
             );
+
+            character_controller.solve_character_collision_impulses(
+                self.integration_parameters.dt,
+                &mut self.bodies,
+                &self.colliders,
+                &self.query_pipeline,
+                collider.shape(),
+                5.0,
+                character_collisions.iter(),
+                QueryFilter::default().exclude_rigid_body(rigid_body_handle),
+            );
+
             if corrected_movement.translation.y.abs() > 0.0001 {
                 rigid_body_position.translation.y += corrected_movement.translation.y;
             }
@@ -131,7 +150,9 @@ impl RapierSimulation {
         vertices: Vec<Point2<Real>>,
     ) -> (RigidBodyHandle, ColliderHandle) {
         let body_handle = self.add_fixed_rigid_body(0.0, 0.0);
-        let collider = ColliderBuilder::polyline(vertices, None).build();
+        let collider = ColliderBuilder::polyline(vertices, None)
+            .active_events(ActiveEvents::all())
+            .build();
         let collider_handle =
             self.colliders
                 .insert_with_parent(collider, body_handle, &mut self.bodies);
@@ -366,6 +387,7 @@ impl RapierSimulation {
     ) -> ColliderHandle {
         let collider = ColliderBuilder::cuboid(half_x, half_y)
             .sensor(is_sensor)
+            .active_events(ActiveEvents::all())
             .build();
 
         self.colliders
@@ -378,7 +400,10 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
         is_sensor: bool,
     ) -> ColliderHandle {
-        let collider = ColliderBuilder::ball(radius).sensor(is_sensor).build();
+        let collider = ColliderBuilder::ball(radius)
+            .active_events(ActiveEvents::all())
+            .sensor(is_sensor)
+            .build();
 
         self.colliders
             .insert_with_parent(collider, body_handle, &mut self.bodies)
@@ -393,6 +418,7 @@ impl RapierSimulation {
     ) -> ColliderHandle {
         let collider = ColliderBuilder::capsule_x(half_y, radius)
             .sensor(is_sensor)
+            .active_events(ActiveEvents::all())
             .build();
 
         self.colliders
@@ -408,6 +434,7 @@ impl RapierSimulation {
     ) -> ColliderHandle {
         let collider = ColliderBuilder::capsule_y(half_x, radius)
             .sensor(is_sensor)
+            .active_events(ActiveEvents::all())
             .build();
 
         self.colliders
@@ -512,8 +539,8 @@ impl RapierSimulation {
     }
 
     pub fn new() -> RapierSimulation {
-        let (contact_send, _contact_receiver) = crossbeam::channel::unbounded();
-        let (intersection_send, _intersection_receiver) = crossbeam::channel::unbounded();
+        let (contact_send, contact_receiver) = crossbeam::channel::unbounded();
+        let (intersection_send, intersection_receiver) = crossbeam::channel::unbounded();
         let event_handler = ChannelEventCollector::new(intersection_send, contact_send);
 
         RapierSimulation {
@@ -531,6 +558,8 @@ impl RapierSimulation {
             physics_hooks: (),
             events: Box::from(event_handler),
             query_pipeline: QueryPipeline::new(),
+            contact_receiver,
+            intersection_receiver,
         }
     }
 }

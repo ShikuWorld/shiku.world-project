@@ -8,7 +8,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Display;
 use ts_rs::TS;
 
-use crate::core::basic_kinematic_character_controller::BasicKinematicCharacterController;
+use crate::core::basic_kinematic_character_controller::{
+    BasicKinematicCharacterController, CharacterCollision,
+};
 use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
@@ -50,6 +52,9 @@ pub struct ECSShared {
     pub set_scope_variables: HashMap<Entity, HashMap<String, ScopeCacheValue>>,
     pub removed_entities: Vec<Entity>,
     pub entity_counter: NodeInstanceId,
+    pub character_collisions_tmp: Vec<CharacterCollision>,
+    pub collider_to_entity_map: HashMap<ColliderHandle, Entity>,
+    pub entity_collision_map: HashMap<Entity, HashMap<Entity, (CharacterCollision, bool)>>,
 }
 
 pub type DynamicMap = BTreeMap<SmartString<LazyCompact>, Dynamic>;

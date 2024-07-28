@@ -3,6 +3,7 @@ import type { CharacterAnimation } from "../blueprints/CharacterAnimation";
 import type { Conductor } from "../blueprints/Conductor";
 import type { FileBrowserResult } from "../blueprints/FileBrowserResult";
 import type { GameMap } from "../blueprints/GameMap";
+import type { LogInfo } from "../blueprints/LogInfo";
 import type { MapUpdate } from "../blueprints/MapUpdate";
 import type { Module } from "../blueprints/Module";
 import type { Scene } from "../blueprints/Scene";
@@ -10,4 +11,4 @@ import type { SceneNodeUpdate } from "./SceneNodeUpdate";
 import type { Script } from "../blueprints/Script";
 import type { Tileset } from "../blueprints/Tileset";
 
-export type EditorEvent = { Modules: Array<Module> } | { ModuleInstances: Array<[string, Array<string>]> } | { CreatedModule: [string, Module] } | { DeletedModule: string } | { UpdatedModule: [string, Module] } | { CreatedScript: Script } | { SetScript: Script } | { DeletedScript: Script } | { CreatedMap: GameMap } | { SetMap: GameMap } | { UpdatedMap: [MapUpdate, number] } | { DeletedMap: GameMap } | { CreatedScene: Scene } | { SetScene: Scene } | { UpdateScene: SceneNodeUpdate } | { DeletedScene: Scene } | { CreatedTileset: Tileset } | { SetTileset: Tileset } | { DeletedTileset: Tileset } | { CreatedCharacterAnimation: CharacterAnimation } | { SetCharacterAnimation: CharacterAnimation } | { DeletedCharacterAnimation: CharacterAnimation } | { DirectoryInfo: FileBrowserResult } | { UpdatedConductor: Conductor } | { ModuleInstanceOpened: [string, string] } | { ModuleInstanceClosed: [string, string] } | { MainDoorStatus: boolean } | { BackDoorStatus: boolean };
+export type EditorEvent = { Modules: Array<Module> } | { ModuleInstances: Array<[string, Array<string>]> } | { CreatedModule: [string, Module] } | { DeletedModule: string } | { UpdatedModule: [string, Module] } | { CreatedScript: Script } | { SetScript: Script } | { DeletedScript: Script } | { CreatedMap: GameMap } | { SetMap: GameMap } | { UpdatedMap: [MapUpdate, number] } | { DeletedMap: GameMap } | { CreatedScene: Scene } | { SetScene: Scene } | { UpdateScene: SceneNodeUpdate } | { DeletedScene: Scene } | { CreatedTileset: Tileset } | { SetTileset: Tileset } | { DeletedTileset: Tileset } | { CreatedCharacterAnimation: CharacterAnimation } | { SetCharacterAnimation: CharacterAnimation } | { DeletedCharacterAnimation: CharacterAnimation } | { DirectoryInfo: FileBrowserResult } | { UpdatedConductor: Conductor } | { ModuleInstanceOpened: [string, string] } | { ModuleInstanceClosed: [string, string] } | { MainDoorStatus: boolean } | { BackDoorStatus: boolean } | { ServerLogs: Array<LogInfo> };

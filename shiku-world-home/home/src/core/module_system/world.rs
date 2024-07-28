@@ -17,7 +17,7 @@ use crate::core::entity::def::EntityId;
 use crate::core::guest::{ActorId, LoginData};
 use crate::core::module::{GameSystemToGuestEvent, GuestInput};
 use crate::core::module_system::error::CreateWorldError;
-use crate::core::module_system::script_types::CharacterDirectionModule;
+use crate::core::module_system::script_types::{CharacterDirectionModule, Vec2};
 use crate::core::module_system::terrain_manager::TerrainManager;
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::{ApiShare, TARGET_FRAME_DURATION};
@@ -184,9 +184,33 @@ impl World {
                         *rigid_body_handle,
                         collider_handle,
                         kinematic_character_controller.desired_translation,
+                        &mut ecs_shared.character_collisions_tmp,
                     );
                     kinematic_character_controller.grounded = grounded;
                     kinematic_character_controller.is_sliding_down_slope = is_sliding_down_slope;
+                    let collision_map_for_entity =
+                        ecs_shared.entity_collision_map.entry(*entity).or_default();
+                    for (_, ref mut is_active) in collision_map_for_entity.values_mut() {
+                        *is_active = false;
+                    }
+
+                    for character_collision in ecs_shared.character_collisions_tmp.drain(..) {
+                        if let Some(collider_entity) = ecs_shared
+                            .collider_to_entity_map
+                            .get(&character_collision.handle)
+                        {
+                            if let Some(colliding_rigid_body_entity) =
+                                ecs_shared.entities.game_node_parent.get(collider_entity)
+                            {
+                                collision_map_for_entity.insert(
+                                    *colliding_rigid_body_entity,
+                                    (character_collision, true),
+                                );
+                            }
+                        }
+                    }
+
+                    collision_map_for_entity.retain(|_, v| v.1);
                 }
             }
         }
@@ -286,18 +310,117 @@ impl World {
             .set_into_module(&mut module, get_rigid_body_handle);
 
         let ecs_shared = ecs.shared.clone();
-        let set_entity_desired_translation = move |entity: Entity, x: f64, y: f64| {
-            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
-                if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
-                    character.desired_translation.x = x as f32;
-                    character.desired_translation.y = y as f32;
-                } else {
-                    error!("Could not find kinematic character for entity: {}", entity);
+        FuncRegistration::new("get_collided_with_entities").set_into_module(
+            &mut module,
+            move |entity: Entity| -> Dynamic {
+                if let Some(shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(collision_map) = shared.entity_collision_map.get(&entity) {
+                        let entities_colliding: Vec<Dynamic> =
+                            collision_map.keys().map(|e| Dynamic::from(*e)).collect();
+                        return Dynamic::from(entities_colliding);
+                    }
                 }
-            }
-        };
-        FuncRegistration::new("set_entity_desired_translation")
-            .set_into_module(&mut module, set_entity_desired_translation);
+                Dynamic::from(Vec::<Dynamic>::new())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("resolve_kinematic_body_collision_impulses_automatic")
+            .set_into_module(&mut module, move || {
+                if let Some(shared) = ecs_shared.try_borrow_mut() {
+                    for (entity, collision_map) in &shared.entity_collision_map {
+                        for (other_entity, (_, _)) in collision_map {
+                            if let Some(character) = shared.entities.kinematic_character.get(entity)
+                            {
+                                if let Some(other_character) =
+                                    shared.entities.kinematic_character.get(other_entity)
+                                {
+                                    let velocity_char = character.desired_translation;
+                                    let velocity_o_char = other_character.desired_translation;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("set_entity_desired_translation").set_into_module(
+            &mut module,
+            move |entity: Entity, x: f64, y: f64| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
+                        character.desired_translation.x = x as f32;
+                        character.desired_translation.y = y as f32;
+                    } else {
+                        error!("Could not find kinematic character for entity: {}", entity);
+                    }
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("set_entity_desired_translation_y").set_into_module(
+            &mut module,
+            move |entity: Entity, y: f64| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
+                        character.desired_translation.y = y as f32;
+                    } else {
+                        error!("Could not find kinematic character for entity: {}", entity);
+                    }
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("add_entity_desired_translation").set_into_module(
+            &mut module,
+            move |entity: Entity, x: f64, y: f64| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
+                        character.desired_translation.x += x as f32;
+                        character.desired_translation.y += y as f32;
+                    } else {
+                        error!("Could not find kinematic character for entity: {}", entity);
+                    }
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("apply_entity_friction_x").set_into_module(
+            &mut module,
+            move |entity: Entity, friction_x: f64| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
+                        if character.desired_translation.x.abs() > friction_x as f32 {
+                            character.desired_translation.x -=
+                                character.desired_translation.x.signum() * friction_x as f32;
+                        } else {
+                            character.desired_translation.x = 0.0;
+                        }
+                    } else {
+                        error!("Could not find kinematic character for entity: {}", entity);
+                    }
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("apply_entity_linear_dampening").set_into_module(
+            &mut module,
+            move |entity: Entity, dampening: f64| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
+                        character.desired_translation.x *= dampening as f32;
+                        character.desired_translation.y *= dampening as f32;
+                    } else {
+                        error!("Could not find kinematic character for entity: {}", entity);
+                    }
+                }
+            },
+        );
 
         let physics_clone = physics_share.clone();
         let ecs_shared = ecs.shared.clone();
@@ -337,7 +460,7 @@ impl World {
     }
 
     fn register_types(engine: &mut Engine) {
-        engine.register_static_module(
+        engine.build_type::<Vec2>().register_static_module(
             "CharacterDirection",
             exported_module!(CharacterDirectionModule).into(),
         );
@@ -453,14 +576,16 @@ impl World {
         FuncRegistration::new("get_progress").set_into_module(&mut module, get_progress);
 
         let ecs_shared = ecs.shared.clone();
-        let set_direction = move |entity: Entity, direction: CharacterDirection| {
-            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
-                if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
-                    animation.current_direction = direction;
+        FuncRegistration::new("set_direction").set_into_module(
+            &mut module,
+            move |entity: Entity, direction: CharacterDirection| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
+                        animation.current_direction = direction;
+                    }
                 }
-            }
-        };
-        FuncRegistration::new("set_direction").set_into_module(&mut module, set_direction);
+            },
+        );
 
         engine.register_static_module("shiku::animation", module.into());
     }
@@ -632,21 +757,28 @@ impl World {
             self.ecs.shared.try_borrow_mut(),
             self.physics.try_borrow_mut(),
         ) {
-            let mut children_to_delete = Vec::new();
-            Self::get_children_to_delete_rec(
-                &mut children_to_delete,
-                &entity,
-                &mut shared.entities,
-            );
-            if let Some(rigid_body) = shared.entities.rigid_body_handle.get(&entity) {
-                physics.remove_rigid_body(*rigid_body);
+            Self::_remove_entity(&mut shared, &mut physics, entity);
+        }
+    }
+
+    fn _remove_entity(shared: &mut ECSShared, physics: &mut RapierSimulation, entity: Entity) {
+        let mut children_to_delete = Vec::new();
+        Self::get_children_to_delete_rec(&mut children_to_delete, &entity, &mut shared.entities);
+        if let Some(rigid_body) = shared.entities.rigid_body_handle.get(&entity) {
+            physics.remove_rigid_body(*rigid_body);
+        }
+        if let Some(children) = shared.entities.game_node_children.get(&entity) {
+            for child in children {
+                if let Some(collider_handle) = shared.entities.collider_handle.get(&child) {
+                    shared.collider_to_entity_map.remove(collider_handle);
+                }
             }
-            shared.entities.remove_entity(entity);
-            shared.removed_entities.push(entity);
-            for child in children_to_delete {
-                shared.entities.remove_entity(child);
-                shared.removed_entities.push(child);
-            }
+        }
+        shared.entities.remove_entity(entity);
+        shared.removed_entities.push(entity);
+        for child in children_to_delete {
+            shared.entities.remove_entity(child);
+            shared.removed_entities.push(child);
         }
     }
 

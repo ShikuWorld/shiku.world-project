@@ -138,6 +138,15 @@
         ></CharacterAnimationNodeInspector>
       </div>
     </div>
+    <div class="editor-log">
+      <div
+        class="editor-log__entry"
+        v-for="[time, level, location, message] in logs"
+        :key="message"
+      >
+        {{ message }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -244,7 +253,7 @@ const selected_character_animation = computed(() => {
   return undefined;
 });
 
-const { game_map_map, tileset_map, scene_map, character_animation_map } =
+const { game_map_map, tileset_map, scene_map, character_animation_map, logs } =
   storeToRefs(use_resources_store());
 const {
   get_module,
@@ -561,6 +570,7 @@ function on_tile_click(layer_kind: LayerKind, tile_x: number, tile_y: number) {
         chunk: [layer_kind, chunk_update],
         scene: null,
         layer_parallax: null,
+        camera_settings: null,
       });
     }
   }
@@ -859,6 +869,17 @@ function open_resource_editor(resource: BlueprintResource) {
 </script>
 
 <style lang="scss">
+.editor-log {
+  position: absolute;
+  bottom: 0;
+  height: 300px;
+  width: 1000px;
+  display: flex;
+  flex-direction: column;
+}
+.editor-log__entry {
+  white-space: nowrap;
+}
 .editor-wrapper {
   display: flex;
   flex-wrap: wrap;

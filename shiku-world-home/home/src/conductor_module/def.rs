@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use std::time::Instant;
 
 use snowflake::SnowflakeIdBucket;
@@ -9,6 +10,7 @@ use crate::core::guest::{Admin, Guest, ModuleEnterSlot, ModuleExitSlot, Provider
 use crate::core::module::{ModuleIO, SystemCommunicationIO};
 use crate::core::module_system::game_instance::GameInstanceManager;
 use crate::core::{blueprint, Snowflake};
+use crate::log_collector::{LogCollector, LogInfo};
 use crate::login::login_manager::LoginManager;
 use crate::persistence_module::PersistenceModule;
 use crate::webserver_module::def::WebServerModule;
@@ -45,4 +47,7 @@ pub struct ConductorModule {
     pub(super) snowflake_gen: SnowflakeIdBucket,
     pub(super) system_to_guest_communication: SystemCommunicationIO,
     pub(super) system_to_admin_communication: SystemCommunicationIO,
+
+    pub(super) log_collector: Arc<LogCollector>,
+    pub(super) log_buffer: Vec<LogInfo>,
 }

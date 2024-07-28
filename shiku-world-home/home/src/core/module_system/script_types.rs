@@ -1,6 +1,14 @@
 #![allow(clippy::all)]
 use rhai::plugin::*;
 
+use rhai::{CustomType, TypeBuilder};
+
+#[derive(Clone, CustomType)]
+pub struct Vec2 {
+    pub x: f64,
+    pub y: f64,
+}
+
 #[export_module]
 pub mod CharacterDirectionModule {
     use crate::core::blueprint::character_animation::CharacterDirection;

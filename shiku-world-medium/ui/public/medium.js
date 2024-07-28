@@ -42691,6 +42691,8 @@ ${e3}`);
   function handle_editor_event(event) {
     N2(event).with({ MainDoorStatus: _.select() }, (status) => {
       window.medium_gui.config.set_main_door_status(status);
+    }).with({ ServerLogs: _.select() }, (logs) => {
+      window.medium_gui.resources.add_logs(logs);
     }).with({ BackDoorStatus: _.select() }, (status) => {
       window.medium_gui.config.set_back_door_status(status);
     }).with({ Modules: _.select() }, (modules) => {

@@ -19,6 +19,7 @@ use crate::core::entity::def::EntityId;
 use crate::core::guest::{ActorId, LoginProvider, ModuleExitSlot, SessionId};
 use crate::core::module_system::game_instance::GameInstanceId;
 use crate::core::module_system::world::WorldId;
+use crate::log_collector::LogInfo;
 use crate::resource_module::def::{ResourceBundle, ResourceEvent};
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -95,6 +96,7 @@ pub enum EditorEvent {
     ModuleInstanceClosed(ModuleId, GameInstanceId),
     MainDoorStatus(bool),
     BackDoorStatus(bool),
+    ServerLogs(Vec<LogInfo>),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

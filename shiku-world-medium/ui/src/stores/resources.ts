@@ -28,6 +28,7 @@ import { Script } from "@/editor/blueprints/Script";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { cantor_pair } from "@/client/terrain";
 import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
+import { LogInfo } from "@/editor/blueprints/LogInfo";
 
 export type Point = { y: number; x: number };
 
@@ -39,6 +40,7 @@ export interface ResourcesStore {
   modules: { [module_id: string]: Module };
   scene_map: { [scene_path: string]: Scene };
   script_map: { [scene_path: string]: Script };
+  logs: LogInfo[];
   current_file_browser_result: FileBrowserResult;
 }
 
@@ -51,6 +53,7 @@ export const use_resources_store = defineStore("resources", () => {
     scene_map: {},
     script_map: {},
     character_animation_map: {},
+    logs: [],
     current_file_browser_result: {
       resources: [],
       dirs: [],
@@ -67,6 +70,9 @@ export const use_resources_store = defineStore("resources", () => {
           [module.id]: { ...state.modules[module.id], ...module },
         };
       }
+    },
+    add_logs(logs: LogInfo[]) {
+      state.logs = [...state.logs, ...logs];
     },
     get_or_load_script(
       script_map: { [script_path: string]: Script },

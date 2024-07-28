@@ -6,6 +6,9 @@ export function handle_editor_event(event: EditorEvent) {
     .with({ MainDoorStatus: P.select() }, (status) => {
       window.medium_gui.config.set_main_door_status(status);
     })
+    .with({ ServerLogs: P.select() }, (logs) => {
+      window.medium_gui.resources.add_logs(logs);
+    })
     .with({ BackDoorStatus: P.select() }, (status) => {
       window.medium_gui.config.set_back_door_status(status);
     })

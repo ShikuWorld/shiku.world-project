@@ -78,6 +78,9 @@ impl ECS {
                 set_scope_variables: HashMap::new(),
                 added_entities: Vec::new(),
                 removed_entities: Vec::new(),
+                character_collisions_tmp: Vec::new(),
+                entity_collision_map: HashMap::new(),
+                collider_to_entity_map: HashMap::new(),
                 entity_counter: 0,
             }),
         }
@@ -175,6 +178,8 @@ impl ECS {
                     ecs.entities
                         .collider_handle
                         .insert(*child_entity, child_collider_handle);
+                    ecs.collider_to_entity_map
+                        .insert(child_collider_handle, *child_entity);
                     debug!("Successfully attached collider");
                 }
             }
@@ -197,6 +202,9 @@ impl ECS {
                 .entities
                 .collider_handle
                 .insert(*child_entity, child_collider_handle);
+            shared
+                .collider_to_entity_map
+                .insert(child_collider_handle, *child_entity);
         }
     }
 
@@ -220,6 +228,9 @@ impl ECS {
                             .entities
                             .collider_handle
                             .insert(*child_entity, child_collider_handle);
+                        shared
+                            .collider_to_entity_map
+                            .insert(child_collider_handle, *child_entity);
                         debug!("Successfully attached collider 2");
                     }
                 }
@@ -498,6 +509,7 @@ impl ECS {
                     {
                         physics.remove_collider(collider_handle);
                         shared.entities.collider_handle.remove(&entity);
+                        shared.collider_to_entity_map.remove(&collider_handle);
                         ECS::attach_collider_to_its_entity(&parent, &entity, shared, physics);
                     }
                 }

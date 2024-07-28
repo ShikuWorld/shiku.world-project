@@ -164,6 +164,7 @@ function set_parralax(
       resource_path: current_main_map.value.resource_path,
       chunk: null,
       scene: null,
+      camera_settings: null,
       layer_parallax: [layer, [parralax_x, parralax_y]],
     });
     update_main_instance_grid_p_scaling(selected_tile_layer.value);

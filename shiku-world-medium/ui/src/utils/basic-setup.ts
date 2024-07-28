@@ -55,10 +55,40 @@ function shikuCompletions(context: CompletionContext): CompletionResult | null {
       detail: "(entity: Entity) -> RigidBodyHandle",
     },
     {
+      label: "shiku::physics::get_collided_with_entities",
+      type: "function",
+      info: "Get the rigid bodies colliding with this entity right now",
+      detail: "(entity: Entity) -> Vec<Entity>",
+    },
+    {
+      label: "shiku::physics::resolve_kinematic_body_collision_impulse",
+      type: "function",
+      info: "Resolve desired translation vector after collision impulse was calculated",
+      detail: "(entity: Entity, other_entity: Entity) -> void",
+    },
+    {
       label: "shiku::physics::set_entity_desired_translation",
       type: "function",
       info: "Set the desired translation for an entity",
       detail: "(entity: Entity, x: number, y: number) -> void",
+    },
+    {
+      label: "shiku::physics::add_entity_desired_translation",
+      type: "function",
+      info: "Add the desired translation for an entity",
+      detail: "(entity: Entity, x: number, y: number) -> void",
+    },
+    {
+      label: "shiku::physics::apply_entity_friction_x",
+      type: "function",
+      info: "Apply friction to desired translation in x direction",
+      detail: "(entity: Entity, friction_x: number) -> void",
+    },
+    {
+      label: "shiku::physics::apply_entity_linear_dampening",
+      type: "function",
+      info: "Apply linear dampening to desired translation",
+      detail: "(entity: Entity, dampening: number) -> void",
     },
     {
       label: "shiku::physics::add_force_to_rigid_body",

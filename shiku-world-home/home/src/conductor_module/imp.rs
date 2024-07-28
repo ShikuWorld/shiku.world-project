@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
+use std::sync::Arc;
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
@@ -34,6 +35,7 @@ use crate::core::module_system::game_instance::{GameInstanceId, GameInstanceMana
 use crate::core::module_system::world::WorldId;
 use crate::core::{blueprint, send_and_log_error, send_and_log_error_custom};
 use crate::core::{safe_unwrap, Snowflake, LOGGED_IN_TODAY_DELAY_IN_HOURS};
+use crate::log_collector::LogCollector;
 use crate::login::login_manager::{LoginError, LoginManager};
 use crate::persistence_module::models::{PersistedGuest, UpdatePersistedGuestState};
 use crate::persistence_module::{PersistenceError, PersistenceModule};
@@ -66,6 +68,23 @@ impl ConductorModule {
 
         self.handle_admin_events().await;
         self.resource_module.check_reconnect().await;
+    }
+
+    pub fn send_logs_to_admins(&mut self) {
+        self.log_collector
+            .get_new_logs_and_archive(&mut self.log_buffer);
+        for admin in self.admins.values() {
+            send_and_log_error(
+                &mut self.system_to_admin_communication.sender,
+                (
+                    admin.id,
+                    CommunicationEvent::EditorEvent(EditorEvent::ServerLogs(
+                        self.log_buffer.clone(),
+                    )),
+                ),
+            )
+        }
+        self.log_buffer.clear();
     }
 
     pub fn update_resource_to_module_map(
@@ -123,6 +142,7 @@ impl ConductorModule {
                                 &mut self.module_map,
                                 &mut self.resource_to_module_map,
                                 &mut self.system_to_admin_communication.sender,
+                                &self.log_collector,
                                 admin,
                                 event,
                             )
@@ -171,6 +191,7 @@ impl ConductorModule {
         websocket_module: WebsocketModule,
         blueprint_service: BlueprintService,
         blueprint: blueprint::def::Conductor,
+        log_collector: Arc<LogCollector>,
     ) -> ConductorModule {
         let snowflake_gen = SnowflakeIdBucket::new(1, 1);
         let mut module_communication_map = HashMap::new();
@@ -225,6 +246,9 @@ impl ConductorModule {
             module_communication_map,
             system_to_guest_communication,
             system_to_admin_communication,
+
+            log_collector,
+            log_buffer: Vec::new(),
         }
     }
 

@@ -1,3 +1,4 @@
+use crossbeam_channel::Receiver;
 use rapier2d::prelude::*;
 
 pub struct RapierSimulation {
@@ -15,4 +16,6 @@ pub struct RapierSimulation {
     pub(crate) physics_hooks: (),
     pub(crate) events: Box<dyn EventHandler>,
     pub(crate) physics_pipeline: PhysicsPipeline,
+    pub(crate) contact_receiver: Receiver<ContactForceEvent>,
+    pub(crate) intersection_receiver: Receiver<CollisionEvent>,
 }
