@@ -4,6 +4,7 @@ use std::ffi::OsString;
 use std::hash::Hash;
 
 use crate::core::blueprint::character_animation::CharacterAnimation;
+use crate::core::blueprint::ecs::def::Entity;
 use crate::core::blueprint::scene::def::{CollisionShape, Scene, Script};
 use crate::core::guest::{ModuleEnterSlot, ModuleExitSlot};
 use crate::core::module::ModuleName;
@@ -156,6 +157,7 @@ pub struct TerrainParams {
 pub struct WorldParams {
     pub terrain_params: TerrainParams,
     pub camera_settings: CameraSettings,
+    pub camera_ref: Option<Entity>,
 }
 
 pub type LayerParralaxMap = HashMap<LayerKind, (f32, f32)>;

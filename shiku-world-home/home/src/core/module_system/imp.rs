@@ -136,12 +136,19 @@ impl DynamicGameModule {
         }
     }
 
-    pub fn get_world_params(&self, world_id: &WorldId) -> Option<WorldParams> {
+    pub fn get_world_params_for_actor(
+        &self,
+        world_id: &WorldId,
+        actor_id: &ActorId,
+    ) -> Option<WorldParams> {
         if let Some(world) = self.world_map.get(world_id) {
-            return Some(WorldParams {
-                terrain_params: world.terrain_manager.params.clone(),
-                camera_settings: world.camera_settings.clone(),
-            });
+            if let Some(actor_api) = world.actor_api.try_borrow() {
+                return Some(WorldParams {
+                    terrain_params: world.terrain_manager.params.clone(),
+                    camera_settings: world.camera_settings.clone(),
+                    camera_ref: actor_api.get_camera_ref(actor_id),
+                });
+            }
         }
         None
     }

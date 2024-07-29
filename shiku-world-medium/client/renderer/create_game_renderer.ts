@@ -135,6 +135,10 @@ export const create_instance_rendering = (
   layer_map.ObjectsFront.addChild(blueprint_container);
   main_container_wrapper.addChild(main_container);
   const camera = create_camera();
+  if (world_params.camera_ref) {
+    console.log("Setting camera ref", world_params.camera_ref);
+    camera.set_camera_ref(world_params.camera_ref);
+  }
   return {
     camera,
     layer_map,

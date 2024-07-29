@@ -14,6 +14,7 @@ use crate::core::blueprint::def::{
     LayerKind, LayerParralaxMap, ModuleId, ResourceKind, TerrainParams, WorldParams,
 };
 use crate::core::blueprint::def::{Module, ResourcePath};
+use crate::core::blueprint::ecs::def::Entity;
 use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, Script};
@@ -566,7 +567,7 @@ impl GameInstanceManager {
             if let Some(world_id) = instance.dynamic_module.guest_to_world.get(guest_id) {
                 return instance
                     .dynamic_module
-                    .get_world_params(world_id)
+                    .get_world_params_for_actor(world_id, guest_id)
                     .map(|terrain_params| {
                         (
                             terrain_params,
@@ -587,14 +588,14 @@ impl GameInstanceManager {
 
     pub fn get_world_info_for_admin(
         &self,
-        _guest_id: &ActorId,
+        actor_id: &ActorId,
         game_instance_id: &GameInstanceId,
         world_id: &WorldId,
     ) -> Option<(WorldParams, LayerParralaxMap)> {
         if let Some(instance) = self.game_instances.get(game_instance_id) {
             return instance
                 .dynamic_module
-                .get_world_params(world_id)
+                .get_world_params_for_actor(world_id, actor_id)
                 .map(|world_params| {
                     (
                         world_params,

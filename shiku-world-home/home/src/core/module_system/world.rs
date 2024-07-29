@@ -46,6 +46,7 @@ pub struct World {
 pub struct ActorApi {
     pub active_set: HashSet<ActorId>,
     pub inputs: HashMap<ActorId, GuestInput>,
+    pub camera_ref: HashMap<ActorId, Entity>,
     pub login_data: HashMap<ActorId, LoginData>,
     pub game_system_to_guest_events: Vec<(ActorId, GameSystemToGuestEvent)>,
 }
@@ -57,6 +58,14 @@ impl ActorApi {
 
     pub fn set_actor_input(&mut self, actor_id: ActorId, guest_input: GuestInput) {
         self.inputs.insert(actor_id, guest_input);
+    }
+
+    pub fn set_camera_ref(&mut self, actor_id: ActorId, camera_ref: Entity) {
+        self.camera_ref.insert(actor_id, camera_ref);
+    }
+
+    pub fn get_camera_ref(&self, actor_id: &ActorId) -> Option<Entity> {
+        self.camera_ref.get(actor_id).cloned()
     }
 }
 
@@ -91,6 +100,7 @@ impl World {
                 active_set: HashSet::new(),
                 login_data: HashMap::new(),
                 game_system_to_guest_events: Vec::new(),
+                camera_ref: HashMap::new(),
             }),
             camera_settings: game_map.camera_settings.clone(),
             terrain_manager,
@@ -633,6 +643,7 @@ impl World {
             &mut module,
             move |actor_id: ActorId, entity: Entity| {
                 if let Some(mut actor_api) = actor_api_share_clone.try_borrow_mut() {
+                    actor_api.set_camera_ref(actor_id, entity);
                     actor_api.game_system_to_guest_events.push((
                         actor_id,
                         GameSystemToGuestEvent::SetCameraFollowEntity(entity),

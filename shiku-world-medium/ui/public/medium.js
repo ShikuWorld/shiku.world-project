@@ -39466,6 +39466,10 @@ ${e3}`);
     layer_map.ObjectsFront.addChild(blueprint_container);
     main_container_wrapper.addChild(main_container);
     const camera = create_camera();
+    if (world_params.camera_ref) {
+      console.log("Setting camera ref", world_params.camera_ref);
+      camera.set_camera_ref(world_params.camera_ref);
+    }
     return {
       camera,
       layer_map,
@@ -40715,10 +40719,14 @@ ${e3}`);
   }
   function update_grid(camera_isometry, renderer) {
     if (renderer.grid) {
-      const new_iso = camera_iso_to_scaled_viewport(camera_isometry, {
-        y_pscaling: renderer.grid.p_scaling.y,
-        x_pscaling: renderer.grid.p_scaling.x
-      });
+      const new_iso = camera_iso_to_scaled_viewport(
+        camera_isometry,
+        renderer.camera.zoom,
+        {
+          y_pscaling: renderer.grid.p_scaling.y,
+          x_pscaling: renderer.grid.p_scaling.x
+        }
+      );
       if (renderer.grid.sprite.tilePosition.x !== new_iso.x || renderer.grid.sprite.tilePosition.y !== new_iso.y) {
         renderer.grid.sprite.tilePosition.x = new_iso.x;
         renderer.grid.sprite.tilePosition.y = new_iso.y;

@@ -215,10 +215,14 @@ export function update_grid(
   renderer: InstanceRendering,
 ) {
   if (renderer.grid) {
-    const new_iso = camera_iso_to_scaled_viewport(camera_isometry, {
-      y_pscaling: renderer.grid.p_scaling.y,
-      x_pscaling: renderer.grid.p_scaling.x,
-    });
+    const new_iso = camera_iso_to_scaled_viewport(
+      camera_isometry,
+      renderer.camera.zoom,
+      {
+        y_pscaling: renderer.grid.p_scaling.y,
+        x_pscaling: renderer.grid.p_scaling.x,
+      },
+    );
 
     if (
       renderer.grid.sprite.tilePosition.x !== new_iso.x ||
