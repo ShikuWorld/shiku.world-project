@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use flume::{unbounded, Sender};
-use log::{debug, error, warn};
+use log::{debug, error, trace, warn};
 use rhai::Module;
 use snowflake::SnowflakeIdBucket;
 use tungstenite::protocol::frame::coding::CloseCode;
@@ -68,23 +68,26 @@ impl ConductorModule {
 
         self.handle_admin_events().await;
         self.resource_module.check_reconnect().await;
+
+        self.send_logs_to_admins();
     }
 
     pub fn send_logs_to_admins(&mut self) {
-        self.log_collector
-            .get_new_logs_and_archive(&mut self.log_buffer);
-        for admin in self.admins.values() {
-            send_and_log_error(
-                &mut self.system_to_admin_communication.sender,
-                (
-                    admin.id,
-                    CommunicationEvent::EditorEvent(EditorEvent::ServerLogs(
-                        self.log_buffer.clone(),
-                    )),
-                ),
-            )
+        self.log_collector.get_new_logs(&mut self.log_buffer);
+        if !self.log_buffer.is_empty() {
+            for admin in self.admins.values() {
+                send_and_log_error(
+                    &mut self.system_to_admin_communication.sender,
+                    (
+                        admin.id,
+                        CommunicationEvent::EditorEvent(EditorEvent::ServerLogs(
+                            self.log_buffer.clone(),
+                        )),
+                    ),
+                )
+            }
+            self.log_buffer.clear();
         }
-        self.log_buffer.clear();
     }
 
     pub fn update_resource_to_module_map(
@@ -546,7 +549,10 @@ impl ConductorModule {
         if let Some(ws_connection_id) = &guest.ws_connection_id {
             websocket_module.send_event(ws_connection_id, event_as_string);
         } else {
-            debug!("Could not send to guest '{:?}' no active connection", guest);
+            error!(
+                "Could not send to guest '{:?}' no active connection",
+                guest.id
+            );
         }
     }
 
@@ -558,7 +564,10 @@ impl ConductorModule {
         if let Some(ws_connection_id) = &admin.ws_connection_id {
             websocket_module.send_event(ws_connection_id, event_as_string);
         } else {
-            error!("Could not send to admin '{:?}' no active connection", admin);
+            trace!(
+                "Could not send to admin '{:?}' no active connection",
+                admin.id
+            );
         }
     }
 
@@ -1238,7 +1247,6 @@ impl ConductorModule {
         sender: &mut Sender<(ActorId, CommunicationEvent)>,
         result: Result<ActorId, HandleLoginError>,
     ) {
-        error!("login result: {:?}", result);
         match result {
             Ok(actor_id) => {
                 debug!("handle login was successful for {}", actor_id);

@@ -1,4 +1,4 @@
-import { EntityManager, Isometry } from "../entities";
+import { Isometry } from "../entities";
 import {
   get_simulation_scale,
   get_stage_height,
@@ -6,13 +6,14 @@ import {
 } from "../config/config";
 import { ParallaxContainer } from "../renderer/create_game_renderer";
 import { CameraSettings } from "@/editor/blueprints/CameraSettings";
+import { RenderGraphData } from "@/editor/stores/game-instances";
 export function create_camera(): Camera {
   return new Camera();
 }
 
 export class Camera {
   private readonly _camera_isometry: Isometry;
-  private _entity_id_ref: { module_name: string; entity_id: string } | null;
+  private _entity_id_ref: number | null = null;
   private _camera_settings: CameraSettings = {
     bounds: null,
     zoom: 1,
@@ -20,7 +21,6 @@ export class Camera {
 
   constructor() {
     this._camera_isometry = { x: 0, y: 0, rotation: 0 };
-    this._entity_id_ref = null;
   }
 
   get zoom(): number {
@@ -31,11 +31,8 @@ export class Camera {
     return this._camera_isometry;
   }
 
-  set_camera_ref(entity_id: string, module_name: string) {
-    this._entity_id_ref = {
-      entity_id,
-      module_name,
-    };
+  set_camera_ref(entity_id: number) {
+    this._entity_id_ref = entity_id;
   }
 
   set_camera_settings(camera_settings: CameraSettings) {
@@ -65,11 +62,13 @@ export class Camera {
     }
   }
 
-  update_camera_position_from_ref(entities: EntityManager) {
+  update_camera_position_from_ref(render_graph: RenderGraphData) {
     if (!this._entity_id_ref) {
       return;
     }
-    const entity = entities.get_entity(this._entity_id_ref.entity_id)?.wrapper;
+    const entity =
+      render_graph.entity_node_to_render_node_map[this._entity_id_ref]
+        ?.container;
     if (!entity) {
       return;
     }
@@ -115,9 +114,14 @@ export class Camera {
 
 export function set_container_to_viewport_coordinate(
   camera_isometry: Isometry,
+  zoom: number,
   container: ParallaxContainer,
 ) {
-  const new_iso = camera_iso_to_scaled_viewport(camera_isometry, container);
+  const new_iso = camera_iso_to_scaled_viewport(
+    camera_isometry,
+    zoom,
+    container,
+  );
   container.x = new_iso.x;
   container.y = new_iso.y;
   container.rotation = new_iso.rotation;
@@ -125,11 +129,12 @@ export function set_container_to_viewport_coordinate(
 
 export function camera_iso_to_scaled_viewport(
   camera_isometry: Isometry,
+  zoom: number,
   { x_pscaling, y_pscaling }: { x_pscaling: number; y_pscaling: number },
 ): Isometry {
   return {
-    x: -Math.round(camera_isometry.x * x_pscaling - get_stage_width() / 2),
-    y: -Math.round(camera_isometry.y * y_pscaling - get_stage_height() / 2),
+    x: -(camera_isometry.x * x_pscaling - (get_stage_width() * zoom) / 2),
+    y: -(camera_isometry.y * y_pscaling - (get_stage_height() * zoom) / 2),
     rotation: camera_isometry.rotation,
   };
 }

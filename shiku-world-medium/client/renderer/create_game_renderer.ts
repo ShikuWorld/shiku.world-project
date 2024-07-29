@@ -11,14 +11,6 @@ import {
   Texture,
 } from "pixi.js";
 import { Config } from "../config";
-import {
-  get_camera_zoom,
-  get_enable_zoom,
-  get_stage_height,
-  get_stage_width,
-  set_stage_height,
-  set_stage_width,
-} from "../config/config";
 import { create_camera } from "@/client/camera";
 import { SimpleEventDispatcher } from "strongly-typed-events";
 import { GameInstancesStore } from "@/editor/stores/game-instances";
@@ -151,32 +143,6 @@ export const create_instance_rendering = (
     main_container_wrapper,
     terrain_params: world_params.terrain_params,
   };
-};
-
-export const viewPortResize = (
-  width: number,
-  height: number,
-  renderer: RenderSystem,
-) => {
-  /*renderer.renderer.view.style.width = `${width}px`;
-                                                renderer.renderer.view.style.height = `${height}px`;*/
-
-  if (get_enable_zoom()) {
-    set_stage_width(width * get_camera_zoom());
-    set_stage_height(height * get_camera_zoom());
-  } else {
-    set_stage_width(width * window.devicePixelRatio * get_camera_zoom());
-    set_stage_height(height * window.devicePixelRatio * get_camera_zoom());
-  }
-
-  renderer.renderer.resize(get_stage_width(), get_stage_height());
-  setTimeout(() => {
-    renderer.isDirty = true;
-  }, 50);
-  /*renderer.onStageResize.dispatch({
-                                                  stage_width: Config.get_stage_width(),
-                                                  stage_height: Config.get_stage_height(),
-                                                });*/
 };
 
 /*

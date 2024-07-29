@@ -197,7 +197,7 @@ impl DynamicGameModule {
                 ModuleInstanceEvent {
                     module_id: self.module_id.clone(),
                     instance_id: self.instance_id.clone(),
-                    world_id: Some(world_id.clone()),
+                    world_id: None,
                     event_type: GameSystemToGuestEvent::SetCameraSettings(
                         world.camera_settings.clone(),
                     ),

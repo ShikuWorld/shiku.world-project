@@ -138,15 +138,7 @@
         ></CharacterAnimationNodeInspector>
       </div>
     </div>
-    <div class="editor-log">
-      <div
-        class="editor-log__entry"
-        v-for="[time, level, location, message] in logs"
-        :key="message"
-      >
-        {{ message }}
-      </div>
-    </div>
+    <ServerLogs :logs="logs" log_level="ERROR" />
   </div>
 </template>
 
@@ -189,6 +181,7 @@ import SettingsEditor from "@/editor/editor/SettingsEditor.vue";
 import { ChunkUpdate } from "@/editor/blueprints/ChunkUpdate";
 import { TerrainBrush } from "@/editor/blueprints/TerrainBrush";
 import { match, P } from "ts-pattern";
+import ServerLogs from "@/editor/editor/ServerLogs.vue";
 
 const {
   selected_module_id,
@@ -869,17 +862,6 @@ function open_resource_editor(resource: BlueprintResource) {
 </script>
 
 <style lang="scss">
-.editor-log {
-  position: absolute;
-  bottom: 0;
-  height: 300px;
-  width: 1000px;
-  display: flex;
-  flex-direction: column;
-}
-.editor-log__entry {
-  white-space: nowrap;
-}
 .editor-wrapper {
   display: flex;
   flex-wrap: wrap;
@@ -913,7 +895,7 @@ function open_resource_editor(resource: BlueprintResource) {
 .editor-nav-left,
 .editor-nav-right {
   width: 250px;
-  height: calc(100vh - 48px);
+  height: calc(100vh - 108px);
   background-color: rgb(var(--v-theme-primary));
 }
 

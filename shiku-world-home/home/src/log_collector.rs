@@ -20,16 +20,11 @@ impl LogCollector {
     }
 
     pub fn log(&self, time: String, log_level: String, location: String, message: String) {
-        if let Ok(mut logs) = self.log_archive.lock() {
-            logs.push(LogInfo(time, log_level, location, message));
-        }
-    }
-
-    pub fn get_new_logs_and_archive(&self, log_buff: &mut Vec<LogInfo>) {
         if let Ok(ref mut new_logs) = self.new_logs.lock() {
-            log_buff.clone_from(new_logs);
+            let new_log = LogInfo(time, log_level, location, message);
+            new_logs.push(new_log.clone());
             if let Ok(ref mut log_archive) = self.log_archive.lock() {
-                log_archive.append(new_logs);
+                log_archive.push(new_log);
                 // Only preserve the last 100 logs in the archive
                 let mut index = log_archive.len();
                 log_archive.retain(|_| {
@@ -37,6 +32,12 @@ impl LogCollector {
                     index < 100
                 });
             }
+        }
+    }
+
+    pub fn get_new_logs(&self, log_buff: &mut Vec<LogInfo>) {
+        if let Ok(ref mut new_logs) = self.new_logs.lock() {
+            log_buff.append(new_logs);
         }
     }
 

@@ -141,6 +141,13 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       }
       return state.game_instance_data_map[instance_id][world_id];
     },
+    get_render_graph_data(instance_id: string, world_id: string) {
+      const game_instance_data = this.get_game_instance_data(
+        instance_id,
+        world_id,
+      );
+      return game_instance_data?.render_graph_data;
+    },
     game_instance_exists(instance_id: string, world_id: string): boolean {
       return (
         !!state.game_instance_data_map[instance_id] &&

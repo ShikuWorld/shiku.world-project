@@ -39046,291 +39046,6 @@ ${e3}`);
   };
   var TilingSprite = _TilingSprite;
 
-  // node_modules/pixi.js/lib/scene/text/AbstractText.mjs
-  init_ObservablePoint();
-  init_deprecation();
-  init_Bounds();
-  init_Container();
-  var AbstractText = class extends Container {
-    constructor(options, styleClass) {
-      const { text, resolution, style, anchor, width, height, roundPixels, ...rest } = options;
-      super({
-        ...rest
-      });
-      this.batched = true;
-      this._resolution = null;
-      this._didTextUpdate = true;
-      this._roundPixels = 0;
-      this._bounds = new Bounds();
-      this._boundsDirty = true;
-      this._styleClass = styleClass;
-      this.text = text ?? "";
-      this.style = style;
-      this.resolution = resolution ?? null;
-      this.allowChildren = false;
-      this._anchor = new ObservablePoint(
-        {
-          _onUpdate: () => {
-            this.onViewUpdate();
-          }
-        }
-      );
-      if (anchor)
-        this.anchor = anchor;
-      this.roundPixels = roundPixels ?? false;
-      if (width)
-        this.width = width;
-      if (height)
-        this.height = height;
-    }
-    /**
-     * The anchor sets the origin point of the text.
-     * The default is `(0,0)`, this means the text's origin is the top left.
-     *
-     * Setting the anchor to `(0.5,0.5)` means the text's origin is centered.
-     *
-     * Setting the anchor to `(1,1)` would mean the text's origin point will be the bottom right corner.
-     *
-     * If you pass only single parameter, it will set both x and y to the same value as shown in the example below.
-     * @example
-     * import { Text } from 'pixi.js';
-     *
-     * const text = new Text('hello world');
-     * text.anchor.set(0.5); // This will set the origin to center. (0.5) is same as (0.5, 0.5).
-     */
-    get anchor() {
-      return this._anchor;
-    }
-    set anchor(value) {
-      typeof value === "number" ? this._anchor.set(value) : this._anchor.copyFrom(value);
-    }
-    /**
-     *  Whether or not to round the x/y position of the text.
-     * @type {boolean}
-     */
-    get roundPixels() {
-      return !!this._roundPixels;
-    }
-    set roundPixels(value) {
-      this._roundPixels = value ? 1 : 0;
-    }
-    /** Set the copy for the text object. To split a line you can use '\n'. */
-    set text(value) {
-      value = value.toString();
-      if (this._text === value)
-        return;
-      this._text = value;
-      this.onViewUpdate();
-    }
-    get text() {
-      return this._text;
-    }
-    /**
-     * The resolution / device pixel ratio of the canvas.
-     * @default 1
-     */
-    set resolution(value) {
-      this._resolution = value;
-      this.onViewUpdate();
-    }
-    get resolution() {
-      return this._resolution;
-    }
-    get style() {
-      return this._style;
-    }
-    /**
-     * Set the style of the text.
-     *
-     * Set up an event listener to listen for changes on the style object and mark the text as dirty.
-     *
-     * If setting the `style` can also be partial {@link AnyTextStyleOptions}.
-     * @type {
-     * text.TextStyle |
-     * Partial<text.TextStyle> |
-     * text.TextStyleOptions |
-     * text.HTMLTextStyle |
-     * Partial<text.HTMLTextStyle> |
-     * text.HTMLTextStyleOptions
-     * }
-     */
-    set style(style) {
-      style = style || {};
-      this._style?.off("update", this.onViewUpdate, this);
-      if (style instanceof this._styleClass) {
-        this._style = style;
-      } else {
-        this._style = new this._styleClass(style);
-      }
-      this._style.on("update", this.onViewUpdate, this);
-      this.onViewUpdate();
-    }
-    /**
-     * The local bounds of the Text.
-     * @type {rendering.Bounds}
-     */
-    get bounds() {
-      if (this._boundsDirty) {
-        this._updateBounds();
-        this._boundsDirty = false;
-      }
-      return this._bounds;
-    }
-    /** The width of the sprite, setting this will actually modify the scale to achieve the value set. */
-    get width() {
-      return Math.abs(this.scale.x) * this.bounds.width;
-    }
-    set width(value) {
-      this._setWidth(value, this.bounds.width);
-    }
-    /** The height of the sprite, setting this will actually modify the scale to achieve the value set. */
-    get height() {
-      return Math.abs(this.scale.y) * this.bounds.height;
-    }
-    set height(value) {
-      this._setHeight(value, this.bounds.height);
-    }
-    /**
-     * Retrieves the size of the Text as a [Size]{@link Size} object.
-     * This is faster than get the width and height separately.
-     * @param out - Optional object to store the size in.
-     * @returns - The size of the Text.
-     */
-    getSize(out2) {
-      if (!out2) {
-        out2 = {};
-      }
-      out2.width = Math.abs(this.scale.x) * this.bounds.width;
-      out2.height = Math.abs(this.scale.y) * this.bounds.height;
-      return out2;
-    }
-    /**
-     * Sets the size of the Text to the specified width and height.
-     * This is faster than setting the width and height separately.
-     * @param value - This can be either a number or a [Size]{@link Size} object.
-     * @param height - The height to set. Defaults to the value of `width` if not provided.
-     */
-    setSize(value, height) {
-      let convertedWidth;
-      let convertedHeight;
-      if (typeof value !== "object") {
-        convertedWidth = value;
-        convertedHeight = height ?? value;
-      } else {
-        convertedWidth = value.width;
-        convertedHeight = value.height ?? value.width;
-      }
-      if (convertedWidth !== void 0) {
-        this._setWidth(convertedWidth, this.bounds.width);
-      }
-      if (convertedHeight !== void 0) {
-        this._setHeight(convertedHeight, this.bounds.height);
-      }
-    }
-    /**
-     * Adds the bounds of this text to the bounds object.
-     * @param bounds - The output bounds object.
-     */
-    addBounds(bounds) {
-      const _bounds = this.bounds;
-      bounds.addFrame(
-        _bounds.minX,
-        _bounds.minY,
-        _bounds.maxX,
-        _bounds.maxY
-      );
-    }
-    /**
-     * Checks if the text contains the given point.
-     * @param point - The point to check
-     */
-    containsPoint(point) {
-      const width = this.bounds.width;
-      const height = this.bounds.height;
-      const x1 = -width * this.anchor.x;
-      let y1 = 0;
-      if (point.x >= x1 && point.x <= x1 + width) {
-        y1 = -height * this.anchor.y;
-        if (point.y >= y1 && point.y <= y1 + height)
-          return true;
-      }
-      return false;
-    }
-    onViewUpdate() {
-      this._didChangeId += 1 << 12;
-      this._boundsDirty = true;
-      if (this.didViewUpdate)
-        return;
-      this.didViewUpdate = true;
-      this._didTextUpdate = true;
-      const renderGroup = this.renderGroup || this.parentRenderGroup;
-      if (renderGroup) {
-        renderGroup.onChildViewUpdate(this);
-      }
-    }
-    _getKey() {
-      return `${this.text}:${this._style.styleKey}-${this.resolution}`;
-    }
-    /**
-     * Destroys this text renderable and optionally its style texture.
-     * @param options - Options parameter. A boolean will act as if all options
-     *  have been set to that value
-     * @param {boolean} [options.texture=false] - Should it destroy the texture of the text style
-     * @param {boolean} [options.textureSource=false] - Should it destroy the textureSource of the text style
-     * @param {boolean} [options.style=false] - Should it destroy the style of the text
-     */
-    destroy(options = false) {
-      super.destroy(options);
-      this.owner = null;
-      this._bounds = null;
-      this._anchor = null;
-      if (typeof options === "boolean" ? options : options?.style) {
-        this._style.destroy(options);
-      }
-      this._style = null;
-      this._text = null;
-    }
-  };
-  function ensureOptions(args, name) {
-    let options = args[0] ?? {};
-    if (typeof options === "string" || args[1]) {
-      deprecation(v8_0_0, `use new ${name}({ text: "hi!", style }) instead`);
-      options = {
-        text: options,
-        style: args[1]
-      };
-    }
-    return options;
-  }
-
-  // node_modules/pixi.js/lib/scene/text-bitmap/BitmapText.mjs
-  init_TextStyle();
-  init_BitmapFontManager();
-  var BitmapText = class extends AbstractText {
-    constructor(...args) {
-      var _a;
-      const options = ensureOptions(args, "BitmapText");
-      options.style ?? (options.style = options.style || {});
-      (_a = options.style).fill ?? (_a.fill = 16777215);
-      super(options, TextStyle);
-      this.renderPipeId = "bitmapText";
-    }
-    _updateBounds() {
-      const bounds = this._bounds;
-      const padding = this._style.padding;
-      const anchor = this._anchor;
-      const bitmapMeasurement = BitmapFontManager.measureText(this.text, this._style);
-      const scale = bitmapMeasurement.scale;
-      const offset = bitmapMeasurement.offsetY * scale;
-      const width = bitmapMeasurement.width * scale;
-      const height = bitmapMeasurement.height * scale;
-      bounds.minX = -anchor._x * width - padding;
-      bounds.maxX = bounds.minX + width;
-      bounds.minY = -anchor._y * (height + offset) - padding;
-      bounds.maxY = bounds.minY + height;
-    }
-  };
-
   // node_modules/pixi.js/lib/rendering/renderers/shared/texture/const.mjs
   init_deprecation();
   var DEPRECATED_WRAP_MODES = /* @__PURE__ */ ((DEPRECATED_WRAP_MODES2) => {
@@ -39532,8 +39247,8 @@ ${e3}`);
   };
   var BG_COLOR = 0;
   var camera_zoom = 1;
-  var stage_width = window.innerWidth / 2;
-  var stage_height = window.outerHeight / 2;
+  var stage_width = window.innerWidth;
+  var stage_height = window.outerHeight;
   var set_camera_zoom = (zoom) => {
     camera_zoom = zoom;
   };
@@ -39580,14 +39295,13 @@ ${e3}`);
   }
   var Camera = class {
     _camera_isometry;
-    _entity_id_ref;
+    _entity_id_ref = null;
     _camera_settings = {
       bounds: null,
       zoom: 1
     };
     constructor() {
       this._camera_isometry = { x: 0, y: 0, rotation: 0 };
-      this._entity_id_ref = null;
     }
     get zoom() {
       return this._camera_settings.zoom || 1;
@@ -39595,11 +39309,8 @@ ${e3}`);
     get camera_isometry() {
       return this._camera_isometry;
     }
-    set_camera_ref(entity_id, module_name) {
-      this._entity_id_ref = {
-        entity_id,
-        module_name
-      };
+    set_camera_ref(entity_id) {
+      this._entity_id_ref = entity_id;
     }
     set_camera_settings(camera_settings) {
       this._camera_settings = camera_settings;
@@ -39623,11 +39334,11 @@ ${e3}`);
         this._camera_isometry.y = iso.y;
       }
     }
-    update_camera_position_from_ref(entities) {
+    update_camera_position_from_ref(render_graph) {
       if (!this._entity_id_ref) {
         return;
       }
-      const entity = entities.get_entity(this._entity_id_ref.entity_id)?.wrapper;
+      const entity = render_graph.entity_node_to_render_node_map[this._entity_id_ref]?.container;
       if (!entity) {
         return;
       }
@@ -39662,16 +39373,20 @@ ${e3}`);
       return iso;
     }
   };
-  function set_container_to_viewport_coordinate(camera_isometry, container) {
-    const new_iso = camera_iso_to_scaled_viewport(camera_isometry, container);
+  function set_container_to_viewport_coordinate(camera_isometry, zoom, container) {
+    const new_iso = camera_iso_to_scaled_viewport(
+      camera_isometry,
+      zoom,
+      container
+    );
     container.x = new_iso.x;
     container.y = new_iso.y;
     container.rotation = new_iso.rotation;
   }
-  function camera_iso_to_scaled_viewport(camera_isometry, { x_pscaling, y_pscaling }) {
+  function camera_iso_to_scaled_viewport(camera_isometry, zoom, { x_pscaling, y_pscaling }) {
     return {
-      x: -Math.round(camera_isometry.x * x_pscaling - get_stage_width() / 2),
-      y: -Math.round(camera_isometry.y * y_pscaling - get_stage_height() / 2),
+      x: -(camera_isometry.x * x_pscaling - get_stage_width() * zoom / 2),
+      y: -(camera_isometry.y * y_pscaling - get_stage_height() * zoom / 2),
       rotation: camera_isometry.rotation
     };
   }
@@ -41123,311 +40838,6 @@ ${e3}`);
     };
   };
 
-  // client/countdown.ts
-  function create_countdown(config) {
-    const text = new BitmapText({
-      text: config.date,
-      style: { fontFamily: config.font_family }
-    });
-    setInterval(set_new_time_to_text(config, text), 500);
-    set_new_time_to_text(config, text)();
-    return text;
-  }
-  function set_new_time_to_text(config, text) {
-    return () => {
-      const date = new Date(config.date);
-      const diff = date.getTime() - Date.now();
-      if (diff > 0) {
-        text.text = format_countdown(diff);
-        text.position.x = Math.round(-text.width / 2);
-      } else {
-        text.text = "HideThePainHarold";
-      }
-    };
-  }
-  function format_countdown(unix_timestamp) {
-    const unix_timestamp_seconds = unix_timestamp / 1e3;
-    const days = Math.floor(unix_timestamp_seconds / (60 * 60 * 24));
-    const hours = Math.floor(
-      (unix_timestamp_seconds - days * 60 * 60 * 24) / (60 * 60)
-    );
-    const minutes = Math.floor(
-      (unix_timestamp_seconds - days * 60 * 60 * 24 - hours * 60 * 60) / 60
-    );
-    const seconds = Math.floor(
-      unix_timestamp_seconds - days * 60 * 60 * 24 - hours * 60 * 60 - minutes * 60
-    );
-    return `${prefix_0(days)}:${prefix_0(hours)}:${prefix_0(minutes)}:${prefix_0(
-      seconds
-    )}`;
-  }
-  function prefix_0(n3) {
-    return n3 < 10 ? `0${n3}` : `${n3}`;
-  }
-
-  // client/entities/index.ts
-  function create_entity_manager() {
-    return new EntityManager();
-  }
-  var EntityManager = class _EntityManager {
-    _entity_map;
-    constructor() {
-      this._entity_map = /* @__PURE__ */ new Map();
-    }
-    iterate_entities(cb) {
-      for (const entity of this._entity_map.values()) {
-        cb(entity);
-      }
-    }
-    get_entity(entity_id) {
-      const entity = this._entity_map.get(entity_id);
-      if (!entity) {
-        console.warn(
-          `Could not get entity with id ${entity_id}, reason: didn't exist`
-        );
-        return;
-      }
-      return entity;
-    }
-    add_simple_image_effect(simple_image_effect, renderer, resource_manager) {
-      const [container, layer_name] = get_display_obj_from_render(
-        resource_manager,
-        {
-          StaticImage: {
-            tiled: false,
-            height: null,
-            width: null,
-            graphic_id: simple_image_effect.graphic_id,
-            layer: simple_image_effect.layer,
-            scale: [1, 1],
-            blending_mode: simple_image_effect.blending_mode,
-            offset_2d: [0, 0]
-          }
-        },
-        renderer
-      );
-      if (!layer_name) {
-        return;
-      }
-      const isometry = {
-        x: simple_image_effect.initial_isometrics_2d[0],
-        y: simple_image_effect.initial_isometrics_2d[1],
-        rotation: simple_image_effect.initial_isometrics_2d[2]
-      };
-      container.x = Math.round(isometry.x * config_exports.get_simulation_scale());
-      container.y = Math.round(isometry.y * config_exports.get_simulation_scale());
-      container.rotation = isometry.rotation;
-      const parent = simple_image_effect.parent_entity ? this._entity_map.get(simple_image_effect.parent_entity) : void 0;
-      const display_object = container.getChildAt(0);
-      if (display_object instanceof AnimatedSprite) {
-        const graphics = resource_manager.get_graphics_data_by_gid(
-          Number(simple_image_effect.graphic_id)
-        );
-        display_object.loop = false;
-        display_object.alpha = simple_image_effect.transparency;
-        const animation_length = graphics.frame_objects.reduce(
-          (acc, f_o) => acc + f_o.time,
-          0
-        );
-        if (parent) {
-          parent.wrapper.addChild(container);
-        } else {
-          renderer.layer_map[layer_name].addChild(container);
-        }
-        setTimeout(() => {
-          if (parent) {
-            parent.wrapper.removeChild(container);
-          } else {
-            renderer.layer_map[layer_name].removeChild(container);
-          }
-        }, animation_length);
-      }
-    }
-    add_entity(show_entity, renderer, resource_manager) {
-      if (this._entity_map.has(show_entity.id)) {
-        return;
-      }
-      const [container, layer_name] = get_display_obj_from_render(
-        resource_manager,
-        show_entity.render,
-        renderer
-      );
-      if (!layer_name) {
-        return;
-      }
-      const isometry = {
-        x: show_entity.initial_isometrics_2d[0],
-        y: show_entity.initial_isometrics_2d[1],
-        rotation: show_entity.initial_isometrics_2d[2]
-      };
-      container.x = Math.round(isometry.x * config_exports.get_simulation_scale());
-      container.y = Math.round(isometry.y * config_exports.get_simulation_scale());
-      container.rotation = isometry.rotation;
-      const parent = show_entity.parent_entity ? this._entity_map.get(show_entity.parent_entity) : void 0;
-      if (parent) {
-        parent.wrapper.addChild(container);
-        this._entity_map.set(show_entity.id, {
-          layer_name,
-          id: show_entity.id,
-          isometry,
-          render: show_entity.render,
-          parent_container: parent.wrapper,
-          wrapper: container
-        });
-      } else {
-        renderer.layer_map[layer_name].addChild(container);
-        this._entity_map.set(show_entity.id, {
-          layer_name,
-          id: show_entity.id,
-          isometry,
-          render: show_entity.render,
-          parent_container: renderer.layer_map[layer_name],
-          wrapper: container
-        });
-      }
-    }
-    update_entity_position(entity_id, x3, y3, rotation) {
-      const entity = this.get_entity(entity_id);
-      if (!entity) {
-        return;
-      }
-      entity.isometry.x = x3;
-      entity.isometry.y = y3;
-      entity.isometry.rotation = rotation;
-      entity.wrapper.x = Math.round(
-        entity.isometry.x * config_exports.get_simulation_scale()
-      );
-      entity.wrapper.y = Math.round(
-        entity.isometry.y * config_exports.get_simulation_scale()
-      );
-      entity.wrapper.rotation = entity.isometry.rotation;
-    }
-    update_entity(update_entity, resource_manager, _renderer) {
-      const entity = this.get_entity(update_entity.id);
-      if (!entity) {
-        return;
-      }
-      if ("RenderTypeText" in update_entity.render) {
-        entity.wrapper.getChildAt(0).text = update_entity.render.RenderTypeText.text;
-        return;
-      }
-      if ("RenderTypeTimer" in update_entity.render || "NoRender" in update_entity.render) {
-        return;
-      }
-      let graphic_id = -1;
-      if ("StaticImage" in update_entity.render) {
-        graphic_id = Number(update_entity.render.StaticImage.graphic_id);
-      }
-      const graphics = resource_manager.get_graphics_data_by_gid(graphic_id);
-      if (!graphics) {
-        return;
-      }
-      const display_object = entity.wrapper.getChildAt(0);
-      if (!(display_object instanceof Sprite)) {
-        console.log("Was not instanceof sprite");
-        return;
-      }
-      const was_animated_sprite = display_object instanceof AnimatedSprite;
-      const is_animated_sprite = graphics.frame_objects.length > 0;
-      if (!is_animated_sprite && !was_animated_sprite) {
-        display_object.texture = graphics.textures[0];
-      } else {
-        _EntityManager._recreate_sprite(entity, graphics);
-      }
-      const sprite = entity.wrapper.getChildAt(0);
-      set_sprite_props_from_static_image_data(
-        sprite,
-        update_entity.render.StaticImage
-      );
-    }
-    static _recreate_sprite(entity, graphics) {
-      entity.wrapper.removeChildAt(0);
-      entity.wrapper.addChildAt(
-        get_sprite_from_render(
-          entity.render.StaticImage,
-          graphics
-        ),
-        0
-      );
-    }
-    remove_entity(remove_entity) {
-      const entity = this._entity_map.get(remove_entity.id);
-      if (!entity) {
-        throw Error(
-          `Could not remove entity with id ${remove_entity.id}, reason: didn't exist`
-        );
-      }
-      entity.parent_container.removeChild(entity.wrapper);
-      this._entity_map.delete(remove_entity.id);
-    }
-    remove_all_entities_from_module() {
-      for (const entity of this._entity_map.values()) {
-        entity.parent_container.removeChild(entity.wrapper);
-        this._entity_map.delete(entity.id);
-      }
-    }
-  };
-  function set_sprite_props_from_static_image_data(sprite, staticImageData) {
-    sprite.x = -Math.round(staticImageData.offset_2d[0]);
-    sprite.y = -Math.round(staticImageData.offset_2d[1]);
-    sprite.scale.x = staticImageData.scale[0];
-    sprite.scale.y = staticImageData.scale[1];
-    if (staticImageData.tiled) {
-      sprite.texture.baseTexture.wrapMode = WRAP_MODES.REPEAT;
-    }
-    if (staticImageData.width) {
-      sprite.width = staticImageData.width;
-    }
-    if (staticImageData.height) {
-      sprite.height = staticImageData.height;
-    }
-  }
-  function get_sprite_from_render(staticImageData, graphics) {
-    let sprite;
-    if (graphics.frame_objects.length > 0) {
-      const animated_sprite = new AnimatedSprite(graphics.frame_objects);
-      animated_sprite.play();
-      sprite = animated_sprite;
-    } else {
-      sprite = new Sprite(graphics.textures[0]);
-    }
-    set_sprite_props_from_static_image_data(sprite, staticImageData);
-    sprite.anchor.set(0.5);
-    if (staticImageData.blending_mode) {
-      sprite.blendMode = staticImageData.blending_mode;
-    }
-    return sprite;
-  }
-  function get_display_obj_from_render(resource_manager, render2, _renderer) {
-    const container = new Container();
-    let layer_name = void 0;
-    container.addChild(
-      N2(render2).with({ StaticImage: _.select() }, (staticImageData) => {
-        layer_name = staticImageData.layer;
-        const graphics = resource_manager.get_graphics_data_by_gid(
-          Number(staticImageData.graphic_id)
-        );
-        return get_sprite_from_render(staticImageData, graphics);
-      }).with({ RenderTypeTimer: _.select() }, (data) => {
-        layer_name = data.layer;
-        return create_countdown(data);
-      }).with({ RenderTypeText: _.select() }, (data) => {
-        layer_name = data.layer;
-        const text = new BitmapText({
-          text: data.text,
-          style: { fontFamily: data.font_family }
-        });
-        if (data.center_x) {
-          text.position.x = Math.round(-text.width / 2);
-        }
-        return text;
-      }).with({ NoRender: _.select() }, (_data) => {
-        return new Sprite();
-      }).exhaustive()
-    );
-    return [container, layer_name];
-  }
-
   // node_modules/@tweenjs/tween.js/dist/tween.esm.js
   var Easing = Object.freeze({
     Linear: Object.freeze({
@@ -42497,7 +41907,6 @@ ${e3}`);
         () => new Container()
       );
       this.renderer = create_instance_rendering(world_params);
-      this.entity_manager = create_entity_manager();
       this.terrain_manager = create_terrain_manager(world_params.terrain_params);
       this.layer_map_keys = Object.keys(this.renderer.layer_map);
       this.collision_lines = new Container();
@@ -42506,7 +41915,6 @@ ${e3}`);
       this.set_camera_settings(world_params.camera_settings);
     }
     renderer;
-    entity_manager;
     terrain_manager;
     layer_map_keys;
     collision_lines;
@@ -42530,26 +41938,33 @@ ${e3}`);
       this.collision_lines.visible = !this.collision_lines.visible;
     }
     update() {
-      this.renderer.camera.update_camera_position_from_ref(this.entity_manager);
-      for (const layerName of this.layer_map_keys) {
-        const parallax_container = this.renderer.layer_map[layerName];
-        set_container_to_viewport_coordinate(
-          this.renderer.camera.camera_isometry,
-          parallax_container
-        );
-      }
-      update_grid(this.renderer.camera.camera_isometry, this.renderer);
       window.medium_gui.game_instances.update_render_positions(
         this.id,
         this.world_id
       );
+      const render_graph_data = window.medium_gui.game_instances.get_render_graph_data(
+        this.id,
+        this.world_id
+      );
+      if (render_graph_data) {
+        this.renderer.camera.update_camera_position_from_ref(render_graph_data);
+      }
+      for (const layerName of this.layer_map_keys) {
+        const parallax_container = this.renderer.layer_map[layerName];
+        set_container_to_viewport_coordinate(
+          this.renderer.camera.camera_isometry,
+          this.renderer.camera.zoom,
+          parallax_container
+        );
+      }
+      update_grid(this.renderer.camera.camera_isometry, this.renderer);
       this.terrain_manager.update_effects();
     }
     handle_game_system_event(game_system_event, menu_system, resource_manager) {
       N2(game_system_event).with({ SetCameraSettings: _.select() }, (camera_settings) => {
         this.set_camera_settings(camera_settings);
       }).with({ SetCameraFollowEntity: _.select() }, (entity_id) => {
-        this.renderer.camera.set_camera_ref(entity_id, this.module_name);
+        this.renderer.camera.set_camera_ref(entity_id);
       }).with({ OpenMenu: _.select() }, (menuName) => {
         menu_system.activate(menuName);
       }).with({ CloseMenu: _.select() }, (menuName) => {

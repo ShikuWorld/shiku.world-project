@@ -7,8 +7,8 @@ export const get_simulation_scale = () => {
 
 const BG_COLOR = 0x000000;
 let camera_zoom = 1.0;
-let stage_width = window.innerWidth / 2;
-let stage_height = window.outerHeight / 2;
+let stage_width = window.innerWidth;
+let stage_height = window.outerHeight;
 
 export const set_camera_zoom = (zoom: number) => {
   camera_zoom = zoom;

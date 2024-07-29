@@ -1,5 +1,4 @@
 import { InstanceRendering } from "@/client/renderer";
-import { create_entity_manager, EntityManager } from "@/client/entities";
 import { create_terrain_manager, TerrainManager } from "@/client/terrain";
 import { create_instance_rendering } from "@/client/renderer/create_game_renderer";
 import { GameSystemToGuestEvent } from "@/client/communication/api/bindings/GameSystemToGuestEvent";
@@ -31,7 +30,6 @@ export type GameInstanceMap = {
 
 export class GameInstance {
   renderer: InstanceRendering;
-  entity_manager: EntityManager;
   terrain_manager: TerrainManager;
   layer_map_keys: LayerKind[];
   collision_lines: Container;
@@ -48,7 +46,7 @@ export class GameInstance {
       () => new Container(),
     );
     this.renderer = create_instance_rendering(world_params);
-    this.entity_manager = create_entity_manager();
+    //this.entity_manager = create_entity_manager();
     this.terrain_manager = create_terrain_manager(world_params.terrain_params);
     this.layer_map_keys = Object.keys(this.renderer.layer_map) as LayerKind[];
     this.collision_lines = new Container();
@@ -82,21 +80,29 @@ export class GameInstance {
   }
 
   update() {
-    this.renderer.camera.update_camera_position_from_ref(this.entity_manager);
+    window.medium_gui.game_instances.update_render_positions(
+      this.id,
+      this.world_id,
+    );
+
+    const render_graph_data =
+      window.medium_gui.game_instances.get_render_graph_data(
+        this.id,
+        this.world_id,
+      );
+    if (render_graph_data) {
+      this.renderer.camera.update_camera_position_from_ref(render_graph_data);
+    }
 
     for (const layerName of this.layer_map_keys) {
       const parallax_container = this.renderer.layer_map[layerName];
       set_container_to_viewport_coordinate(
         this.renderer.camera.camera_isometry,
+        this.renderer.camera.zoom,
         parallax_container,
       );
     }
     update_grid(this.renderer.camera.camera_isometry, this.renderer);
-
-    window.medium_gui.game_instances.update_render_positions(
-      this.id,
-      this.world_id,
-    );
 
     this.terrain_manager.update_effects();
   }
@@ -111,7 +117,7 @@ export class GameInstance {
         this.set_camera_settings(camera_settings);
       })
       .with({ SetCameraFollowEntity: P.select() }, (entity_id) => {
-        this.renderer.camera.set_camera_ref(entity_id, this.module_name);
+        this.renderer.camera.set_camera_ref(entity_id);
       })
       .with({ OpenMenu: P.select() }, (menuName) => {
         menu_system.activate(menuName);
