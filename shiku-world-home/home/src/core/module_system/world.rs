@@ -328,12 +328,16 @@ impl World {
         let ecs_shared = ecs.shared.clone();
         let physics_share_clone = physics_share.clone();
         FuncRegistration::new("resolve_kinematic_body_collision_impulses_automatic")
-            .set_into_module(&mut module, move || {
+            .set_into_module(&mut module, move |impulse_cutoff: f64| {
                 if let (Some(mut shared), Some(mut physics)) = (
                     ecs_shared.try_borrow_mut(),
                     physics_share_clone.try_borrow_mut(),
                 ) {
-                    Self::calc_kinematic_character_impulses(&mut shared, &mut physics);
+                    Self::apply_kinematic_character_impulses(
+                        &mut shared,
+                        &mut physics,
+                        impulse_cutoff as f32,
+                    );
                 }
             });
 
@@ -452,7 +456,11 @@ impl World {
         engine.register_static_module("shiku::physics", module.into());
     }
 
-    fn calc_kinematic_character_impulses(shared: &mut ECSShared, physics: &mut RapierSimulation) {
+    fn apply_kinematic_character_impulses(
+        shared: &mut ECSShared,
+        physics: &mut RapierSimulation,
+        impulse_cutoff: f32,
+    ) {
         for (entity, (collision, collider_handle, _)) in &shared.kinematic_collision_map {
             let mut impulse = Vector::new(0.0, 0.0);
             if let Some(kinematic_body) = shared.entities.kinematic_character.get_mut(entity) {
@@ -461,7 +469,15 @@ impl World {
                     collider_handle,
                     collision,
                 );
-                debug!("Impulse for entity: {:?} is: {:?}", entity, impulse);
+                if impulse.magnitude() < impulse_cutoff {
+                    impulse.x = 0.0;
+                    impulse.y = 0.0;
+                }
+                debug!(
+                    "Impulse for entity: {:?} is: {:?}",
+                    entity,
+                    impulse.magnitude()
+                );
                 kinematic_body.desired_translation -= impulse * 0.5;
             }
             if let Some(kinematic_body) = shared
