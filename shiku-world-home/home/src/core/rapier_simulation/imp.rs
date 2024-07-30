@@ -93,6 +93,33 @@ impl RapierSimulation {
         (grounded, is_sliding_down_slope)
     }
 
+    pub fn get_single_character_collision_impulse(
+        &mut self,
+        character_controller: &BasicKinematicCharacterController,
+        collider_handle: &ColliderHandle,
+        character_collision: &CharacterCollision,
+    ) -> Vector<Real> {
+        character_controller.get_single_character_collision_impulse(
+            self.integration_parameters.dt,
+            &mut self.bodies,
+            &self.colliders,
+            collider_handle,
+            character_collision,
+        )
+    }
+
+    pub fn is_collider_handle_part_of_kinematic_body(
+        &self,
+        collider_handle: &ColliderHandle,
+    ) -> bool {
+        self.colliders
+            .get(*collider_handle)
+            .and_then(|collider| collider.parent())
+            .and_then(|body_handle| self.bodies.get(body_handle))
+            .map(|body| body.is_kinematic())
+            .unwrap_or(false)
+    }
+
     pub fn create_kinematic_character_controller(
         props: &KinematicCharacterControllerProps,
     ) -> BasicKinematicCharacterController {

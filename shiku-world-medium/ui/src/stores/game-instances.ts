@@ -300,10 +300,12 @@ export const use_game_instances_store = defineStore("game-instances", () => {
     update_render_position(render_node: Node, game_node: GameNodeKind) {
       const node_2d = get_generic_game_node(game_node).data as Node2D;
       if (node_2d.transform) {
-        render_node.container.position.x =
-          node_2d.transform.position[0] * RENDER_SCALE;
-        render_node.container.position.y =
-          node_2d.transform.position[1] * RENDER_SCALE;
+        render_node.container.position.x = Math.round(
+          node_2d.transform.position[0] * RENDER_SCALE,
+        );
+        render_node.container.position.y = Math.round(
+          node_2d.transform.position[1] * RENDER_SCALE,
+        );
         render_node.container.rotation = node_2d.transform.rotation;
       }
     },

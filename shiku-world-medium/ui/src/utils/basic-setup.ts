@@ -55,16 +55,11 @@ function shikuCompletions(context: CompletionContext): CompletionResult | null {
       detail: "(entity: Entity) -> RigidBodyHandle",
     },
     {
-      label: "shiku::physics::get_collided_with_entities",
+      label:
+        "shiku::physics::resolve_kinematic_body_collision_impulses_automatic",
       type: "function",
-      info: "Get the rigid bodies colliding with this entity right now",
-      detail: "(entity: Entity) -> Vec<Entity>",
-    },
-    {
-      label: "shiku::physics::resolve_kinematic_body_collision_impulse",
-      type: "function",
-      info: "Resolve desired translation vector after collision impulse was calculated",
-      detail: "(entity: Entity, other_entity: Entity) -> void",
+      info: "Resolves all collision impulses for this frame and applies the correct desired translation changes",
+      detail: "() -> void",
     },
     {
       label: "shiku::physics::set_entity_desired_translation",
@@ -152,10 +147,22 @@ function shikuCompletions(context: CompletionContext): CompletionResult | null {
       detail: "(actor_id: ActorId, key: string) -> boolean",
     },
     {
+      label: "shiku::actors::is_admin",
+      type: "function",
+      info: "Check if actor is admin",
+      detail: "(actor_id: ActorId) -> boolean",
+    },
+    {
       label: "shiku::actors::camera_follow_entity",
       type: "function",
       info: "Make actor camera follow entity",
       detail: "(actor_id: ActorId, entity_id: EntityId)",
+    },
+    {
+      label: "shiku::actors::camera_set_free",
+      type: "function",
+      info: "Make actor not follow any entity",
+      detail: "(actor_id: ActorId)",
     },
     {
       label: "shiku::actors::get_actor_display_name",

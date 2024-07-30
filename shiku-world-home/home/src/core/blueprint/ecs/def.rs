@@ -22,7 +22,18 @@ use crate::core::ApiShare;
 use remove_entity::RemoveEntity;
 
 #[derive(
-    TS, Serialize, Deserialize, Default, Debug, Clone, Copy, PartialEq, Eq, Hash, CustomType,
+    TS,
+    Serialize,
+    Deserialize,
+    Default,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    CustomType,
 )]
 #[ts(export, export_to = "blueprints/")]
 pub struct Entity(pub NodeInstanceId);
@@ -54,7 +65,7 @@ pub struct ECSShared {
     pub entity_counter: NodeInstanceId,
     pub character_collisions_tmp: Vec<CharacterCollision>,
     pub collider_to_entity_map: HashMap<ColliderHandle, Entity>,
-    pub entity_collision_map: HashMap<Entity, HashMap<Entity, (CharacterCollision, bool)>>,
+    pub kinematic_collision_map: HashMap<Entity, (CharacterCollision, ColliderHandle, bool)>,
 }
 
 pub type DynamicMap = BTreeMap<SmartString<LazyCompact>, Dynamic>;

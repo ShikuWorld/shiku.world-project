@@ -133,8 +133,12 @@ export function camera_iso_to_scaled_viewport(
   { x_pscaling, y_pscaling }: { x_pscaling: number; y_pscaling: number },
 ): Isometry {
   return {
-    x: -(camera_isometry.x * x_pscaling - (get_stage_width() * zoom) / 2),
-    y: -(camera_isometry.y * y_pscaling - (get_stage_height() * zoom) / 2),
+    x: -Math.round(
+      camera_isometry.x * x_pscaling - (get_stage_width() * zoom) / 2,
+    ),
+    y: -Math.round(
+      camera_isometry.y * y_pscaling - (get_stage_height() * zoom) / 2,
+    ),
     rotation: camera_isometry.rotation,
   };
 }

@@ -79,7 +79,7 @@ impl ECS {
                 added_entities: Vec::new(),
                 removed_entities: Vec::new(),
                 character_collisions_tmp: Vec::new(),
-                entity_collision_map: HashMap::new(),
+                kinematic_collision_map: HashMap::new(),
                 collider_to_entity_map: HashMap::new(),
                 entity_counter: 0,
             }),

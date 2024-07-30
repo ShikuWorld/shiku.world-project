@@ -6,6 +6,7 @@ use rapier2d::na::Dyn;
 use rapier2d::prelude::*;
 use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
+use crate::core::basic_kinematic_character_controller::CharacterCollision;
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::CameraSettings;
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
@@ -48,6 +49,7 @@ pub struct ActorApi {
     pub inputs: HashMap<ActorId, GuestInput>,
     pub camera_ref: HashMap<ActorId, Entity>,
     pub login_data: HashMap<ActorId, LoginData>,
+    pub is_admin: HashMap<ActorId, bool>,
     pub game_system_to_guest_events: Vec<(ActorId, GameSystemToGuestEvent)>,
 }
 
@@ -62,6 +64,10 @@ impl ActorApi {
 
     pub fn set_camera_ref(&mut self, actor_id: ActorId, camera_ref: Entity) {
         self.camera_ref.insert(actor_id, camera_ref);
+    }
+
+    pub fn free_camera_ref(&mut self, actor_id: ActorId) {
+        self.camera_ref.remove(&actor_id);
     }
 
     pub fn get_camera_ref(&self, actor_id: &ActorId) -> Option<Entity> {
@@ -101,6 +107,7 @@ impl World {
                 login_data: HashMap::new(),
                 game_system_to_guest_events: Vec::new(),
                 camera_ref: HashMap::new(),
+                is_admin: HashMap::new(),
             }),
             camera_settings: game_map.camera_settings.clone(),
             terrain_manager,
@@ -174,6 +181,9 @@ impl World {
         ecs_shared: &mut ECSShared,
         physics: &mut RapierSimulation,
     ) {
+        for (_, _, ref mut is_active) in ecs_shared.kinematic_collision_map.values_mut() {
+            *is_active = false;
+        }
         for (entity, kinematic_character_controller) in
             ecs_shared.entities.kinematic_character.iter_mut()
         {
@@ -198,37 +208,31 @@ impl World {
                     );
                     kinematic_character_controller.grounded = grounded;
                     kinematic_character_controller.is_sliding_down_slope = is_sliding_down_slope;
-                    let collision_map_for_entity =
-                        ecs_shared.entity_collision_map.entry(*entity).or_default();
-                    for (_, ref mut is_active) in collision_map_for_entity.values_mut() {
-                        *is_active = false;
-                    }
 
                     for character_collision in ecs_shared.character_collisions_tmp.drain(..) {
-                        if let Some(collider_entity) = ecs_shared
-                            .collider_to_entity_map
-                            .get(&character_collision.handle)
+                        if physics
+                            .is_collider_handle_part_of_kinematic_body(&character_collision.handle)
                         {
-                            if let Some(colliding_rigid_body_entity) =
-                                ecs_shared.entities.game_node_parent.get(collider_entity)
-                            {
-                                collision_map_for_entity.insert(
-                                    *colliding_rigid_body_entity,
-                                    (character_collision, true),
-                                );
-                            }
+                            ecs_shared
+                                .kinematic_collision_map
+                                .insert(*entity, (character_collision, collider_handle, true));
                         }
                     }
-
-                    collision_map_for_entity.retain(|_, v| v.1);
                 }
             }
         }
+        ecs_shared.kinematic_collision_map.retain(|_, (_, _, a)| *a);
     }
 
-    pub fn actor_joined_world(&mut self, actor_id: ActorId, login_data_option: Option<LoginData>) {
+    pub fn actor_joined_world(
+        &mut self,
+        actor_id: ActorId,
+        login_data_option: Option<LoginData>,
+        is_admin: bool,
+    ) {
         if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
             actor_api.active_set.insert(actor_id);
+            actor_api.is_admin.insert(actor_id, is_admin);
             if let Some(login_data) = login_data_option {
                 actor_api.login_data.insert(actor_id, login_data);
             }
@@ -297,15 +301,17 @@ impl World {
     ) {
         let mut module = RhaiModule::new();
         let ecs_shared = ecs.shared.clone();
-        let is_grounded = move |entity: Entity| -> Dynamic {
-            if let Some(shared) = ecs_shared.try_borrow_mut() {
-                if let Some(character) = shared.entities.kinematic_character.get(&entity) {
-                    return Dynamic::from(character.grounded);
+        FuncRegistration::new("is_grounded").set_into_module(
+            &mut module,
+            move |entity: Entity| -> Dynamic {
+                if let Some(shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(character) = shared.entities.kinematic_character.get(&entity) {
+                        return Dynamic::from(character.grounded);
+                    }
                 }
-            }
-            Dynamic::from(false)
-        };
-        FuncRegistration::new("is_grounded").set_into_module(&mut module, is_grounded);
+                Dynamic::from(false)
+            },
+        );
 
         let ecs_shared = ecs.shared.clone();
         let get_rigid_body_handle = move |entity: Entity| -> Dynamic {
@@ -320,37 +326,14 @@ impl World {
             .set_into_module(&mut module, get_rigid_body_handle);
 
         let ecs_shared = ecs.shared.clone();
-        FuncRegistration::new("get_collided_with_entities").set_into_module(
-            &mut module,
-            move |entity: Entity| -> Dynamic {
-                if let Some(shared) = ecs_shared.try_borrow_mut() {
-                    if let Some(collision_map) = shared.entity_collision_map.get(&entity) {
-                        let entities_colliding: Vec<Dynamic> =
-                            collision_map.keys().map(|e| Dynamic::from(*e)).collect();
-                        return Dynamic::from(entities_colliding);
-                    }
-                }
-                Dynamic::from(Vec::<Dynamic>::new())
-            },
-        );
-
-        let ecs_shared = ecs.shared.clone();
+        let physics_share_clone = physics_share.clone();
         FuncRegistration::new("resolve_kinematic_body_collision_impulses_automatic")
             .set_into_module(&mut module, move || {
-                if let Some(shared) = ecs_shared.try_borrow_mut() {
-                    for (entity, collision_map) in &shared.entity_collision_map {
-                        for (other_entity, (_, _)) in collision_map {
-                            if let Some(character) = shared.entities.kinematic_character.get(entity)
-                            {
-                                if let Some(other_character) =
-                                    shared.entities.kinematic_character.get(other_entity)
-                                {
-                                    let velocity_char = character.desired_translation;
-                                    let velocity_o_char = other_character.desired_translation;
-                                }
-                            }
-                        }
-                    }
+                if let (Some(mut shared), Some(mut physics)) = (
+                    ecs_shared.try_borrow_mut(),
+                    physics_share_clone.try_borrow_mut(),
+                ) {
+                    Self::calc_kinematic_character_impulses(&mut shared, &mut physics);
                 }
             });
 
@@ -467,6 +450,29 @@ impl World {
             .set_into_module(&mut module, apply_impulse_to_rigid_body);
 
         engine.register_static_module("shiku::physics", module.into());
+    }
+
+    fn calc_kinematic_character_impulses(shared: &mut ECSShared, physics: &mut RapierSimulation) {
+        for (entity, (collision, collider_handle, _)) in &shared.kinematic_collision_map {
+            let mut impulse = Vector::new(0.0, 0.0);
+            if let Some(kinematic_body) = shared.entities.kinematic_character.get_mut(entity) {
+                impulse = physics.get_single_character_collision_impulse(
+                    &kinematic_body.controller,
+                    collider_handle,
+                    collision,
+                );
+                debug!("Impulse for entity: {:?} is: {:?}", entity, impulse);
+                kinematic_body.desired_translation -= impulse * 0.5;
+            }
+            if let Some(kinematic_body) = shared
+                .collider_to_entity_map
+                .get(&collision.handle)
+                .and_then(|entity| shared.entities.game_node_parent.get(entity))
+                .and_then(|entity| shared.entities.kinematic_character.get_mut(entity))
+            {
+                kinematic_body.desired_translation += impulse * 0.5;
+            }
+        }
     }
 
     fn register_types(engine: &mut Engine) {
@@ -625,6 +631,19 @@ impl World {
         );
 
         let actor_api_share_clone = actor_api_share.clone();
+        FuncRegistration::new("is_admin").set_into_module(
+            &mut module,
+            move |actor_id: ActorId| -> Dynamic {
+                if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
+                    if let Some(is_admin) = actor_api.is_admin.get(&actor_id) {
+                        return Dynamic::from(*is_admin);
+                    }
+                }
+                Dynamic::from(false)
+            },
+        );
+
+        let actor_api_share_clone = actor_api_share.clone();
         FuncRegistration::new("get_actor_display_name").set_into_module(
             &mut module,
             move |actor_id: ActorId| -> Dynamic {
@@ -646,7 +665,21 @@ impl World {
                     actor_api.set_camera_ref(actor_id, entity);
                     actor_api.game_system_to_guest_events.push((
                         actor_id,
-                        GameSystemToGuestEvent::SetCameraFollowEntity(entity),
+                        GameSystemToGuestEvent::SetCameraFollowEntity(Some(entity)),
+                    ));
+                }
+            },
+        );
+
+        let actor_api_share_clone = actor_api_share.clone();
+        FuncRegistration::new("camera_set_free").set_into_module(
+            &mut module,
+            move |actor_id: ActorId| {
+                if let Some(mut actor_api) = actor_api_share_clone.try_borrow_mut() {
+                    actor_api.free_camera_ref(actor_id);
+                    actor_api.game_system_to_guest_events.push((
+                        actor_id,
+                        GameSystemToGuestEvent::SetCameraFollowEntity(None),
                     ));
                 }
             },

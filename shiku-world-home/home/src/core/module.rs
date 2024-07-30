@@ -342,7 +342,7 @@ pub enum GameSystemToGuestEvent {
     RemoveEntity(Entity),
     AddEntity(Entity, GameNodeKind),
     SetMouseInputSchema(MouseInputSchema),
-    SetCameraFollowEntity(Entity),
+    SetCameraFollowEntity(Option<Entity>),
     SetCameraSettings(CameraSettings),
     PositionEvent(Vec<(Entity, Real, Real, Real)>),
 }

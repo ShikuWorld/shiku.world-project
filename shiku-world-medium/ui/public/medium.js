@@ -39385,8 +39385,12 @@ ${e3}`);
   }
   function camera_iso_to_scaled_viewport(camera_isometry, zoom, { x_pscaling, y_pscaling }) {
     return {
-      x: -(camera_isometry.x * x_pscaling - get_stage_width() * zoom / 2),
-      y: -(camera_isometry.y * y_pscaling - get_stage_height() * zoom / 2),
+      x: -Math.round(
+        camera_isometry.x * x_pscaling - get_stage_width() * zoom / 2
+      ),
+      y: -Math.round(
+        camera_isometry.y * y_pscaling - get_stage_height() * zoom / 2
+      ),
       rotation: camera_isometry.rotation
     };
   }

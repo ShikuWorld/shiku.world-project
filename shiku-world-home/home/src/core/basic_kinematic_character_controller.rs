@@ -1,3 +1,4 @@
+use log::{debug, error};
 use rapier2d::dynamics::RigidBodySet;
 use rapier2d::geometry::{ColliderHandle, ColliderSet, ContactManifold, Shape, ShapeCastHit};
 use rapier2d::math::{Isometry, Point, Real, UnitVector, Vector};
@@ -7,6 +8,7 @@ use rapier2d::parry::math::Translation;
 use rapier2d::parry::query::details::ShapeCastOptions;
 use rapier2d::parry::query::{DefaultQueryDispatcher, PersistentQueryDispatcher};
 use rapier2d::pipeline::{QueryFilter, QueryFilterFlags, QueryPipeline};
+use rapier2d::prelude::RigidBodyHandle;
 
 const INV_EPSILON: Real = 1.0e-20;
 pub(crate) fn inv(val: Real) -> Real {
@@ -900,6 +902,84 @@ impl BasicKinematicCharacterController {
                 }
             }
         }
+    }
+
+    pub fn get_single_character_collision_impulse(
+        &self,
+        dt: Real,
+        bodies: &mut RigidBodySet,
+        colliders: &ColliderSet,
+        collider_handle: &ColliderHandle,
+        collision: &CharacterCollision,
+    ) -> Vector<Real> {
+        let mut impulse = Vector::new(0.0, 0.0);
+        if let Some(character_collider) = colliders.get(*collider_handle) {
+            if let Some(character_body_handle) = character_collider.parent() {
+                if let Some(character_body_mass) =
+                    bodies.get(character_body_handle).map(|b| b.mass())
+                {
+                    let character_shape = character_collider.shape();
+                    let extents = character_shape.compute_local_aabb().extents();
+                    let up_extent = extents.dot(&self.up.abs());
+                    let movement_to_transfer = *collision.hit.normal1
+                        * collision.translation_remaining.dot(&collision.hit.normal1);
+                    let prediction = self.predict_ground(up_extent);
+
+                    let dispatcher = DefaultQueryDispatcher;
+
+                    let mut manifolds: Vec<ContactManifold> = vec![];
+                    if let Some(other_collider) = colliders.get(collision.handle) {
+                        if let Some(other_parent) = other_collider.parent() {
+                            if let Some(other_body) = bodies.get(other_parent) {
+                                if other_body.is_kinematic() {
+                                    let pos12 =
+                                        collision.character_pos.inv_mul(other_collider.position());
+
+                                    let _ = dispatcher.contact_manifolds(
+                                        &pos12,
+                                        character_shape,
+                                        other_collider.shape(),
+                                        prediction,
+                                        &mut manifolds,
+                                        &mut None,
+                                    );
+                                    for m in &mut manifolds {
+                                        m.data.rigid_body2 = Some(other_parent);
+                                        m.data.normal = collision.character_pos * m.local_n1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    let velocity_to_transfer = movement_to_transfer * inv(dt);
+
+                    for manifold in &manifolds {
+                        if let Some(body_handle) = manifold.data.rigid_body2 {
+                            let body = &mut bodies[body_handle];
+                            for pt in &manifold.points {
+                                if pt.dist <= prediction {
+                                    let body_mass = body.mass();
+                                    let contact_point = body.position() * pt.local_p2;
+                                    let delta_vel_per_contact = (velocity_to_transfer
+                                        - body.velocity_at_point(&contact_point))
+                                    .dot(&manifold.data.normal);
+                                    let mass_ratio = body_mass * character_body_mass
+                                        / (body_mass + character_body_mass);
+
+                                    impulse = manifold.data.normal
+                                        * delta_vel_per_contact.max(0.0)
+                                        * mass_ratio;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    error!("No collider found for handle {:?}", collider_handle);
+                }
+            }
+        }
+        impulse
     }
 }
 
