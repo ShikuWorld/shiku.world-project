@@ -53,6 +53,16 @@
                 >Character Animation</v-list-item-title
               >
             </v-list-item>
+            <v-list-item v-if="selected_module">
+              <v-list-item-title @click="create_font_dialog = true"
+                >Font</v-list-item-title
+              >
+            </v-list-item>
+            <v-list-item v-if="selected_module">
+              <v-list-item-title @click="create_audio_dialog = true"
+                >Audio</v-list-item-title
+              >
+            </v-list-item>
           </v-list>
         </v-menu>
         <v-dialog v-model="create_tileset_dialog" width="800">
@@ -86,6 +96,16 @@
             @close="create_character_animation_dialog = false"
             @save="save_character_animation"
           ></CreateCharacterAnimation>
+        </v-dialog>
+        <v-dialog v-model="create_font_dialog" width="800">
+          <CreateFont
+            :module="selected_module"
+            @close="create_font_dialog = false"
+            @save="save_font"
+          ></CreateFont>
+        </v-dialog>
+        <v-dialog v-model="create_audio_dialog" width="800">
+          Not yet implemented
         </v-dialog>
       </v-window-item>
       <v-window-item
@@ -141,11 +161,15 @@ import CreateCharacterAnimation from "@/editor/editor/CreateCharacterAnimation.v
 import CharacterAnimationEditor from "@/editor/editor/CharacterAnimationEditor.vue";
 import { use_inspector_store } from "@/editor/stores/inspector";
 import GameMapEditor from "@/editor/editor/GameMapEditor.vue";
+import CreateFont from "@/editor/editor/CreateFont.vue";
+import { Font } from "@/editor/blueprints/Font";
 
 const create_tileset_dialog = ref(false);
 const create_map_dialog = ref(false);
 const create_scene_dialog = ref(false);
 const create_script_dialog = ref(false);
+const create_font_dialog = ref(false);
+const create_audio_dialog = ref(false);
 const create_character_animation_dialog = ref(false);
 const { select_character_animation_state } = use_inspector_store();
 const { close_resource, set_selected_tile, set_inspector_component } =
@@ -156,14 +180,21 @@ const { open_resource_paths, selected_resource_tab, selected_module_id } =
 const {
   create_tileset_server,
   create_map_server,
+  create_font_server,
   create_scene_server,
   get_module,
   get_resource_server,
   create_script_server,
   create_character_animation_server,
 } = use_resources_store();
-const { modules, tileset_map, character_animation_map, game_map_map } =
-  storeToRefs(use_resources_store());
+const {
+  modules,
+  tileset_map,
+  character_animation_map,
+  game_map_map,
+  font_map,
+  audio_map,
+} = storeToRefs(use_resources_store());
 const available_resources = computed(
   () =>
     new Map(
@@ -210,6 +241,16 @@ function ensure_resources_are_loaded() {
           get_resource_server(r.path);
         }
       })
+      .with({ kind: "Font" }, (r) => {
+        if (!font_map.value[resource_key(r)]) {
+          get_resource_server(r.path);
+        }
+      })
+      .with({ kind: "Audio" }, (r) => {
+        if (!audio_map.value[resource_key(r)]) {
+          get_resource_server(r.path);
+        }
+      })
       .with({ kind: "Scene" }, (r) => {
         console.log("hm Scene?", r);
       })
@@ -252,6 +293,11 @@ function save_character_animation(character_animation: CharacterAnimation) {
     selected_module_id.value,
     character_animation,
   );
+}
+
+function save_font(font: Font) {
+  create_font_dialog.value = false;
+  create_font_server(selected_module_id.value, font);
 }
 </script>
 <style></style>

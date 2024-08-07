@@ -4,6 +4,7 @@ import type { KinematicCharacterControllerProps } from "./KinematicCharacterCont
 import type { RenderKind } from "./RenderKind";
 import type { RigidBodyType } from "./RigidBodyType";
 import type { ScopeCacheValue } from "./ScopeCacheValue";
+import type { TextRender } from "./TextRender";
 import type { Transform } from "./Transform";
 
-export type EntityUpdateKind = { Transform: Transform } | { Name: string } | { Tags: Array<string> } | { InstancePath: string } | { ScriptPath: string | null } | { UpdateScriptScope: [string, ScopeCacheValue] } | { SetScriptScope: Record<string, ScopeCacheValue> } | { RigidBodyType: RigidBodyType } | { KinematicCharacterControllerProps: KinematicCharacterControllerProps } | { Collider: Collider } | { PositionRotation: [number, number, number] } | { RenderKind: RenderKind } | { AnimatedSpriteResource: string } | { SpriteTilesetResource: string } | { Gid: number };
+export type EntityUpdateKind = { Transform: Transform } | { Name: string } | { Tags: Array<string> } | { InstancePath: string } | { ScriptPath: string | null } | { UpdateScriptScope: [string, ScopeCacheValue] } | { SetScriptScope: Record<string, ScopeCacheValue> } | { RigidBodyType: RigidBodyType } | { KinematicCharacterControllerProps: KinematicCharacterControllerProps } | { Collider: Collider } | { PositionRotation: [number, number, number] } | { RenderKind: RenderKind } | { AnimatedSpriteResource: string } | { SpriteTilesetResource: string } | { TextRender: TextRender } | { Gid: number };

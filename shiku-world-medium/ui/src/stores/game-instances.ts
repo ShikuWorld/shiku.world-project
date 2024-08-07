@@ -422,6 +422,12 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           const graphics = match((game_node.data as Node2D).kind)
             .with({ Render: { kind: P.select() } }, (render_kind) =>
               match(render_kind)
+                .with({ Text: P.select() }, () => {
+                  return resource_manager.get_graphics_by_id_and_tileset_path(
+                    0,
+                    "TRIED_TO_SET_GID_ON_TEXT_WTF?",
+                  );
+                })
                 .with({ Sprite: P.select() }, () => {
                   const sprite_render = render_kind as {
                     Sprite: [string, number];
@@ -473,6 +479,12 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                     "TRIED_TO_SET_SPRITE_TILESET_ON_ANIMATED_SPRITE_WTF?",
                   );
                 })
+                .with({ Text: P.select() }, () => {
+                  return resource_manager.get_graphics_by_id_and_tileset_path(
+                    0,
+                    "TRIED_TO_SET_SPRITE_TILESET_ON_TEXT_WTF?",
+                  );
+                })
                 .exhaustive(),
             )
             .run();
@@ -487,6 +499,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             .with({ Render: { kind: P.select() } }, (render_kind) => {
               match(render_kind)
                 .with({ Sprite: P.select() }, () => {})
+                .with({ Text: P.select() }, () => {})
                 .with({ AnimatedSprite: P.select() }, () => {
                   (
                     render_kind as { AnimatedSprite: [string, number] }
@@ -501,30 +514,33 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           if ("Render" in node2D.kind && node2D.kind.Render.kind) {
             node2D.kind.Render.kind = render_kind;
 
-            const graphics = match(render_kind)
+            const container = match(render_kind)
               .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) =>
-                resource_manager.get_graphics_by_id_and_tileset_path(
-                  id_in_tileset,
-                  tileset_path,
+                resource_manager.get_sprite_from_graphics(
+                  resource_manager.get_graphics_by_id_and_tileset_path(
+                    id_in_tileset,
+                    tileset_path,
+                  ),
                 ),
               )
               .with(
                 { AnimatedSprite: P.select() },
-                ([char_anim_resource_path, id_in_tileset]) => {
-                  return resource_manager.get_graphics_by_id_and_tileset_path(
-                    id_in_tileset,
-                    resource_manager.character_animation_to_tileset_map[
-                      char_anim_resource_path
-                    ],
-                  );
-                },
+                ([char_anim_resource_path, id_in_tileset]) =>
+                  resource_manager.get_sprite_from_graphics(
+                    resource_manager.get_graphics_by_id_and_tileset_path(
+                      id_in_tileset,
+                      resource_manager.character_animation_to_tileset_map[
+                        char_anim_resource_path
+                      ],
+                    ),
+                  ),
+              )
+              .with({ Text: P.select() }, (text) =>
+                resource_manager.create_bitmap_text(text),
               )
               .exhaustive();
             render_node.container.removeChildAt(0);
-            render_node.container.addChildAt(
-              resource_manager.get_sprite_from_graphics(graphics),
-              0,
-            );
+            render_node.container.addChildAt(container, 0);
           }
         })
         .with({ InstancePath: P.select() }, (_) => {
@@ -572,6 +588,18 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         })
         .with({ SetScriptScope: P.select() }, (_scope_cache_update) => {
           /* dealt with one level up */
+        })
+        .with({ TextRender: P.select() }, (text_render) => {
+          const node2D = game_node.data as Node2D;
+          if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+            if ("Text" in node2D.kind.Render.kind) {
+              node2D.kind.Render.kind.Text = text_render;
+              const container =
+                resource_manager.create_bitmap_text(text_render);
+              render_node.container.removeChildAt(0);
+              render_node.container.addChildAt(container, 0);
+            }
+          }
         })
         .exhaustive();
     },
@@ -730,6 +758,7 @@ function get_gid(node_2d: GameNode<Node2D>): number | undefined {
   if ("Render" in node_2d.data.kind) {
     return match(node_2d.data.kind.Render.kind)
       .with({ Sprite: P.select() }, ([_, gid]) => gid)
+      .with({ Text: P.select() }, () => 0)
       .with({ AnimatedSprite: P.select() }, ([_, gid]) => gid)
       .exhaustive();
   }

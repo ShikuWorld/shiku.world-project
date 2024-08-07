@@ -37,6 +37,24 @@ pub fn loading_resources_from_blueprint_resource(
                 }
             }
         }
+        ResourceKind::Font => {
+            match Blueprint::load_font(PathBuf::from(blueprint_resource.path.clone())) {
+                Ok(font) => vec![LoadResource::font(font.font_path.clone())],
+                Err(err) => {
+                    error!("Could not load font! {:?}", err);
+                    Vec::new()
+                }
+            }
+        }
+        ResourceKind::Audio => {
+            match Blueprint::load_audio(PathBuf::from(blueprint_resource.path.clone())) {
+                Ok(font) => vec![LoadResource::audio(font.resource_path.clone())],
+                Err(err) => {
+                    error!("Could not load audio! {:?}", err);
+                    Vec::new()
+                }
+            }
+        }
         ResourceKind::Scene
         | ResourceKind::Map
         | ResourceKind::Unknown

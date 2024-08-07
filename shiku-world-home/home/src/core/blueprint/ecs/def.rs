@@ -16,7 +16,7 @@ use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
 use crate::core::blueprint::scene::def::{
     Collider, GameNodeId, GameNodeKindClean, KinematicCharacterControllerProps, Node2DKindClean,
-    NodeInstanceId, RenderKind, RenderKindClean, RigidBodyType, SceneId, Transform,
+    NodeInstanceId, RenderKind, RenderKindClean, RigidBodyType, SceneId, TextRender, Transform,
 };
 use crate::core::ApiShare;
 use remove_entity::RemoveEntity;
@@ -93,6 +93,7 @@ pub struct EntityMaps {
     pub rigid_body_handle: HashMap<Entity, RigidBodyHandle>,
     pub collider: HashMap<Entity, Collider>,
     pub collider_handle: HashMap<Entity, ColliderHandle>,
+    pub text_render: HashMap<Entity, TextRender>,
     pub dirty: HashMap<Entity, bool>,
     pub view_dirty: HashMap<Entity, bool>,
 }
@@ -130,5 +131,6 @@ pub enum EntityUpdateKind {
     RenderKind(RenderKind),
     AnimatedSpriteResource(ResourcePath),
     SpriteTilesetResource(ResourcePath),
+    TextRender(TextRender),
     Gid(Gid),
 }

@@ -29,6 +29,8 @@ import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { cantor_pair } from "@/client/terrain";
 import { CharacterAnimation } from "@/editor/blueprints/CharacterAnimation";
 import { LogInfo } from "@/editor/blueprints/LogInfo";
+import { Font } from "@/editor/blueprints/Font";
+import { Audio } from "@/editor/blueprints/Audio";
 
 export type Point = { y: number; x: number };
 
@@ -40,6 +42,8 @@ export interface ResourcesStore {
   modules: { [module_id: string]: Module };
   scene_map: { [scene_path: string]: Scene };
   script_map: { [scene_path: string]: Script };
+  font_map: { [scene_path: string]: Font };
+  audio_map: { [scene_path: string]: Audio };
   logs: LogInfo[];
   current_file_browser_result: FileBrowserResult;
 }
@@ -52,6 +56,8 @@ export const use_resources_store = defineStore("resources", () => {
     game_map_map: {},
     scene_map: {},
     script_map: {},
+    font_map: {},
+    audio_map: {},
     character_animation_map: {},
     logs: [],
     current_file_browser_result: {
@@ -235,6 +241,19 @@ export const use_resources_store = defineStore("resources", () => {
       };
       delete scripts[character_animation_key(character_animation)];
       state.character_animation_map = scripts;
+    },
+    set_font(font: Font) {
+      state.font_map = {
+        ...state.font_map,
+        [font_key(font)]: font,
+      };
+    },
+    delete_font(font: Font) {
+      const fonts = {
+        ...state.font_map,
+      };
+      delete fonts[font_key(font)];
+      state.font_map = fonts;
     },
     set_tileset(tileset: Tileset) {
       state.tileset_map = {
@@ -509,6 +528,21 @@ export const use_resources_store = defineStore("resources", () => {
     delete_module_server(id: string) {
       send_admin_event({ DeleteModule: id });
     },
+    create_font_server(module_id: string, font: Font) {
+      send_admin_event({
+        CudResource: { Font: [module_id, { Create: font }] },
+      });
+    },
+    save_font_server(module_id: string, font: Font) {
+      send_admin_event({
+        CudResource: { Font: [module_id, { Update: font }] },
+      });
+    },
+    delete_font_server(module_id: string, font: Font) {
+      send_admin_event({
+        CudResource: { Font: [module_id, { Delete: font }] },
+      });
+    },
   };
 
   return {
@@ -545,6 +579,10 @@ export function character_animation_key(
   character_animation: CharacterAnimation,
 ) {
   return `${character_animation.resource_path}/${character_animation.name}.char_anim.json`;
+}
+
+export function font_key(font: Font) {
+  return `${font.resource_path}/${font.name}.font.json`;
 }
 
 export function get_node_by_path(

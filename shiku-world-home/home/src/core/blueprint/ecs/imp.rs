@@ -72,6 +72,7 @@ impl ECS {
                     rigid_body_handle: HashMap::new(),
                     collider: HashMap::new(),
                     collider_handle: HashMap::new(),
+                    text_render: HashMap::new(),
                     dirty: HashMap::new(),
                     view_dirty: HashMap::new(),
                 },
@@ -361,6 +362,12 @@ impl ECS {
                             .insert(entity, render.layer.clone());
                         ecs.entities.render_offset.insert(entity, render.offset);
                         match &render.kind {
+                            RenderKind::Text(text_render) => {
+                                ecs.entities
+                                    .render_kind
+                                    .insert(entity, RenderKindClean::Text);
+                                ecs.entities.text_render.insert(entity, text_render.clone());
+                            }
                             RenderKind::AnimatedSprite(resource_path, _) => {
                                 ecs.entities
                                     .render_kind
@@ -610,6 +617,9 @@ impl ECS {
                     ECS::attach_colliders_to_entity(&entity, shared, physics);
                 }
             }
+            EntityUpdateKind::TextRender(text_render) => {
+                shared.entities.text_render.insert(entity, text_render);
+            }
             EntityUpdateKind::Gid(gid) => {
                 shared.entities.render_gid.insert(entity, gid);
             }
@@ -623,6 +633,13 @@ impl ECS {
                 Self::add_character_animation(shared, entity, &resource_path);
             }
             EntityUpdateKind::RenderKind(render_kind) => match render_kind {
+                RenderKind::Text(text_render) => {
+                    shared.entities.text_render.insert(entity, text_render);
+                    shared
+                        .entities
+                        .render_kind
+                        .insert(entity, RenderKindClean::Text);
+                }
                 RenderKind::AnimatedSprite(resource_path, _) => {
                     shared.entities.render_gid_tileset_path.remove(&entity);
                     Self::add_character_animation(shared, entity, &resource_path);

@@ -93,20 +93,20 @@ impl ConductorModule {
     pub fn update_resource_to_module_map(
         resource_to_module_map: &mut ResourceToModuleMap,
         module_id: &ModuleId,
-        current_resources: &Vec<BlueprintResource>,
-        updated_resources: &Vec<BlueprintResource>,
+        current_resources: &[BlueprintResource],
+        updated_resources: &[BlueprintResource],
     ) {
-        let current_script_set: HashSet<String> =
+        let current_reseource_set: HashSet<String> =
             current_resources.iter().map(|r| r.path.clone()).collect();
-        let updated_script_set: HashSet<String> =
+        let updated_resource_set: HashSet<String> =
             updated_resources.iter().map(|r| r.path.clone()).collect();
-        for insertion in updated_script_set.difference(&current_script_set) {
+        for insertion in updated_resource_set.difference(&current_reseource_set) {
             resource_to_module_map
                 .entry(insertion.clone())
                 .or_default()
                 .insert(module_id.clone());
         }
-        for deletion in current_script_set.difference(&updated_script_set) {
+        for deletion in current_reseource_set.difference(&updated_resource_set) {
             resource_to_module_map
                 .entry(deletion.clone())
                 .or_default()

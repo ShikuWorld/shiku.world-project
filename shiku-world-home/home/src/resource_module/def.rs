@@ -15,6 +15,8 @@ use ts_rs::TS;
 #[ts(export)]
 pub enum LoadResourceKind {
     Image,
+    Font,
+    Audio,
     Unknown,
 }
 
@@ -28,6 +30,20 @@ pub struct LoadResource {
 
 impl LoadResource {
     pub fn image(path: ResourcePath) -> LoadResource {
+        LoadResource {
+            cache_hash: String::default(),
+            kind: LoadResourceKind::Image,
+            path,
+        }
+    }
+    pub fn font(path: ResourcePath) -> LoadResource {
+        LoadResource {
+            cache_hash: String::default(),
+            kind: LoadResourceKind::Font,
+            path,
+        }
+    }
+    pub fn audio(path: ResourcePath) -> LoadResource {
         LoadResource {
             cache_hash: String::default(),
             kind: LoadResourceKind::Image,

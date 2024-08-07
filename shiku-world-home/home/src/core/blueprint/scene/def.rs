@@ -210,6 +210,25 @@ pub struct Render {
 pub enum RenderKind {
     AnimatedSprite(ResourcePath, Gid),
     Sprite(ResourcePath, Gid),
+    Text(TextRender),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct TextRender {
+    pub text: String,
+    pub font_family: String,
+    pub size: u32,
+    pub align: TextRenderAlignment,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum TextRenderAlignment {
+    Left,
+    Center,
+    Right,
+    Justify,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -217,4 +236,5 @@ pub enum RenderKind {
 pub enum RenderKindClean {
     AnimatedSprite,
     Sprite,
+    Text,
 }

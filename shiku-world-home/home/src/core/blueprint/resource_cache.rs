@@ -1,14 +1,16 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::sync::RwLock;
 
 use log::{debug, error};
+use serde::de::DeserializeOwned;
 use walkdir::WalkDir;
 
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintService, FileBrowserFileKind, GameMap, Module, ResourcePath, Tileset,
+    Audio, BlueprintError, BlueprintService, FileBrowserFileKind, Font, GameMap, JsonResource,
+    Module, ResourcePath, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{Scene, Script};
@@ -21,6 +23,8 @@ pub struct ResourceCache {
     pub scripts: RwLock<HashMap<ResourcePath, Script>>,
     pub character_animations: RwLock<HashMap<ResourcePath, CharacterAnimation>>,
     pub modules: RwLock<HashMap<ResourcePath, Module>>,
+    pub fonts: RwLock<HashMap<ResourcePath, Font>>,
+    pub audios: RwLock<HashMap<ResourcePath, Audio>>,
 }
 
 static RESOURCE_CACHE: OnceLock<ResourceCache> = OnceLock::new();
@@ -33,7 +37,24 @@ pub fn get_resource_cache() -> &'static ResourceCache {
         scripts: RwLock::new(HashMap::new()),
         character_animations: RwLock::new(HashMap::new()),
         modules: RwLock::new(HashMap::new()),
+        fonts: RwLock::new(HashMap::new()),
+        audios: RwLock::new(HashMap::new()),
     })
+}
+
+pub fn load_to_map<T>(
+    path: &Path,
+    map: &RwLock<HashMap<ResourcePath, T>>,
+) -> Result<(), BlueprintError>
+where
+    T: DeserializeOwned,
+{
+    let audio = Blueprint::load_from_file(PathBuf::from(path))?;
+    map.write()
+        .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
+        .insert(path.display().to_string(), audio);
+    debug!("Successfully loaded {:?}", path.display());
+    Ok(())
 }
 
 pub fn init_resource_cache() -> Result<(), BlueprintError> {
@@ -44,63 +65,29 @@ pub fn init_resource_cache() -> Result<(), BlueprintError> {
         let full_resource_path = entry.path();
         let file_name = safe_unwrap(entry.file_name().to_str(), BlueprintError::OsParsing)?;
         match BlueprintService::determine_file_type(file_name) {
+            FileBrowserFileKind::Audio => {
+                load_to_map(full_resource_path, &resources.audios)?;
+            }
+            FileBrowserFileKind::Font => {
+                load_to_map(full_resource_path, &resources.fonts)?;
+            }
             FileBrowserFileKind::Scene => {
-                let scene = Blueprint::load_from_file(PathBuf::from(full_resource_path))?;
-                resources
-                    .scenes
-                    .write()
-                    .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
-                    .insert(full_resource_path.display().to_string(), scene);
-                debug!("Successfully loaded {:?}", full_resource_path.display());
+                load_to_map(full_resource_path, &resources.scenes)?;
             }
             FileBrowserFileKind::Tileset => {
-                let tileset = Blueprint::load_from_file(PathBuf::from(full_resource_path))?;
-                resources
-                    .tilesets
-                    .write()
-                    .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
-                    .insert(full_resource_path.display().to_string(), tileset);
-                debug!("Successfully loaded {:?}", full_resource_path.display());
+                load_to_map(full_resource_path, &resources.tilesets)?;
             }
             FileBrowserFileKind::Map => {
-                let map = Blueprint::load_from_file(PathBuf::from(full_resource_path))?;
-                resources
-                    .maps
-                    .write()
-                    .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
-                    .insert(full_resource_path.display().to_string(), map);
-                debug!("Successfully loaded {:?}", full_resource_path.display());
+                load_to_map(full_resource_path, &resources.maps)?;
             }
             FileBrowserFileKind::Module => {
-                let module = Blueprint::load_from_file(PathBuf::from(full_resource_path))?;
-                resources
-                    .modules
-                    .write()
-                    .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
-                    .insert(full_resource_path.display().to_string(), module);
-                debug!("Successfully loaded {:?}", full_resource_path.display());
+                load_to_map(full_resource_path, &resources.modules)?;
             }
             FileBrowserFileKind::Script => {
-                let script = Blueprint::load_from_file(PathBuf::from(full_resource_path))?;
-                resources
-                    .scripts
-                    .write()
-                    .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
-                    .insert(full_resource_path.display().to_string(), script);
-                debug!("Successfully loaded {:?}", full_resource_path.display());
+                load_to_map(full_resource_path, &resources.scripts)?;
             }
             FileBrowserFileKind::CharacterAnimation => {
-                let character_animation =
-                    Blueprint::load_from_file(PathBuf::from(full_resource_path))?;
-                resources
-                    .character_animations
-                    .write()
-                    .map_err(|_| BlueprintError::WritePoison("Write cache fail. Poison?!"))?
-                    .insert(
-                        full_resource_path.display().to_string(),
-                        character_animation,
-                    );
-                debug!("Successfully loaded {:?}", full_resource_path.display());
+                load_to_map(full_resource_path, &resources.character_animations)?;
             }
             FileBrowserFileKind::Folder | FileBrowserFileKind::Conductor => {}
             FileBrowserFileKind::Unknown => {

@@ -25,6 +25,7 @@
     :hide-details="true"
     density="compact"
     :model-value="gid"
+    v-if="render_kind == 'AnimatedSprite' || render_kind == 'Sprite'"
     @update:model-value="(new_value) => update_gid(new_value)"
   ></v-text-field>
   <v-label class="form-label" v-if="render_kind == 'AnimatedSprite'"
@@ -42,6 +43,11 @@
       (new_value) => update_animated_sprite_resource(new_value)
     "
   ></v-select>
+  <text-render
+    v-if="render_kind == 'Text' && text_render"
+    :text_render="text_render"
+    @updateTextRender="(render) => emit('entityUpdate', { TextRender: render })"
+  ></text-render>
 </template>
 <script lang="ts" setup>
 import { computed, toRefs } from "vue";
@@ -53,6 +59,7 @@ import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
 import { use_resources_store } from "@/editor/stores/resources";
 import { storeToRefs } from "pinia";
 import { use_editor_store } from "@/editor/stores/editor";
+import TextRender from "@/editor/editor/game_nodes/TextRender.vue";
 
 const { get_module } = use_resources_store();
 const { selected_module_id } = storeToRefs(use_editor_store());
@@ -62,10 +69,18 @@ const { data } = toRefs(props);
 const render_options: Array<KeysOfUnion<RenderKind>> = [
   "AnimatedSprite",
   "Sprite",
+  "Text",
 ];
 const emit = defineEmits<{
   (e: "entityUpdate", data: EntityUpdateKind): void;
 }>();
+
+const text_render = computed(() => {
+  if ("Text" in data.value.kind) {
+    return data.value.kind.Text;
+  }
+  return undefined;
+});
 
 const character_animations = computed(() => {
   const module = get_module(selected_module_id.value);
@@ -105,22 +120,37 @@ const gid = computed(() => {
   return match(data.value.kind)
     .with({ Sprite: P.select() }, ([_, gid]) => gid)
     .with({ AnimatedSprite: P.select() }, ([_, gid]) => gid)
+    .with({ Text: P.select() }, () => 0)
     .exhaustive();
 });
 
 function update_render_type(kind: KeysOfUnion<RenderKind>) {
-  if (kind === "Sprite") {
-    emit("entityUpdate", { RenderKind: { Sprite: ["", gid.value] } });
-  } else if (
-    kind === "AnimatedSprite" &&
-    character_animations.value.length > 0
-  ) {
-    emit("entityUpdate", {
-      RenderKind: {
-        AnimatedSprite: [character_animations.value[0].path, gid.value],
-      },
-    });
-  }
+  match(kind)
+    .with("Sprite", () => {
+      emit("entityUpdate", { RenderKind: { Sprite: ["", gid.value] } });
+    })
+    .with("Text", () => {
+      emit("entityUpdate", {
+        RenderKind: {
+          Text: {
+            text: "Hello!",
+            align: "Left",
+            size: 12,
+            font_family: "Arial",
+          },
+        },
+      });
+    })
+    .with("AnimatedSprite", () => {
+      if (character_animations.value.length > 0) {
+        emit("entityUpdate", {
+          RenderKind: {
+            AnimatedSprite: [character_animations.value[0].path, gid.value],
+          },
+        });
+      }
+    })
+    .exhaustive();
 }
 
 function update_gid(gid: string) {

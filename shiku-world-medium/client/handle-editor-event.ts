@@ -81,6 +81,26 @@ export function handle_editor_event(event: EditorEvent) {
     .with({ UpdatedConductor: P.select() }, (d) => {
       window.medium_gui.resources.set_conductor(d);
     })
+    .with({ EditorResource: P.select() }, (d) => {
+      match(d)
+        .with({ Font: P.select() }, (csd) => {
+          match(csd)
+            .with({ Created: P.select() }, (font) => {
+              window.medium_gui.resources.set_font(font);
+            })
+            .with({ Set: P.select() }, (font) => {
+              window.medium_gui.resources.set_font(font);
+            })
+            .with({ Deleted: P.select() }, (font) => {
+              window.medium_gui.resources.delete_font(font);
+            })
+            .exhaustive();
+        })
+        .with({ Audio: P.select() }, (_csd) => {
+          //TODO
+        })
+        .exhaustive();
+    })
     .with({ ModuleInstances: P.select() }, (d) => {
       window.medium_gui.editor.set_game_instance_map(d);
     })

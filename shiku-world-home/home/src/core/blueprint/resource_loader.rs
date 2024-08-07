@@ -12,7 +12,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::core::blueprint::def::{
-    BlueprintError, GameMap, IOPoint, JsonResource, Module, ResourcePath, Tileset,
+    Audio, BlueprintError, Font, GameMap, IOPoint, JsonResource, Module, ResourcePath, Tileset,
 };
 use crate::core::blueprint::ecs::def::{EntityUpdate, EntityUpdateKind};
 use crate::core::blueprint::resource_cache::get_resource_cache;
@@ -490,5 +490,45 @@ impl Blueprint {
 
     pub fn io_points_to_hashset(points: &[IOPoint]) -> HashSet<String> {
         points.iter().map(|p| p.name.clone()).collect()
+    }
+
+    pub fn create_font(font: &Font) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::create(font, &font.resource_path, &font.name, &resources.fonts)
+    }
+
+    pub fn load_font(path: PathBuf) -> Result<Font, BlueprintError> {
+        let resources = get_resource_cache();
+        Self::load(path, &resources.fonts)
+    }
+
+    pub fn save_font(font: &Font) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::save(font, &font.resource_path, &font.name, &resources.fonts)
+    }
+
+    pub fn delete_font(font: &Font) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::delete(&font.resource_path, &font.name, &resources.fonts)
+    }
+
+    pub fn create_audio(audio: &Audio) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::create(audio, &audio.resource_path, &audio.name, &resources.audios)
+    }
+
+    pub fn load_audio(path: PathBuf) -> Result<Audio, BlueprintError> {
+        let resources = get_resource_cache();
+        Self::load(path, &resources.audios)
+    }
+
+    pub fn save_audio(audio: &Audio) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::save(audio, &audio.resource_path, &audio.name, &resources.audios)
+    }
+
+    pub fn delete_audio(audio: &Audio) -> Result<(), BlueprintError> {
+        let resources = get_resource_cache();
+        Self::delete(&audio.resource_path, &audio.name, &resources.audios)
     }
 }

@@ -75,6 +75,11 @@ fn get_render_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<Render> {
         ecs.entities.render_offset.get(entity),
     ) {
         if let Some(kind) = match render_kind {
+            RenderKindClean::Text => ecs
+                .entities
+                .text_render
+                .get(entity)
+                .map(|text_render| RenderKind::Text(text_render.clone())),
             RenderKindClean::AnimatedSprite => {
                 ecs.entities
                     .character_animation
@@ -195,6 +200,17 @@ impl GameNodeKind {
                     }
                 }
             }
+            EntityUpdateKind::TextRender(text_render) => {
+                if let Node2DKind::Render(r) = &mut n.data.kind {
+                    match r.kind {
+                        RenderKind::AnimatedSprite(_, _) => {}
+                        RenderKind::Sprite(_, _) => {}
+                        RenderKind::Text(ref mut txtrndr) => {
+                            *txtrndr = text_render;
+                        }
+                    }
+                }
+            }
             EntityUpdateKind::Gid(gid) => {
                 if let Node2DKind::Render(r) = &mut n.data.kind {
                     match r.kind {
@@ -204,6 +220,7 @@ impl GameNodeKind {
                         RenderKind::Sprite(_, ref mut g) => {
                             *g = gid;
                         }
+                        RenderKind::Text(_) => {}
                     }
                 }
             }
@@ -216,6 +233,7 @@ impl GameNodeKind {
                         RenderKind::Sprite(ref mut r, _) => {
                             *r = resource_path;
                         }
+                        RenderKind::Text(_) => {}
                     }
                 }
             }

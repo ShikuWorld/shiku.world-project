@@ -6,7 +6,7 @@ use ts_rs::TS;
 
 use crate::core::blueprint;
 use crate::core::blueprint::character_animation::CharacterAnimation;
-use crate::core::blueprint::def::CameraSettings;
+use crate::core::blueprint::def::{Audio, CameraSettings, Font};
 use crate::core::blueprint::def::{
     CharAnimationToTilesetMap, Chunk, Conductor, Gid, GidMap, Image, LayerKind, ModuleId,
     ResourcePath, SimpleAnimationFrame, TerrainBrush, Tile, Tileset, WorldParams,
@@ -87,6 +87,7 @@ pub enum EditorEvent {
     CreatedTileset(blueprint::def::Tileset),
     SetTileset(blueprint::def::Tileset),
     DeletedTileset(blueprint::def::Tileset),
+    EditorResource(EditorResource),
     CreatedCharacterAnimation(CharacterAnimation),
     SetCharacterAnimation(CharacterAnimation),
     DeletedCharacterAnimation(CharacterAnimation),
@@ -101,6 +102,36 @@ pub enum EditorEvent {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
+pub enum EditorResource {
+    Audio(EditorCsd<Audio>),
+    Font(EditorCsd<Font>),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
+pub enum EditorCsd<R> {
+    Created(R),
+    Set(R),
+    Deleted(R),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
+pub enum AdminResourceCud<C, U = C, D = U> {
+    Create(C),
+    Update(U),
+    Delete(D),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
+pub enum CudResource {
+    Audio(ModuleId, AdminResourceCud<Audio>),
+    Font(ModuleId, AdminResourceCud<Font>),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export)]
 pub enum AdminToSystemEvent {
     ProviderLoggedIn(ProviderLoggedIn),
     UpdateConductor(Conductor),
@@ -110,6 +141,7 @@ pub enum AdminToSystemEvent {
     StopInspectingWorld(ModuleId, GameInstanceId, WorldId),
     ControlInput(ModuleId, GameInstanceId, GuestInput),
     WorldInitialized(ModuleId, GameInstanceId, WorldId),
+    CudResource(CudResource),
     UpdateModule(ModuleId, blueprint::def::ModuleUpdate),
     CreateModule(ModuleName),
     GetResource(ResourcePath),

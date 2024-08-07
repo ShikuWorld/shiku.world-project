@@ -1,6 +1,7 @@
 import {
   AnimatedSprite,
   Assets,
+  BitmapText,
   Container,
   FrameObject,
   Graphics as PixijsGraphics,
@@ -24,6 +25,8 @@ import { Collider } from "@/editor/blueprints/Collider";
 import { create_dummy_pic } from "@/client/renderer/create_game_renderer";
 import { CharAnimationToTilesetMap } from "@/editor/blueprints/CharAnimationToTilesetMap";
 import { GameInstanceMap } from "@/client/game-instance";
+import { TextRender } from "@/editor/blueprints/TextRender";
+import { TextStyleAlign } from "pixi.js/lib/scene/text/TextStyle";
 
 export interface Graphics {
   textures: Texture[];
@@ -100,6 +103,14 @@ export class ResourceManager {
           }
           return Promise.resolve();
         })
+        .with("Font", async () => {
+          console.log("font", asset);
+          return Promise.resolve();
+        })
+        .with("Audio", async () => {
+          console.log("audio", asset);
+          return Promise.resolve();
+        })
         .with("Unknown", async () => Promise.resolve())
         .exhaustive();
     }
@@ -126,6 +137,12 @@ export class ResourceManager {
             this.image_texture_map[path].source.scaleMode = SCALE_MODES.NEAREST;
             this.image_texture_map[path].source.update();
           })
+          .with("Font", async () => {
+            console.log(loaded_resource);
+          })
+          .with("Audio", async () => {
+            console.log(loaded_resource);
+          })
           .with("Unknown", () => {})
           .exhaustive();
       }
@@ -138,6 +155,32 @@ export class ResourceManager {
       }
       this._update_uv_maps();
     });
+  }
+
+  create_bitmap_text(text_render: TextRender) {
+    const bitmap_text = new BitmapText({
+      text: text_render.text,
+      style: {
+        fontFamily: text_render.font_family,
+        fontSize: text_render.size,
+        align: text_render.align.toLowerCase() as TextStyleAlign,
+      },
+    });
+    match(text_render.align)
+      .with("Center", () => {
+        bitmap_text.pivot.set(Math.round(bitmap_text.width / 2), 0);
+      })
+      .with("Left", () => {
+        bitmap_text.pivot.set(0, 0);
+      })
+      .with("Right", () => {
+        bitmap_text.pivot.set(bitmap_text.width, 0);
+      })
+      .with("Justify", () => {
+        bitmap_text.pivot.set(0, 0);
+      })
+      .exhaustive();
+    return bitmap_text;
   }
 
   private _update_uv_maps() {
@@ -387,26 +430,28 @@ export function create_display_object(
         })
         .with({ Render: P.select() }, (render) => {
           const display_object = match(render.kind)
-            .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) => {
-              const graphics =
+            .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) =>
+              resource_manager.get_sprite_from_graphics(
                 resource_manager.get_graphics_by_id_and_tileset_path(
                   id_in_tileset,
                   tileset_path,
-                );
-              return resource_manager.get_sprite_from_graphics(graphics);
-            })
+                ),
+              ),
+            )
             .with(
               { AnimatedSprite: P.select() },
-              ([char_anim_resource_path, id_in_tileset]) => {
-                const graphics =
+              ([char_anim_resource_path, id_in_tileset]) =>
+                resource_manager.get_sprite_from_graphics(
                   resource_manager.get_graphics_by_id_and_tileset_path(
                     id_in_tileset,
                     resource_manager.character_animation_to_tileset_map[
                       char_anim_resource_path
                     ],
-                  );
-                return resource_manager.get_sprite_from_graphics(graphics);
-              },
+                  ),
+                ),
+            )
+            .with({ Text: P.select() }, (text_render) =>
+              resource_manager.create_bitmap_text(text_render),
             )
             .exhaustive();
           container.addChild(display_object);

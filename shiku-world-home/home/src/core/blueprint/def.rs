@@ -39,6 +39,8 @@ impl Conductor {
 pub enum ResourceLoaded {
     Tileset(Tileset),
     Scene(Scene),
+    Audio(Audio),
+    Font(Font),
     Map(GameMap),
     Script(Script),
     CharacterAnimation(CharacterAnimation),
@@ -60,6 +62,8 @@ pub struct FileBrowserResult {
 #[ts(export, export_to = "blueprints/")]
 pub enum FileBrowserFileKind {
     Conductor,
+    Audio,
+    Font,
     Module,
     Map,
     Tileset,
@@ -74,6 +78,8 @@ pub enum FileBrowserFileKind {
 #[ts(export, export_to = "blueprints/")]
 pub enum ResourceKind {
     Tileset,
+    Audio,
+    Font,
     Scene,
     Map,
     Script,
@@ -110,6 +116,22 @@ pub struct Tileset {
     pub columns: u32,
     pub tiles: HashMap<u32, Tile>,
     pub brushes: Vec<TerrainBrush>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Audio {
+    pub name: String,
+    pub resource_path: ResourcePath,
+    pub audio_path: String,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct Font {
+    pub name: String,
+    pub resource_path: ResourcePath,
+    pub font_path: String,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

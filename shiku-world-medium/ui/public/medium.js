@@ -39046,6 +39046,291 @@ ${e3}`);
   };
   var TilingSprite = _TilingSprite;
 
+  // node_modules/pixi.js/lib/scene/text/AbstractText.mjs
+  init_ObservablePoint();
+  init_deprecation();
+  init_Bounds();
+  init_Container();
+  var AbstractText = class extends Container {
+    constructor(options, styleClass) {
+      const { text, resolution, style, anchor, width, height, roundPixels, ...rest } = options;
+      super({
+        ...rest
+      });
+      this.batched = true;
+      this._resolution = null;
+      this._didTextUpdate = true;
+      this._roundPixels = 0;
+      this._bounds = new Bounds();
+      this._boundsDirty = true;
+      this._styleClass = styleClass;
+      this.text = text ?? "";
+      this.style = style;
+      this.resolution = resolution ?? null;
+      this.allowChildren = false;
+      this._anchor = new ObservablePoint(
+        {
+          _onUpdate: () => {
+            this.onViewUpdate();
+          }
+        }
+      );
+      if (anchor)
+        this.anchor = anchor;
+      this.roundPixels = roundPixels ?? false;
+      if (width)
+        this.width = width;
+      if (height)
+        this.height = height;
+    }
+    /**
+     * The anchor sets the origin point of the text.
+     * The default is `(0,0)`, this means the text's origin is the top left.
+     *
+     * Setting the anchor to `(0.5,0.5)` means the text's origin is centered.
+     *
+     * Setting the anchor to `(1,1)` would mean the text's origin point will be the bottom right corner.
+     *
+     * If you pass only single parameter, it will set both x and y to the same value as shown in the example below.
+     * @example
+     * import { Text } from 'pixi.js';
+     *
+     * const text = new Text('hello world');
+     * text.anchor.set(0.5); // This will set the origin to center. (0.5) is same as (0.5, 0.5).
+     */
+    get anchor() {
+      return this._anchor;
+    }
+    set anchor(value) {
+      typeof value === "number" ? this._anchor.set(value) : this._anchor.copyFrom(value);
+    }
+    /**
+     *  Whether or not to round the x/y position of the text.
+     * @type {boolean}
+     */
+    get roundPixels() {
+      return !!this._roundPixels;
+    }
+    set roundPixels(value) {
+      this._roundPixels = value ? 1 : 0;
+    }
+    /** Set the copy for the text object. To split a line you can use '\n'. */
+    set text(value) {
+      value = value.toString();
+      if (this._text === value)
+        return;
+      this._text = value;
+      this.onViewUpdate();
+    }
+    get text() {
+      return this._text;
+    }
+    /**
+     * The resolution / device pixel ratio of the canvas.
+     * @default 1
+     */
+    set resolution(value) {
+      this._resolution = value;
+      this.onViewUpdate();
+    }
+    get resolution() {
+      return this._resolution;
+    }
+    get style() {
+      return this._style;
+    }
+    /**
+     * Set the style of the text.
+     *
+     * Set up an event listener to listen for changes on the style object and mark the text as dirty.
+     *
+     * If setting the `style` can also be partial {@link AnyTextStyleOptions}.
+     * @type {
+     * text.TextStyle |
+     * Partial<text.TextStyle> |
+     * text.TextStyleOptions |
+     * text.HTMLTextStyle |
+     * Partial<text.HTMLTextStyle> |
+     * text.HTMLTextStyleOptions
+     * }
+     */
+    set style(style) {
+      style = style || {};
+      this._style?.off("update", this.onViewUpdate, this);
+      if (style instanceof this._styleClass) {
+        this._style = style;
+      } else {
+        this._style = new this._styleClass(style);
+      }
+      this._style.on("update", this.onViewUpdate, this);
+      this.onViewUpdate();
+    }
+    /**
+     * The local bounds of the Text.
+     * @type {rendering.Bounds}
+     */
+    get bounds() {
+      if (this._boundsDirty) {
+        this._updateBounds();
+        this._boundsDirty = false;
+      }
+      return this._bounds;
+    }
+    /** The width of the sprite, setting this will actually modify the scale to achieve the value set. */
+    get width() {
+      return Math.abs(this.scale.x) * this.bounds.width;
+    }
+    set width(value) {
+      this._setWidth(value, this.bounds.width);
+    }
+    /** The height of the sprite, setting this will actually modify the scale to achieve the value set. */
+    get height() {
+      return Math.abs(this.scale.y) * this.bounds.height;
+    }
+    set height(value) {
+      this._setHeight(value, this.bounds.height);
+    }
+    /**
+     * Retrieves the size of the Text as a [Size]{@link Size} object.
+     * This is faster than get the width and height separately.
+     * @param out - Optional object to store the size in.
+     * @returns - The size of the Text.
+     */
+    getSize(out2) {
+      if (!out2) {
+        out2 = {};
+      }
+      out2.width = Math.abs(this.scale.x) * this.bounds.width;
+      out2.height = Math.abs(this.scale.y) * this.bounds.height;
+      return out2;
+    }
+    /**
+     * Sets the size of the Text to the specified width and height.
+     * This is faster than setting the width and height separately.
+     * @param value - This can be either a number or a [Size]{@link Size} object.
+     * @param height - The height to set. Defaults to the value of `width` if not provided.
+     */
+    setSize(value, height) {
+      let convertedWidth;
+      let convertedHeight;
+      if (typeof value !== "object") {
+        convertedWidth = value;
+        convertedHeight = height ?? value;
+      } else {
+        convertedWidth = value.width;
+        convertedHeight = value.height ?? value.width;
+      }
+      if (convertedWidth !== void 0) {
+        this._setWidth(convertedWidth, this.bounds.width);
+      }
+      if (convertedHeight !== void 0) {
+        this._setHeight(convertedHeight, this.bounds.height);
+      }
+    }
+    /**
+     * Adds the bounds of this text to the bounds object.
+     * @param bounds - The output bounds object.
+     */
+    addBounds(bounds) {
+      const _bounds = this.bounds;
+      bounds.addFrame(
+        _bounds.minX,
+        _bounds.minY,
+        _bounds.maxX,
+        _bounds.maxY
+      );
+    }
+    /**
+     * Checks if the text contains the given point.
+     * @param point - The point to check
+     */
+    containsPoint(point) {
+      const width = this.bounds.width;
+      const height = this.bounds.height;
+      const x1 = -width * this.anchor.x;
+      let y1 = 0;
+      if (point.x >= x1 && point.x <= x1 + width) {
+        y1 = -height * this.anchor.y;
+        if (point.y >= y1 && point.y <= y1 + height)
+          return true;
+      }
+      return false;
+    }
+    onViewUpdate() {
+      this._didChangeId += 1 << 12;
+      this._boundsDirty = true;
+      if (this.didViewUpdate)
+        return;
+      this.didViewUpdate = true;
+      this._didTextUpdate = true;
+      const renderGroup = this.renderGroup || this.parentRenderGroup;
+      if (renderGroup) {
+        renderGroup.onChildViewUpdate(this);
+      }
+    }
+    _getKey() {
+      return `${this.text}:${this._style.styleKey}-${this.resolution}`;
+    }
+    /**
+     * Destroys this text renderable and optionally its style texture.
+     * @param options - Options parameter. A boolean will act as if all options
+     *  have been set to that value
+     * @param {boolean} [options.texture=false] - Should it destroy the texture of the text style
+     * @param {boolean} [options.textureSource=false] - Should it destroy the textureSource of the text style
+     * @param {boolean} [options.style=false] - Should it destroy the style of the text
+     */
+    destroy(options = false) {
+      super.destroy(options);
+      this.owner = null;
+      this._bounds = null;
+      this._anchor = null;
+      if (typeof options === "boolean" ? options : options?.style) {
+        this._style.destroy(options);
+      }
+      this._style = null;
+      this._text = null;
+    }
+  };
+  function ensureOptions(args, name) {
+    let options = args[0] ?? {};
+    if (typeof options === "string" || args[1]) {
+      deprecation(v8_0_0, `use new ${name}({ text: "hi!", style }) instead`);
+      options = {
+        text: options,
+        style: args[1]
+      };
+    }
+    return options;
+  }
+
+  // node_modules/pixi.js/lib/scene/text-bitmap/BitmapText.mjs
+  init_TextStyle();
+  init_BitmapFontManager();
+  var BitmapText = class extends AbstractText {
+    constructor(...args) {
+      var _a;
+      const options = ensureOptions(args, "BitmapText");
+      options.style ?? (options.style = options.style || {});
+      (_a = options.style).fill ?? (_a.fill = 16777215);
+      super(options, TextStyle);
+      this.renderPipeId = "bitmapText";
+    }
+    _updateBounds() {
+      const bounds = this._bounds;
+      const padding = this._style.padding;
+      const anchor = this._anchor;
+      const bitmapMeasurement = BitmapFontManager.measureText(this.text, this._style);
+      const scale = bitmapMeasurement.scale;
+      const offset = bitmapMeasurement.offsetY * scale;
+      const width = bitmapMeasurement.width * scale;
+      const height = bitmapMeasurement.height * scale;
+      bounds.minX = -anchor._x * width - padding;
+      bounds.maxX = bounds.minX + width;
+      bounds.minY = -anchor._y * (height + offset) - padding;
+      bounds.maxY = bounds.minY + height;
+    }
+  };
+
   // node_modules/pixi.js/lib/rendering/renderers/shared/texture/const.mjs
   init_deprecation();
   var DEPRECATED_WRAP_MODES = /* @__PURE__ */ ((DEPRECATED_WRAP_MODES2) => {
@@ -40273,6 +40558,12 @@ ${e3}`);
             console.log("oh oh", asset);
           }
           return Promise.resolve();
+        }).with("Font", async () => {
+          console.log("font", asset);
+          return Promise.resolve();
+        }).with("Audio", async () => {
+          console.log("audio", asset);
+          return Promise.resolve();
         }).with("Unknown", async () => Promise.resolve()).exhaustive();
       }
       Assets.addBundle(
@@ -40294,6 +40585,10 @@ ${e3}`);
             this.image_texture_map[path2].source.resource = loaded_resource.source.resource;
             this.image_texture_map[path2].source.scaleMode = SCALE_MODES.NEAREST;
             this.image_texture_map[path2].source.update();
+          }).with("Font", async () => {
+            console.log(loaded_resource);
+          }).with("Audio", async () => {
+            console.log(loaded_resource);
           }).with("Unknown", () => {
           }).exhaustive();
         }
@@ -40306,6 +40601,26 @@ ${e3}`);
         }
         this._update_uv_maps();
       });
+    }
+    create_bitmap_text(text_render) {
+      const bitmap_text = new BitmapText({
+        text: text_render.text,
+        style: {
+          fontFamily: text_render.font_family,
+          fontSize: text_render.size,
+          align: text_render.align.toLowerCase()
+        }
+      });
+      N2(text_render.align).with("Center", () => {
+        bitmap_text.pivot.set(Math.round(bitmap_text.width / 2), 0);
+      }).with("Left", () => {
+        bitmap_text.pivot.set(0, 0);
+      }).with("Right", () => {
+        bitmap_text.pivot.set(bitmap_text.width, 0);
+      }).with("Justify", () => {
+        bitmap_text.pivot.set(0, 0);
+      }).exhaustive();
+      return bitmap_text;
     }
     _update_uv_maps() {
       for (const g3 of Object.values(this.graphic_id_map)) {
@@ -40498,21 +40813,25 @@ ${e3}`);
       container.rotation = game_node.data.transform.rotation;
       N2(game_node.data.kind).with({ Node2D: _.select() }, { Instance: _.select() }, () => {
       }).with({ Render: _.select() }, (render2) => {
-        const display_object = N2(render2.kind).with({ Sprite: _.select() }, ([tileset_path, id_in_tileset]) => {
-          const graphics = resource_manager.get_graphics_by_id_and_tileset_path(
-            id_in_tileset,
-            tileset_path
-          );
-          return resource_manager.get_sprite_from_graphics(graphics);
-        }).with(
+        const display_object = N2(render2.kind).with(
+          { Sprite: _.select() },
+          ([tileset_path, id_in_tileset]) => resource_manager.get_sprite_from_graphics(
+            resource_manager.get_graphics_by_id_and_tileset_path(
+              id_in_tileset,
+              tileset_path
+            )
+          )
+        ).with(
           { AnimatedSprite: _.select() },
-          ([char_anim_resource_path, id_in_tileset]) => {
-            const graphics = resource_manager.get_graphics_by_id_and_tileset_path(
+          ([char_anim_resource_path, id_in_tileset]) => resource_manager.get_sprite_from_graphics(
+            resource_manager.get_graphics_by_id_and_tileset_path(
               id_in_tileset,
               resource_manager.character_animation_to_tileset_map[char_anim_resource_path]
-            );
-            return resource_manager.get_sprite_from_graphics(graphics);
-          }
+            )
+          )
+        ).with(
+          { Text: _.select() },
+          (text_render) => resource_manager.create_bitmap_text(text_render)
         ).exhaustive();
         container.addChild(display_object);
       }).with({ RigidBody: _.select() }, (_2) => {
@@ -42168,6 +42487,17 @@ ${e3}`);
       window.medium_gui.resources.delete_character_animation(d3);
     }).with({ UpdatedConductor: _.select() }, (d3) => {
       window.medium_gui.resources.set_conductor(d3);
+    }).with({ EditorResource: _.select() }, (d3) => {
+      N2(d3).with({ Font: _.select() }, (csd) => {
+        N2(csd).with({ Created: _.select() }, (font) => {
+          window.medium_gui.resources.set_font(font);
+        }).with({ Set: _.select() }, (font) => {
+          window.medium_gui.resources.set_font(font);
+        }).with({ Deleted: _.select() }, (font) => {
+          window.medium_gui.resources.delete_font(font);
+        }).exhaustive();
+      }).with({ Audio: _.select() }, (_csd) => {
+      }).exhaustive();
     }).with({ ModuleInstances: _.select() }, (d3) => {
       window.medium_gui.editor.set_game_instance_map(d3);
     }).with(

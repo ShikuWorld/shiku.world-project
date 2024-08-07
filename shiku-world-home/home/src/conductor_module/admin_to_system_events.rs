@@ -16,21 +16,22 @@ use crate::conductor_module::game_instances::{
     create_game_instance_manager, remove_game_instance_manager,
 };
 use crate::core::blueprint::def::{
-    BlueprintResource, BlueprintService, Conductor, JsonResource, Module, ModuleId, ResourceKind,
-    ResourceLoaded, Tileset,
+    Audio, BlueprintResource, BlueprintService, Conductor, Font, JsonResource, Module, ModuleId,
+    ResourceKind, ResourceLoaded, ResourcePath, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind};
 use crate::core::guest::{ActorId, Admin};
+use crate::core::module::CudResource;
 use crate::core::module::{
-    AdminLeftSuccessState, AdminToSystemEvent, CommunicationEvent, EditorEvent, GuestToModuleEvent,
-    SceneNodeUpdate, TilesetUpdate,
+    AdminLeftSuccessState, AdminResourceCud, AdminToSystemEvent, CommunicationEvent, EditorCsd,
+    EditorEvent, EditorResource, GuestToModuleEvent, SceneNodeUpdate, TilesetUpdate,
 };
 use crate::core::module_system::def::DynamicGameModule;
 use crate::core::module_system::game_instance::{GameInstance, GameInstanceManager};
 use crate::core::{log_result_error, send_and_log_error};
 use crate::log_collector::LogCollector;
-use crate::resource_module::def::{ResourceBundle, ResourceEvent, ResourceModule};
+use crate::resource_module::def::{LoadResource, ResourceBundle, ResourceEvent, ResourceModule};
 use crate::webserver_module::def::WebServerModule;
 
 pub async fn handle_admin_to_system_event(
@@ -430,6 +431,16 @@ pub async fn handle_admin_to_system_event(
         }
         AdminToSystemEvent::GetResource(path) => {
             match BlueprintService::load_resource_by_path(&path) {
+                ResourceLoaded::Audio(audio) => {
+                    send_editor_event(EditorEvent::EditorResource(EditorResource::Audio(
+                        EditorCsd::Set(audio),
+                    )));
+                }
+                ResourceLoaded::Font(font) => {
+                    send_editor_event(EditorEvent::EditorResource(EditorResource::Font(
+                        EditorCsd::Set(font),
+                    )));
+                }
                 ResourceLoaded::Tileset(tileset) => {
                     send_editor_event(EditorEvent::SetTileset(tileset));
                 }
@@ -450,6 +461,53 @@ pub async fn handle_admin_to_system_event(
                 }
             }
         }
+        AdminToSystemEvent::CudResource(resource) => match resource {
+            CudResource::Audio(_module_id, cud) => match cud {
+                AdminResourceCud::Create(_audio) => {
+                    todo!()
+                }
+                AdminResourceCud::Update(_audio) => {
+                    todo!()
+                }
+                AdminResourceCud::Delete(_audio) => {
+                    todo!()
+                }
+            },
+            CudResource::Font(module_id, cud) => match cud {
+                AdminResourceCud::Create(font) => match Blueprint::create_font(&font) {
+                    Ok(()) => {
+                        update_module_with_resource(module_id, BlueprintResource::from(&font));
+                        send_editor_event(EditorEvent::EditorResource(EditorResource::Font(
+                            EditorCsd::Created(font),
+                        )));
+                    }
+                    Err(err) => {
+                        error!("Could not create font {:?}", err);
+                    }
+                },
+                AdminResourceCud::Update(font) => match Blueprint::save_font(&font) {
+                    Ok(()) => {
+                        let load_resource = LoadResource::font(font.font_path.clone());
+                        send_resource_update_event_to_all_modules(
+                            resource_module,
+                            module_map,
+                            resource_to_module_map,
+                            font.resource_path.clone(),
+                            &load_resource,
+                        );
+                        send_editor_event(EditorEvent::EditorResource(EditorResource::Font(
+                            EditorCsd::Set(font),
+                        )));
+                    }
+                    Err(err) => {
+                        error!("Could not create font {:?}", err);
+                    }
+                },
+                AdminResourceCud::Delete(_font) => {
+                    todo!()
+                }
+            },
+        },
         AdminToSystemEvent::BrowseFolder(path) => match BlueprintService::browse_directory(path) {
             Ok(result) => {
                 send_editor_event(EditorEvent::DirectoryInfo(result));
@@ -984,6 +1042,28 @@ pub async fn handle_admin_to_system_event(
             } else {
                 error!("Could not find module {:?}", module_id);
             }
+        }
+    }
+}
+
+fn send_resource_update_event_to_all_modules(
+    resource_module: &mut ResourceModule,
+    module_map: &mut ModuleMap,
+    resource_to_module_map: &mut ResourceToModuleMap,
+    resource_path: ResourcePath,
+    load_resource: &LoadResource,
+) {
+    for module_id in resource_to_module_map
+        .entry(resource_path)
+        .or_default()
+        .iter()
+    {
+        if let Some(module) = module_map.get_mut(module_id) {
+            resource_module.send_resource_update_event_to(
+                load_resource,
+                module_id.clone(),
+                module.get_active_actor_ids(),
+            );
         }
     }
 }

@@ -9,8 +9,8 @@ use walkdir::WalkDir;
 
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
-    BlueprintError, BlueprintResource, BlueprintService, CharAnimationToTilesetMap, Chunk,
-    ChunkUpdate, Conductor, FileBrowserFileKind, FileBrowserResult, GameMap, Gid, GidMap,
+    Audio, BlueprintError, BlueprintResource, BlueprintService, CharAnimationToTilesetMap, Chunk,
+    ChunkUpdate, Conductor, FileBrowserFileKind, FileBrowserResult, Font, GameMap, Gid, GidMap,
     JsonResource, LayerKind, MapUpdate, Module, ResourceKind, ResourceLoaded, Tileset,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
@@ -69,6 +69,8 @@ impl BlueprintService {
                 FileBrowserFileKind::Scene
                 | FileBrowserFileKind::Tileset
                 | FileBrowserFileKind::Map
+                | FileBrowserFileKind::Audio
+                | FileBrowserFileKind::Font
                 | FileBrowserFileKind::CharacterAnimation
                 | FileBrowserFileKind::Script => {
                     file_browser_entry.resources.push(BlueprintResource {
@@ -95,6 +97,12 @@ impl BlueprintService {
             if let Some(file_name_os) = path_buf.as_path().file_name() {
                 if let Some(file_name) = file_name_os.to_str() {
                     let result = match BlueprintService::determine_resource_type(file_name) {
+                        ResourceKind::Audio => {
+                            Blueprint::load_audio(path_buf).map(ResourceLoaded::Audio)
+                        }
+                        ResourceKind::Font => {
+                            Blueprint::load_font(path_buf).map(ResourceLoaded::Font)
+                        }
                         ResourceKind::Scene => {
                             Blueprint::load_scene(path_buf).map(ResourceLoaded::Scene)
                         }
@@ -131,6 +139,8 @@ impl BlueprintService {
             [_, "script", "json"] => ResourceKind::Script,
             [_, "map", "json"] => ResourceKind::Map,
             [_, "char_anim", "json"] => ResourceKind::CharacterAnimation,
+            [_, "font", "json"] => ResourceKind::Font,
+            [_, "audio", "json"] => ResourceKind::Audio,
             _ => ResourceKind::Unknown,
         }
     }
@@ -211,6 +221,8 @@ impl BlueprintService {
             [_, "tileset", "json"] => FileBrowserFileKind::Tileset,
             [_, "map", "json"] => FileBrowserFileKind::Map,
             [_, "scene", "json"] => FileBrowserFileKind::Scene,
+            [_, "font", "json"] => FileBrowserFileKind::Font,
+            [_, "audio", "json"] => FileBrowserFileKind::Audio,
             [_, "script", "json"] => FileBrowserFileKind::Script,
             [_, "module", "json"] => FileBrowserFileKind::Module,
             [_, "char_anim", "json"] => FileBrowserFileKind::CharacterAnimation,
@@ -264,6 +276,8 @@ impl From<FileBrowserFileKind> for ResourceKind {
             FileBrowserFileKind::Tileset => ResourceKind::Tileset,
             FileBrowserFileKind::Script => ResourceKind::Script,
             FileBrowserFileKind::Scene => ResourceKind::Scene,
+            FileBrowserFileKind::Audio => ResourceKind::Audio,
+            FileBrowserFileKind::Font => ResourceKind::Font,
         }
     }
 }
@@ -397,6 +411,36 @@ impl JsonResource for CharacterAnimation {
     }
     fn get_resource_kind(&self) -> ResourceKind {
         ResourceKind::CharacterAnimation
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        &self.resource_path
+    }
+}
+
+impl JsonResource for Font {
+    fn get_resource_extension() -> &'static str {
+        "font"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::Font
+    }
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    fn get_resource_dir(&self) -> &str {
+        &self.resource_path
+    }
+}
+
+impl JsonResource for Audio {
+    fn get_resource_extension() -> &'static str {
+        "audio"
+    }
+    fn get_resource_kind(&self) -> ResourceKind {
+        ResourceKind::Audio
     }
     fn get_name(&self) -> &str {
         &self.name

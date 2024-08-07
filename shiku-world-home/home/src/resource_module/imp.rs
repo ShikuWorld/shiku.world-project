@@ -216,6 +216,29 @@ impl ResourceModule {
                 .push((actor_id, module_id.clone(), resource_event.clone()));
         }
     }
+    pub fn send_resource_update_event_to(
+        &mut self,
+        load_resource: &LoadResource,
+        module_id: ModuleId,
+        actor_ids: Vec<ActorId>,
+    ) {
+        let hash_updated_load_resource = LoadResource {
+            path: load_resource.path.clone(),
+            cache_hash: self.book_keeping.resource_hash_gen.get_id().to_string(),
+            kind: load_resource.kind.clone(),
+        };
+        for actor_id in actor_ids {
+            self.resource_events.push((
+                actor_id,
+                module_id.clone(),
+                ResourceEvent::LoadResource(ResourceBundle {
+                    name: self.book_keeping.resource_hash_gen.get_id().to_string(),
+                    assets: vec![hash_updated_load_resource.clone()],
+                }),
+            ));
+        }
+    }
+
     pub fn send_unload_event(
         resource_load_events: &mut Vec<(ActorId, ModuleId, ResourceEvent)>,
         actor_id: &ActorId,

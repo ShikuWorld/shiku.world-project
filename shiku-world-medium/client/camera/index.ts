@@ -31,7 +31,7 @@ export class Camera {
     return this._camera_isometry;
   }
 
-  set_camera_ref(entity_id: number) {
+  set_camera_ref(entity_id: number | null) {
     this._entity_id_ref = entity_id;
   }
 
