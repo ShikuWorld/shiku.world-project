@@ -302,6 +302,9 @@ impl ECS {
                 script_path.clone_from(&node_2d.script);
                 ecs.entities.game_node_children.insert(entity, Vec::new());
                 ecs.entities
+                    .game_node_tags
+                    .insert(entity, node_2d.tags.clone());
+                ecs.entities
                     .game_node_name
                     .insert(entity, node_2d.name.clone());
                 ecs.entities

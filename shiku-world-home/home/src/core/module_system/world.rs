@@ -10,7 +10,9 @@ use crate::core::basic_kinematic_character_controller::CharacterCollision;
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::CameraSettings;
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
-use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityMaps, EntityUpdate, ECS};
+use crate::core::blueprint::ecs::def::{
+    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS,
+};
 use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
@@ -135,6 +137,7 @@ impl World {
             &mut script_engine,
             &mut ecs,
             &physics_share,
+            &self.actor_api,
             &self.event_cache,
         );
         Self::setup_utils_scripting_api(&mut script_engine);
@@ -502,6 +505,7 @@ impl World {
         engine: &mut Engine,
         ecs: &mut ECS,
         physics_share: &ApiShare<RapierSimulation>,
+        actor_api: &ApiShare<ActorApi>,
         event_cache: &ApiShare<Events>,
     ) {
         let mut module = RhaiModule::new();
@@ -568,6 +572,51 @@ impl World {
         };
         FuncRegistration::new("set_scope_variable_on_entity")
             .set_into_module(&mut module, set_entity_scope_variable);
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("get_first_child_entity_by_tag").set_into_module(
+            &mut module,
+            move |entity: Entity, tag: &str| -> Dynamic {
+                if let Some(shared) = ecs_shared.try_borrow() {
+                    let children = shared.entities.game_node_children.get(&entity);
+                    if let Some(children) = children {
+                        for child in children {
+                            if let Some(tags) = shared.entities.game_node_tags.get(child) {
+                                if tags.contains(&tag.to_string()) {
+                                    return Dynamic::from(*child);
+                                }
+                            }
+                        }
+                    }
+                }
+                Dynamic::from(())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        let actor_api_share = actor_api.clone();
+        FuncRegistration::new("set_text").set_into_module(
+            &mut module,
+            move |entity: Entity, new_text: &str| {
+                if let (Some(mut shared), Some(mut actor_api)) = (
+                    ecs_shared.try_borrow_mut(),
+                    actor_api_share.try_borrow_mut(),
+                ) {
+                    if let Some(text) = shared.entities.text_render.get_mut(&entity) {
+                        text.text = new_text.to_string();
+                        for actor_id in actor_api.active_set.clone() {
+                            actor_api.game_system_to_guest_events.push((
+                                actor_id,
+                                GameSystemToGuestEvent::UpdateEntity(EntityUpdate {
+                                    id: entity,
+                                    kind: EntityUpdateKind::TextRender(text.clone()),
+                                }),
+                            ));
+                        }
+                    }
+                }
+            },
+        );
 
         engine.register_static_module("shiku::nodes", module.into());
     }
@@ -674,6 +723,20 @@ impl World {
         );
 
         let actor_api_share_clone = actor_api_share.clone();
+        FuncRegistration::new("get_actor_provider_id").set_into_module(
+            &mut module,
+            move |actor_id: ActorId| -> Dynamic {
+                if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
+                    if let Some(guest_input) = actor_api.login_data.get(&actor_id) {
+                        return Dynamic::from(guest_input.provider_user_id.clone());
+                    }
+                }
+                error!("Not able to get provider user id in api, what?!");
+                Dynamic::from(())
+            },
+        );
+
+        let actor_api_share_clone = actor_api_share.clone();
         FuncRegistration::new("camera_follow_entity").set_into_module(
             &mut module,
             move |actor_id: ActorId, entity: Entity| {
@@ -698,20 +761,6 @@ impl World {
                         GameSystemToGuestEvent::SetCameraFollowEntity(None),
                     ));
                 }
-            },
-        );
-
-        let actor_api_share_clone = actor_api_share.clone();
-        FuncRegistration::new("get_actor_provider_id").set_into_module(
-            &mut module,
-            move |actor_id: ActorId| -> Dynamic {
-                if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
-                    if let Some(guest_input) = actor_api.login_data.get(&actor_id) {
-                        return Dynamic::from(guest_input.provider_user_id.clone());
-                    }
-                }
-                error!("Not able to get provider id in api, what?!");
-                Dynamic::from(())
             },
         );
 

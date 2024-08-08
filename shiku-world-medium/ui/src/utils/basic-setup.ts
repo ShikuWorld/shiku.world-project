@@ -111,10 +111,22 @@ function shikuCompletions(context: CompletionContext): CompletionResult | null {
         "(parent_entity: Entity, source: string, x: number, y: number) -> Entity",
     },
     {
-      label: "shiku::nodes::set_scope_variable_on_entity",
+      label: "shiku::nodes::get_first_child_entity_by_tag",
       type: "function",
-      info: "Set a scope variable on an entity",
-      detail: "(entity: Entity, key: string, value: Dynamic) -> void",
+      info: "Get child entity with specific tag, returns void if none exists",
+      detail: "(entity: Entity, tag: string) -> Entity | void",
+    },
+    {
+      label: "shiku::nodes::get_first_child_entity_by_tag",
+      type: "function",
+      info: "Get child entity with specific tag, returns void if none exists",
+      detail: "(entity: Entity, tag: string) -> Entity | void",
+    },
+    {
+      label: "shiku::nodes::set_text",
+      type: "function",
+      info: "Set text on text render node",
+      detail: "(entity: Entity, text: string) -> void",
     },
     {
       label: "shiku::animation::get_state",
