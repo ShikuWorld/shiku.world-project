@@ -46,15 +46,15 @@ in
       login = credentials;
       volumes = [
         "${golemPath}:/app/storage"
-      ];
+      ];a
     };
     "shiku-world-medium-dev" = {
-      image = "dreg.shiku.world/shiku-world-medium-dev:0.6.3";
+      image = "dreg.shiku.world/shiku-world-medium-dev:0.6.4";
       login = credentials;
       ports = ["8089:80"];
     };
     "shiku-world-home-dev" = {
-      image = "dreg.shiku.world/shiku-world-home-dev:0.3.3";
+      image = "dreg.shiku.world/shiku-world-home-dev:0.3.4";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];
