@@ -1,15 +1,12 @@
 <template>
   <div class="editor-log">
-    <v-virtual-scroll :items="filtered_logs" :height="300">
-      <template v-slot:default="{ item: [id, time, level, location, message] }">
-        <div
-          :class="`editor-log__entry editor-log__entry--${level.toLowerCase()}`"
-          :key="id"
-        >
-          {{ message }}
-        </div>
-      </template>
-    </v-virtual-scroll>
+    <div
+      :class="`editor-log__entry editor-log__entry--${level.toLowerCase()}`"
+      v-for="[id, _time, level, _location, message] in filtered_logs"
+      :key="id"
+    >
+      {{ message }}
+    </div>
   </div>
 </template>
 <script lang="ts" setup>
@@ -56,6 +53,7 @@ const filtered_logs = computed(() => {
   flex-direction: column;
   z-index: 5000;
   pointer-events: all;
+  overflow: auto;
 }
 
 @keyframes new-log {
