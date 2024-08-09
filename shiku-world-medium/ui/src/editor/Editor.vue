@@ -895,7 +895,7 @@ function open_resource_editor(resource: BlueprintResource) {
 .editor-nav-left,
 .editor-nav-right {
   width: 250px;
-  height: calc(100vh - 108px);
+  height: calc(100vh - 128px);
   background-color: rgb(var(--v-theme-primary));
 }
 

@@ -40608,7 +40608,8 @@ ${e3}`);
         style: {
           fontFamily: text_render.font_family,
           fontSize: text_render.size,
-          align: text_render.align.toLowerCase()
+          align: text_render.align.toLowerCase(),
+          letterSpacing: text_render.letter_spacing
         }
       });
       N2(text_render.align).with("Center", () => {

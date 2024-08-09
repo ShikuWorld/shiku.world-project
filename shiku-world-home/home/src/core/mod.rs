@@ -28,6 +28,7 @@ pub mod module;
 pub mod rapier_simulation;
 pub mod ring;
 pub mod terrain_gen;
+pub mod timer;
 pub mod tween;
 
 pub type Snowflake = i64;

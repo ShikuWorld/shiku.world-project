@@ -136,6 +136,7 @@ function update_render_type(kind: KeysOfUnion<RenderKind>) {
             text: "Hello!",
             align: "Left",
             size: 12,
+            letter_spacing: 0,
             font_family: "Arial",
           },
         },

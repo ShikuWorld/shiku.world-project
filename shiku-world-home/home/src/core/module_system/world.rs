@@ -159,6 +159,10 @@ impl World {
                 Self::update_entities_gid_from_animations(&mut shared_ecs);
                 Self::update_kinematic_character_controllers(&mut shared_ecs, &mut physics);
                 Self::update_positions(&mut physics, &mut shared_ecs);
+                ECS::update_tweens_and_timers(
+                    &mut shared_ecs,
+                    physics.integration_parameters.dt as f64,
+                );
             }
         }
         self.ecs
@@ -286,13 +290,14 @@ impl World {
 
     fn setup_utils_scripting_api(engine: &mut Engine) {
         let mut module = RhaiModule::new();
-        let add_fixed_rigid_body = move |start: f64, length: f64| -> Dynamic {
-            let mut rng = thread_rng();
-            let random_num: f64 = rng.gen();
-            Dynamic::from(start + length * random_num)
-        };
-        FuncRegistration::new("random_num_in_range")
-            .set_into_module(&mut module, add_fixed_rigid_body);
+        FuncRegistration::new("random_num_in_range").set_into_module(
+            &mut module,
+            move |start: f64, length: f64| -> Dynamic {
+                let mut rng = thread_rng();
+                let random_num: f64 = rng.gen();
+                Dynamic::from(start + length * random_num)
+            },
+        );
 
         engine.register_static_module("shiku::utils", module.into());
     }
@@ -317,16 +322,18 @@ impl World {
         );
 
         let ecs_shared = ecs.shared.clone();
-        let get_rigid_body_handle = move |entity: Entity| -> Dynamic {
-            if let Some(shared) = ecs_shared.try_borrow_mut() {
-                if let Some(rigid_body_entity) = shared.entities.rigid_body_handle.get(&entity) {
-                    return Dynamic::from(*rigid_body_entity);
+        FuncRegistration::new("get_rigid_body_handle").set_into_module(
+            &mut module,
+            move |entity: Entity| -> Dynamic {
+                if let Some(shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(rigid_body_entity) = shared.entities.rigid_body_handle.get(&entity)
+                    {
+                        return Dynamic::from(*rigid_body_entity);
+                    }
                 }
-            }
-            Dynamic::from(())
-        };
-        FuncRegistration::new("get_rigid_body_handle")
-            .set_into_module(&mut module, get_rigid_body_handle);
+                Dynamic::from(())
+            },
+        );
 
         let ecs_shared = ecs.shared.clone();
         let physics_share_clone = physics_share.clone();
@@ -424,37 +431,41 @@ impl World {
 
         let physics_clone = physics_share.clone();
         let ecs_shared = ecs.shared.clone();
-        let add_force_to_rigid_body = move |entity: Entity, force_x: f64, force_y: f64| {
-            if let (Some(mut physics), Some(shared)) =
-                (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
-            {
-                if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity) {
-                    physics.s_apply_force(
-                        *rigid_body_handle,
-                        Vector::new(force_x as Real, force_y as Real),
-                    );
+        FuncRegistration::new("add_force_to_rigid_body").set_into_module(
+            &mut module,
+            move |entity: Entity, force_x: f64, force_y: f64| {
+                if let (Some(mut physics), Some(shared)) =
+                    (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
+                {
+                    if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity)
+                    {
+                        physics.s_apply_force(
+                            *rigid_body_handle,
+                            Vector::new(force_x as Real, force_y as Real),
+                        );
+                    }
                 }
-            }
-        };
-        FuncRegistration::new("add_force_to_rigid_body")
-            .set_into_module(&mut module, add_force_to_rigid_body);
+            },
+        );
 
         let physics_clone = physics_share.clone();
         let ecs_shared = ecs.shared.clone();
-        let apply_impulse_to_rigid_body = move |entity: Entity, force_x: f64, force_y: f64| {
-            if let (Some(mut physics), Some(shared)) =
-                (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
-            {
-                if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity) {
-                    physics.apply_impulse(
-                        *rigid_body_handle,
-                        Vector::new(force_x as Real, force_y as Real),
-                    );
+        FuncRegistration::new("apply_impulse_to_rigid_body").set_into_module(
+            &mut module,
+            move |entity: Entity, force_x: f64, force_y: f64| {
+                if let (Some(mut physics), Some(shared)) =
+                    (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
+                {
+                    if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity)
+                    {
+                        physics.apply_impulse(
+                            *rigid_body_handle,
+                            Vector::new(force_x as Real, force_y as Real),
+                        );
+                    }
                 }
-            }
-        };
-        FuncRegistration::new("apply_impulse_to_rigid_body")
-            .set_into_module(&mut module, apply_impulse_to_rigid_body);
+            },
+        );
 
         engine.register_static_module("shiku::physics", module.into());
     }
@@ -511,25 +522,27 @@ impl World {
         let mut module = RhaiModule::new();
 
         let ecs_shared = ecs.shared.clone();
-        let get_child_animation_entity = move |entity: Entity| -> Dynamic {
-            if let Some(shared) = ecs_shared.try_borrow_mut() {
-                if let Some(children) = shared.entities.game_node_children.get(&entity) {
-                    for child in children {
-                        if shared.entities.character_animation.contains_key(child) {
-                            return Dynamic::from(*child);
+        FuncRegistration::new("get_child_animation_entity").set_into_module(
+            &mut module,
+            move |entity: Entity| -> Dynamic {
+                if let Some(shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(children) = shared.entities.game_node_children.get(&entity) {
+                        for child in children {
+                            if shared.entities.character_animation.contains_key(child) {
+                                return Dynamic::from(*child);
+                            }
                         }
                     }
                 }
-            }
-            Dynamic::from(())
-        };
-        FuncRegistration::new("get_child_animation_entity")
-            .set_into_module(&mut module, get_child_animation_entity);
+                Dynamic::from(())
+            },
+        );
 
         let ecs_shared = ecs.shared.clone();
         let physics_clone = physics_share.clone();
         let event_cache_clone = event_cache.clone();
-        let spawn_entity_from_scene =
+        FuncRegistration::new("spawn_entity_from_scene").set_into_module(
+            &mut module,
             move |parent_entity: Entity, source: &str, x: f64, y: f64| -> Dynamic {
                 if let (Some(mut physics), Some(mut shared), Some(mut events)) = (
                     physics_clone.try_borrow_mut(),
@@ -556,22 +569,22 @@ impl World {
                     }
                 }
                 Dynamic::from(())
-            };
-        FuncRegistration::new("spawn_entity_from_scene")
-            .set_into_module(&mut module, spawn_entity_from_scene);
+            },
+        );
 
         let ecs_shared = ecs.shared.clone();
-        let set_entity_scope_variable = move |entity: Entity, key: &str, value: Dynamic| {
-            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
-                shared
-                    .set_scope_variables
-                    .entry(entity)
-                    .or_default()
-                    .insert(key.to_string(), value.into());
-            }
-        };
-        FuncRegistration::new("set_scope_variable_on_entity")
-            .set_into_module(&mut module, set_entity_scope_variable);
+        FuncRegistration::new("set_scope_variable_on_entity").set_into_module(
+            &mut module,
+            move |entity: Entity, key: &str, value: Dynamic| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    shared
+                        .set_scope_variables
+                        .entry(entity)
+                        .or_default()
+                        .insert(key.to_string(), value.into());
+                }
+            },
+        );
 
         let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("get_first_child_entity_by_tag").set_into_module(
@@ -588,6 +601,28 @@ impl World {
                             }
                         }
                     }
+                }
+                Dynamic::from(())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("create_timer").set_into_module(
+            &mut module,
+            move |duration: f64| -> Dynamic {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    return Dynamic::from(shared.create_timer(duration));
+                }
+                Dynamic::from(())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("create_tween").set_into_module(
+            &mut module,
+            move |duration: f64, initial_value: f64, add_value: f64| -> Dynamic {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    return Dynamic::from(shared.create_tween(duration, initial_value, add_value));
                 }
                 Dynamic::from(())
             },
@@ -625,36 +660,42 @@ impl World {
         let mut module = RhaiModule::new();
 
         let ecs_shared = ecs.shared.clone();
-        let get_state = move |entity: Entity| -> Dynamic {
-            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
-                if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
-                    return Dynamic::from(animation.current_state);
+        FuncRegistration::new("get_state").set_into_module(
+            &mut module,
+            move |entity: Entity| -> Dynamic {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
+                        return Dynamic::from(animation.current_state);
+                    }
                 }
-            }
-            Dynamic::from(())
-        };
-        FuncRegistration::new("get_state").set_into_module(&mut module, get_state);
+                Dynamic::from(())
+            },
+        );
 
         let ecs_shared = ecs.shared.clone();
-        let go_to_state = move |entity: Entity, state_id: i64| {
-            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
-                if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
-                    animation.go_to_state(state_id as StateId);
+        FuncRegistration::new("go_to_state").set_into_module(
+            &mut module,
+            move |entity: Entity, state_id: i64| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
+                        animation.go_to_state(state_id as StateId);
+                    }
                 }
-            }
-        };
-        FuncRegistration::new("go_to_state").set_into_module(&mut module, go_to_state);
+            },
+        );
 
         let ecs_shared = ecs.shared.clone();
-        let get_progress = move |entity: Entity| -> f32 {
-            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
-                if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
-                    return animation.get_animation_progress();
+        FuncRegistration::new("get_progress").set_into_module(
+            &mut module,
+            move |entity: Entity| -> f32 {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(animation) = shared.entities.character_animation.get_mut(&entity) {
+                        return animation.get_animation_progress();
+                    }
                 }
-            }
-            0.0
-        };
-        FuncRegistration::new("get_progress").set_into_module(&mut module, get_progress);
+                0.0
+            },
+        );
 
         let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("set_direction").set_into_module(
@@ -905,5 +946,81 @@ impl World {
             Self::get_children_to_delete_rec(children_to_delete, &child, entities);
             children_to_delete.push(child);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use regex::Regex;
+    use std::fs::File;
+    use std::io::{BufRead, BufReader, Write};
+
+    #[test]
+    fn generate_api_documentation() {
+        let file = File::open("src/core/module_system/world.rs").expect("Failed to open world.rs");
+        let reader = BufReader::new(file);
+
+        let function_regex = Regex::new(r#"FuncRegistration::new\("(.*)?"\)"#).unwrap();
+        let param_regex = Regex::new(r"move [|](.*?)[|]( -> (.*?))? \{").unwrap();
+        let module_regex = Regex::new(r#"engine.register_static_module\("(.*)?""#).unwrap();
+
+        let mut api_docs = Vec::new();
+        let mut current_function = None;
+        let mut functions: Vec<(String, String)> = Vec::new();
+
+        for line in reader.lines() {
+            let line = line.expect("Failed to read line");
+            if let Some(captures) = function_regex.captures(&line) {
+                current_function = Some(captures[1].to_string());
+            }
+
+            if let Some(captures) = param_regex.captures(&line) {
+                functions.push((
+                    current_function.clone().unwrap(),
+                    format!(
+                        "({}) -> {}",
+                        &captures[1],
+                        if let Some(return_value) = captures.get(3) {
+                            return_value.as_str().to_string()
+                        } else {
+                            "void".to_string()
+                        }
+                    ),
+                ));
+                current_function = None
+            }
+
+            if let Some(captures) = module_regex.captures(&line) {
+                println!("modules regex works {:?}", captures);
+                let module_name = captures[1].to_string();
+                for (fn_name, params) in functions.drain(..) {
+                    let full_name = format!("{}::{}", module_name, fn_name);
+
+                    let doc = format!(
+                        r#"{{
+    label: "{}",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "{}",
+}},"#,
+                        full_name, params
+                    );
+
+                    api_docs.push(doc);
+                }
+            }
+        }
+
+        let mut output_file =
+            File::create("../../shiku-world-medium/ui/src/utils/api-documentation.ts")
+                .expect("Failed to create output file");
+
+        writeln!(output_file, "export const options = [").expect("Failed to write to output file");
+        for doc in api_docs {
+            writeln!(output_file, "{}", doc).expect("Failed to write to output file");
+        }
+        writeln!(output_file, "];").expect("Failed to write to output file");
+
+        println!("API documentation has been written to api_documentation.js");
     }
 }

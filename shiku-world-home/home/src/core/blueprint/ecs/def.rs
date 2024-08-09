@@ -18,6 +18,8 @@ use crate::core::blueprint::scene::def::{
     Collider, GameNodeId, GameNodeKindClean, KinematicCharacterControllerProps, Node2DKindClean,
     NodeInstanceId, RenderKind, RenderKindClean, RigidBodyType, SceneId, TextRender, Transform,
 };
+use crate::core::timer::Timer;
+use crate::core::tween::Tween;
 use crate::core::ApiShare;
 use remove_entity::RemoveEntity;
 
@@ -56,6 +58,9 @@ pub struct ECS {
     pub shared: ApiShare<ECSShared>,
 }
 
+pub type TweenId = u64;
+pub type TimerId = u64;
+
 #[derive(Debug)]
 pub struct ECSShared {
     pub entities: EntityMaps,
@@ -63,6 +68,10 @@ pub struct ECSShared {
     pub set_scope_variables: HashMap<Entity, HashMap<String, ScopeCacheValue>>,
     pub removed_entities: Vec<Entity>,
     pub entity_counter: NodeInstanceId,
+    pub tween_map: HashMap<TweenId, Tween>,
+    pub timer_map: HashMap<TimerId, Timer>,
+    pub timer_counter: TimerId,
+    pub tween_counter: TweenId,
     pub character_collisions_tmp: Vec<CharacterCollision>,
     pub collider_to_entity_map: HashMap<ColliderHandle, Entity>,
     pub kinematic_collision_map: HashMap<Entity, (CharacterCollision, ColliderHandle, bool)>,

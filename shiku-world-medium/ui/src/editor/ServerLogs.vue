@@ -1,10 +1,10 @@
 <template>
   <div class="editor-log">
     <v-virtual-scroll :items="filtered_logs" :height="300">
-      <template v-slot:default="{ item: [time, level, location, message] }">
+      <template v-slot:default="{ item: [id, time, level, location, message] }">
         <div
           :class="`editor-log__entry editor-log__entry--${level.toLowerCase()}`"
-          :key="message"
+          :key="id"
         >
           {{ message }}
         </div>
@@ -30,7 +30,7 @@ const trace_levels = ["ERROR", "DEBUG", "TRACE"];
 
 const filtered_logs = computed(() => {
   return logs.value
-    .filter(([_time, level, location, _message]) => {
+    .filter(([_id, _time, level, location, _message]) => {
       if (log_level.value) {
         return match(log_level.value)
           .with("ERROR", (): string[] => error_levels)
@@ -39,10 +39,7 @@ const filtered_logs = computed(() => {
           .otherwise((): string[] => [])
           .includes(level);
       }
-      if (log_location.value && location !== log_location.value) {
-        return false;
-      }
-      return true;
+      return !(log_location.value && location !== log_location.value);
     })
     .reverse();
 });
@@ -51,7 +48,7 @@ const filtered_logs = computed(() => {
 .editor-log {
   position: absolute;
   bottom: 0;
-  height: 60px;
+  height: 80px;
   background-color: #1a192b;
   padding: 10px;
   width: 100%;

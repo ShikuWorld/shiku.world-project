@@ -13,9 +13,7 @@ use crate::websocket_module::WebsocketModule;
 use dotenv::dotenv;
 use fern::Output;
 use log::{debug, LevelFilter, Record};
-use std::cell::RefCell;
-use std::io::Write;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 mod conductor_module;
@@ -30,15 +28,17 @@ mod websocket_module;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    let log_collector = Arc::new(LogCollector::new());
+    let log_collector = Arc::new(Mutex::new(LogCollector::new()));
     let collector_clone = Arc::clone(&log_collector);
     let collector_output = Output::call(move |record: &Record| {
-        collector_clone.log(
-            humantime::format_rfc3339_seconds(std::time::SystemTime::now()).to_string(),
-            record.level().to_string(),
-            record.target().to_string(),
-            record.args().to_string(),
-        );
+        if let Ok(mut collector) = collector_clone.try_lock() {
+            collector.log(
+                humantime::format_rfc3339_seconds(std::time::SystemTime::now()).to_string(),
+                record.level().to_string(),
+                record.target().to_string(),
+                record.args().to_string(),
+            );
+        }
     });
     let standard_output = Output::call(|record: &Record| {
         println!(

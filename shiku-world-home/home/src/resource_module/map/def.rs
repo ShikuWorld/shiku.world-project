@@ -206,7 +206,7 @@ impl GeneralObject {
     }
 
     pub fn get_custom_prop_tween(&self, key: &str) -> Tween {
-        let mut object_value = Tween::new();
+        let mut object_value = Tween::new(0.0, 0.0, 0.0);
 
         if let Some(CustomPropType::Tween(tween)) = self.custom_props.get(key) {
             object_value = tween.clone();

@@ -1,20 +1,12 @@
-use rapier2d::math::Real;
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub enum TweenProp {
-    PositionX,
-    PositionY,
-}
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Tween {
     pub repeat: bool,
-    time: Real,
-    pub initial_value: Real,
-    pub add_value: Real,
-    pub property: TweenProp,
-    current_time: Real,
+    time: f64,
+    pub initial_value: f64,
+    pub add_value: f64,
+    current_time: f64,
     running: bool,
     backwards: bool,
     done: bool,
@@ -31,7 +23,7 @@ impl Tween {
         self.running
     }
 
-    pub fn update(&mut self, time_update: Real) {
+    pub fn update(&mut self, time_update: f64) {
         if self.done {
             return;
         }
@@ -63,25 +55,24 @@ impl Tween {
         }
     }
 
-    pub fn current_value(&mut self) -> Real {
+    pub fn current_value(&mut self) -> f64 {
         let progress = self.current_time / self.time;
 
         self.initial_value + (progress * self.add_value)
     }
 
-    pub fn set_time(&mut self, time: Real) {
+    pub fn set_time(&mut self, time: f64) {
         self.time = if time == 0.0 { 1.0 } else { time };
     }
 
-    pub fn new() -> Tween {
+    pub fn new(time: f64, initial_value: f64, add_value: f64) -> Tween {
         Tween {
             repeat: false,
-            time: 1.0,
-            initial_value: 0.0,
-            add_value: 0.0,
+            time,
+            initial_value,
+            add_value,
             current_time: 0.0,
             running: false,
-            property: TweenProp::PositionY,
             done: false,
             backwards: false,
         }

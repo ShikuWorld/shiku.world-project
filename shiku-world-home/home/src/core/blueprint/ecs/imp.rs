@@ -10,7 +10,8 @@ use rhai::{Engine, Scope, AST};
 use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::def::{
-    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, KinematicCharacter, ECS,
+    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, KinematicCharacter, TimerId,
+    TweenId, ECS,
 };
 use crate::core::blueprint::ecs::game_node_script::{
     GameNodeScript, GameNodeScriptFunction, ScopeCacheValue,
@@ -22,6 +23,8 @@ use crate::core::blueprint::scene::def::{
     RigidBodyType, Scene, SceneId, Transform,
 };
 use crate::core::rapier_simulation::def::RapierSimulation;
+use crate::core::timer::Timer;
+use crate::core::tween::Tween;
 use crate::core::ApiShare;
 
 impl From<&Scene> for ECS {
@@ -76,6 +79,10 @@ impl ECS {
                     dirty: HashMap::new(),
                     view_dirty: HashMap::new(),
                 },
+                tween_map: HashMap::new(),
+                timer_map: HashMap::new(),
+                timer_counter: 0,
+                tween_counter: 0,
                 set_scope_variables: HashMap::new(),
                 added_entities: Vec::new(),
                 removed_entities: Vec::new(),
@@ -443,6 +450,15 @@ impl ECS {
             .retain(|_, script| script.path != *resource_path);
     }
 
+    pub fn update_tweens_and_timers(shared: &mut ECSShared, time_update: f64) {
+        for tween in shared.tween_map.values_mut() {
+            tween.update(time_update);
+        }
+        for timer in shared.timer_map.values_mut() {
+            timer.update(time_update);
+        }
+    }
+
     pub fn process_added_and_removed_entities_and_scope_sets(&mut self, engine: &Engine) {
         let mut processing_done = false;
         while !processing_done {
@@ -686,5 +702,28 @@ impl ECSShared {
                 .and_then(|children| children.first());
         }
         None
+    }
+
+    pub fn create_timer(&mut self, duration: f64) -> TimerId {
+        let timer_id = self.timer_counter;
+        self.timer_counter += 1;
+        self.timer_map.insert(timer_id, Timer::new(duration));
+        timer_id
+    }
+
+    pub fn create_tween(&mut self, time: f64, initial_value: f64, add_value: f64) -> TweenId {
+        let tween_id = self.tween_counter;
+        self.tween_counter += 1;
+        self.tween_map
+            .insert(tween_id, Tween::new(time, initial_value, add_value));
+        tween_id
+    }
+
+    pub fn remove_timer(&mut self, timer_id: &TimerId) {
+        self.timer_map.remove(timer_id);
+    }
+
+    pub fn remove_tween(&mut self, tween_id: &TweenId) {
+        self.tween_map.remove(tween_id);
     }
 }

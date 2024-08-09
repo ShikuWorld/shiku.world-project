@@ -22,6 +22,15 @@
     :model-value="text_render.size"
     @update:model-value="update_text_size"
   ></v-number-input>
+  <v-number-input
+    control-variant="stacked"
+    density="compact"
+    hide-details="auto"
+    label="Letter spacing"
+    :step="1"
+    :model-value="text_render.letter_spacing"
+    @update:model-value="update_letter_spacing"
+  ></v-number-input>
   <v-select
     label="Text align"
     :hide-details="true"
@@ -64,6 +73,10 @@ function update_text_size(size: number) {
 
 function update_align(align: TextRenderAlignment) {
   emit("updateTextRender", { ...text_render.value, align });
+}
+
+function update_letter_spacing(letter_spacing: number) {
+  emit("updateTextRender", { ...text_render.value, letter_spacing });
 }
 </script>
 <style></style>

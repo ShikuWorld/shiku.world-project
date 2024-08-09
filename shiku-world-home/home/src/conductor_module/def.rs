@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use snowflake::SnowflakeIdBucket;
@@ -48,6 +48,6 @@ pub struct ConductorModule {
     pub(super) system_to_guest_communication: SystemCommunicationIO,
     pub(super) system_to_admin_communication: SystemCommunicationIO,
 
-    pub(super) log_collector: Arc<LogCollector>,
+    pub(super) log_collector: Arc<Mutex<LogCollector>>,
     pub(super) log_buffer: Vec<LogInfo>,
 }

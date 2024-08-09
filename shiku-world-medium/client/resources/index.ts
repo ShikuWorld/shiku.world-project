@@ -164,6 +164,7 @@ export class ResourceManager {
         fontFamily: text_render.font_family,
         fontSize: text_render.size,
         align: text_render.align.toLowerCase() as TextStyleAlign,
+        letterSpacing: text_render.letter_spacing,
       },
     });
     match(text_render.align)

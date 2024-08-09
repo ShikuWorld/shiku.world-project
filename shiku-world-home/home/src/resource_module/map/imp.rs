@@ -1,6 +1,6 @@
 use crate::resource_module::errors::ResourceParseError;
 
-use crate::core::tween::{Tween, TweenProp};
+use crate::core::tween::Tween;
 use crate::resource_module::map::def::{
     CustomPropType, GeneralObject, Layer, ObjectGroup, ObjectText, TerrainChunk, TiledMap,
     TilesetEntry,
@@ -56,7 +56,6 @@ impl TiledMap {
         let mut current_chunk = TerrainChunk::new();
         let mut current_object_attributes = GeneralObject::new();
         let mut properties_depth = 0;
-        let mut current_tween = Tween::new();
         let mut current_prop_propertytype = "".to_string();
         let mut current_prop_name = "".to_string();
         let mut current_text = None;
@@ -179,18 +178,6 @@ impl TiledMap {
                         }
 
                         if properties_depth == 2 && current_prop_propertytype == "Tween" {
-                            match prop_name.as_str() {
-                                "add_value" => current_tween.add_value = prop_value.parse()?,
-                                "time" => current_tween.set_time(prop_value.parse()?),
-                                "repeat" => current_tween.repeat = prop_value == "true",
-                                "property" => {
-                                    if prop_value == "PositionX" {
-                                        current_tween.property = TweenProp::PositionX;
-                                        current_tween.initial_value = current_object_attributes.x;
-                                    }
-                                }
-                                _ => (),
-                            }
                             continue;
                         }
 
@@ -225,10 +212,6 @@ impl TiledMap {
                             }
                             "class" => {
                                 current_prop_propertytype = prop_propertytype;
-                                if current_prop_propertytype == "Tween" {
-                                    current_tween = Tween::new();
-                                    current_tween.initial_value = current_object_attributes.y;
-                                }
                             }
                             _ => {
                                 error!(
@@ -270,12 +253,7 @@ impl TiledMap {
                 },
                 Ok(XmlEvent::EndElement { name }) => match name.local_name.as_str() {
                     "properties" => {
-                        if properties_depth == 2 && current_prop_propertytype == "Tween" {
-                            current_object_attributes.custom_props.insert(
-                                current_prop_name.clone(),
-                                CustomPropType::Tween(current_tween.clone()),
-                            );
-                        }
+                        if properties_depth == 2 && current_prop_propertytype == "Tween" {}
                         properties_depth -= 1;
                     }
                     "text" => {

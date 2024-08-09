@@ -219,6 +219,7 @@ pub struct TextRender {
     pub text: String,
     pub font_family: String,
     pub size: u32,
+    pub letter_spacing: i32,
     pub align: TextRenderAlignment,
 }
 

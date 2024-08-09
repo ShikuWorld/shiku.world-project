@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime, Utc};
@@ -73,20 +73,22 @@ impl ConductorModule {
     }
 
     pub fn send_logs_to_admins(&mut self) {
-        self.log_collector.get_new_logs(&mut self.log_buffer);
-        if !self.log_buffer.is_empty() {
-            for admin in self.admins.values() {
-                send_and_log_error(
-                    &mut self.system_to_admin_communication.sender,
-                    (
-                        admin.id,
-                        CommunicationEvent::EditorEvent(EditorEvent::ServerLogs(
-                            self.log_buffer.clone(),
-                        )),
-                    ),
-                )
+        if let Ok(log_collector) = self.log_collector.try_lock() {
+            log_collector.get_new_logs(&mut self.log_buffer);
+            if !self.log_buffer.is_empty() {
+                for admin in self.admins.values() {
+                    send_and_log_error(
+                        &mut self.system_to_admin_communication.sender,
+                        (
+                            admin.id,
+                            CommunicationEvent::EditorEvent(EditorEvent::ServerLogs(
+                                self.log_buffer.clone(),
+                            )),
+                        ),
+                    )
+                }
+                self.log_buffer.clear();
             }
-            self.log_buffer.clear();
         }
     }
 
@@ -194,7 +196,7 @@ impl ConductorModule {
         websocket_module: WebsocketModule,
         blueprint_service: BlueprintService,
         blueprint: blueprint::def::Conductor,
-        log_collector: Arc<LogCollector>,
+        log_collector: Arc<Mutex<LogCollector>>,
     ) -> ConductorModule {
         let snowflake_gen = SnowflakeIdBucket::new(1, 1);
         let mut module_communication_map = HashMap::new();

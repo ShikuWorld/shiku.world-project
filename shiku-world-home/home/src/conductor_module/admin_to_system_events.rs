@@ -2,7 +2,7 @@ use flume::Sender;
 use log::{debug, error};
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 use crate::conductor_module::blueprint_helper::{
@@ -41,7 +41,7 @@ pub async fn handle_admin_to_system_event(
     module_map: &mut ModuleMap,
     resource_to_module_map: &mut ResourceToModuleMap,
     system_to_admin_communication_sender: &mut Sender<(ActorId, CommunicationEvent)>,
-    log_collector: &Arc<LogCollector>,
+    log_collector: &Arc<Mutex<LogCollector>>,
     admin: &Admin,
     event: AdminToSystemEvent,
 ) {
@@ -562,7 +562,9 @@ pub async fn handle_admin_to_system_event(
                     .collect(),
             ));
 
-            send_editor_event(EditorEvent::ServerLogs(log_collector.get_log_archive()));
+            if let Ok(collector) = log_collector.try_lock() {
+                send_editor_event(EditorEvent::ServerLogs(collector.get_log_archive()));
+            }
         }
         AdminToSystemEvent::CreateTileset(module_id, tileset) => {
             match Blueprint::create_tileset(&tileset) {
