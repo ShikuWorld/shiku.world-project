@@ -30,6 +30,8 @@ pub enum GameNodeScriptFunction {
     ActorDisconnected,
     ActorReconnected,
     ScriptReload,
+    IntersectStart,
+    IntersectEnd,
 }
 
 impl GameNodeScriptFunction {
@@ -43,6 +45,12 @@ impl GameNodeScriptFunction {
                 }
                 "update" => {
                     hash_map.insert(GameNodeScriptFunction::Update, "update");
+                }
+                "intersect_start" => {
+                    hash_map.insert(GameNodeScriptFunction::IntersectStart, "intersect_start");
+                }
+                "intersect_end" => {
+                    hash_map.insert(GameNodeScriptFunction::IntersectEnd, "intersect_end");
                 }
                 "instance_reset" => {
                     hash_map.insert(GameNodeScriptFunction::InstanceReset, "instance_reset");

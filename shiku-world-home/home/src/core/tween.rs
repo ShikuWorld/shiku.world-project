@@ -55,10 +55,12 @@ impl Tween {
         }
     }
 
-    pub fn current_value(&mut self) -> f64 {
-        let progress = self.current_time / self.time;
+    pub fn progress(&mut self) -> f64 {
+        self.current_time / self.time
+    }
 
-        self.initial_value + (progress * self.add_value)
+    pub fn current_value(&mut self) -> f64 {
+        self.initial_value + (self.progress() * self.add_value)
     }
 
     pub fn set_time(&mut self, time: f64) {

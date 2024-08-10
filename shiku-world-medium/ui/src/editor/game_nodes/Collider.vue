@@ -51,7 +51,7 @@ const emit = defineEmits<{
 const update_is_sensor = (is_sensor: boolean | null) => {
   emit("entityUpdate", {
     Collider: {
-      kind: (is_sensor ? "Sensor" : "Collider") as ColliderKind,
+      kind: (is_sensor ? "Sensor" : "Solid") as ColliderKind,
       shape: data.value.shape,
     },
   });

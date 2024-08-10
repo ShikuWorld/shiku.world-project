@@ -536,6 +536,7 @@ impl ECS {
                         physics.remove_collider(collider_handle);
                         shared.entities.collider_handle.remove(&entity);
                         shared.collider_to_entity_map.remove(&collider_handle);
+                        debug!("updated collider {:?}", collider);
                         ECS::attach_collider_to_its_entity(&parent, &entity, shared, physics);
                     }
                 }

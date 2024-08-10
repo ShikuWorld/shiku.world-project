@@ -1,22 +1,20 @@
+use std::cell::RefMut;
 use std::collections::{HashMap, HashSet};
 
 use log::{debug, error};
 use rand::{thread_rng, Rng};
-use rapier2d::na::Dyn;
 use rapier2d::prelude::*;
 use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
 
-use crate::core::basic_kinematic_character_controller::CharacterCollision;
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::CameraSettings;
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{
-    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, ECS,
+    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, TimerId, TweenId, ECS,
 };
-use crate::core::blueprint::ecs::game_node_script::GameNodeScriptFunction;
+use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, GameNodeScriptFunction};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{CollisionShape, GameNodeKind, Transform};
-use crate::core::entity::def::EntityId;
 use crate::core::guest::{ActorId, LoginData};
 use crate::core::module::{GameSystemToGuestEvent, GuestInput};
 use crate::core::module_system::error::CreateWorldError;
@@ -163,12 +161,64 @@ impl World {
                     &mut shared_ecs,
                     physics.integration_parameters.dt as f64,
                 );
+
+                Self::call_intersection_events(
+                    &mut physics,
+                    &mut shared_ecs,
+                    &mut self.ecs.entity_scripts,
+                    &self.script_engine,
+                );
             }
         }
         self.ecs
             .process_added_and_removed_entities_and_scope_sets(&self.script_engine);
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
+        }
+    }
+
+    fn call_intersection_events(
+        physics: &mut RefMut<RapierSimulation>,
+        shared_ecs: &mut RefMut<ECSShared>,
+        entity_scripts: &mut HashMap<Entity, GameNodeScript>,
+        script_engine: &Engine,
+    ) {
+        while let Ok(collision_event) = physics.intersection_receiver.try_recv() {
+            if let (Some(collider_entity_1), Some(collider_entity_2)) = (
+                shared_ecs
+                    .collider_to_entity_map
+                    .get(&collision_event.collider1())
+                    .cloned(),
+                shared_ecs
+                    .collider_to_entity_map
+                    .get(&collision_event.collider2())
+                    .cloned(),
+            ) {
+                if let Some(game_node_script) = entity_scripts.get_mut(&collider_entity_1) {
+                    game_node_script.call(
+                        if collision_event.started() {
+                            GameNodeScriptFunction::IntersectStart
+                        } else {
+                            GameNodeScriptFunction::IntersectEnd
+                        },
+                        script_engine,
+                        (collider_entity_2,),
+                    );
+                }
+                if let Some(game_node_script) = entity_scripts.get_mut(&collider_entity_2) {
+                    if collision_event.started() {
+                        game_node_script.call(
+                            if collision_event.started() {
+                                GameNodeScriptFunction::IntersectStart
+                            } else {
+                                GameNodeScriptFunction::IntersectEnd
+                            },
+                            script_engine,
+                            (collider_entity_1,),
+                        );
+                    }
+                }
+            }
         }
     }
 
@@ -467,6 +517,44 @@ impl World {
             },
         );
 
+        let physics_clone = physics_share.clone();
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("set_rigid_body_position_y").set_into_module(
+            &mut module,
+            move |entity: Entity, position_y: f64| {
+                if let (Some(mut physics), Some(shared)) =
+                    (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
+                {
+                    if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity)
+                    {
+                        physics.set_translation_for_rigid_body_y(
+                            position_y as Real,
+                            *rigid_body_handle,
+                        );
+                    }
+                }
+            },
+        );
+
+        let physics_clone = physics_share.clone();
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("set_rigid_body_position_x").set_into_module(
+            &mut module,
+            move |entity: Entity, position_x: f64| {
+                if let (Some(mut physics), Some(shared)) =
+                    (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
+                {
+                    if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity)
+                    {
+                        physics.set_translation_for_rigid_body_x(
+                            position_x as Real,
+                            *rigid_body_handle,
+                        );
+                    }
+                }
+            },
+        );
+
         engine.register_static_module("shiku::physics", module.into());
     }
 
@@ -618,11 +706,71 @@ impl World {
         );
 
         let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("get_timer_progress").set_into_module(
+            &mut module,
+            move |timer: TimerId| -> f64 {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(timer) = shared.timer_map.get_mut(&timer) {
+                        return timer.progress();
+                    }
+                }
+                0.0
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("start_timer").set_into_module(&mut module, move |timer: TimerId| {
+            if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                if let Some(timer) = shared.timer_map.get_mut(&timer) {
+                    timer.start()
+                }
+            }
+        });
+
+        let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("create_tween").set_into_module(
             &mut module,
             move |duration: f64, initial_value: f64, add_value: f64| -> Dynamic {
                 if let Some(mut shared) = ecs_shared.try_borrow_mut() {
                     return Dynamic::from(shared.create_tween(duration, initial_value, add_value));
+                }
+                Dynamic::from(())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("start_tween").set_into_module(
+            &mut module,
+            move |tween_id: TweenId| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(tween) = shared.tween_map.get_mut(&tween_id) {
+                        tween.start()
+                    }
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("get_tween_progress").set_into_module(
+            &mut module,
+            move |tween_id: TweenId| -> f64 {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(tween) = shared.tween_map.get_mut(&tween_id) {
+                        return tween.progress();
+                    }
+                }
+                0.0
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("get_tween_value").set_into_module(
+            &mut module,
+            move |tween_id: TweenId| -> Dynamic {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(tween) = shared.tween_map.get_mut(&tween_id) {
+                        return Dynamic::from(tween.current_value());
+                    }
                 }
                 Dynamic::from(())
             },
@@ -919,7 +1067,7 @@ impl World {
         }
         if let Some(children) = shared.entities.game_node_children.get(&entity) {
             for child in children {
-                if let Some(collider_handle) = shared.entities.collider_handle.get(&child) {
+                if let Some(collider_handle) = shared.entities.collider_handle.get(child) {
                     shared.collider_to_entity_map.remove(collider_handle);
                 }
             }

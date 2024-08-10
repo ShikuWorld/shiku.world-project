@@ -31,10 +31,6 @@ impl RapierSimulation {
             &self.physics_hooks,
             self.events.deref(),
         );
-
-        while let Ok(collision_event) = self.intersection_receiver.try_recv() {
-            println!("Received contact collision event: {:?}", collision_event);
-        }
     }
 
     pub fn move_character(
@@ -61,7 +57,9 @@ impl RapierSimulation {
                 collider.shape(),
                 &rigid_body_position,
                 desired_translation,
-                QueryFilter::default().exclude_rigid_body(rigid_body_handle),
+                QueryFilter::default()
+                    .exclude_rigid_body(rigid_body_handle)
+                    .exclude_sensors(),
                 |collision| {
                     character_collisions.push(collision);
                 },
@@ -427,8 +425,10 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
         is_sensor: bool,
     ) -> ColliderHandle {
+        debug!("Creating ball collider with is_sensor: {}", is_sensor);
         let collider = ColliderBuilder::ball(radius)
             .active_events(ActiveEvents::all())
+            .active_collision_types(ActiveCollisionTypes::all())
             .sensor(is_sensor)
             .build();
 
@@ -517,7 +517,7 @@ impl RapierSimulation {
 
     pub fn remove_collider(&mut self, collider_handle: ColliderHandle) {
         self.colliders
-            .remove(collider_handle, &mut self.islands, &mut self.bodies, false);
+            .remove(collider_handle, &mut self.islands, &mut self.bodies, true);
     }
 
     pub fn remove_rigid_body(&mut self, body_handle: RigidBodyHandle) {

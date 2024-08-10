@@ -58,8 +58,8 @@ pub struct ECS {
     pub shared: ApiShare<ECSShared>,
 }
 
-pub type TweenId = u64;
-pub type TimerId = u64;
+pub type TweenId = i64;
+pub type TimerId = i64;
 
 #[derive(Debug)]
 pub struct ECSShared {

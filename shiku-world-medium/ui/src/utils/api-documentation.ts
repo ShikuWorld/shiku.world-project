@@ -1,177 +1,218 @@
 export const options = [
-  {
+{
     label: "shiku::utils::random_num_in_range",
     type: "function",
     info: "TODO: Add description",
     detail: "(start: f64, length: f64) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::physics::is_grounded",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::physics::get_rigid_body_handle",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity) -> Dynamic",
-  },
-  {
-    label:
-      "shiku::physics::resolve_kinematic_body_collision_impulses_automatic",
+},
+{
+    label: "shiku::physics::resolve_kinematic_body_collision_impulses_automatic",
     type: "function",
     info: "TODO: Add description",
     detail: "(impulse_cutoff: f64) -> void",
-  },
-  {
+},
+{
     label: "shiku::physics::set_entity_desired_translation",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, x: f64, y: f64) -> void",
-  },
-  {
+},
+{
     label: "shiku::physics::set_entity_desired_translation_y",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, y: f64) -> void",
-  },
-  {
+},
+{
     label: "shiku::physics::add_entity_desired_translation",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, x: f64, y: f64) -> void",
-  },
-  {
+},
+{
     label: "shiku::physics::apply_entity_friction_x",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, friction_x: f64) -> void",
-  },
-  {
+},
+{
     label: "shiku::physics::apply_entity_linear_dampening",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, dampening: f64) -> void",
-  },
-  {
+},
+{
     label: "shiku::physics::add_force_to_rigid_body",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, force_x: f64, force_y: f64) -> void",
-  },
-  {
+},
+{
     label: "shiku::physics::apply_impulse_to_rigid_body",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, force_x: f64, force_y: f64) -> void",
-  },
-  {
+},
+{
+    label: "shiku::physics::set_rigid_body_position_y",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity, position_y: f64) -> void",
+},
+{
+    label: "shiku::physics::set_rigid_body_position_x",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity, position_x: f64) -> void",
+},
+{
     label: "shiku::nodes::get_child_animation_entity",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::nodes::spawn_entity_from_scene",
     type: "function",
     info: "TODO: Add description",
     detail: "(parent_entity: Entity, source: &str, x: f64, y: f64) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::nodes::set_scope_variable_on_entity",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, key: &str, value: Dynamic) -> void",
-  },
-  {
+},
+{
     label: "shiku::nodes::get_first_child_entity_by_tag",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, tag: &str) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::nodes::create_timer",
     type: "function",
     info: "TODO: Add description",
     detail: "(duration: f64) -> Dynamic",
-  },
-  {
+},
+{
+    label: "shiku::nodes::get_timer_progress",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(timer: TimerId) -> f64",
+},
+{
+    label: "shiku::nodes::start_timer",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(timer: TimerId) -> void",
+},
+{
     label: "shiku::nodes::create_tween",
     type: "function",
     info: "TODO: Add description",
     detail: "(duration: f64, initial_value: f64, add_value: f64) -> Dynamic",
-  },
-  {
+},
+{
+    label: "shiku::nodes::start_tween",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(tween_id: TweenId) -> void",
+},
+{
+    label: "shiku::nodes::get_tween_progress",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(tween_id: TweenId) -> f64",
+},
+{
+    label: "shiku::nodes::get_tween_value",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(tween_id: TweenId) -> Dynamic",
+},
+{
     label: "shiku::nodes::set_text",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, new_text: &str) -> void",
-  },
-  {
+},
+{
     label: "shiku::animation::get_state",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::animation::go_to_state",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, state_id: i64) -> void",
-  },
-  {
+},
+{
     label: "shiku::animation::get_progress",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity) -> f32",
-  },
-  {
+},
+{
     label: "shiku::animation::set_direction",
     type: "function",
     info: "TODO: Add description",
     detail: "(entity: Entity, direction: CharacterDirection) -> void",
-  },
-  {
+},
+{
     label: "shiku::actors::is_key_down",
     type: "function",
     info: "TODO: Add description",
     detail: "(actor_id: ActorId, key: &str) -> void",
-  },
-  {
+},
+{
     label: "shiku::actors::is_admin",
     type: "function",
     info: "TODO: Add description",
     detail: "(actor_id: ActorId) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::actors::get_actor_display_name",
     type: "function",
     info: "TODO: Add description",
     detail: "(actor_id: ActorId) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::actors::get_actor_provider_id",
     type: "function",
     info: "TODO: Add description",
     detail: "(actor_id: ActorId) -> Dynamic",
-  },
-  {
+},
+{
     label: "shiku::actors::camera_follow_entity",
     type: "function",
     info: "TODO: Add description",
     detail: "(actor_id: ActorId, entity: Entity) -> void",
-  },
-  {
+},
+{
     label: "shiku::actors::camera_set_free",
     type: "function",
     info: "TODO: Add description",
     detail: "(actor_id: ActorId) -> void",
-  },
-  {
+},
+{
     label: "shiku::actors::get_active_actors",
     type: "function",
     info: "TODO: Add description",
     detail: "() -> Vec<Dynamic>",
-  },
+},
 ];
