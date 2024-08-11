@@ -168,12 +168,23 @@ impl World {
                     &mut self.ecs.entity_scripts,
                     &self.script_engine,
                 );
+
+                Self::clear_removed_colliders_from_ecs(&mut shared_ecs);
             }
         }
         self.ecs
             .process_added_and_removed_entities_and_scope_sets(&self.script_engine);
+
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
+        }
+    }
+
+    fn clear_removed_colliders_from_ecs(shared: &mut ECSShared) {
+        // Delay removing the colliders from the collider_to_entity_map so that GameNodeScriptFunction::Child?IntersectStart/End calls
+        // can still find the entities and parent entities for the intersection callbacks for the now removed colliders
+        for removed_collider in shared.removed_colliders.drain(..) {
+            shared.collider_to_entity_map.remove(&removed_collider);
         }
     }
 
@@ -194,30 +205,61 @@ impl World {
                     .get(&collision_event.collider2())
                     .cloned(),
             ) {
-                if let Some(game_node_script) = entity_scripts.get_mut(&collider_entity_1) {
-                    game_node_script.call(
-                        if collision_event.started() {
-                            GameNodeScriptFunction::IntersectStart
-                        } else {
-                            GameNodeScriptFunction::IntersectEnd
-                        },
-                        script_engine,
-                        (collider_entity_2,),
-                    );
-                }
-                if let Some(game_node_script) = entity_scripts.get_mut(&collider_entity_2) {
-                    if collision_event.started() {
-                        game_node_script.call(
-                            if collision_event.started() {
-                                GameNodeScriptFunction::IntersectStart
-                            } else {
-                                GameNodeScriptFunction::IntersectEnd
-                            },
-                            script_engine,
-                            (collider_entity_1,),
-                        );
-                    }
-                }
+                let call_script =
+                    |scripts: &mut HashMap<Entity, GameNodeScript>, entity, function, args| {
+                        if let Some(script) = scripts.get_mut(&entity) {
+                            script.call(function, script_engine, args);
+                        }
+                    };
+
+                let mut call_parent_script =
+                    |scripts: &mut HashMap<Entity, GameNodeScript>, entity, function, args| {
+                        if let Some(parent_entity) =
+                            shared_ecs.entities.game_node_parent.get_mut(&entity)
+                        {
+                            if let Some(script) = scripts.get_mut(parent_entity) {
+                                script.call(function, script_engine, args);
+                            }
+                        }
+                    };
+
+                let (function_child, function_parent) = if collision_event.started() {
+                    (
+                        GameNodeScriptFunction::IntersectStart,
+                        GameNodeScriptFunction::ChildIntersectStart,
+                    )
+                } else {
+                    (
+                        GameNodeScriptFunction::IntersectEnd,
+                        GameNodeScriptFunction::ChildIntersectEnd,
+                    )
+                };
+
+                call_script(
+                    entity_scripts,
+                    collider_entity_1,
+                    function_child.clone(),
+                    (collider_entity_2,),
+                );
+                call_parent_script(
+                    entity_scripts,
+                    collider_entity_1,
+                    function_parent.clone(),
+                    (collider_entity_1, collider_entity_2),
+                );
+
+                call_script(
+                    entity_scripts,
+                    collider_entity_2,
+                    function_child,
+                    (collider_entity_1,),
+                );
+                call_parent_script(
+                    entity_scripts,
+                    collider_entity_2,
+                    function_parent,
+                    (collider_entity_2, collider_entity_1),
+                );
             }
         }
     }
@@ -1068,7 +1110,7 @@ impl World {
         if let Some(children) = shared.entities.game_node_children.get(&entity) {
             for child in children {
                 if let Some(collider_handle) = shared.entities.collider_handle.get(child) {
-                    shared.collider_to_entity_map.remove(collider_handle);
+                    shared.removed_colliders.push(*collider_handle);
                 }
             }
         }

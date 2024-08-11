@@ -20,7 +20,7 @@ pub struct GameNodeScript {
     pub(crate) game_node_script_functions: HashMap<GameNodeScriptFunction, &'static str>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum GameNodeScriptFunction {
     Init,
     Update,
@@ -32,6 +32,8 @@ pub enum GameNodeScriptFunction {
     ScriptReload,
     IntersectStart,
     IntersectEnd,
+    ChildIntersectStart,
+    ChildIntersectEnd,
 }
 
 impl GameNodeScriptFunction {
@@ -51,6 +53,18 @@ impl GameNodeScriptFunction {
                 }
                 "intersect_end" => {
                     hash_map.insert(GameNodeScriptFunction::IntersectEnd, "intersect_end");
+                }
+                "child_intersect_start" => {
+                    hash_map.insert(
+                        GameNodeScriptFunction::ChildIntersectStart,
+                        "child_intersect_start",
+                    );
+                }
+                "child_intersect_end" => {
+                    hash_map.insert(
+                        GameNodeScriptFunction::ChildIntersectEnd,
+                        "child_intersect_end",
+                    );
                 }
                 "instance_reset" => {
                     hash_map.insert(GameNodeScriptFunction::InstanceReset, "instance_reset");
