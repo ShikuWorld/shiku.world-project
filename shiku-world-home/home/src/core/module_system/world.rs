@@ -205,21 +205,34 @@ impl World {
                     .get(&collision_event.collider2())
                     .cloned(),
             ) {
-                let call_script =
-                    |scripts: &mut HashMap<Entity, GameNodeScript>, entity, function, args| {
-                        if let Some(script) = scripts.get_mut(&entity) {
-                            script.call(function, script_engine, args);
-                        }
-                    };
+                let call_script = |scripts: &mut HashMap<Entity, GameNodeScript>,
+                                   entity,
+                                   function,
+                                   entity_collided_with| {
+                    if let Some(script) = scripts.get_mut(&entity) {
+                        script.call(function, script_engine, (entity_collided_with,));
+                    }
+                };
 
-                let mut call_parent_script =
-                    |scripts: &mut HashMap<Entity, GameNodeScript>, entity, function, args| {
-                        if let Some(parent_entity) =
-                            shared_ecs.entities.game_node_parent.get_mut(&entity)
-                        {
-                            if let Some(script) = scripts.get_mut(parent_entity) {
-                                script.call(function, script_engine, args);
-                            }
+                let call_parent_script =
+                    |scripts: &mut HashMap<Entity, GameNodeScript>,
+                     entity,
+                     function,
+                     entity_collided_with| {
+                        if let (Some(parent_entity), Some(entity_collided_with_parent)) = (
+                            shared_ecs.entities.game_node_parent.get(&entity).cloned(),
+                            shared_ecs
+                                .entities
+                                .game_node_parent
+                                .get(&entity_collided_with)
+                                .cloned(),
+                        ) {
+                            call_script(
+                                scripts,
+                                parent_entity,
+                                function,
+                                entity_collided_with_parent,
+                            );
                         }
                     };
 
@@ -239,26 +252,26 @@ impl World {
                     entity_scripts,
                     collider_entity_1,
                     function_child.clone(),
-                    (collider_entity_2,),
+                    collider_entity_2,
                 );
                 call_parent_script(
                     entity_scripts,
                     collider_entity_1,
                     function_parent.clone(),
-                    (collider_entity_1, collider_entity_2),
+                    collider_entity_2,
                 );
 
                 call_script(
                     entity_scripts,
                     collider_entity_2,
                     function_child,
-                    (collider_entity_1,),
+                    collider_entity_1,
                 );
                 call_parent_script(
                     entity_scripts,
                     collider_entity_2,
                     function_parent,
-                    (collider_entity_2, collider_entity_1),
+                    collider_entity_1,
                 );
             }
         }
@@ -733,6 +746,24 @@ impl World {
                     }
                 }
                 Dynamic::from(())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("entity_has_tag").set_into_module(
+            &mut module,
+            move |entity: Entity, tag: &str| -> Dynamic {
+                if let Some(shared) = ecs_shared.try_borrow() {
+                    let children = shared.entities.game_node_children.get(&entity);
+                    if let Some(children) = children {
+                        for child in children {
+                            if let Some(tags) = shared.entities.game_node_tags.get(child) {
+                                return Dynamic::from(tags.contains(&tag.to_string()));
+                            }
+                        }
+                    }
+                }
+                Dynamic::from(false)
             },
         );
 

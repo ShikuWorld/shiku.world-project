@@ -102,6 +102,12 @@ export const options = [
     detail: "(entity: Entity, tag: &str) -> Dynamic",
 },
 {
+    label: "shiku::nodes::entity_has_tag",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity, tag: &str) -> Dynamic",
+},
+{
     label: "shiku::nodes::create_timer",
     type: "function",
     info: "TODO: Add description",
