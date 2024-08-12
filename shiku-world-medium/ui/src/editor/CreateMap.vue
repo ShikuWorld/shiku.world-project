@@ -6,24 +6,24 @@
       density="comfortable"
       v-model="game_map.resource_path"
     ></v-text-field>
-    <v-text-field
+    <v-number-input
       label="Tile width"
-      type="number"
       density="comfortable"
-      v-model="game_map.tile_width"
-    ></v-text-field>
-    <v-text-field
+      :model-value="game_map.tile_width"
+      @update:model-value="(width) => (game_map.tile_width = width)"
+    ></v-number-input>
+    <v-number-input
       label="Tile height"
       density="comfortable"
-      type="number"
-      v-model="game_map.tile_height"
-    ></v-text-field>
-    <v-text-field
+      :model-value="game_map.tile_height"
+      @update:model-value="(height) => (game_map.tile_height = height)"
+    ></v-number-input>
+    <v-number-input
       label="Chunk size"
       density="comfortable"
       type="number"
       v-model="game_map.chunk_size"
-    ></v-text-field>
+    ></v-number-input>
     <v-select
       label="Root node"
       v-model="root_node_selection"
@@ -40,6 +40,7 @@
 import { GameMap } from "@/client/communication/api/blueprints/GameMap";
 import { reactive, toRefs, ref, computed } from "vue";
 import { Module } from "@/editor/blueprints/Module";
+import { VNumberInput } from "vuetify/labs/VNumberInput";
 
 const props = defineProps<{ module: Module }>();
 const { module } = toRefs(props);

@@ -46,7 +46,7 @@ in
       login = credentials;
       volumes = [
         "${golemPath}:/app/storage"
-      ];a
+      ];
     };
     "shiku-world-medium-dev" = {
       image = "dreg.shiku.world/shiku-world-medium-dev:0.6.6";
