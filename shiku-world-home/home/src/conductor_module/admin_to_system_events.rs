@@ -73,6 +73,8 @@ pub async fn handle_admin_to_system_event(
                     );
                     module.update_scripts_from_resources(&resources);
 
+                    send_new_tileset_load_events(resource_module, module, &resources);
+
                     for resource in &resources {
                         if !module
                             .module_blueprint
@@ -87,7 +89,7 @@ pub async fn handle_admin_to_system_event(
                                     resource_module.register_resource_for_module(
                                         module.module_blueprint.id.clone(),
                                         resource,
-                                    )
+                                    );
                                 });
                         }
                     }
@@ -569,8 +571,11 @@ pub async fn handle_admin_to_system_event(
         AdminToSystemEvent::CreateTileset(module_id, tileset) => {
             match Blueprint::create_tileset(&tileset) {
                 Ok(()) => {
-                    update_module_with_resource(module_id, BlueprintResource::from(&tileset));
-                    send_editor_event(EditorEvent::CreatedTileset(tileset));
+                    update_module_with_resource(
+                        module_id.clone(),
+                        BlueprintResource::from(&tileset),
+                    );
+                    send_editor_event(EditorEvent::CreatedTileset(tileset.clone()));
                 }
                 Err(err) => {
                     error!("Could not create tileset {:?}", err);
@@ -1046,6 +1051,39 @@ pub async fn handle_admin_to_system_event(
             }
         }
     }
+}
+
+fn send_new_tileset_load_events(
+    resource_module: &mut ResourceModule,
+    module: &mut GameInstanceManager,
+    resources: &Vec<BlueprintResource>,
+) {
+    let mut tilesets_to_load = Vec::new();
+
+    for tileset_resource in resources.iter().filter(|r| r.kind == ResourceKind::Tileset) {
+        if module
+            .module_blueprint
+            .resources
+            .iter()
+            .any(|r| r.path == tileset_resource.path)
+        {
+            debug!("Tileset in module resources, skipping");
+            continue;
+        }
+        if let Ok(tileset) = Blueprint::load_tileset(PathBuf::from(&tileset_resource.path)) {
+            tilesets_to_load.push(tileset);
+        }
+    }
+
+    if tilesets_to_load.is_empty() {
+        return;
+    }
+
+    resource_module.send_resource_event_to(
+        ResourceEvent::LoadTilesets(tilesets_to_load),
+        module.module_blueprint.id.clone(),
+        module.get_active_actor_ids(),
+    );
 }
 
 fn send_resource_update_event_to_all_modules(
