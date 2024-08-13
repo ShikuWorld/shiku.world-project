@@ -377,7 +377,6 @@ pub enum GameSystemToGuestEvent {
     SetCameraFollowEntity(Option<Entity>),
     SetCameraSettings(CameraSettings),
     PositionEvent(Vec<(Entity, Real, Real, Real)>),
-    AddTileset(Tileset),
 }
 
 pub type GuestToModule = GuestEvent<ModuleInstanceEvent<GuestToModuleEvent>>;
