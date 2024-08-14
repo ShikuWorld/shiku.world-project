@@ -13,7 +13,7 @@ class TwitchService {
   }
 
   get authToken(): string | undefined {
-    return this._authToken ?? Twitch?.ext?.viewer?.sessionToken;
+    return this._authToken ?? window?.Twitch?.ext?.viewer?.sessionToken;
   }
 
   get canIdentifyUser() {

@@ -40698,7 +40698,7 @@ ${e3}`);
       this._authToken = auth.token;
     }
     get authToken() {
-      return this._authToken ?? Twitch?.ext?.viewer?.sessionToken;
+      return this._authToken ?? window?.Twitch?.ext?.viewer?.sessionToken;
     }
     get canIdentifyUser() {
       return window?.Twitch?.ext?.viewer && window?.Twitch?.ext?.viewer?.isLinked;
