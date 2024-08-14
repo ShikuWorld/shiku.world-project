@@ -1,11 +1,19 @@
 import { SimpleEventDispatcher } from "strongly-typed-events";
 
 class TwitchService {
-  auth?: Twitch.ext.Authorized;
   onAuth: SimpleEventDispatcher<Twitch.ext.Authorized>;
+  private _authToken?: string | undefined;
 
   constructor() {
     this.onAuth = new SimpleEventDispatcher<Twitch.ext.Authorized>();
+  }
+
+  set authToken(auth: Twitch.ext.Authorized) {
+    this._authToken = auth.token;
+  }
+
+  get authToken(): string | undefined {
+    return this._authToken ?? Twitch?.ext?.viewer?.sessionToken;
   }
 
   get canIdentifyUser() {
@@ -64,8 +72,9 @@ function setupTwitchService(): TwitchService {
   });
 
   twitch.onAuthorized(function (auth) {
+    console.log("Twitch authorized", auth);
     if (Twitch.ext.viewer && Twitch.ext.viewer.isLinked) {
-      twitch_service.auth = auth;
+      twitch_service.authToken = auth;
       twitch_service.onAuth.dispatch(auth);
     } else {
       Twitch.ext.actions.requestIdShare();

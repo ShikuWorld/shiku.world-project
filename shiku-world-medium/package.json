@@ -11,7 +11,6 @@
     "build-ui": "cd ./ui && yarn run build",
     "start-ui": "cd ./ui && yarn run dev",
     "build-code": "ts-node-script scripts/main.ts build",
-    "copy-to-ui": "ts-node-script scripts/main.ts copy-to-ui",
     "copy-statics": "ts-node-script scripts/main.ts copy-statics",
     "clear-build": "ts-node-script scripts/main.ts clear-build",
     "build": "yarn run clear-build && yarn run build-code && yarn run build-ui && yarn run copy-statics",

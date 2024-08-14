@@ -58,6 +58,7 @@
         ExtensionType2["BlendMode"] = "blend-mode";
         ExtensionType2["TextureSource"] = "texture-source";
         ExtensionType2["Environment"] = "environment";
+        ExtensionType2["ShapeBuilder"] = "shape-builder";
         return ExtensionType2;
       })(ExtensionType || {});
       normalizeExtension = (ext) => {
@@ -211,6 +212,26 @@
           );
         }
       };
+    }
+  });
+
+  // node_modules/pixi.js/lib/utils/browser/unsafeEvalSupported.mjs
+  function unsafeEvalSupported() {
+    if (typeof unsafeEval === "boolean") {
+      return unsafeEval;
+    }
+    try {
+      const func = new Function("param1", "param2", "param3", "return param1[param2] === param3;");
+      unsafeEval = func({ a: "b" }, "a", "b") === true;
+    } catch (e3) {
+      unsafeEval = false;
+    }
+    return unsafeEval;
+  }
+  var unsafeEval;
+  var init_unsafeEvalSupported = __esm({
+    "node_modules/pixi.js/lib/utils/browser/unsafeEvalSupported.mjs"() {
+      "use strict";
     }
   });
 
@@ -403,6 +424,2525 @@
       "use strict";
       import_index = __toESM(require_eventemitter3(), 1);
       eventemitter3_default = import_index.default;
+    }
+  });
+
+  // node_modules/pixi.js/lib/utils/data/uid.mjs
+  function uid(name = "default") {
+    if (uidCache[name] === void 0) {
+      uidCache[name] = -1;
+    }
+    return ++uidCache[name];
+  }
+  var uidCache;
+  var init_uid = __esm({
+    "node_modules/pixi.js/lib/utils/data/uid.mjs"() {
+      "use strict";
+      uidCache = {
+        default: -1
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/buffer/const.mjs
+  var BufferUsage;
+  var init_const = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/buffer/const.mjs"() {
+      "use strict";
+      BufferUsage = /* @__PURE__ */ ((BufferUsage2) => {
+        BufferUsage2[BufferUsage2["MAP_READ"] = 1] = "MAP_READ";
+        BufferUsage2[BufferUsage2["MAP_WRITE"] = 2] = "MAP_WRITE";
+        BufferUsage2[BufferUsage2["COPY_SRC"] = 4] = "COPY_SRC";
+        BufferUsage2[BufferUsage2["COPY_DST"] = 8] = "COPY_DST";
+        BufferUsage2[BufferUsage2["INDEX"] = 16] = "INDEX";
+        BufferUsage2[BufferUsage2["VERTEX"] = 32] = "VERTEX";
+        BufferUsage2[BufferUsage2["UNIFORM"] = 64] = "UNIFORM";
+        BufferUsage2[BufferUsage2["STORAGE"] = 128] = "STORAGE";
+        BufferUsage2[BufferUsage2["INDIRECT"] = 256] = "INDIRECT";
+        BufferUsage2[BufferUsage2["QUERY_RESOLVE"] = 512] = "QUERY_RESOLVE";
+        BufferUsage2[BufferUsage2["STATIC"] = 1024] = "STATIC";
+        return BufferUsage2;
+      })(BufferUsage || {});
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/buffer/Buffer.mjs
+  var Buffer2;
+  var init_Buffer = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/buffer/Buffer.mjs"() {
+      "use strict";
+      init_eventemitter3();
+      init_uid();
+      init_const();
+      Buffer2 = class extends eventemitter3_default {
+        /**
+         * Creates a new Buffer with the given options
+         * @param options - the options for the buffer
+         */
+        constructor(options) {
+          let { data, size } = options;
+          const { usage, label, shrinkToFit } = options;
+          super();
+          this.uid = uid("buffer");
+          this._resourceType = "buffer";
+          this._resourceId = uid("resource");
+          this._touched = 0;
+          this._updateID = 1;
+          this.shrinkToFit = true;
+          this.destroyed = false;
+          if (data instanceof Array) {
+            data = new Float32Array(data);
+          }
+          this._data = data;
+          size = size ?? data?.byteLength;
+          const mappedAtCreation = !!data;
+          this.descriptor = {
+            size,
+            usage,
+            mappedAtCreation,
+            label
+          };
+          this.shrinkToFit = shrinkToFit ?? true;
+        }
+        /** the data in the buffer */
+        get data() {
+          return this._data;
+        }
+        set data(value) {
+          this.setDataWithSize(value, value.length, true);
+        }
+        /** whether the buffer is static or not */
+        get static() {
+          return !!(this.descriptor.usage & BufferUsage.STATIC);
+        }
+        set static(value) {
+          if (value) {
+            this.descriptor.usage |= BufferUsage.STATIC;
+          } else {
+            this.descriptor.usage &= ~BufferUsage.STATIC;
+          }
+        }
+        /**
+         * Sets the data in the buffer to the given value. This will immediately update the buffer on the GPU.
+         * If you only want to update a subset of the buffer, you can pass in the size of the data.
+         * @param value - the data to set
+         * @param size - the size of the data in bytes
+         * @param syncGPU - should the buffer be updated on the GPU immediately?
+         */
+        setDataWithSize(value, size, syncGPU) {
+          this._updateID++;
+          this._updateSize = size * value.BYTES_PER_ELEMENT;
+          if (this._data === value) {
+            if (syncGPU)
+              this.emit("update", this);
+            return;
+          }
+          const oldData = this._data;
+          this._data = value;
+          if (oldData.length !== value.length) {
+            if (!this.shrinkToFit && value.byteLength < oldData.byteLength) {
+              if (syncGPU)
+                this.emit("update", this);
+            } else {
+              this.descriptor.size = value.byteLength;
+              this._resourceId = uid("resource");
+              this.emit("change", this);
+            }
+            return;
+          }
+          if (syncGPU)
+            this.emit("update", this);
+        }
+        /**
+         * updates the buffer on the GPU to reflect the data in the buffer.
+         * By default it will update the entire buffer. If you only want to update a subset of the buffer,
+         * you can pass in the size of the buffer to update.
+         * @param sizeInBytes - the new size of the buffer in bytes
+         */
+        update(sizeInBytes) {
+          this._updateSize = sizeInBytes ?? this._updateSize;
+          this._updateID++;
+          this.emit("update", this);
+        }
+        /** Destroys the buffer */
+        destroy() {
+          this.destroyed = true;
+          this.emit("destroy", this);
+          this.emit("change", this);
+          this._data = null;
+          this.descriptor = null;
+          this.removeAllListeners();
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/UboSystem.mjs
+  var UboSystem;
+  var init_UboSystem = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/UboSystem.mjs"() {
+      "use strict";
+      init_unsafeEvalSupported();
+      init_Buffer();
+      init_const();
+      UboSystem = class {
+        constructor(adaptor) {
+          this._syncFunctionHash = /* @__PURE__ */ Object.create(null);
+          this._adaptor = adaptor;
+          this._systemCheck();
+        }
+        /**
+         * Overridable function by `pixi.js/unsafe-eval` to silence
+         * throwing an error if platform doesn't support unsafe-evals.
+         * @private
+         */
+        _systemCheck() {
+          if (!unsafeEvalSupported()) {
+            throw new Error("Current environment does not allow unsafe-eval, please use pixi.js/unsafe-eval module to enable support.");
+          }
+        }
+        ensureUniformGroup(uniformGroup) {
+          const uniformData = this.getUniformGroupData(uniformGroup);
+          uniformGroup.buffer || (uniformGroup.buffer = new Buffer2({
+            data: new Float32Array(uniformData.layout.size / 4),
+            usage: BufferUsage.UNIFORM | BufferUsage.COPY_DST
+          }));
+        }
+        getUniformGroupData(uniformGroup) {
+          return this._syncFunctionHash[uniformGroup._signature] || this._initUniformGroup(uniformGroup);
+        }
+        _initUniformGroup(uniformGroup) {
+          const uniformGroupSignature = uniformGroup._signature;
+          let uniformData = this._syncFunctionHash[uniformGroupSignature];
+          if (!uniformData) {
+            const elements = Object.keys(uniformGroup.uniformStructures).map((i3) => uniformGroup.uniformStructures[i3]);
+            const layout = this._adaptor.createUboElements(elements);
+            const syncFunction = this._generateUboSync(layout.uboElements);
+            uniformData = this._syncFunctionHash[uniformGroupSignature] = {
+              layout,
+              syncFunction
+            };
+          }
+          return this._syncFunctionHash[uniformGroupSignature];
+        }
+        _generateUboSync(uboElements) {
+          return this._adaptor.generateUboSync(uboElements);
+        }
+        syncUniformGroup(uniformGroup, data, offset) {
+          const uniformGroupData = this.getUniformGroupData(uniformGroup);
+          uniformGroup.buffer || (uniformGroup.buffer = new Buffer2({
+            data: new Float32Array(uniformGroupData.layout.size / 4),
+            usage: BufferUsage.UNIFORM | BufferUsage.COPY_DST
+          }));
+          data || (data = uniformGroup.buffer.data);
+          offset || (offset = 0);
+          uniformGroupData.syncFunction(uniformGroup.uniforms, data, offset);
+          return true;
+        }
+        updateUniformGroup(uniformGroup) {
+          if (uniformGroup.isStatic && !uniformGroup._dirtyId)
+            return false;
+          uniformGroup._dirtyId = 0;
+          const synced = this.syncUniformGroup(uniformGroup);
+          uniformGroup.buffer.update();
+          return synced;
+        }
+        destroy() {
+          this._syncFunctionHash = null;
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboElementsSTD40.mjs
+  function createUboElementsSTD40(uniformData) {
+    const uboElements = uniformData.map((data) => ({
+      data,
+      offset: 0,
+      size: 0
+    }));
+    let size = 0;
+    let chunkSize = 0;
+    let offset = 0;
+    for (let i3 = 0; i3 < uboElements.length; i3++) {
+      const uboElement = uboElements[i3];
+      size = WGSL_TO_STD40_SIZE[uboElement.data.type];
+      if (!size) {
+        throw new Error(`Unknown type ${uboElement.data.type}`);
+      }
+      if (uboElement.data.size > 1) {
+        size = Math.max(size, 16) * uboElement.data.size;
+      }
+      uboElement.size = size;
+      if (chunkSize % size !== 0 && chunkSize < 16) {
+        const lineUpValue = chunkSize % size % 16;
+        chunkSize += lineUpValue;
+        offset += lineUpValue;
+      }
+      if (chunkSize + size > 16) {
+        offset = Math.ceil(offset / 16) * 16;
+        uboElement.offset = offset;
+        offset += size;
+        chunkSize = size;
+      } else {
+        uboElement.offset = offset;
+        chunkSize += size;
+        offset += size;
+      }
+    }
+    offset = Math.ceil(offset / 16) * 16;
+    return { uboElements, size: offset };
+  }
+  var WGSL_TO_STD40_SIZE;
+  var init_createUboElementsSTD40 = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboElementsSTD40.mjs"() {
+      "use strict";
+      WGSL_TO_STD40_SIZE = {
+        f32: 4,
+        "vec2<f32>": 8,
+        "vec3<f32>": 12,
+        "vec4<f32>": 16,
+        "mat2x2<f32>": 16 * 2,
+        "mat3x3<f32>": 16 * 3,
+        "mat4x4<f32>": 16 * 4
+        // TODO - not essential for now but support these in the future
+        // int:      4,
+        // ivec2:    8,
+        // ivec3:    12,
+        // ivec4:    16,
+        // uint:     4,
+        // uvec2:    8,
+        // uvec3:    12,
+        // uvec4:    16,
+        // bool:     4,
+        // bvec2:    8,
+        // bvec3:    12,
+        // bvec4:    16,
+        // mat2:     16 * 2,
+        // mat3:     16 * 3,
+        // mat4:     16 * 4,
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uniformParsers.mjs
+  var uniformParsers;
+  var init_uniformParsers = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uniformParsers.mjs"() {
+      "use strict";
+      uniformParsers = [
+        // uploading pixi matrix object to mat3
+        {
+          type: "mat3x3<f32>",
+          test: (data) => {
+            const value = data.value;
+            return value.a !== void 0;
+          },
+          ubo: `
+            var matrix = uv[name].toArray(true);
+            data[offset] = matrix[0];
+            data[offset + 1] = matrix[1];
+            data[offset + 2] = matrix[2];
+            data[offset + 4] = matrix[3];
+            data[offset + 5] = matrix[4];
+            data[offset + 6] = matrix[5];
+            data[offset + 8] = matrix[6];
+            data[offset + 9] = matrix[7];
+            data[offset + 10] = matrix[8];
+        `,
+          uniform: `
+            gl.uniformMatrix3fv(ud[name].location, false, uv[name].toArray(true));
+        `
+        },
+        // uploading a pixi rectangle as a vec4
+        {
+          type: "vec4<f32>",
+          test: (data) => data.type === "vec4<f32>" && data.size === 1 && data.value.width !== void 0,
+          ubo: `
+            v = uv[name];
+            data[offset] = v.x;
+            data[offset + 1] = v.y;
+            data[offset + 2] = v.width;
+            data[offset + 3] = v.height;
+        `,
+          uniform: `
+            cv = ud[name].value;
+            v = uv[name];
+            if (cv[0] !== v.x || cv[1] !== v.y || cv[2] !== v.width || cv[3] !== v.height) {
+                cv[0] = v.x;
+                cv[1] = v.y;
+                cv[2] = v.width;
+                cv[3] = v.height;
+                gl.uniform4f(ud[name].location, v.x, v.y, v.width, v.height);
+            }
+        `
+        },
+        // uploading a pixi point as a vec2
+        {
+          type: "vec2<f32>",
+          test: (data) => data.type === "vec2<f32>" && data.size === 1 && data.value.x !== void 0,
+          ubo: `
+            v = uv[name];
+            data[offset] = v.x;
+            data[offset + 1] = v.y;
+        `,
+          uniform: `
+            cv = ud[name].value;
+            v = uv[name];
+            if (cv[0] !== v.x || cv[1] !== v.y) {
+                cv[0] = v.x;
+                cv[1] = v.y;
+                gl.uniform2f(ud[name].location, v.x, v.y);
+            }
+        `
+        },
+        // uploading a pixi color as a vec4
+        {
+          type: "vec4<f32>",
+          test: (data) => data.type === "vec4<f32>" && data.size === 1 && data.value.red !== void 0,
+          ubo: `
+            v = uv[name];
+            data[offset] = v.red;
+            data[offset + 1] = v.green;
+            data[offset + 2] = v.blue;
+            data[offset + 3] = v.alpha;
+        `,
+          uniform: `
+            cv = ud[name].value;
+            v = uv[name];
+            if (cv[0] !== v.red || cv[1] !== v.green || cv[2] !== v.blue || cv[3] !== v.alpha) {
+                cv[0] = v.red;
+                cv[1] = v.green;
+                cv[2] = v.blue;
+                cv[3] = v.alpha;
+                gl.uniform4f(ud[name].location, v.red, v.green, v.blue, v.alpha);
+            }
+        `
+        },
+        // uploading a pixi color as a vec3
+        {
+          type: "vec3<f32>",
+          test: (data) => data.type === "vec3<f32>" && data.size === 1 && data.value.red !== void 0,
+          ubo: `
+            v = uv[name];
+            data[offset] = v.red;
+            data[offset + 1] = v.green;
+            data[offset + 2] = v.blue;
+        `,
+          uniform: `
+            cv = ud[name].value;
+            v = uv[name];
+            if (cv[0] !== v.red || cv[1] !== v.green || cv[2] !== v.blue) {
+                cv[0] = v.red;
+                cv[1] = v.green;
+                cv[2] = v.blue;
+                gl.uniform3f(ud[name].location, v.red, v.green, v.blue);
+            }
+        `
+        }
+      ];
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/createUboSyncFunction.mjs
+  function createUboSyncFunction(uboElements, parserCode, arrayGenerationFunction, singleSettersMap) {
+    const funcFragments = [`
+        var v = null;
+        var v2 = null;
+        var t = 0;
+        var index = 0;
+        var name = null;
+        var arrayOffset = null;
+    `];
+    let prev = 0;
+    for (let i3 = 0; i3 < uboElements.length; i3++) {
+      const uboElement = uboElements[i3];
+      const name = uboElement.data.name;
+      let parsed = false;
+      let offset = 0;
+      for (let j3 = 0; j3 < uniformParsers.length; j3++) {
+        const uniformParser = uniformParsers[j3];
+        if (uniformParser.test(uboElement.data)) {
+          offset = uboElement.offset / 4;
+          funcFragments.push(
+            `name = "${name}";`,
+            `offset += ${offset - prev};`,
+            uniformParsers[j3][parserCode] || uniformParsers[j3].ubo
+          );
+          parsed = true;
+          break;
+        }
+      }
+      if (!parsed) {
+        if (uboElement.data.size > 1) {
+          offset = uboElement.offset / 4;
+          funcFragments.push(arrayGenerationFunction(uboElement, offset - prev));
+        } else {
+          const template = singleSettersMap[uboElement.data.type];
+          offset = uboElement.offset / 4;
+          funcFragments.push(
+            /* wgsl */
+            `
+                    v = uv.${name};
+                    offset += ${offset - prev};
+                    ${template};
+                `
+          );
+        }
+      }
+      prev = offset;
+    }
+    const fragmentSrc = funcFragments.join("\n");
+    return new Function(
+      "uv",
+      "data",
+      "offset",
+      fragmentSrc
+    );
+  }
+  var init_createUboSyncFunction = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/createUboSyncFunction.mjs"() {
+      "use strict";
+      init_uniformParsers();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uboSyncFunctions.mjs
+  function loopMatrix(col, row) {
+    const total = col * row;
+    return `
+        for (let i = 0; i < ${total}; i++) {
+            data[offset + (((i / ${col})|0) * 4) + (i % ${col})] = v[i];
+        }
+    `;
+  }
+  var uboSyncFunctionsSTD40, uboSyncFunctionsWGSL;
+  var init_uboSyncFunctions = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uboSyncFunctions.mjs"() {
+      "use strict";
+      uboSyncFunctionsSTD40 = {
+        f32: `
+        data[offset] = v;`,
+        i32: `
+        data[offset] = v;`,
+        "vec2<f32>": `
+        data[offset] = v[0];
+        data[offset + 1] = v[1];`,
+        "vec3<f32>": `
+        data[offset] = v[0];
+        data[offset + 1] = v[1];
+        data[offset + 2] = v[2];`,
+        "vec4<f32>": `
+        data[offset] = v[0];
+        data[offset + 1] = v[1];
+        data[offset + 2] = v[2];
+        data[offset + 3] = v[3];`,
+        "mat2x2<f32>": `
+        data[offset] = v[0];
+        data[offset + 1] = v[1];
+        data[offset + 4] = v[2];
+        data[offset + 5] = v[3];`,
+        "mat3x3<f32>": `
+        data[offset] = v[0];
+        data[offset + 1] = v[1];
+        data[offset + 2] = v[2];
+        data[offset + 4] = v[3];
+        data[offset + 5] = v[4];
+        data[offset + 6] = v[5];
+        data[offset + 8] = v[6];
+        data[offset + 9] = v[7];
+        data[offset + 10] = v[8];`,
+        "mat4x4<f32>": `
+        for (let i = 0; i < 16; i++) {
+            data[offset + i] = v[i];
+        }`,
+        "mat3x2<f32>": loopMatrix(3, 2),
+        "mat4x2<f32>": loopMatrix(4, 2),
+        "mat2x3<f32>": loopMatrix(2, 3),
+        "mat4x3<f32>": loopMatrix(4, 3),
+        "mat2x4<f32>": loopMatrix(2, 4),
+        "mat3x4<f32>": loopMatrix(3, 4)
+      };
+      uboSyncFunctionsWGSL = {
+        ...uboSyncFunctionsSTD40,
+        "mat2x2<f32>": `
+        data[offset] = v[0];
+        data[offset + 1] = v[1];
+        data[offset + 2] = v[2];
+        data[offset + 3] = v[3];
+    `
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateArraySyncSTD40.mjs
+  function generateArraySyncSTD40(uboElement, offsetToAdd) {
+    const rowSize = Math.max(WGSL_TO_STD40_SIZE[uboElement.data.type] / 16, 1);
+    const elementSize = uboElement.data.value.length / uboElement.data.size;
+    const remainder = (4 - elementSize % 4) % 4;
+    return `
+        v = uv.${uboElement.data.name};
+        offset += ${offsetToAdd};
+
+        arrayOffset = offset;
+
+        t = 0;
+
+        for(var i=0; i < ${uboElement.data.size * rowSize}; i++)
+        {
+            for(var j = 0; j < ${elementSize}; j++)
+            {
+                data[arrayOffset++] = v[t++];
+            }
+            ${remainder !== 0 ? `arrayOffset += ${remainder};` : ""}
+        }
+    `;
+  }
+  var init_generateArraySyncSTD40 = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateArraySyncSTD40.mjs"() {
+      "use strict";
+      init_createUboElementsSTD40();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboSyncSTD40.mjs
+  function createUboSyncFunctionSTD40(uboElements) {
+    return createUboSyncFunction(
+      uboElements,
+      "uboStd40",
+      generateArraySyncSTD40,
+      uboSyncFunctionsSTD40
+    );
+  }
+  var init_createUboSyncSTD40 = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboSyncSTD40.mjs"() {
+      "use strict";
+      init_createUboSyncFunction();
+      init_uboSyncFunctions();
+      init_generateArraySyncSTD40();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/GlUboSystem.mjs
+  var GlUboSystem;
+  var init_GlUboSystem = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/GlUboSystem.mjs"() {
+      "use strict";
+      init_Extensions();
+      init_UboSystem();
+      init_createUboElementsSTD40();
+      init_createUboSyncSTD40();
+      GlUboSystem = class extends UboSystem {
+        constructor() {
+          super({
+            createUboElements: createUboElementsSTD40,
+            generateUboSync: createUboSyncFunctionSTD40
+          });
+        }
+      };
+      GlUboSystem.extension = {
+        type: [ExtensionType.WebGLSystem],
+        name: "ubo"
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/environment-browser/BrowserAdapter.mjs
+  var BrowserAdapter;
+  var init_BrowserAdapter = __esm({
+    "node_modules/pixi.js/lib/environment-browser/BrowserAdapter.mjs"() {
+      "use strict";
+      BrowserAdapter = {
+        createCanvas: (width, height) => {
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          return canvas;
+        },
+        getCanvasRenderingContext2D: () => CanvasRenderingContext2D,
+        getWebGLRenderingContext: () => WebGLRenderingContext,
+        getNavigator: () => navigator,
+        getBaseUrl: () => document.baseURI ?? window.location.href,
+        getFontFaceSet: () => document.fonts,
+        fetch: (url, options) => fetch(url, options),
+        parseXML: (xml) => {
+          const parser = new DOMParser();
+          return parser.parseFromString(xml, "text/xml");
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/environment/adapter.mjs
+  var currentAdapter, DOMAdapter;
+  var init_adapter = __esm({
+    "node_modules/pixi.js/lib/environment/adapter.mjs"() {
+      "use strict";
+      init_BrowserAdapter();
+      currentAdapter = BrowserAdapter;
+      DOMAdapter = {
+        /**
+         * Returns the current adapter.
+         * @returns {environment.Adapter} The current adapter.
+         */
+        get() {
+          return currentAdapter;
+        },
+        /**
+         * Sets the current adapter.
+         * @param adapter - The new adapter.
+         */
+        set(adapter) {
+          currentAdapter = adapter;
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.mjs
+  function getTestContext() {
+    if (!context || context?.isContextLost()) {
+      const canvas = DOMAdapter.get().createCanvas();
+      context = canvas.getContext("webgl", {});
+    }
+    return context;
+  }
+  var context;
+  var init_getTestContext = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.mjs"() {
+      "use strict";
+      init_adapter();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.mjs
+  function generateIfTestSrc(maxIfs) {
+    let src = "";
+    for (let i3 = 0; i3 < maxIfs; ++i3) {
+      if (i3 > 0) {
+        src += "\nelse ";
+      }
+      if (i3 < maxIfs - 1) {
+        src += `if(test == ${i3}.0){}`;
+      }
+    }
+    return src;
+  }
+  function checkMaxIfStatementsInShader(maxIfs, gl) {
+    if (maxIfs === 0) {
+      throw new Error("Invalid value of `0` passed to `checkMaxIfStatementsInShader`");
+    }
+    const shader = gl.createShader(gl.FRAGMENT_SHADER);
+    try {
+      while (true) {
+        const fragmentSrc = fragTemplate.replace(/%forloop%/gi, generateIfTestSrc(maxIfs));
+        gl.shaderSource(shader, fragmentSrc);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          maxIfs = maxIfs / 2 | 0;
+        } else {
+          break;
+        }
+      }
+    } finally {
+      gl.deleteShader(shader);
+    }
+    return maxIfs;
+  }
+  var fragTemplate;
+  var init_checkMaxIfStatementsInShader = __esm({
+    "node_modules/pixi.js/lib/rendering/batcher/gl/utils/checkMaxIfStatementsInShader.mjs"() {
+      "use strict";
+      fragTemplate = [
+        "precision mediump float;",
+        "void main(void){",
+        "float test = 0.1;",
+        "%forloop%",
+        "gl_FragColor = vec4(0.0);",
+        "}"
+      ].join("\n");
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/batcher/gl/utils/maxRecommendedTextures.mjs
+  function getMaxTexturesPerBatch() {
+    if (maxTexturesPerBatchCache)
+      return maxTexturesPerBatchCache;
+    const gl = getTestContext();
+    maxTexturesPerBatchCache = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    maxTexturesPerBatchCache = checkMaxIfStatementsInShader(
+      maxTexturesPerBatchCache,
+      gl
+    );
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return maxTexturesPerBatchCache;
+  }
+  var maxTexturesPerBatchCache;
+  var init_maxRecommendedTextures = __esm({
+    "node_modules/pixi.js/lib/rendering/batcher/gl/utils/maxRecommendedTextures.mjs"() {
+      "use strict";
+      init_getTestContext();
+      init_checkMaxIfStatementsInShader();
+      maxTexturesPerBatchCache = null;
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/buffer/BufferResource.mjs
+  var BufferResource;
+  var init_BufferResource = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/buffer/BufferResource.mjs"() {
+      "use strict";
+      init_eventemitter3();
+      init_uid();
+      BufferResource = class extends eventemitter3_default {
+        /**
+         * Create a new Buffer Resource.
+         * @param options - The options for the buffer resource
+         * @param options.buffer - The underlying buffer that this resource is using
+         * @param options.offset - The offset of the buffer this resource is using.
+         * If not provided, then it will use the offset of the buffer.
+         * @param options.size - The size of the buffer this resource is using.
+         * If not provided, then it will use the size of the buffer.
+         */
+        constructor({ buffer, offset, size }) {
+          super();
+          this.uid = uid("buffer");
+          this._resourceType = "bufferResource";
+          this._touched = 0;
+          this._resourceId = uid("resource");
+          this._bufferResource = true;
+          this.destroyed = false;
+          this.buffer = buffer;
+          this.offset = offset | 0;
+          this.size = size;
+          this.buffer.on("change", this.onBufferChange, this);
+        }
+        onBufferChange() {
+          this._resourceId = uid("resource");
+          this.emit("change", this);
+        }
+        /**
+         * Destroys this resource. Make sure the underlying buffer is not used anywhere else
+         * if you want to destroy it as well, or code will explode
+         * @param destroyBuffer - Should the underlying buffer be destroyed as well?
+         */
+        destroy(destroyBuffer = false) {
+          this.destroyed = true;
+          if (destroyBuffer) {
+            this.buffer.destroy();
+          }
+          this.emit("change", this);
+          this.buffer = null;
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/utils/createIdFromString.mjs
+  function createIdFromString(value, groupId) {
+    let id = idHash[value];
+    if (id === void 0) {
+      if (idCounts[groupId] === void 0) {
+        idCounts[groupId] = 1;
+      }
+      idHash[value] = id = idCounts[groupId]++;
+    }
+    return id;
+  }
+  var idCounts, idHash;
+  var init_createIdFromString = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/utils/createIdFromString.mjs"() {
+      "use strict";
+      idCounts = /* @__PURE__ */ Object.create(null);
+      idHash = /* @__PURE__ */ Object.create(null);
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/types.mjs
+  var UNIFORM_TYPES_VALUES, UNIFORM_TYPES_MAP;
+  var init_types = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/types.mjs"() {
+      "use strict";
+      UNIFORM_TYPES_VALUES = [
+        "f32",
+        "i32",
+        "vec2<f32>",
+        "vec3<f32>",
+        "vec4<f32>",
+        "mat2x2<f32>",
+        "mat3x3<f32>",
+        "mat4x4<f32>",
+        "mat3x2<f32>",
+        "mat4x2<f32>",
+        "mat2x3<f32>",
+        "mat4x3<f32>",
+        "mat2x4<f32>",
+        "mat3x4<f32>"
+      ];
+      UNIFORM_TYPES_MAP = UNIFORM_TYPES_VALUES.reduce((acc, type) => {
+        acc[type] = true;
+        return acc;
+      }, {});
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/getDefaultUniformValue.mjs
+  function getDefaultUniformValue(type, size) {
+    switch (type) {
+      case "f32":
+        return 0;
+      case "vec2<f32>":
+        return new Float32Array(2 * size);
+      case "vec3<f32>":
+        return new Float32Array(3 * size);
+      case "vec4<f32>":
+        return new Float32Array(4 * size);
+      case "mat2x2<f32>":
+        return new Float32Array([
+          1,
+          0,
+          0,
+          1
+        ]);
+      case "mat3x3<f32>":
+        return new Float32Array([
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1
+        ]);
+      case "mat4x4<f32>":
+        return new Float32Array([
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]);
+    }
+    return null;
+  }
+  var init_getDefaultUniformValue = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/getDefaultUniformValue.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/UniformGroup.mjs
+  var _UniformGroup, UniformGroup;
+  var init_UniformGroup = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/UniformGroup.mjs"() {
+      "use strict";
+      init_uid();
+      init_createIdFromString();
+      init_types();
+      init_getDefaultUniformValue();
+      _UniformGroup = class _UniformGroup2 {
+        /**
+         * Create a new Uniform group
+         * @param uniformStructures - The structures of the uniform group
+         * @param options - The optional parameters of this uniform group
+         */
+        constructor(uniformStructures, options) {
+          this._touched = 0;
+          this.uid = uid("uniform");
+          this._resourceType = "uniformGroup";
+          this._resourceId = uid("resource");
+          this.isUniformGroup = true;
+          this._dirtyId = 0;
+          this.destroyed = false;
+          options = { ..._UniformGroup2.defaultOptions, ...options };
+          this.uniformStructures = uniformStructures;
+          const uniforms = {};
+          for (const i3 in uniformStructures) {
+            const uniformData = uniformStructures[i3];
+            uniformData.name = i3;
+            uniformData.size = uniformData.size ?? 1;
+            if (!UNIFORM_TYPES_MAP[uniformData.type]) {
+              throw new Error(`Uniform type ${uniformData.type} is not supported. Supported uniform types are: ${UNIFORM_TYPES_VALUES.join(", ")}`);
+            }
+            uniformData.value ?? (uniformData.value = getDefaultUniformValue(uniformData.type, uniformData.size));
+            uniforms[i3] = uniformData.value;
+          }
+          this.uniforms = uniforms;
+          this._dirtyId = 1;
+          this.ubo = options.ubo;
+          this.isStatic = options.isStatic;
+          this._signature = createIdFromString(Object.keys(uniforms).map(
+            (i3) => `${i3}-${uniformStructures[i3].type}`
+          ).join("-"), "uniform-group");
+        }
+        /** Call this if you want the uniform groups data to be uploaded to the GPU only useful if `isStatic` is true. */
+        update() {
+          this._dirtyId++;
+        }
+      };
+      _UniformGroup.defaultOptions = {
+        /** if true the UniformGroup is handled as an Uniform buffer object. */
+        ubo: false,
+        /** if true, then you are responsible for when the data is uploaded to the GPU by calling `update()` */
+        isStatic: false
+      };
+      UniformGroup = _UniformGroup;
+    }
+  });
+
+  // node_modules/pixi.js/lib/maths/misc/pow2.mjs
+  function nextPow2(v3) {
+    v3 += v3 === 0 ? 1 : 0;
+    --v3;
+    v3 |= v3 >>> 1;
+    v3 |= v3 >>> 2;
+    v3 |= v3 >>> 4;
+    v3 |= v3 >>> 8;
+    v3 |= v3 >>> 16;
+    return v3 + 1;
+  }
+  function isPow2(v3) {
+    return !(v3 & v3 - 1) && !!v3;
+  }
+  var init_pow2 = __esm({
+    "node_modules/pixi.js/lib/maths/misc/pow2.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/container/utils/definedProps.mjs
+  function definedProps(obj) {
+    const result = {};
+    for (const key in obj) {
+      if (obj[key] !== void 0) {
+        result[key] = obj[key];
+      }
+    }
+    return result;
+  }
+  var init_definedProps = __esm({
+    "node_modules/pixi.js/lib/scene/container/utils/definedProps.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/utils/logging/deprecation.mjs
+  function deprecation(version, message, ignoreDepth = 3) {
+    if (warnings[message]) {
+      return;
+    }
+    let stack = new Error().stack;
+    if (typeof stack === "undefined") {
+      console.warn("PixiJS Deprecation Warning: ", `${message}
+Deprecated since v${version}`);
+    } else {
+      stack = stack.split("\n").splice(ignoreDepth).join("\n");
+      if (console.groupCollapsed) {
+        console.groupCollapsed(
+          "%cPixiJS Deprecation Warning: %c%s",
+          "color:#614108;background:#fffbe6",
+          "font-weight:normal;color:#614108;background:#fffbe6",
+          `${message}
+Deprecated since v${version}`
+        );
+        console.warn(stack);
+        console.groupEnd();
+      } else {
+        console.warn("PixiJS Deprecation Warning: ", `${message}
+Deprecated since v${version}`);
+        console.warn(stack);
+      }
+    }
+    warnings[message] = true;
+  }
+  var warnings, v8_0_0;
+  var init_deprecation = __esm({
+    "node_modules/pixi.js/lib/utils/logging/deprecation.mjs"() {
+      "use strict";
+      warnings = {};
+      v8_0_0 = "8.0.0";
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureStyle.mjs
+  function createResourceIdFromString(value) {
+    const id = idHash2[value];
+    if (id === void 0) {
+      idHash2[value] = uid("resource");
+    }
+    return id;
+  }
+  var idHash2, _TextureStyle, TextureStyle;
+  var init_TextureStyle = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureStyle.mjs"() {
+      "use strict";
+      init_eventemitter3();
+      init_uid();
+      init_deprecation();
+      idHash2 = /* @__PURE__ */ Object.create(null);
+      _TextureStyle = class _TextureStyle2 extends eventemitter3_default {
+        /**
+         * @param options - options for the style
+         */
+        constructor(options = {}) {
+          super();
+          this._resourceType = "textureSampler";
+          this._touched = 0;
+          this._maxAnisotropy = 1;
+          this.destroyed = false;
+          options = { ..._TextureStyle2.defaultOptions, ...options };
+          this.addressMode = options.addressMode;
+          this.addressModeU = options.addressModeU ?? this.addressModeU;
+          this.addressModeV = options.addressModeV ?? this.addressModeV;
+          this.addressModeW = options.addressModeW ?? this.addressModeW;
+          this.scaleMode = options.scaleMode;
+          this.magFilter = options.magFilter ?? this.magFilter;
+          this.minFilter = options.minFilter ?? this.minFilter;
+          this.mipmapFilter = options.mipmapFilter ?? this.mipmapFilter;
+          this.lodMinClamp = options.lodMinClamp;
+          this.lodMaxClamp = options.lodMaxClamp;
+          this.compare = options.compare;
+          this.maxAnisotropy = options.maxAnisotropy ?? 1;
+        }
+        set addressMode(value) {
+          this.addressModeU = value;
+          this.addressModeV = value;
+          this.addressModeW = value;
+        }
+        /** setting this will set wrapModeU,wrapModeV and wrapModeW all at once! */
+        get addressMode() {
+          return this.addressModeU;
+        }
+        set wrapMode(value) {
+          deprecation(v8_0_0, "TextureStyle.wrapMode is now TextureStyle.addressMode");
+          this.addressMode = value;
+        }
+        get wrapMode() {
+          return this.addressMode;
+        }
+        set scaleMode(value) {
+          this.magFilter = value;
+          this.minFilter = value;
+          this.mipmapFilter = value;
+        }
+        /** setting this will set magFilter,minFilter and mipmapFilter all at once!  */
+        get scaleMode() {
+          return this.magFilter;
+        }
+        /** Specifies the maximum anisotropy value clamp used by the sampler. */
+        set maxAnisotropy(value) {
+          this._maxAnisotropy = Math.min(value, 16);
+          if (this._maxAnisotropy > 1) {
+            this.scaleMode = "linear";
+          }
+        }
+        get maxAnisotropy() {
+          return this._maxAnisotropy;
+        }
+        // TODO - move this to WebGL?
+        get _resourceId() {
+          return this._sharedResourceId || this._generateResourceId();
+        }
+        update() {
+          this.emit("change", this);
+          this._sharedResourceId = null;
+        }
+        _generateResourceId() {
+          const bigKey = `${this.addressModeU}-${this.addressModeV}-${this.addressModeW}-${this.magFilter}-${this.minFilter}-${this.mipmapFilter}-${this.lodMinClamp}-${this.lodMaxClamp}-${this.compare}-${this._maxAnisotropy}`;
+          this._sharedResourceId = createResourceIdFromString(bigKey);
+          return this._resourceId;
+        }
+        /** Destroys the style */
+        destroy() {
+          this.destroyed = true;
+          this.emit("destroy", this);
+          this.emit("change", this);
+          this.removeAllListeners();
+        }
+      };
+      _TextureStyle.defaultOptions = {
+        addressMode: "clamp-to-edge",
+        scaleMode: "linear"
+      };
+      TextureStyle = _TextureStyle;
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/TextureSource.mjs
+  var _TextureSource, TextureSource;
+  var init_TextureSource = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/TextureSource.mjs"() {
+      "use strict";
+      init_eventemitter3();
+      init_pow2();
+      init_definedProps();
+      init_uid();
+      init_TextureStyle();
+      _TextureSource = class _TextureSource2 extends eventemitter3_default {
+        /**
+         * @param options - options for creating a new TextureSource
+         */
+        constructor(options = {}) {
+          super();
+          this.options = options;
+          this.uid = uid("textureSource");
+          this._resourceType = "textureSource";
+          this._resourceId = uid("resource");
+          this.uploadMethodId = "unknown";
+          this._resolution = 1;
+          this.pixelWidth = 1;
+          this.pixelHeight = 1;
+          this.width = 1;
+          this.height = 1;
+          this.sampleCount = 1;
+          this.mipLevelCount = 1;
+          this.autoGenerateMipmaps = false;
+          this.format = "rgba8unorm";
+          this.dimension = "2d";
+          this.antialias = false;
+          this._touched = 0;
+          this._batchTick = -1;
+          this._textureBindLocation = -1;
+          options = { ..._TextureSource2.defaultOptions, ...options };
+          this.label = options.label ?? "";
+          this.resource = options.resource;
+          this.autoGarbageCollect = options.autoGarbageCollect;
+          this._resolution = options.resolution;
+          if (options.width) {
+            this.pixelWidth = options.width * this._resolution;
+          } else {
+            this.pixelWidth = this.resource ? this.resourceWidth ?? 1 : 1;
+          }
+          if (options.height) {
+            this.pixelHeight = options.height * this._resolution;
+          } else {
+            this.pixelHeight = this.resource ? this.resourceHeight ?? 1 : 1;
+          }
+          this.width = this.pixelWidth / this._resolution;
+          this.height = this.pixelHeight / this._resolution;
+          this.format = options.format;
+          this.dimension = options.dimensions;
+          this.mipLevelCount = options.mipLevelCount;
+          this.autoGenerateMipmaps = options.autoGenerateMipmaps;
+          this.sampleCount = options.sampleCount;
+          this.antialias = options.antialias;
+          this.alphaMode = options.alphaMode;
+          this.style = new TextureStyle(definedProps(options));
+          this.destroyed = false;
+          this._refreshPOT();
+        }
+        /** returns itself */
+        get source() {
+          return this;
+        }
+        /** the style of the texture */
+        get style() {
+          return this._style;
+        }
+        set style(value) {
+          if (this.style === value)
+            return;
+          this._style?.off("change", this._onStyleChange, this);
+          this._style = value;
+          this._style?.on("change", this._onStyleChange, this);
+          this._onStyleChange();
+        }
+        /** setting this will set wrapModeU,wrapModeV and wrapModeW all at once! */
+        get addressMode() {
+          return this._style.addressMode;
+        }
+        set addressMode(value) {
+          this._style.addressMode = value;
+        }
+        /** setting this will set wrapModeU,wrapModeV and wrapModeW all at once! */
+        get repeatMode() {
+          return this._style.addressMode;
+        }
+        set repeatMode(value) {
+          this._style.addressMode = value;
+        }
+        /** Specifies the sampling behavior when the sample footprint is smaller than or equal to one texel. */
+        get magFilter() {
+          return this._style.magFilter;
+        }
+        set magFilter(value) {
+          this._style.magFilter = value;
+        }
+        /** Specifies the sampling behavior when the sample footprint is larger than one texel. */
+        get minFilter() {
+          return this._style.minFilter;
+        }
+        set minFilter(value) {
+          this._style.minFilter = value;
+        }
+        /** Specifies behavior for sampling between mipmap levels. */
+        get mipmapFilter() {
+          return this._style.mipmapFilter;
+        }
+        set mipmapFilter(value) {
+          this._style.mipmapFilter = value;
+        }
+        /** Specifies the minimum and maximum levels of detail, respectively, used internally when sampling a texture. */
+        get lodMinClamp() {
+          return this._style.lodMinClamp;
+        }
+        set lodMinClamp(value) {
+          this._style.lodMinClamp = value;
+        }
+        /** Specifies the minimum and maximum levels of detail, respectively, used internally when sampling a texture. */
+        get lodMaxClamp() {
+          return this._style.lodMaxClamp;
+        }
+        set lodMaxClamp(value) {
+          this._style.lodMaxClamp = value;
+        }
+        _onStyleChange() {
+          this.emit("styleChange", this);
+        }
+        /** call this if you have modified the texture outside of the constructor */
+        update() {
+          if (this.resource) {
+            const resolution = this._resolution;
+            const didResize = this.resize(this.resourceWidth / resolution, this.resourceHeight / resolution);
+            if (didResize)
+              return;
+          }
+          this.emit("update", this);
+        }
+        /** Destroys this texture source */
+        destroy() {
+          this.destroyed = true;
+          this.emit("destroy", this);
+          this.emit("change", this);
+          if (this._style) {
+            this._style.destroy();
+            this._style = null;
+          }
+          this.uploadMethodId = null;
+          this.resource = null;
+          this.removeAllListeners();
+        }
+        /**
+         * This will unload the Texture source from the GPU. This will free up the GPU memory
+         * As soon as it is required fore rendering, it will be re-uploaded.
+         */
+        unload() {
+          this._resourceId = uid("resource");
+          this.emit("change", this);
+          this.emit("unload", this);
+        }
+        /** the width of the resource. This is the REAL pure number, not accounting resolution   */
+        get resourceWidth() {
+          const { resource } = this;
+          return resource.naturalWidth || resource.videoWidth || resource.displayWidth || resource.width;
+        }
+        /** the height of the resource. This is the REAL pure number, not accounting resolution */
+        get resourceHeight() {
+          const { resource } = this;
+          return resource.naturalHeight || resource.videoHeight || resource.displayHeight || resource.height;
+        }
+        /**
+         * the resolution of the texture. Changing this number, will not change the number of pixels in the actual texture
+         * but will the size of the texture when rendered.
+         *
+         * changing the resolution of this texture to 2 for example will make it appear twice as small when rendered (as pixel
+         * density will have increased)
+         */
+        get resolution() {
+          return this._resolution;
+        }
+        set resolution(resolution) {
+          if (this._resolution === resolution)
+            return;
+          this._resolution = resolution;
+          this.width = this.pixelWidth / resolution;
+          this.height = this.pixelHeight / resolution;
+        }
+        /**
+         * Resize the texture, this is handy if you want to use the texture as a render texture
+         * @param width - the new width of the texture
+         * @param height - the new height of the texture
+         * @param resolution - the new resolution of the texture
+         * @returns - if the texture was resized
+         */
+        resize(width, height, resolution) {
+          resolution = resolution || this._resolution;
+          width = width || this.width;
+          height = height || this.height;
+          const newPixelWidth = Math.round(width * resolution);
+          const newPixelHeight = Math.round(height * resolution);
+          this.width = newPixelWidth / resolution;
+          this.height = newPixelHeight / resolution;
+          this._resolution = resolution;
+          if (this.pixelWidth === newPixelWidth && this.pixelHeight === newPixelHeight) {
+            return false;
+          }
+          this._refreshPOT();
+          this.pixelWidth = newPixelWidth;
+          this.pixelHeight = newPixelHeight;
+          this.emit("resize", this);
+          this._resourceId = uid("resource");
+          this.emit("change", this);
+          return true;
+        }
+        /**
+         * Lets the renderer know that this texture has been updated and its mipmaps should be re-generated.
+         * This is only important for RenderTexture instances, as standard Texture instances will have their
+         * mipmaps generated on upload. You should call this method after you make any change to the texture
+         *
+         * The reason for this is is can be quite expensive to update mipmaps for a texture. So by default,
+         * We want you, the developer to specify when this action should happen.
+         *
+         * Generally you don't want to have mipmaps generated on Render targets that are changed every frame,
+         */
+        updateMipmaps() {
+          if (this.autoGenerateMipmaps && this.mipLevelCount > 1) {
+            this.emit("updateMipmaps", this);
+          }
+        }
+        set wrapMode(value) {
+          this._style.wrapMode = value;
+        }
+        get wrapMode() {
+          return this._style.wrapMode;
+        }
+        set scaleMode(value) {
+          this._style.scaleMode = value;
+        }
+        /** setting this will set magFilter,minFilter and mipmapFilter all at once!  */
+        get scaleMode() {
+          return this._style.scaleMode;
+        }
+        /**
+         * Refresh check for isPowerOfTwo texture based on size
+         * @private
+         */
+        _refreshPOT() {
+          this.isPowerOfTwo = isPow2(this.pixelWidth) && isPow2(this.pixelHeight);
+        }
+        static test(_resource) {
+          throw new Error("Unimplemented");
+        }
+      };
+      _TextureSource.defaultOptions = {
+        resolution: 1,
+        format: "bgra8unorm",
+        alphaMode: "premultiply-alpha-on-upload",
+        dimensions: "2d",
+        mipLevelCount: 1,
+        autoGenerateMipmaps: false,
+        sampleCount: 1,
+        antialias: false,
+        autoGarbageCollect: false
+      };
+      TextureSource = _TextureSource;
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/GenerateShaderSyncCode.mjs
+  function generateShaderSyncCode(shader, shaderSystem) {
+    const funcFragments = [];
+    const headerFragments = [`
+        var g = s.groups;
+        var sS = r.shader;
+        var p = s.glProgram;
+        var ugS = r.uniformGroup;
+        var resources;
+    `];
+    let addedTextreSystem = false;
+    let blockIndex = 0;
+    let textureCount = 0;
+    const programData = shaderSystem._getProgramData(shader.glProgram);
+    for (const i3 in shader.groups) {
+      const group = shader.groups[i3];
+      funcFragments.push(`
+            resources = g[${i3}].resources;
+        `);
+      for (const j3 in group.resources) {
+        const resource = group.resources[j3];
+        if (resource instanceof UniformGroup) {
+          if (resource.ubo) {
+            funcFragments.push(`
+                        sS.bindUniformBlock(
+                            resources[${j3}],
+                            sS._uniformBindMap[${i3}[${j3}],
+                            ${blockIndex++}
+                        );
+                    `);
+          } else {
+            funcFragments.push(`
+                        ugS.updateUniformGroup(resources[${j3}], p, sD);
+                    `);
+          }
+        } else if (resource instanceof BufferResource) {
+          funcFragments.push(`
+                    sS.bindUniformBlock(
+                        resources[${j3}],
+                        sS._uniformBindMap[${i3}[${j3}],
+                        ${blockIndex++}
+                    );
+                `);
+        } else if (resource instanceof TextureSource) {
+          const uniformName = shader._uniformBindMap[i3][j3];
+          const uniformData = programData.uniformData[uniformName];
+          if (uniformData) {
+            if (!addedTextreSystem) {
+              addedTextreSystem = true;
+              headerFragments.push(`
+                        var tS = r.texture;
+                        `);
+            }
+            shaderSystem._gl.uniform1i(uniformData.location, textureCount);
+            funcFragments.push(`
+                        tS.bind(resources[${j3}], ${textureCount});
+                    `);
+            textureCount++;
+          }
+        }
+      }
+    }
+    const functionSource = [...headerFragments, ...funcFragments].join("\n");
+    return new Function("r", "s", "sD", functionSource);
+  }
+  var init_GenerateShaderSyncCode = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/GenerateShaderSyncCode.mjs"() {
+      "use strict";
+      init_BufferResource();
+      init_UniformGroup();
+      init_TextureSource();
+    }
+  });
+
+  // node_modules/pixi.js/lib/utils/logging/warn.mjs
+  function warn(...args) {
+    if (warnCount === maxWarnings)
+      return;
+    warnCount++;
+    if (warnCount === maxWarnings) {
+      console.warn("PixiJS Warning: too many warnings, no more warnings will be reported to the console by PixiJS.");
+    } else {
+      console.warn("PixiJS Warning: ", ...args);
+    }
+  }
+  var warnCount, maxWarnings;
+  var init_warn = __esm({
+    "node_modules/pixi.js/lib/utils/logging/warn.mjs"() {
+      "use strict";
+      warnCount = 0;
+      maxWarnings = 500;
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlProgramData.mjs
+  var GlProgramData;
+  var init_GlProgramData = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlProgramData.mjs"() {
+      "use strict";
+      GlProgramData = class {
+        /**
+         * Makes a new Pixi program.
+         * @param program - webgl program
+         * @param uniformData - uniforms
+         */
+        constructor(program, uniformData) {
+          this.program = program;
+          this.uniformData = uniformData;
+          this.uniformGroups = {};
+          this.uniformDirtyGroups = {};
+          this.uniformBlockBindings = {};
+        }
+        /** Destroys this program. */
+        destroy() {
+          this.uniformData = null;
+          this.uniformGroups = null;
+          this.uniformDirtyGroups = null;
+          this.uniformBlockBindings = null;
+          this.program = null;
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/compileShader.mjs
+  function compileShader(gl, type, src) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    return shader;
+  }
+  var init_compileShader = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/compileShader.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/defaultValue.mjs
+  function booleanArray(size) {
+    const array = new Array(size);
+    for (let i3 = 0; i3 < array.length; i3++) {
+      array[i3] = false;
+    }
+    return array;
+  }
+  function defaultValue(type, size) {
+    switch (type) {
+      case "float":
+        return 0;
+      case "vec2":
+        return new Float32Array(2 * size);
+      case "vec3":
+        return new Float32Array(3 * size);
+      case "vec4":
+        return new Float32Array(4 * size);
+      case "int":
+      case "uint":
+      case "sampler2D":
+      case "sampler2DArray":
+        return 0;
+      case "ivec2":
+        return new Int32Array(2 * size);
+      case "ivec3":
+        return new Int32Array(3 * size);
+      case "ivec4":
+        return new Int32Array(4 * size);
+      case "uvec2":
+        return new Uint32Array(2 * size);
+      case "uvec3":
+        return new Uint32Array(3 * size);
+      case "uvec4":
+        return new Uint32Array(4 * size);
+      case "bool":
+        return false;
+      case "bvec2":
+        return booleanArray(2 * size);
+      case "bvec3":
+        return booleanArray(3 * size);
+      case "bvec4":
+        return booleanArray(4 * size);
+      case "mat2":
+        return new Float32Array([
+          1,
+          0,
+          0,
+          1
+        ]);
+      case "mat3":
+        return new Float32Array([
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1
+        ]);
+      case "mat4":
+        return new Float32Array([
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]);
+    }
+    return null;
+  }
+  var init_defaultValue = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/defaultValue.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/getAttributeInfoFromFormat.mjs
+  function getAttributeInfoFromFormat(format) {
+    return attributeFormatData[format] ?? attributeFormatData.float32;
+  }
+  var attributeFormatData;
+  var init_getAttributeInfoFromFormat = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/getAttributeInfoFromFormat.mjs"() {
+      "use strict";
+      attributeFormatData = {
+        uint8x2: { size: 2, stride: 2, normalised: false },
+        uint8x4: { size: 4, stride: 4, normalised: false },
+        sint8x2: { size: 2, stride: 2, normalised: false },
+        sint8x4: { size: 4, stride: 4, normalised: false },
+        unorm8x2: { size: 2, stride: 2, normalised: true },
+        unorm8x4: { size: 4, stride: 4, normalised: true },
+        snorm8x2: { size: 2, stride: 2, normalised: true },
+        snorm8x4: { size: 4, stride: 4, normalised: true },
+        uint16x2: { size: 2, stride: 4, normalised: false },
+        uint16x4: { size: 4, stride: 8, normalised: false },
+        sint16x2: { size: 2, stride: 4, normalised: false },
+        sint16x4: { size: 4, stride: 8, normalised: false },
+        unorm16x2: { size: 2, stride: 4, normalised: true },
+        unorm16x4: { size: 4, stride: 8, normalised: true },
+        snorm16x2: { size: 2, stride: 4, normalised: true },
+        snorm16x4: { size: 4, stride: 8, normalised: true },
+        float16x2: { size: 2, stride: 4, normalised: false },
+        float16x4: { size: 4, stride: 8, normalised: false },
+        float32: { size: 1, stride: 4, normalised: false },
+        float32x2: { size: 2, stride: 8, normalised: false },
+        float32x3: { size: 3, stride: 12, normalised: false },
+        float32x4: { size: 4, stride: 16, normalised: false },
+        uint32: { size: 1, stride: 4, normalised: false },
+        uint32x2: { size: 2, stride: 8, normalised: false },
+        uint32x3: { size: 3, stride: 12, normalised: false },
+        uint32x4: { size: 4, stride: 16, normalised: false },
+        sint32: { size: 1, stride: 4, normalised: false },
+        sint32x2: { size: 2, stride: 8, normalised: false },
+        sint32x3: { size: 3, stride: 12, normalised: false },
+        sint32x4: { size: 4, stride: 16, normalised: false }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/mapType.mjs
+  function mapType(gl, type) {
+    if (!GL_TABLE) {
+      const typeNames = Object.keys(GL_TO_GLSL_TYPES);
+      GL_TABLE = {};
+      for (let i3 = 0; i3 < typeNames.length; ++i3) {
+        const tn = typeNames[i3];
+        GL_TABLE[gl[tn]] = GL_TO_GLSL_TYPES[tn];
+      }
+    }
+    return GL_TABLE[type];
+  }
+  function mapGlToVertexFormat(gl, type) {
+    const typeValue = mapType(gl, type);
+    return GLSL_TO_VERTEX_TYPES[typeValue] || "float32";
+  }
+  var GL_TABLE, GL_TO_GLSL_TYPES, GLSL_TO_VERTEX_TYPES;
+  var init_mapType = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/mapType.mjs"() {
+      "use strict";
+      GL_TABLE = null;
+      GL_TO_GLSL_TYPES = {
+        FLOAT: "float",
+        FLOAT_VEC2: "vec2",
+        FLOAT_VEC3: "vec3",
+        FLOAT_VEC4: "vec4",
+        INT: "int",
+        INT_VEC2: "ivec2",
+        INT_VEC3: "ivec3",
+        INT_VEC4: "ivec4",
+        UNSIGNED_INT: "uint",
+        UNSIGNED_INT_VEC2: "uvec2",
+        UNSIGNED_INT_VEC3: "uvec3",
+        UNSIGNED_INT_VEC4: "uvec4",
+        BOOL: "bool",
+        BOOL_VEC2: "bvec2",
+        BOOL_VEC3: "bvec3",
+        BOOL_VEC4: "bvec4",
+        FLOAT_MAT2: "mat2",
+        FLOAT_MAT3: "mat3",
+        FLOAT_MAT4: "mat4",
+        SAMPLER_2D: "sampler2D",
+        INT_SAMPLER_2D: "sampler2D",
+        UNSIGNED_INT_SAMPLER_2D: "sampler2D",
+        SAMPLER_CUBE: "samplerCube",
+        INT_SAMPLER_CUBE: "samplerCube",
+        UNSIGNED_INT_SAMPLER_CUBE: "samplerCube",
+        SAMPLER_2D_ARRAY: "sampler2DArray",
+        INT_SAMPLER_2D_ARRAY: "sampler2DArray",
+        UNSIGNED_INT_SAMPLER_2D_ARRAY: "sampler2DArray"
+      };
+      GLSL_TO_VERTEX_TYPES = {
+        float: "float32",
+        vec2: "float32x2",
+        vec3: "float32x3",
+        vec4: "float32x4",
+        int: "sint32",
+        ivec2: "sint32x2",
+        ivec3: "sint32x3",
+        ivec4: "sint32x4",
+        uint: "uint32",
+        uvec2: "uint32x2",
+        uvec3: "uint32x3",
+        uvec4: "uint32x4",
+        bool: "uint32",
+        bvec2: "uint32x2",
+        bvec3: "uint32x3",
+        bvec4: "uint32x4"
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/extractAttributesFromGlProgram.mjs
+  function extractAttributesFromGlProgram(program, gl, sortAttributes = false) {
+    const attributes = {};
+    const totalAttributes = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
+    for (let i3 = 0; i3 < totalAttributes; i3++) {
+      const attribData = gl.getActiveAttrib(program, i3);
+      if (attribData.name.startsWith("gl_")) {
+        continue;
+      }
+      const format = mapGlToVertexFormat(gl, attribData.type);
+      attributes[attribData.name] = {
+        location: 0,
+        // set further down..
+        format,
+        stride: getAttributeInfoFromFormat(format).stride,
+        offset: 0,
+        instance: false,
+        start: 0
+      };
+    }
+    const keys = Object.keys(attributes);
+    if (sortAttributes) {
+      keys.sort((a3, b3) => a3 > b3 ? 1 : -1);
+      for (let i3 = 0; i3 < keys.length; i3++) {
+        attributes[keys[i3]].location = i3;
+        gl.bindAttribLocation(program, i3, keys[i3]);
+      }
+      gl.linkProgram(program);
+    } else {
+      for (let i3 = 0; i3 < keys.length; i3++) {
+        attributes[keys[i3]].location = gl.getAttribLocation(program, keys[i3]);
+      }
+    }
+    return attributes;
+  }
+  var init_extractAttributesFromGlProgram = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/extractAttributesFromGlProgram.mjs"() {
+      "use strict";
+      init_getAttributeInfoFromFormat();
+      init_mapType();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUboData.mjs
+  function getUboData(program, gl) {
+    if (!gl.ACTIVE_UNIFORM_BLOCKS)
+      return {};
+    const uniformBlocks = {};
+    const totalUniformsBlocks = gl.getProgramParameter(program, gl.ACTIVE_UNIFORM_BLOCKS);
+    for (let i3 = 0; i3 < totalUniformsBlocks; i3++) {
+      const name = gl.getActiveUniformBlockName(program, i3);
+      const uniformBlockIndex = gl.getUniformBlockIndex(program, name);
+      const size = gl.getActiveUniformBlockParameter(program, i3, gl.UNIFORM_BLOCK_DATA_SIZE);
+      uniformBlocks[name] = {
+        name,
+        index: uniformBlockIndex,
+        size
+      };
+    }
+    return uniformBlocks;
+  }
+  var init_getUboData = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUboData.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUniformData.mjs
+  function getUniformData(program, gl) {
+    const uniforms = {};
+    const totalUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+    for (let i3 = 0; i3 < totalUniforms; i3++) {
+      const uniformData = gl.getActiveUniform(program, i3);
+      const name = uniformData.name.replace(/\[.*?\]$/, "");
+      const isArray = !!uniformData.name.match(/\[.*?\]$/);
+      const type = mapType(gl, uniformData.type);
+      uniforms[name] = {
+        name,
+        index: i3,
+        type,
+        size: uniformData.size,
+        isArray,
+        value: defaultValue(type, uniformData.size)
+      };
+    }
+    return uniforms;
+  }
+  var init_getUniformData = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUniformData.mjs"() {
+      "use strict";
+      init_defaultValue();
+      init_mapType();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/logProgramError.mjs
+  function logPrettyShaderError(gl, shader) {
+    const shaderSrc = gl.getShaderSource(shader).split("\n").map((line, index) => `${index}: ${line}`);
+    const shaderLog = gl.getShaderInfoLog(shader);
+    const splitShader = shaderLog.split("\n");
+    const dedupe = {};
+    const lineNumbers = splitShader.map((line) => parseFloat(line.replace(/^ERROR\: 0\:([\d]+)\:.*$/, "$1"))).filter((n3) => {
+      if (n3 && !dedupe[n3]) {
+        dedupe[n3] = true;
+        return true;
+      }
+      return false;
+    });
+    const logArgs = [""];
+    lineNumbers.forEach((number) => {
+      shaderSrc[number - 1] = `%c${shaderSrc[number - 1]}%c`;
+      logArgs.push("background: #FF0000; color:#FFFFFF; font-size: 10px", "font-size: 10px");
+    });
+    const fragmentSourceToLog = shaderSrc.join("\n");
+    logArgs[0] = fragmentSourceToLog;
+    console.error(shaderLog);
+    console.groupCollapsed("click to view full shader code");
+    console.warn(...logArgs);
+    console.groupEnd();
+  }
+  function logProgramError(gl, program, vertexShader, fragmentShader) {
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+        logPrettyShaderError(gl, vertexShader);
+      }
+      if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+        logPrettyShaderError(gl, fragmentShader);
+      }
+      console.error("PixiJS Error: Could not initialize shader.");
+      if (gl.getProgramInfoLog(program) !== "") {
+        console.warn("PixiJS Warning: gl.getProgramInfoLog()", gl.getProgramInfoLog(program));
+      }
+    }
+  }
+  var init_logProgramError = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/logProgramError.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/generateProgram.mjs
+  function generateProgram(gl, program) {
+    const glVertShader = compileShader(gl, gl.VERTEX_SHADER, program.vertex);
+    const glFragShader = compileShader(gl, gl.FRAGMENT_SHADER, program.fragment);
+    const webGLProgram = gl.createProgram();
+    gl.attachShader(webGLProgram, glVertShader);
+    gl.attachShader(webGLProgram, glFragShader);
+    const transformFeedbackVaryings = program.transformFeedbackVaryings;
+    if (transformFeedbackVaryings) {
+      if (typeof gl.transformFeedbackVaryings !== "function") {
+        warn(`TransformFeedback is not supported but TransformFeedbackVaryings are given.`);
+      } else {
+        gl.transformFeedbackVaryings(
+          webGLProgram,
+          transformFeedbackVaryings.names,
+          transformFeedbackVaryings.bufferMode === "separate" ? gl.SEPARATE_ATTRIBS : gl.INTERLEAVED_ATTRIBS
+        );
+      }
+    }
+    gl.linkProgram(webGLProgram);
+    if (!gl.getProgramParameter(webGLProgram, gl.LINK_STATUS)) {
+      logProgramError(gl, webGLProgram, glVertShader, glFragShader);
+    }
+    program._attributeData = extractAttributesFromGlProgram(
+      webGLProgram,
+      gl,
+      !/^[ \t]*#[ \t]*version[ \t]+300[ \t]+es[ \t]*$/m.test(program.vertex)
+    );
+    program._uniformData = getUniformData(webGLProgram, gl);
+    program._uniformBlockData = getUboData(webGLProgram, gl);
+    gl.deleteShader(glVertShader);
+    gl.deleteShader(glFragShader);
+    const uniformData = {};
+    for (const i3 in program._uniformData) {
+      const data = program._uniformData[i3];
+      uniformData[i3] = {
+        location: gl.getUniformLocation(webGLProgram, i3),
+        value: defaultValue(data.type, data.size)
+      };
+    }
+    const glProgram3 = new GlProgramData(webGLProgram, uniformData);
+    return glProgram3;
+  }
+  var init_generateProgram = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/generateProgram.mjs"() {
+      "use strict";
+      init_warn();
+      init_GlProgramData();
+      init_compileShader();
+      init_defaultValue();
+      init_extractAttributesFromGlProgram();
+      init_getUboData();
+      init_getUniformData();
+      init_logProgramError();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlShaderSystem.mjs
+  var defaultSyncData, GlShaderSystem;
+  var init_GlShaderSystem = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlShaderSystem.mjs"() {
+      "use strict";
+      init_Extensions();
+      init_maxRecommendedTextures();
+      init_GenerateShaderSyncCode();
+      init_generateProgram();
+      defaultSyncData = {
+        textureCount: 0,
+        blockIndex: 0
+      };
+      GlShaderSystem = class {
+        constructor(renderer) {
+          this._activeProgram = null;
+          this._programDataHash = /* @__PURE__ */ Object.create(null);
+          this._nextIndex = 0;
+          this._boundUniformsIdsToIndexHash = /* @__PURE__ */ Object.create(null);
+          this._boundIndexToUniformsHash = /* @__PURE__ */ Object.create(null);
+          this._shaderSyncFunctions = /* @__PURE__ */ Object.create(null);
+          this._renderer = renderer;
+        }
+        contextChange(gl) {
+          this._gl = gl;
+          this._maxBindings = gl.MAX_UNIFORM_BUFFER_BINDINGS ? gl.getParameter(gl.MAX_UNIFORM_BUFFER_BINDINGS) : 0;
+          this._programDataHash = /* @__PURE__ */ Object.create(null);
+          this._boundUniformsIdsToIndexHash = /* @__PURE__ */ Object.create(null);
+          this._boundIndexToUniformsHash = /* @__PURE__ */ Object.create(null);
+          this._shaderSyncFunctions = /* @__PURE__ */ Object.create(null);
+          this._activeProgram = null;
+          this.maxTextures = getMaxTexturesPerBatch();
+        }
+        /**
+         * Changes the current shader to the one given in parameter.
+         * @param shader - the new shader
+         * @param skipSync - false if the shader should automatically sync its uniforms.
+         * @returns the glProgram that belongs to the shader.
+         */
+        bind(shader, skipSync) {
+          this._setProgram(shader.glProgram);
+          if (skipSync)
+            return;
+          defaultSyncData.textureCount = 0;
+          defaultSyncData.blockIndex = 0;
+          let syncFunction = this._shaderSyncFunctions[shader.glProgram._key];
+          if (!syncFunction) {
+            syncFunction = this._shaderSyncFunctions[shader.glProgram._key] = this._generateShaderSync(shader, this);
+          }
+          syncFunction(this._renderer, shader, defaultSyncData);
+        }
+        /**
+         * Updates the uniform group.
+         * @param uniformGroup - the uniform group to update
+         */
+        updateUniformGroup(uniformGroup) {
+          this._renderer.uniformGroup.updateUniformGroup(uniformGroup, this._activeProgram, defaultSyncData);
+        }
+        /**
+         * Binds a uniform block to the shader.
+         * @param uniformGroup - the uniform group to bind
+         * @param name - the name of the uniform block
+         * @param index - the index of the uniform block
+         */
+        bindUniformBlock(uniformGroup, name, index = 0) {
+          const bufferSystem = this._renderer.buffer;
+          const programData = this._getProgramData(this._activeProgram);
+          const isBufferResource = uniformGroup._bufferResource;
+          if (isBufferResource) {
+            this._renderer.ubo.updateUniformGroup(uniformGroup);
+          }
+          bufferSystem.updateBuffer(uniformGroup.buffer);
+          let boundIndex = this._boundUniformsIdsToIndexHash[uniformGroup.uid];
+          if (boundIndex === void 0) {
+            const nextIndex = this._nextIndex++ % this._maxBindings;
+            const currentBoundUniformGroup = this._boundIndexToUniformsHash[nextIndex];
+            if (currentBoundUniformGroup) {
+              this._boundUniformsIdsToIndexHash[currentBoundUniformGroup.uid] = void 0;
+            }
+            boundIndex = this._boundUniformsIdsToIndexHash[uniformGroup.uid] = nextIndex;
+            this._boundIndexToUniformsHash[nextIndex] = uniformGroup;
+            if (isBufferResource) {
+              bufferSystem.bindBufferRange(uniformGroup.buffer, nextIndex, uniformGroup.offset);
+            } else {
+              bufferSystem.bindBufferBase(uniformGroup.buffer, nextIndex);
+            }
+          }
+          const gl = this._gl;
+          const uniformBlockIndex = this._activeProgram._uniformBlockData[name].index;
+          if (programData.uniformBlockBindings[index] === boundIndex)
+            return;
+          programData.uniformBlockBindings[index] = boundIndex;
+          gl.uniformBlockBinding(programData.program, uniformBlockIndex, boundIndex);
+        }
+        _setProgram(program) {
+          if (this._activeProgram === program)
+            return;
+          this._activeProgram = program;
+          const programData = this._getProgramData(program);
+          this._gl.useProgram(programData.program);
+        }
+        /**
+         * @param program - the program to get the data for
+         * @internal
+         * @private
+         */
+        _getProgramData(program) {
+          return this._programDataHash[program._key] || this._createProgramData(program);
+        }
+        _createProgramData(program) {
+          const key = program._key;
+          this._programDataHash[key] = generateProgram(this._gl, program);
+          return this._programDataHash[key];
+        }
+        destroy() {
+          for (const key of Object.keys(this._programDataHash)) {
+            const programData = this._programDataHash[key];
+            programData.destroy();
+            this._programDataHash[key] = null;
+          }
+          this._programDataHash = null;
+          this._boundUniformsIdsToIndexHash = null;
+        }
+        /**
+         * Creates a function that can be executed that will sync the shader as efficiently as possible.
+         * Overridden by the unsafe eval package if you don't want eval used in your project.
+         * @param shader - the shader to generate the sync function for
+         * @param shaderSystem - the shader system to use
+         * @returns - the generated sync function
+         * @ignore
+         */
+        _generateShaderSync(shader, shaderSystem) {
+          return generateShaderSyncCode(shader, shaderSystem);
+        }
+      };
+      GlShaderSystem.extension = {
+        type: [
+          ExtensionType.WebGLSystem
+        ],
+        name: "shader"
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSyncTypes.mjs
+  var UNIFORM_TO_SINGLE_SETTERS, UNIFORM_TO_ARRAY_SETTERS;
+  var init_generateUniformsSyncTypes = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSyncTypes.mjs"() {
+      "use strict";
+      UNIFORM_TO_SINGLE_SETTERS = {
+        f32: `if (cv !== v) {
+            cu.value = v;
+            gl.uniform1f(location, v);
+        }`,
+        "vec2<f32>": `if (cv[0] !== v[0] || cv[1] !== v[1]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            gl.uniform2f(location, v[0], v[1]);
+        }`,
+        "vec3<f32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            cv[2] = v[2];
+            gl.uniform3f(location, v[0], v[1], v[2]);
+        }`,
+        "vec4<f32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2] || cv[3] !== v[3]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            cv[2] = v[2];
+            cv[3] = v[3];
+            gl.uniform4f(location, v[0], v[1], v[2], v[3]);
+        }`,
+        i32: `if (cv !== v) {
+            cu.value = v;
+            gl.uniform1i(location, v);
+        }`,
+        "vec2<i32>": `if (cv[0] !== v[0] || cv[1] !== v[1]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            gl.uniform2i(location, v[0], v[1]);
+        }`,
+        "vec3<i32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            cv[2] = v[2];
+            gl.uniform3i(location, v[0], v[1], v[2]);
+        }`,
+        "vec4<i32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2] || cv[3] !== v[3]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            cv[2] = v[2];
+            cv[3] = v[3];
+            gl.uniform4i(location, v[0], v[1], v[2], v[3]);
+        }`,
+        u32: `if (cv !== v) {
+            cu.value = v;
+            gl.uniform1ui(location, v);
+        }`,
+        "vec2<u32>": `if (cv[0] !== v[0] || cv[1] !== v[1]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            gl.uniform2ui(location, v[0], v[1]);
+        }`,
+        "vec3<u32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            cv[2] = v[2];
+            gl.uniform3ui(location, v[0], v[1], v[2]);
+        }`,
+        "vec4<u32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2] || cv[3] !== v[3]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            cv[2] = v[2];
+            cv[3] = v[3];
+            gl.uniform4ui(location, v[0], v[1], v[2], v[3]);
+        }`,
+        bool: `if (cv !== v) {
+            cu.value = v;
+            gl.uniform1i(location, v);
+        }`,
+        "vec2<bool>": `if (cv[0] !== v[0] || cv[1] !== v[1]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            gl.uniform2i(location, v[0], v[1]);
+        }`,
+        "vec3<bool>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            cv[2] = v[2];
+            gl.uniform3i(location, v[0], v[1], v[2]);
+        }`,
+        "vec4<bool>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2] || cv[3] !== v[3]) {
+            cv[0] = v[0];
+            cv[1] = v[1];
+            cv[2] = v[2];
+            cv[3] = v[3];
+            gl.uniform4i(location, v[0], v[1], v[2], v[3]);
+        }`,
+        "mat2x2<f32>": `gl.uniformMatrix2fv(location, false, v);`,
+        "mat3x3<f32>": `gl.uniformMatrix3fv(location, false, v);`,
+        "mat4x4<f32>": `gl.uniformMatrix4fv(location, false, v);`
+      };
+      UNIFORM_TO_ARRAY_SETTERS = {
+        f32: `gl.uniform1fv(location, v);`,
+        "vec2<f32>": `gl.uniform2fv(location, v);`,
+        "vec3<f32>": `gl.uniform3fv(location, v);`,
+        "vec4<f32>": `gl.uniform4fv(location, v);`,
+        "mat2x2<f32>": `gl.uniformMatrix2fv(location, false, v);`,
+        "mat3x3<f32>": `gl.uniformMatrix3fv(location, false, v);`,
+        "mat4x4<f32>": `gl.uniformMatrix4fv(location, false, v);`,
+        i32: `gl.uniform1iv(location, v);`,
+        "vec2<i32>": `gl.uniform2iv(location, v);`,
+        "vec3<i32>": `gl.uniform3iv(location, v);`,
+        "vec4<i32>": `gl.uniform4iv(location, v);`,
+        u32: `gl.uniform1iv(location, v);`,
+        "vec2<u32>": `gl.uniform2iv(location, v);`,
+        "vec3<u32>": `gl.uniform3iv(location, v);`,
+        "vec4<u32>": `gl.uniform4iv(location, v);`,
+        bool: `gl.uniform1iv(location, v);`,
+        "vec2<bool>": `gl.uniform2iv(location, v);`,
+        "vec3<bool>": `gl.uniform3iv(location, v);`,
+        "vec4<bool>": `gl.uniform4iv(location, v);`
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSync.mjs
+  function generateUniformsSync(group, uniformData) {
+    const funcFragments = [`
+        var v = null;
+        var cv = null;
+        var cu = null;
+        var t = 0;
+        var gl = renderer.gl;
+        var name = null;
+    `];
+    for (const i3 in group.uniforms) {
+      if (!uniformData[i3]) {
+        if (group.uniforms[i3] instanceof UniformGroup) {
+          if (group.uniforms[i3].ubo) {
+            funcFragments.push(`
+                        renderer.shader.bindUniformBlock(uv.${i3}, "${i3}");
+                    `);
+          } else {
+            funcFragments.push(`
+                        renderer.shader.updateUniformGroup(uv.${i3});
+                    `);
+          }
+        } else if (group.uniforms[i3] instanceof BufferResource) {
+          funcFragments.push(`
+                        renderer.shader.bindBufferResource(uv.${i3}, "${i3}");
+                    `);
+        }
+        continue;
+      }
+      const uniform = group.uniformStructures[i3];
+      let parsed = false;
+      for (let j3 = 0; j3 < uniformParsers.length; j3++) {
+        const parser = uniformParsers[j3];
+        if (uniform.type === parser.type && parser.test(uniform)) {
+          funcFragments.push(`name = "${i3}";`, uniformParsers[j3].uniform);
+          parsed = true;
+          break;
+        }
+      }
+      if (!parsed) {
+        const templateType = uniform.size === 1 ? UNIFORM_TO_SINGLE_SETTERS : UNIFORM_TO_ARRAY_SETTERS;
+        const template = templateType[uniform.type].replace("location", `ud["${i3}"].location`);
+        funcFragments.push(`
+            cu = ud["${i3}"];
+            cv = cu.value;
+            v = uv["${i3}"];
+            ${template};`);
+      }
+    }
+    return new Function("ud", "uv", "renderer", "syncData", funcFragments.join("\n"));
+  }
+  var init_generateUniformsSync = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSync.mjs"() {
+      "use strict";
+      init_BufferResource();
+      init_UniformGroup();
+      init_uniformParsers();
+      init_generateUniformsSyncTypes();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlUniformGroupSystem.mjs
+  var GlUniformGroupSystem;
+  var init_GlUniformGroupSystem = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlUniformGroupSystem.mjs"() {
+      "use strict";
+      init_Extensions();
+      init_generateUniformsSync();
+      GlUniformGroupSystem = class {
+        /** @param renderer - The renderer this System works for. */
+        constructor(renderer) {
+          this._cache = {};
+          this._uniformGroupSyncHash = {};
+          this._renderer = renderer;
+          this.gl = null;
+          this._cache = {};
+        }
+        contextChange(gl) {
+          this.gl = gl;
+        }
+        /**
+         * Uploads the uniforms values to the currently bound shader.
+         * @param group - the uniforms values that be applied to the current shader
+         * @param program
+         * @param syncData
+         * @param syncData.textureCount
+         */
+        updateUniformGroup(group, program, syncData) {
+          const programData = this._renderer.shader._getProgramData(program);
+          if (!group.isStatic || group._dirtyId !== programData.uniformDirtyGroups[group.uid]) {
+            programData.uniformDirtyGroups[group.uid] = group._dirtyId;
+            const syncFunc = this._getUniformSyncFunction(group, program);
+            syncFunc(programData.uniformData, group.uniforms, this._renderer, syncData);
+          }
+        }
+        /**
+         * Overridable by the pixi.js/unsafe-eval package to use static syncUniforms instead.
+         * @param group
+         * @param program
+         */
+        _getUniformSyncFunction(group, program) {
+          return this._uniformGroupSyncHash[group._signature]?.[program._key] || this._createUniformSyncFunction(group, program);
+        }
+        _createUniformSyncFunction(group, program) {
+          const uniformGroupSyncHash = this._uniformGroupSyncHash[group._signature] || (this._uniformGroupSyncHash[group._signature] = {});
+          const id = this._getSignature(group, program._uniformData, "u");
+          if (!this._cache[id]) {
+            this._cache[id] = this._generateUniformsSync(group, program._uniformData);
+          }
+          uniformGroupSyncHash[program._key] = this._cache[id];
+          return uniformGroupSyncHash[program._key];
+        }
+        _generateUniformsSync(group, uniformData) {
+          return generateUniformsSync(group, uniformData);
+        }
+        /**
+         * Takes a uniform group and data and generates a unique signature for them.
+         * @param group - The uniform group to get signature of
+         * @param group.uniforms
+         * @param uniformData - Uniform information generated by the shader
+         * @param preFix
+         * @returns Unique signature of the uniform group
+         */
+        _getSignature(group, uniformData, preFix) {
+          const uniforms = group.uniforms;
+          const strings = [`${preFix}-`];
+          for (const i3 in uniforms) {
+            strings.push(i3);
+            if (uniformData[i3]) {
+              strings.push(uniformData[i3].type);
+            }
+          }
+          return strings.join("-");
+        }
+        /** Destroys this System and removes all its textures. */
+        destroy() {
+          this._renderer = null;
+          this._cache = null;
+        }
+      };
+      GlUniformGroupSystem.extension = {
+        type: [
+          ExtensionType.WebGLSystem
+        ],
+        name: "uniformGroup"
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboElementsWGSL.mjs
+  function createUboElementsWGSL(uniformData) {
+    const uboElements = uniformData.map((data) => ({
+      data,
+      offset: 0,
+      size: 0
+    }));
+    let offset = 0;
+    for (let i3 = 0; i3 < uboElements.length; i3++) {
+      const uboElement = uboElements[i3];
+      let size = WGSL_ALIGN_SIZE_DATA[uboElement.data.type].size;
+      const align = WGSL_ALIGN_SIZE_DATA[uboElement.data.type].align;
+      if (!WGSL_ALIGN_SIZE_DATA[uboElement.data.type]) {
+        throw new Error(`[Pixi.js] WebGPU UniformBuffer: Unknown type ${uboElement.data.type}`);
+      }
+      if (uboElement.data.size > 1) {
+        size = Math.max(size, align) * uboElement.data.size;
+      }
+      offset = Math.ceil(offset / align) * align;
+      uboElement.size = size;
+      uboElement.offset = offset;
+      offset += size;
+    }
+    offset = Math.ceil(offset / 16) * 16;
+    return { uboElements, size: offset };
+  }
+  var WGSL_ALIGN_SIZE_DATA;
+  var init_createUboElementsWGSL = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboElementsWGSL.mjs"() {
+      "use strict";
+      WGSL_ALIGN_SIZE_DATA = {
+        i32: { align: 4, size: 4 },
+        u32: { align: 4, size: 4 },
+        f32: { align: 4, size: 4 },
+        f16: { align: 2, size: 2 },
+        "vec2<i32>": { align: 8, size: 8 },
+        "vec2<u32>": { align: 8, size: 8 },
+        "vec2<f32>": { align: 8, size: 8 },
+        "vec2<f16>": { align: 4, size: 4 },
+        "vec3<i32>": { align: 16, size: 12 },
+        "vec3<u32>": { align: 16, size: 12 },
+        "vec3<f32>": { align: 16, size: 12 },
+        "vec3<f16>": { align: 8, size: 6 },
+        "vec4<i32>": { align: 16, size: 16 },
+        "vec4<u32>": { align: 16, size: 16 },
+        "vec4<f32>": { align: 16, size: 16 },
+        "vec4<f16>": { align: 8, size: 8 },
+        "mat2x2<f32>": { align: 8, size: 16 },
+        "mat2x2<f16>": { align: 4, size: 8 },
+        "mat3x2<f32>": { align: 8, size: 24 },
+        "mat3x2<f16>": { align: 4, size: 12 },
+        "mat4x2<f32>": { align: 8, size: 32 },
+        "mat4x2<f16>": { align: 4, size: 16 },
+        "mat2x3<f32>": { align: 16, size: 32 },
+        "mat2x3<f16>": { align: 8, size: 16 },
+        "mat3x3<f32>": { align: 16, size: 48 },
+        "mat3x3<f16>": { align: 8, size: 24 },
+        "mat4x3<f32>": { align: 16, size: 64 },
+        "mat4x3<f16>": { align: 8, size: 32 },
+        "mat2x4<f32>": { align: 16, size: 32 },
+        "mat2x4<f16>": { align: 8, size: 16 },
+        "mat3x4<f32>": { align: 16, size: 48 },
+        "mat3x4<f16>": { align: 8, size: 24 },
+        "mat4x4<f32>": { align: 16, size: 64 },
+        "mat4x4<f16>": { align: 8, size: 32 }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateArraySyncWGSL.mjs
+  function generateArraySyncWGSL(uboElement, offsetToAdd) {
+    const { size, align } = WGSL_ALIGN_SIZE_DATA[uboElement.data.type];
+    const remainder = (align - size) / 4;
+    return `
+         v = uv.${uboElement.data.name};
+         ${offsetToAdd !== 0 ? `offset += ${offsetToAdd};` : ""}
+
+         arrayOffset = offset;
+
+         t = 0;
+
+         for(var i=0; i < ${uboElement.data.size * (size / 4)}; i++)
+         {
+             for(var j = 0; j < ${size / 4}; j++)
+             {
+                 data[arrayOffset++] = v[t++];
+             }
+             ${remainder !== 0 ? `arrayOffset += ${remainder};` : ""}
+         }
+     `;
+  }
+  var init_generateArraySyncWGSL = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateArraySyncWGSL.mjs"() {
+      "use strict";
+      init_createUboElementsWGSL();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboSyncFunctionWGSL.mjs
+  function createUboSyncFunctionWGSL(uboElements) {
+    return createUboSyncFunction(
+      uboElements,
+      "uboWgsl",
+      generateArraySyncWGSL,
+      uboSyncFunctionsWGSL
+    );
+  }
+  var init_createUboSyncFunctionWGSL = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboSyncFunctionWGSL.mjs"() {
+      "use strict";
+      init_createUboSyncFunction();
+      init_uboSyncFunctions();
+      init_generateArraySyncWGSL();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gpu/GpuUboSystem.mjs
+  var GpuUboSystem;
+  var init_GpuUboSystem = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gpu/GpuUboSystem.mjs"() {
+      "use strict";
+      init_Extensions();
+      init_UboSystem();
+      init_createUboElementsWGSL();
+      init_createUboSyncFunctionWGSL();
+      GpuUboSystem = class extends UboSystem {
+        constructor() {
+          super({
+            createUboElements: createUboElementsWGSL,
+            generateUboSync: createUboSyncFunctionWGSL
+          });
+        }
+      };
+      GpuUboSystem.extension = {
+        type: [ExtensionType.WebGPUSystem],
+        name: "ubo"
+      };
     }
   });
 
@@ -878,7 +3418,7 @@
           return (alpha * 255 << 24) + (r3 << 16) + (g3 << 8) + b3;
         }
         /**
-         * Convert to a hexidecimal string.
+         * Convert to a hexadecimal string.
          * @example
          * import { Color } from 'pixi.js';
          * new Color('white').toHex(); // returns "#ffffff"
@@ -888,7 +3428,7 @@
           return `#${"000000".substring(0, 6 - hexString.length) + hexString}`;
         }
         /**
-         * Convert to a hexidecimal string with alpha.
+         * Convert to a hexadecimal string with alpha.
          * @example
          * import { Color } from 'pixi.js';
          * new Color('white').toHexa(); // returns "#ffffffff"
@@ -999,6 +3539,28 @@
     }
   });
 
+  // node_modules/pixi.js/lib/environment/autoDetectEnvironment.mjs
+  async function loadEnvironmentExtensions(skip) {
+    if (skip)
+      return;
+    for (let i3 = 0; i3 < environments.length; i3++) {
+      const env = environments[i3];
+      if (env.value.test()) {
+        await env.value.load();
+        return;
+      }
+    }
+  }
+  var environments;
+  var init_autoDetectEnvironment = __esm({
+    "node_modules/pixi.js/lib/environment/autoDetectEnvironment.mjs"() {
+      "use strict";
+      init_Extensions();
+      environments = [];
+      extensions.handleByNamedList(ExtensionType.Environment, environments);
+    }
+  });
+
   // node_modules/pixi.js/lib/culling/cullingMixin.mjs
   var cullingMixin;
   var init_cullingMixin = __esm({
@@ -1014,7 +3576,7 @@
 
   // node_modules/pixi.js/lib/maths/misc/const.mjs
   var PI_2, RAD_TO_DEG, DEG_TO_RAD;
-  var init_const = __esm({
+  var init_const2 = __esm({
     "node_modules/pixi.js/lib/maths/misc/const.mjs"() {
       "use strict";
       PI_2 = Math.PI * 2;
@@ -1107,7 +3669,7 @@
   var init_Matrix = __esm({
     "node_modules/pixi.js/lib/maths/matrix/Matrix.mjs"() {
       "use strict";
-      init_const();
+      init_const2();
       init_Point();
       Matrix = class _Matrix {
         /**
@@ -1603,58 +4165,159 @@
     }
   });
 
-  // node_modules/pixi.js/lib/utils/data/uid.mjs
-  function uid(name = "default") {
-    if (uidCache[name] === void 0) {
-      uidCache[name] = -1;
-    }
-    return ++uidCache[name];
-  }
-  var uidCache;
-  var init_uid = __esm({
-    "node_modules/pixi.js/lib/utils/data/uid.mjs"() {
+  // node_modules/pixi.js/lib/utils/pool/Pool.mjs
+  var Pool;
+  var init_Pool = __esm({
+    "node_modules/pixi.js/lib/utils/pool/Pool.mjs"() {
       "use strict";
-      uidCache = {
-        default: -1
+      Pool = class {
+        /**
+         * Constructs a new Pool.
+         * @param ClassType - The constructor of the items in the pool.
+         * @param {number} [initialSize] - The initial size of the pool.
+         */
+        constructor(ClassType, initialSize) {
+          this._pool = [];
+          this._count = 0;
+          this._index = 0;
+          this._classType = ClassType;
+          if (initialSize) {
+            this.prepopulate(initialSize);
+          }
+        }
+        /**
+         * Prepopulates the pool with a given number of items.
+         * @param total - The number of items to add to the pool.
+         */
+        prepopulate(total) {
+          for (let i3 = 0; i3 < total; i3++) {
+            this._pool[this._index++] = new this._classType();
+          }
+          this._count += total;
+        }
+        /**
+         * Gets an item from the pool. Calls the item's `init` method if it exists.
+         * If there are no items left in the pool, a new one will be created.
+         * @param {unknown} [data] - Optional data to pass to the item's constructor.
+         * @returns {T} The item from the pool.
+         */
+        get(data) {
+          let item;
+          if (this._index > 0) {
+            item = this._pool[--this._index];
+          } else {
+            item = new this._classType();
+          }
+          item.init?.(data);
+          return item;
+        }
+        /**
+         * Returns an item to the pool. Calls the item's `reset` method if it exists.
+         * @param {T} item - The item to return to the pool.
+         */
+        return(item) {
+          item.reset?.();
+          this._pool[this._index++] = item;
+        }
+        /**
+         * Gets the number of items in the pool.
+         * @readonly
+         * @member {number}
+         */
+        get totalSize() {
+          return this._count;
+        }
+        /**
+         * Gets the number of items in the pool that are free to use without needing to create more.
+         * @readonly
+         * @member {number}
+         */
+        get totalFree() {
+          return this._index;
+        }
+        /**
+         * Gets the number of items in the pool that are currently in use.
+         * @readonly
+         * @member {number}
+         */
+        get totalUsed() {
+          return this._count - this._index;
+        }
+        /** clears the pool - mainly used for debugging! */
+        clear() {
+          this._pool.length = 0;
+          this._index = 0;
+        }
       };
     }
   });
 
-  // node_modules/pixi.js/lib/utils/logging/deprecation.mjs
-  function deprecation(version, message, ignoreDepth = 3) {
-    if (warnings[message]) {
-      return;
-    }
-    let stack = new Error().stack;
-    if (typeof stack === "undefined") {
-      console.warn("PixiJS Deprecation Warning: ", `${message}
-Deprecated since v${version}`);
-    } else {
-      stack = stack.split("\n").splice(ignoreDepth).join("\n");
-      if (console.groupCollapsed) {
-        console.groupCollapsed(
-          "%cPixiJS Deprecation Warning: %c%s",
-          "color:#614108;background:#fffbe6",
-          "font-weight:normal;color:#614108;background:#fffbe6",
-          `${message}
-Deprecated since v${version}`
-        );
-        console.warn(stack);
-        console.groupEnd();
-      } else {
-        console.warn("PixiJS Deprecation Warning: ", `${message}
-Deprecated since v${version}`);
-        console.warn(stack);
-      }
-    }
-    warnings[message] = true;
-  }
-  var warnings, v8_0_0;
-  var init_deprecation = __esm({
-    "node_modules/pixi.js/lib/utils/logging/deprecation.mjs"() {
+  // node_modules/pixi.js/lib/utils/pool/PoolGroup.mjs
+  var PoolGroupClass, BigPool;
+  var init_PoolGroup = __esm({
+    "node_modules/pixi.js/lib/utils/pool/PoolGroup.mjs"() {
       "use strict";
-      warnings = {};
-      v8_0_0 = "8.0.0";
+      init_Pool();
+      PoolGroupClass = class {
+        constructor() {
+          this._poolsByClass = /* @__PURE__ */ new Map();
+        }
+        /**
+         * Prepopulates a specific pool with a given number of items.
+         * @template T The type of items in the pool. Must extend PoolItem.
+         * @param {PoolItemConstructor<T>} Class - The constructor of the items in the pool.
+         * @param {number} total - The number of items to add to the pool.
+         */
+        prepopulate(Class, total) {
+          const classPool = this.getPool(Class);
+          classPool.prepopulate(total);
+        }
+        /**
+         * Gets an item from a specific pool.
+         * @template T The type of items in the pool. Must extend PoolItem.
+         * @param {PoolItemConstructor<T>} Class - The constructor of the items in the pool.
+         * @param {unknown} [data] - Optional data to pass to the item's constructor.
+         * @returns {T} The item from the pool.
+         */
+        get(Class, data) {
+          const pool = this.getPool(Class);
+          return pool.get(data);
+        }
+        /**
+         * Returns an item to its respective pool.
+         * @param {PoolItem} item - The item to return to the pool.
+         */
+        return(item) {
+          const pool = this.getPool(item.constructor);
+          pool.return(item);
+        }
+        /**
+         * Gets a specific pool based on the class type.
+         * @template T The type of items in the pool. Must extend PoolItem.
+         * @param {PoolItemConstructor<T>} ClassType - The constructor of the items in the pool.
+         * @returns {Pool<T>} The pool of the given class type.
+         */
+        getPool(ClassType) {
+          if (!this._poolsByClass.has(ClassType)) {
+            this._poolsByClass.set(ClassType, new Pool(ClassType));
+          }
+          return this._poolsByClass.get(ClassType);
+        }
+        /** gets the usage stats of each pool in the system */
+        stats() {
+          const stats = {};
+          this._poolsByClass.forEach((pool) => {
+            const name = stats[pool._classType.name] ? pool._classType.name + pool._classType.ID : pool._classType.name;
+            stats[name] = {
+              free: pool.totalFree,
+              used: pool.totalUsed,
+              size: pool.totalSize
+            };
+          });
+          return stats;
+        }
+      };
+      BigPool = new PoolGroupClass();
     }
   });
 
@@ -1826,6 +4489,11 @@ Deprecated since v${version}`);
           const index2 = this.getChildIndex(child2);
           this.children[index1] = child2;
           this.children[index2] = child;
+          const renderGroup = this.renderGroup || this.parentRenderGroup;
+          if (renderGroup) {
+            renderGroup.structureDidChange = true;
+          }
+          this._didContainerChangeTick++;
         },
         /**
          * Remove the Container from its parent Container. If the Container has no parent, do nothing.
@@ -1833,6 +4501,39 @@ Deprecated since v${version}`);
          */
         removeFromParent() {
           this.parent?.removeChild(this);
+        },
+        /**
+         * Reparent the child to this container, keeping the same worldTransform.
+         * @param child - The child to reparent
+         * @returns The first child that was reparented.
+         * @memberof scene.Container#
+         */
+        reparentChild(...child) {
+          if (child.length === 1) {
+            return this.reparentChildAt(child[0], this.children.length);
+          }
+          child.forEach((c3) => this.reparentChildAt(c3, this.children.length));
+          return child[0];
+        },
+        /**
+         * Reparent the child to this container at the specified index, keeping the same worldTransform.
+         * @param child - The child to reparent
+         * @param index - The index to reparent the child to
+         * @memberof scene.Container#
+         */
+        reparentChildAt(child, index) {
+          if (child.parent === this) {
+            this.setChildIndex(child, index);
+            return child;
+          }
+          const childMat = child.worldTransform.clone();
+          child.removeFromParent();
+          this.addChildAt(child, index);
+          const newMatrix = this.worldTransform.clone();
+          newMatrix.invert();
+          childMat.prepend(newMatrix);
+          child.setFromMatrix(childMat);
+          return child;
         }
       };
     }
@@ -1856,157 +4557,6 @@ Deprecated since v${version}`);
           this.filterArea = null;
         }
       };
-    }
-  });
-
-  // node_modules/pixi.js/lib/utils/pool/Pool.mjs
-  var Pool;
-  var init_Pool = __esm({
-    "node_modules/pixi.js/lib/utils/pool/Pool.mjs"() {
-      "use strict";
-      Pool = class {
-        /**
-         * Constructs a new Pool.
-         * @param ClassType - The constructor of the items in the pool.
-         * @param {number} [initialSize] - The initial size of the pool.
-         */
-        constructor(ClassType, initialSize) {
-          this._pool = [];
-          this._count = 0;
-          this._index = 0;
-          this._classType = ClassType;
-          if (initialSize) {
-            this.prepopulate(initialSize);
-          }
-        }
-        /**
-         * Prepopulates the pool with a given number of items.
-         * @param total - The number of items to add to the pool.
-         */
-        prepopulate(total) {
-          for (let i3 = 0; i3 < total; i3++) {
-            this._pool[this._index++] = new this._classType();
-          }
-          this._count += total;
-        }
-        /**
-         * Gets an item from the pool. Calls the item's `init` method if it exists.
-         * If there are no items left in the pool, a new one will be created.
-         * @param {unknown} [data] - Optional data to pass to the item's constructor.
-         * @returns {T} The item from the pool.
-         */
-        get(data) {
-          let item;
-          if (this._index > 0) {
-            item = this._pool[--this._index];
-          } else {
-            item = new this._classType();
-          }
-          item.init?.(data);
-          return item;
-        }
-        /**
-         * Returns an item to the pool. Calls the item's `reset` method if it exists.
-         * @param {T} item - The item to return to the pool.
-         */
-        return(item) {
-          item.reset?.();
-          this._pool[this._index++] = item;
-        }
-        /**
-         * Gets the number of items in the pool.
-         * @readonly
-         * @member {number}
-         */
-        get totalSize() {
-          return this._count;
-        }
-        /**
-         * Gets the number of items in the pool that are free to use without needing to create more.
-         * @readonly
-         * @member {number}
-         */
-        get totalFree() {
-          return this._index;
-        }
-        /**
-         * Gets the number of items in the pool that are currently in use.
-         * @readonly
-         * @member {number}
-         */
-        get totalUsed() {
-          return this._count - this._index;
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/utils/pool/PoolGroup.mjs
-  var PoolGroupClass, BigPool;
-  var init_PoolGroup = __esm({
-    "node_modules/pixi.js/lib/utils/pool/PoolGroup.mjs"() {
-      "use strict";
-      init_Pool();
-      PoolGroupClass = class {
-        constructor() {
-          this._poolsByClass = /* @__PURE__ */ new Map();
-        }
-        /**
-         * Prepopulates a specific pool with a given number of items.
-         * @template T The type of items in the pool. Must extend PoolItem.
-         * @param {PoolItemConstructor<T>} Class - The constructor of the items in the pool.
-         * @param {number} total - The number of items to add to the pool.
-         */
-        prepopulate(Class, total) {
-          const classPool = this.getPool(Class);
-          classPool.prepopulate(total);
-        }
-        /**
-         * Gets an item from a specific pool.
-         * @template T The type of items in the pool. Must extend PoolItem.
-         * @param {PoolItemConstructor<T>} Class - The constructor of the items in the pool.
-         * @param {unknown} [data] - Optional data to pass to the item's constructor.
-         * @returns {T} The item from the pool.
-         */
-        get(Class, data) {
-          const pool = this.getPool(Class);
-          return pool.get(data);
-        }
-        /**
-         * Returns an item to its respective pool.
-         * @param {PoolItem} item - The item to return to the pool.
-         */
-        return(item) {
-          const pool = this.getPool(item.constructor);
-          pool.return(item);
-        }
-        /**
-         * Gets a specific pool based on the class type.
-         * @template T The type of items in the pool. Must extend PoolItem.
-         * @param {PoolItemConstructor<T>} ClassType - The constructor of the items in the pool.
-         * @returns {Pool<T>} The pool of the given class type.
-         */
-        getPool(ClassType) {
-          if (!this._poolsByClass.has(ClassType)) {
-            this._poolsByClass.set(ClassType, new Pool(ClassType));
-          }
-          return this._poolsByClass.get(ClassType);
-        }
-        /** gets the usage stats of each pool in the system */
-        stats() {
-          const stats = {};
-          this._poolsByClass.forEach((pool) => {
-            const name = stats[pool._classType.name] ? pool._classType.name + pool._classType.ID : pool._classType.name;
-            stats[name] = {
-              free: pool.totalFree,
-              used: pool.totalUsed,
-              size: pool.totalSize
-            };
-          });
-          return stats;
-        }
-      };
-      BigPool = new PoolGroupClass();
     }
   });
 
@@ -3013,26 +5563,6 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/utils/logging/warn.mjs
-  function warn(...args) {
-    if (warnCount === maxWarnings)
-      return;
-    warnCount++;
-    if (warnCount === maxWarnings) {
-      console.warn("PixiJS Warning: too many warnings, no more warnings will be reported to the console by PixiJS.");
-    } else {
-      console.warn("PixiJS Warning: ", ...args);
-    }
-  }
-  var warnCount, maxWarnings;
-  var init_warn = __esm({
-    "node_modules/pixi.js/lib/utils/logging/warn.mjs"() {
-      "use strict";
-      warnCount = 0;
-      maxWarnings = 500;
-    }
-  });
-
   // node_modules/pixi.js/lib/scene/container/bounds/getLocalBounds.mjs
   function getLocalBounds(target, bounds, relativeMatrix) {
     bounds.clear();
@@ -3095,12 +5625,15 @@ Deprecated since v${version}`);
     const children = container.children;
     for (let i3 = 0; i3 < children.length; i3++) {
       const child = children[i3];
-      const changeId = (child.uid & 255) << 24 | child._didChangeId & 16777215;
-      if (previousData.data[previousData.index] !== changeId) {
-        previousData.data[previousData.index] = changeId;
+      const uid3 = child.uid;
+      const didChange = (child._didViewChangeTick & 65535) << 16 | child._didContainerChangeTick & 65535;
+      const index = previousData.index;
+      if (previousData.data[index] !== uid3 || previousData.data[index + 1] !== didChange) {
+        previousData.data[previousData.index] = uid3;
+        previousData.data[previousData.index + 1] = didChange;
         previousData.didChange = true;
       }
-      previousData.index++;
+      previousData.index = index + 2;
       if (child.children.length) {
         checkChildrenDidChange(child, previousData);
       }
@@ -3160,9 +5693,9 @@ Deprecated since v${version}`);
           const localBoundsCacheData = this._localBoundsCacheData;
           localBoundsCacheData.index = 1;
           localBoundsCacheData.didChange = false;
-          if (localBoundsCacheData.data[0] !== this._didChangeId >> 12) {
+          if (localBoundsCacheData.data[0] !== this._didViewChangeTick) {
             localBoundsCacheData.didChange = true;
-            localBoundsCacheData.data[0] = this._didChangeId >> 12;
+            localBoundsCacheData.data[0] = this._didViewChangeTick;
           }
           checkChildrenDidChange(this, localBoundsCacheData);
           if (localBoundsCacheData.didChange) {
@@ -3370,20 +5903,24 @@ Deprecated since v${version}`);
   });
 
   // node_modules/pixi.js/lib/rendering/renderers/shared/instructions/InstructionSet.mjs
-  var InstructionSet;
+  var _tick, InstructionSet;
   var init_InstructionSet = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/shared/instructions/InstructionSet.mjs"() {
       "use strict";
       init_uid();
+      _tick = 0;
       InstructionSet = class {
         constructor() {
           this.uid = uid("instructionSet");
           this.instructions = [];
           this.instructionSize = 0;
+          this.renderables = [];
+          this.tick = 0;
         }
         /** reset the instruction set so it can be reused set size back to 0 */
         reset() {
           this.instructionSize = 0;
+          this.tick = _tick++;
         }
         /**
          * Add an instruction to the set
@@ -3413,7 +5950,7 @@ Deprecated since v${version}`);
       init_Matrix();
       init_InstructionSet();
       RenderGroup = class {
-        constructor(root) {
+        constructor() {
           this.renderPipeId = "renderGroup";
           this.root = null;
           this.canBundle = false;
@@ -3429,6 +5966,8 @@ Deprecated since v${version}`);
           this.structureDidChange = true;
           this.instructionSet = new InstructionSet();
           this._onRenderContainers = [];
+        }
+        init(root) {
           this.root = root;
           if (root._onRender)
             this.addOnRender(root);
@@ -3437,6 +5976,21 @@ Deprecated since v${version}`);
           for (let i3 = 0; i3 < children.length; i3++) {
             this.addChild(children[i3]);
           }
+        }
+        reset() {
+          this.renderGroupChildren.length = 0;
+          for (const i3 in this.childrenToUpdate) {
+            const childrenAtDepth = this.childrenToUpdate[i3];
+            childrenAtDepth.list.fill(null);
+            childrenAtDepth.index = 0;
+          }
+          this.childrenRenderablesToUpdate.index = 0;
+          this.childrenRenderablesToUpdate.list.fill(null);
+          this.root = null;
+          this.updateTick = 0;
+          this.structureDidChange = true;
+          this._onRenderContainers.length = 0;
+          this.renderGroupParent = null;
         }
         get localTransform() {
           return this.root.localTransform;
@@ -3591,10 +6145,11 @@ Deprecated since v${version}`);
       init_Color();
       init_cullingMixin();
       init_Matrix();
-      init_const();
+      init_const2();
       init_ObservablePoint();
       init_uid();
       init_deprecation();
+      init_PoolGroup();
       init_childrenHelperMixin();
       init_effectsMixin();
       init_findMixin();
@@ -3649,15 +6204,16 @@ Deprecated since v${version}`);
           this.groupBlendMode = "normal";
           this.localDisplayStatus = 7;
           this.globalDisplayStatus = 7;
-          this._didChangeId = 0;
+          this._didContainerChangeTick = 0;
+          this._didViewChangeTick = 0;
           this._didLocalTransformChangeId = -1;
+          this.effects = [];
           assignWithIgnore(this, options, {
             children: true,
             parent: true,
             effects: true
           });
           options.children?.forEach((child) => this.addChild(child));
-          this.effects = [];
           options.parent?.addChild(this);
         }
         /**
@@ -3666,6 +6222,18 @@ Deprecated since v${version}`);
          */
         static mixin(source2) {
           Object.defineProperties(_Container.prototype, Object.getOwnPropertyDescriptors(source2));
+        }
+        /**
+         * We now use the _didContainerChangeTick and _didViewChangeTick to track changes
+         * @deprecated since 8.2.6
+         * @ignore
+         */
+        set _didChangeId(value) {
+          this._didViewChangeTick = value >> 12 & 4095;
+          this._didContainerChangeTick = value & 4095;
+        }
+        get _didChangeId() {
+          return this._didContainerChangeTick & 4095 | (this._didViewChangeTick & 4095) << 12;
         }
         /**
          * Adds one or more children to the container.
@@ -3709,7 +6277,7 @@ Deprecated since v${version}`);
           }
           this.emit("childAdded", child, this, this.children.length - 1);
           child.emit("added", this);
-          this._didChangeId += 1 << 12;
+          this._didViewChangeTick++;
           if (child._zIndex !== 0) {
             child.depthOfChildModified();
           }
@@ -3730,7 +6298,7 @@ Deprecated since v${version}`);
           const child = children[0];
           const index = this.children.indexOf(child);
           if (index > -1) {
-            this._didChangeId += 1 << 12;
+            this._didViewChangeTick++;
             this.children.splice(index, 1);
             if (this.renderGroup) {
               this.renderGroup.removeChild(child);
@@ -3750,7 +6318,7 @@ Deprecated since v${version}`);
               this._updateSkew();
             }
           }
-          this._didChangeId++;
+          this._didContainerChangeTick++;
           if (this.didChange)
             return;
           this.didChange = true;
@@ -3759,11 +6327,12 @@ Deprecated since v${version}`);
           }
         }
         set isRenderGroup(value) {
-          if (this.renderGroup && value === false) {
-            throw new Error("[Pixi] cannot undo a render group just yet");
-          }
+          if (!!this.renderGroup === value)
+            return;
           if (value) {
             this.enableRenderGroup();
+          } else {
+            this.disableRenderGroup();
           }
         }
         /**
@@ -3773,20 +6342,32 @@ Deprecated since v${version}`);
         get isRenderGroup() {
           return !!this.renderGroup;
         }
-        /** This enables the container to be rendered as a render group. */
+        /**
+         * Calling this enables a render group for this container.
+         * This means it will be rendered as a separate set of instructions.
+         * The transform of the container will also be handled on the GPU rather than the CPU.
+         */
         enableRenderGroup() {
           if (this.renderGroup)
             return;
           const parentRenderGroup = this.parentRenderGroup;
-          if (parentRenderGroup) {
-            parentRenderGroup.removeChild(this);
-          }
-          this.renderGroup = new RenderGroup(this);
-          if (parentRenderGroup) {
-            parentRenderGroup.addChild(this);
-          }
-          this._updateIsSimple();
+          parentRenderGroup?.removeChild(this);
+          this.renderGroup = BigPool.get(RenderGroup, this);
           this.groupTransform = Matrix.IDENTITY;
+          parentRenderGroup?.addChild(this);
+          this._updateIsSimple();
+        }
+        /** This will disable the render group for this container. */
+        disableRenderGroup() {
+          if (!this.renderGroup)
+            return;
+          const parentRenderGroup = this.parentRenderGroup;
+          parentRenderGroup?.removeChild(this);
+          BigPool.return(this.renderGroup);
+          this.renderGroup = null;
+          this.groupTransform = this.relativeGroupTransform;
+          parentRenderGroup?.addChild(this);
+          this._updateIsSimple();
         }
         /** @ignore */
         _updateIsSimple() {
@@ -4026,9 +6607,10 @@ Deprecated since v${version}`);
         }
         /** Updates the local transform. */
         updateLocalTransform() {
-          if ((this._didLocalTransformChangeId & 15) === this._didChangeId)
+          const localTransformChangeId = this._didContainerChangeTick;
+          if (this._didLocalTransformChangeId === localTransformChangeId)
             return;
-          this._didLocalTransformChangeId = this._didChangeId;
+          this._didLocalTransformChangeId = localTransformChangeId;
           const lt = this.localTransform;
           const scale = this._scale;
           const pivot = this._pivot;
@@ -4099,8 +6681,8 @@ Deprecated since v${version}`);
           return !!(this.localDisplayStatus & 2);
         }
         set visible(value) {
-          const valueNumber = value ? 1 : 0;
-          if ((this.localDisplayStatus & 2) >> 1 === valueNumber)
+          const valueNumber = value ? 2 : 0;
+          if ((this.localDisplayStatus & 2) === valueNumber)
             return;
           if (this.parentRenderGroup) {
             this.parentRenderGroup.structureDidChange = true;
@@ -4115,8 +6697,8 @@ Deprecated since v${version}`);
         }
         /** @ignore */
         set culled(value) {
-          const valueNumber = value ? 1 : 0;
-          if ((this.localDisplayStatus & 4) >> 2 === valueNumber)
+          const valueNumber = value ? 0 : 4;
+          if ((this.localDisplayStatus & 4) === valueNumber)
             return;
           if (this.parentRenderGroup) {
             this.parentRenderGroup.structureDidChange = true;
@@ -4192,6 +6774,885 @@ Deprecated since v${version}`);
       Container.mixin(findMixin);
       Container.mixin(sortMixin);
       Container.mixin(cullingMixin);
+    }
+  });
+
+  // node_modules/earcut/src/earcut.js
+  var require_earcut = __commonJS({
+    "node_modules/earcut/src/earcut.js"(exports, module) {
+      "use strict";
+      module.exports = earcut2;
+      module.exports.default = earcut2;
+      function earcut2(data, holeIndices, dim) {
+        dim = dim || 2;
+        var hasHoles = holeIndices && holeIndices.length, outerLen = hasHoles ? holeIndices[0] * dim : data.length, outerNode = linkedList(data, 0, outerLen, dim, true), triangles = [];
+        if (!outerNode || outerNode.next === outerNode.prev)
+          return triangles;
+        var minX, minY, maxX, maxY, x3, y3, invSize;
+        if (hasHoles)
+          outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
+        if (data.length > 80 * dim) {
+          minX = maxX = data[0];
+          minY = maxY = data[1];
+          for (var i3 = dim; i3 < outerLen; i3 += dim) {
+            x3 = data[i3];
+            y3 = data[i3 + 1];
+            if (x3 < minX)
+              minX = x3;
+            if (y3 < minY)
+              minY = y3;
+            if (x3 > maxX)
+              maxX = x3;
+            if (y3 > maxY)
+              maxY = y3;
+          }
+          invSize = Math.max(maxX - minX, maxY - minY);
+          invSize = invSize !== 0 ? 32767 / invSize : 0;
+        }
+        earcutLinked(outerNode, triangles, dim, minX, minY, invSize, 0);
+        return triangles;
+      }
+      function linkedList(data, start, end, dim, clockwise) {
+        var i3, last;
+        if (clockwise === signedArea(data, start, end, dim) > 0) {
+          for (i3 = start; i3 < end; i3 += dim)
+            last = insertNode(i3, data[i3], data[i3 + 1], last);
+        } else {
+          for (i3 = end - dim; i3 >= start; i3 -= dim)
+            last = insertNode(i3, data[i3], data[i3 + 1], last);
+        }
+        if (last && equals(last, last.next)) {
+          removeNode(last);
+          last = last.next;
+        }
+        return last;
+      }
+      function filterPoints(start, end) {
+        if (!start)
+          return start;
+        if (!end)
+          end = start;
+        var p3 = start, again;
+        do {
+          again = false;
+          if (!p3.steiner && (equals(p3, p3.next) || area(p3.prev, p3, p3.next) === 0)) {
+            removeNode(p3);
+            p3 = end = p3.prev;
+            if (p3 === p3.next)
+              break;
+            again = true;
+          } else {
+            p3 = p3.next;
+          }
+        } while (again || p3 !== end);
+        return end;
+      }
+      function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
+        if (!ear)
+          return;
+        if (!pass && invSize)
+          indexCurve(ear, minX, minY, invSize);
+        var stop = ear, prev, next;
+        while (ear.prev !== ear.next) {
+          prev = ear.prev;
+          next = ear.next;
+          if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
+            triangles.push(prev.i / dim | 0);
+            triangles.push(ear.i / dim | 0);
+            triangles.push(next.i / dim | 0);
+            removeNode(ear);
+            ear = next.next;
+            stop = next.next;
+            continue;
+          }
+          ear = next;
+          if (ear === stop) {
+            if (!pass) {
+              earcutLinked(filterPoints(ear), triangles, dim, minX, minY, invSize, 1);
+            } else if (pass === 1) {
+              ear = cureLocalIntersections(filterPoints(ear), triangles, dim);
+              earcutLinked(ear, triangles, dim, minX, minY, invSize, 2);
+            } else if (pass === 2) {
+              splitEarcut(ear, triangles, dim, minX, minY, invSize);
+            }
+            break;
+          }
+        }
+      }
+      function isEar(ear) {
+        var a3 = ear.prev, b3 = ear, c3 = ear.next;
+        if (area(a3, b3, c3) >= 0)
+          return false;
+        var ax = a3.x, bx = b3.x, cx = c3.x, ay = a3.y, by = b3.y, cy = c3.y;
+        var x0 = ax < bx ? ax < cx ? ax : cx : bx < cx ? bx : cx, y0 = ay < by ? ay < cy ? ay : cy : by < cy ? by : cy, x1 = ax > bx ? ax > cx ? ax : cx : bx > cx ? bx : cx, y1 = ay > by ? ay > cy ? ay : cy : by > cy ? by : cy;
+        var p3 = c3.next;
+        while (p3 !== a3) {
+          if (p3.x >= x0 && p3.x <= x1 && p3.y >= y0 && p3.y <= y1 && pointInTriangle(ax, ay, bx, by, cx, cy, p3.x, p3.y) && area(p3.prev, p3, p3.next) >= 0)
+            return false;
+          p3 = p3.next;
+        }
+        return true;
+      }
+      function isEarHashed(ear, minX, minY, invSize) {
+        var a3 = ear.prev, b3 = ear, c3 = ear.next;
+        if (area(a3, b3, c3) >= 0)
+          return false;
+        var ax = a3.x, bx = b3.x, cx = c3.x, ay = a3.y, by = b3.y, cy = c3.y;
+        var x0 = ax < bx ? ax < cx ? ax : cx : bx < cx ? bx : cx, y0 = ay < by ? ay < cy ? ay : cy : by < cy ? by : cy, x1 = ax > bx ? ax > cx ? ax : cx : bx > cx ? bx : cx, y1 = ay > by ? ay > cy ? ay : cy : by > cy ? by : cy;
+        var minZ = zOrder(x0, y0, minX, minY, invSize), maxZ = zOrder(x1, y1, minX, minY, invSize);
+        var p3 = ear.prevZ, n3 = ear.nextZ;
+        while (p3 && p3.z >= minZ && n3 && n3.z <= maxZ) {
+          if (p3.x >= x0 && p3.x <= x1 && p3.y >= y0 && p3.y <= y1 && p3 !== a3 && p3 !== c3 && pointInTriangle(ax, ay, bx, by, cx, cy, p3.x, p3.y) && area(p3.prev, p3, p3.next) >= 0)
+            return false;
+          p3 = p3.prevZ;
+          if (n3.x >= x0 && n3.x <= x1 && n3.y >= y0 && n3.y <= y1 && n3 !== a3 && n3 !== c3 && pointInTriangle(ax, ay, bx, by, cx, cy, n3.x, n3.y) && area(n3.prev, n3, n3.next) >= 0)
+            return false;
+          n3 = n3.nextZ;
+        }
+        while (p3 && p3.z >= minZ) {
+          if (p3.x >= x0 && p3.x <= x1 && p3.y >= y0 && p3.y <= y1 && p3 !== a3 && p3 !== c3 && pointInTriangle(ax, ay, bx, by, cx, cy, p3.x, p3.y) && area(p3.prev, p3, p3.next) >= 0)
+            return false;
+          p3 = p3.prevZ;
+        }
+        while (n3 && n3.z <= maxZ) {
+          if (n3.x >= x0 && n3.x <= x1 && n3.y >= y0 && n3.y <= y1 && n3 !== a3 && n3 !== c3 && pointInTriangle(ax, ay, bx, by, cx, cy, n3.x, n3.y) && area(n3.prev, n3, n3.next) >= 0)
+            return false;
+          n3 = n3.nextZ;
+        }
+        return true;
+      }
+      function cureLocalIntersections(start, triangles, dim) {
+        var p3 = start;
+        do {
+          var a3 = p3.prev, b3 = p3.next.next;
+          if (!equals(a3, b3) && intersects(a3, p3, p3.next, b3) && locallyInside(a3, b3) && locallyInside(b3, a3)) {
+            triangles.push(a3.i / dim | 0);
+            triangles.push(p3.i / dim | 0);
+            triangles.push(b3.i / dim | 0);
+            removeNode(p3);
+            removeNode(p3.next);
+            p3 = start = b3;
+          }
+          p3 = p3.next;
+        } while (p3 !== start);
+        return filterPoints(p3);
+      }
+      function splitEarcut(start, triangles, dim, minX, minY, invSize) {
+        var a3 = start;
+        do {
+          var b3 = a3.next.next;
+          while (b3 !== a3.prev) {
+            if (a3.i !== b3.i && isValidDiagonal(a3, b3)) {
+              var c3 = splitPolygon(a3, b3);
+              a3 = filterPoints(a3, a3.next);
+              c3 = filterPoints(c3, c3.next);
+              earcutLinked(a3, triangles, dim, minX, minY, invSize, 0);
+              earcutLinked(c3, triangles, dim, minX, minY, invSize, 0);
+              return;
+            }
+            b3 = b3.next;
+          }
+          a3 = a3.next;
+        } while (a3 !== start);
+      }
+      function eliminateHoles(data, holeIndices, outerNode, dim) {
+        var queue = [], i3, len, start, end, list;
+        for (i3 = 0, len = holeIndices.length; i3 < len; i3++) {
+          start = holeIndices[i3] * dim;
+          end = i3 < len - 1 ? holeIndices[i3 + 1] * dim : data.length;
+          list = linkedList(data, start, end, dim, false);
+          if (list === list.next)
+            list.steiner = true;
+          queue.push(getLeftmost(list));
+        }
+        queue.sort(compareX);
+        for (i3 = 0; i3 < queue.length; i3++) {
+          outerNode = eliminateHole(queue[i3], outerNode);
+        }
+        return outerNode;
+      }
+      function compareX(a3, b3) {
+        return a3.x - b3.x;
+      }
+      function eliminateHole(hole, outerNode) {
+        var bridge = findHoleBridge(hole, outerNode);
+        if (!bridge) {
+          return outerNode;
+        }
+        var bridgeReverse = splitPolygon(bridge, hole);
+        filterPoints(bridgeReverse, bridgeReverse.next);
+        return filterPoints(bridge, bridge.next);
+      }
+      function findHoleBridge(hole, outerNode) {
+        var p3 = outerNode, hx = hole.x, hy = hole.y, qx = -Infinity, m3;
+        do {
+          if (hy <= p3.y && hy >= p3.next.y && p3.next.y !== p3.y) {
+            var x3 = p3.x + (hy - p3.y) * (p3.next.x - p3.x) / (p3.next.y - p3.y);
+            if (x3 <= hx && x3 > qx) {
+              qx = x3;
+              m3 = p3.x < p3.next.x ? p3 : p3.next;
+              if (x3 === hx)
+                return m3;
+            }
+          }
+          p3 = p3.next;
+        } while (p3 !== outerNode);
+        if (!m3)
+          return null;
+        var stop = m3, mx = m3.x, my = m3.y, tanMin = Infinity, tan;
+        p3 = m3;
+        do {
+          if (hx >= p3.x && p3.x >= mx && hx !== p3.x && pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p3.x, p3.y)) {
+            tan = Math.abs(hy - p3.y) / (hx - p3.x);
+            if (locallyInside(p3, hole) && (tan < tanMin || tan === tanMin && (p3.x > m3.x || p3.x === m3.x && sectorContainsSector(m3, p3)))) {
+              m3 = p3;
+              tanMin = tan;
+            }
+          }
+          p3 = p3.next;
+        } while (p3 !== stop);
+        return m3;
+      }
+      function sectorContainsSector(m3, p3) {
+        return area(m3.prev, m3, p3.prev) < 0 && area(p3.next, m3, m3.next) < 0;
+      }
+      function indexCurve(start, minX, minY, invSize) {
+        var p3 = start;
+        do {
+          if (p3.z === 0)
+            p3.z = zOrder(p3.x, p3.y, minX, minY, invSize);
+          p3.prevZ = p3.prev;
+          p3.nextZ = p3.next;
+          p3 = p3.next;
+        } while (p3 !== start);
+        p3.prevZ.nextZ = null;
+        p3.prevZ = null;
+        sortLinked(p3);
+      }
+      function sortLinked(list) {
+        var i3, p3, q, e3, tail, numMerges, pSize, qSize, inSize = 1;
+        do {
+          p3 = list;
+          list = null;
+          tail = null;
+          numMerges = 0;
+          while (p3) {
+            numMerges++;
+            q = p3;
+            pSize = 0;
+            for (i3 = 0; i3 < inSize; i3++) {
+              pSize++;
+              q = q.nextZ;
+              if (!q)
+                break;
+            }
+            qSize = inSize;
+            while (pSize > 0 || qSize > 0 && q) {
+              if (pSize !== 0 && (qSize === 0 || !q || p3.z <= q.z)) {
+                e3 = p3;
+                p3 = p3.nextZ;
+                pSize--;
+              } else {
+                e3 = q;
+                q = q.nextZ;
+                qSize--;
+              }
+              if (tail)
+                tail.nextZ = e3;
+              else
+                list = e3;
+              e3.prevZ = tail;
+              tail = e3;
+            }
+            p3 = q;
+          }
+          tail.nextZ = null;
+          inSize *= 2;
+        } while (numMerges > 1);
+        return list;
+      }
+      function zOrder(x3, y3, minX, minY, invSize) {
+        x3 = (x3 - minX) * invSize | 0;
+        y3 = (y3 - minY) * invSize | 0;
+        x3 = (x3 | x3 << 8) & 16711935;
+        x3 = (x3 | x3 << 4) & 252645135;
+        x3 = (x3 | x3 << 2) & 858993459;
+        x3 = (x3 | x3 << 1) & 1431655765;
+        y3 = (y3 | y3 << 8) & 16711935;
+        y3 = (y3 | y3 << 4) & 252645135;
+        y3 = (y3 | y3 << 2) & 858993459;
+        y3 = (y3 | y3 << 1) & 1431655765;
+        return x3 | y3 << 1;
+      }
+      function getLeftmost(start) {
+        var p3 = start, leftmost = start;
+        do {
+          if (p3.x < leftmost.x || p3.x === leftmost.x && p3.y < leftmost.y)
+            leftmost = p3;
+          p3 = p3.next;
+        } while (p3 !== start);
+        return leftmost;
+      }
+      function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
+        return (cx - px) * (ay - py) >= (ax - px) * (cy - py) && (ax - px) * (by - py) >= (bx - px) * (ay - py) && (bx - px) * (cy - py) >= (cx - px) * (by - py);
+      }
+      function isValidDiagonal(a3, b3) {
+        return a3.next.i !== b3.i && a3.prev.i !== b3.i && !intersectsPolygon(a3, b3) && // dones't intersect other edges
+        (locallyInside(a3, b3) && locallyInside(b3, a3) && middleInside(a3, b3) && // locally visible
+        (area(a3.prev, a3, b3.prev) || area(a3, b3.prev, b3)) || // does not create opposite-facing sectors
+        equals(a3, b3) && area(a3.prev, a3, a3.next) > 0 && area(b3.prev, b3, b3.next) > 0);
+      }
+      function area(p3, q, r3) {
+        return (q.y - p3.y) * (r3.x - q.x) - (q.x - p3.x) * (r3.y - q.y);
+      }
+      function equals(p1, p22) {
+        return p1.x === p22.x && p1.y === p22.y;
+      }
+      function intersects(p1, q1, p22, q2) {
+        var o1 = sign(area(p1, q1, p22));
+        var o22 = sign(area(p1, q1, q2));
+        var o3 = sign(area(p22, q2, p1));
+        var o4 = sign(area(p22, q2, q1));
+        if (o1 !== o22 && o3 !== o4)
+          return true;
+        if (o1 === 0 && onSegment(p1, p22, q1))
+          return true;
+        if (o22 === 0 && onSegment(p1, q2, q1))
+          return true;
+        if (o3 === 0 && onSegment(p22, p1, q2))
+          return true;
+        if (o4 === 0 && onSegment(p22, q1, q2))
+          return true;
+        return false;
+      }
+      function onSegment(p3, q, r3) {
+        return q.x <= Math.max(p3.x, r3.x) && q.x >= Math.min(p3.x, r3.x) && q.y <= Math.max(p3.y, r3.y) && q.y >= Math.min(p3.y, r3.y);
+      }
+      function sign(num) {
+        return num > 0 ? 1 : num < 0 ? -1 : 0;
+      }
+      function intersectsPolygon(a3, b3) {
+        var p3 = a3;
+        do {
+          if (p3.i !== a3.i && p3.next.i !== a3.i && p3.i !== b3.i && p3.next.i !== b3.i && intersects(p3, p3.next, a3, b3))
+            return true;
+          p3 = p3.next;
+        } while (p3 !== a3);
+        return false;
+      }
+      function locallyInside(a3, b3) {
+        return area(a3.prev, a3, a3.next) < 0 ? area(a3, b3, a3.next) >= 0 && area(a3, a3.prev, b3) >= 0 : area(a3, b3, a3.prev) < 0 || area(a3, a3.next, b3) < 0;
+      }
+      function middleInside(a3, b3) {
+        var p3 = a3, inside = false, px = (a3.x + b3.x) / 2, py = (a3.y + b3.y) / 2;
+        do {
+          if (p3.y > py !== p3.next.y > py && p3.next.y !== p3.y && px < (p3.next.x - p3.x) * (py - p3.y) / (p3.next.y - p3.y) + p3.x)
+            inside = !inside;
+          p3 = p3.next;
+        } while (p3 !== a3);
+        return inside;
+      }
+      function splitPolygon(a3, b3) {
+        var a22 = new Node(a3.i, a3.x, a3.y), b22 = new Node(b3.i, b3.x, b3.y), an = a3.next, bp = b3.prev;
+        a3.next = b3;
+        b3.prev = a3;
+        a22.next = an;
+        an.prev = a22;
+        b22.next = a22;
+        a22.prev = b22;
+        bp.next = b22;
+        b22.prev = bp;
+        return b22;
+      }
+      function insertNode(i3, x3, y3, last) {
+        var p3 = new Node(i3, x3, y3);
+        if (!last) {
+          p3.prev = p3;
+          p3.next = p3;
+        } else {
+          p3.next = last.next;
+          p3.prev = last;
+          last.next.prev = p3;
+          last.next = p3;
+        }
+        return p3;
+      }
+      function removeNode(p3) {
+        p3.next.prev = p3.prev;
+        p3.prev.next = p3.next;
+        if (p3.prevZ)
+          p3.prevZ.nextZ = p3.nextZ;
+        if (p3.nextZ)
+          p3.nextZ.prevZ = p3.prevZ;
+      }
+      function Node(i3, x3, y3) {
+        this.i = i3;
+        this.x = x3;
+        this.y = y3;
+        this.prev = null;
+        this.next = null;
+        this.z = 0;
+        this.prevZ = null;
+        this.nextZ = null;
+        this.steiner = false;
+      }
+      earcut2.deviation = function(data, holeIndices, dim, triangles) {
+        var hasHoles = holeIndices && holeIndices.length;
+        var outerLen = hasHoles ? holeIndices[0] * dim : data.length;
+        var polygonArea = Math.abs(signedArea(data, 0, outerLen, dim));
+        if (hasHoles) {
+          for (var i3 = 0, len = holeIndices.length; i3 < len; i3++) {
+            var start = holeIndices[i3] * dim;
+            var end = i3 < len - 1 ? holeIndices[i3 + 1] * dim : data.length;
+            polygonArea -= Math.abs(signedArea(data, start, end, dim));
+          }
+        }
+        var trianglesArea = 0;
+        for (i3 = 0; i3 < triangles.length; i3 += 3) {
+          var a3 = triangles[i3] * dim;
+          var b3 = triangles[i3 + 1] * dim;
+          var c3 = triangles[i3 + 2] * dim;
+          trianglesArea += Math.abs(
+            (data[a3] - data[c3]) * (data[b3 + 1] - data[a3 + 1]) - (data[a3] - data[b3]) * (data[c3 + 1] - data[a3 + 1])
+          );
+        }
+        return polygonArea === 0 && trianglesArea === 0 ? 0 : Math.abs((trianglesArea - polygonArea) / polygonArea);
+      };
+      function signedArea(data, start, end, dim) {
+        var sum = 0;
+        for (var i3 = start, j3 = end - dim; i3 < end; i3 += dim) {
+          sum += (data[j3] - data[i3]) * (data[i3 + 1] + data[j3 + 1]);
+          j3 = i3;
+        }
+        return sum;
+      }
+      earcut2.flatten = function(data) {
+        var dim = data[0][0].length, result = { vertices: [], holes: [], dimensions: dim }, holeIndex = 0;
+        for (var i3 = 0; i3 < data.length; i3++) {
+          for (var j3 = 0; j3 < data[i3].length; j3++) {
+            for (var d3 = 0; d3 < dim; d3++)
+              result.vertices.push(data[i3][j3][d3]);
+          }
+          if (i3 > 0) {
+            holeIndex += data[i3 - 1].length;
+            result.holes.push(holeIndex);
+          }
+        }
+        return result;
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/gl/const.mjs
+  var CLEAR;
+  var init_const3 = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gl/const.mjs"() {
+      "use strict";
+      CLEAR = /* @__PURE__ */ ((CLEAR2) => {
+        CLEAR2[CLEAR2["NONE"] = 0] = "NONE";
+        CLEAR2[CLEAR2["COLOR"] = 16384] = "COLOR";
+        CLEAR2[CLEAR2["STENCIL"] = 1024] = "STENCIL";
+        CLEAR2[CLEAR2["DEPTH"] = 256] = "DEPTH";
+        CLEAR2[CLEAR2["COLOR_DEPTH"] = 16640] = "COLOR_DEPTH";
+        CLEAR2[CLEAR2["COLOR_STENCIL"] = 17408] = "COLOR_STENCIL";
+        CLEAR2[CLEAR2["DEPTH_STENCIL"] = 1280] = "DEPTH_STENCIL";
+        CLEAR2[CLEAR2["ALL"] = 17664] = "ALL";
+        return CLEAR2;
+      })(CLEAR || {});
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/system/SystemRunner.mjs
+  var SystemRunner;
+  var init_SystemRunner = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/system/SystemRunner.mjs"() {
+      "use strict";
+      SystemRunner = class {
+        /**
+         * @param name - The function name that will be executed on the listeners added to this Runner.
+         */
+        constructor(name) {
+          this.items = [];
+          this._name = name;
+        }
+        /* eslint-disable jsdoc/require-param, jsdoc/check-param-names */
+        /**
+         * Dispatch/Broadcast Runner to all listeners added to the queue.
+         * @param {...any} params - (optional) parameters to pass to each listener
+         */
+        /*  eslint-enable jsdoc/require-param, jsdoc/check-param-names */
+        emit(a0, a1, a22, a3, a4, a5, a6, a7) {
+          const { name, items } = this;
+          for (let i3 = 0, len = items.length; i3 < len; i3++) {
+            items[i3][name](a0, a1, a22, a3, a4, a5, a6, a7);
+          }
+          return this;
+        }
+        /**
+         * Add a listener to the Runner
+         *
+         * Runners do not need to have scope or functions passed to them.
+         * All that is required is to pass the listening object and ensure that it has contains a function that has the same name
+         * as the name provided to the Runner when it was created.
+         *
+         * Eg A listener passed to this Runner will require a 'complete' function.
+         *
+         * ```
+         * import { Runner } from 'pixi.js';
+         *
+         * const complete = new Runner('complete');
+         * ```
+         *
+         * The scope used will be the object itself.
+         * @param {any} item - The object that will be listening.
+         */
+        add(item) {
+          if (item[this._name]) {
+            this.remove(item);
+            this.items.push(item);
+          }
+          return this;
+        }
+        /**
+         * Remove a single listener from the dispatch queue.
+         * @param {any} item - The listener that you would like to remove.
+         */
+        remove(item) {
+          const index = this.items.indexOf(item);
+          if (index !== -1) {
+            this.items.splice(index, 1);
+          }
+          return this;
+        }
+        /**
+         * Check to see if the listener is already in the Runner
+         * @param {any} item - The listener that you would like to check.
+         */
+        contains(item) {
+          return this.items.indexOf(item) !== -1;
+        }
+        /** Remove all listeners from the Runner */
+        removeAll() {
+          this.items.length = 0;
+          return this;
+        }
+        /** Remove all references, don't use after this. */
+        destroy() {
+          this.removeAll();
+          this.items = null;
+          this._name = null;
+        }
+        /**
+         * `true` if there are no this Runner contains no listeners
+         * @readonly
+         */
+        get empty() {
+          return this.items.length === 0;
+        }
+        /**
+         * The name of the runner.
+         * @readonly
+         */
+        get name() {
+          return this._name;
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/system/AbstractRenderer.mjs
+  var defaultRunners, _AbstractRenderer, AbstractRenderer;
+  var init_AbstractRenderer = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/system/AbstractRenderer.mjs"() {
+      "use strict";
+      init_Color();
+      init_autoDetectEnvironment();
+      init_Container();
+      init_unsafeEvalSupported();
+      init_deprecation();
+      init_const3();
+      init_SystemRunner();
+      init_eventemitter3();
+      defaultRunners = [
+        "init",
+        "destroy",
+        "contextChange",
+        "resolutionChange",
+        "reset",
+        "renderEnd",
+        "renderStart",
+        "render",
+        "update",
+        "postrender",
+        "prerender"
+      ];
+      _AbstractRenderer = class _AbstractRenderer2 extends eventemitter3_default {
+        /**
+         * Set up a system with a collection of SystemClasses and runners.
+         * Systems are attached dynamically to this class when added.
+         * @param config - the config for the system manager
+         */
+        constructor(config) {
+          super();
+          this.runners = /* @__PURE__ */ Object.create(null);
+          this.renderPipes = /* @__PURE__ */ Object.create(null);
+          this._initOptions = {};
+          this._systemsHash = /* @__PURE__ */ Object.create(null);
+          this.type = config.type;
+          this.name = config.name;
+          this.config = config;
+          const combinedRunners = [...defaultRunners, ...this.config.runners ?? []];
+          this._addRunners(...combinedRunners);
+          this._unsafeEvalCheck();
+        }
+        /**
+         * Initialize the renderer.
+         * @param options - The options to use to create the renderer.
+         */
+        async init(options = {}) {
+          const skip = options.skipExtensionImports === true ? true : options.manageImports === false;
+          await loadEnvironmentExtensions(skip);
+          this._addSystems(this.config.systems);
+          this._addPipes(this.config.renderPipes, this.config.renderPipeAdaptors);
+          for (const systemName in this._systemsHash) {
+            const system = this._systemsHash[systemName];
+            const defaultSystemOptions = system.constructor.defaultOptions;
+            options = { ...defaultSystemOptions, ...options };
+          }
+          options = { ..._AbstractRenderer2.defaultOptions, ...options };
+          this._roundPixels = options.roundPixels ? 1 : 0;
+          for (let i3 = 0; i3 < this.runners.init.items.length; i3++) {
+            await this.runners.init.items[i3].init(options);
+          }
+          this._initOptions = options;
+        }
+        render(args, deprecated) {
+          let options = args;
+          if (options instanceof Container) {
+            options = { container: options };
+            if (deprecated) {
+              deprecation(v8_0_0, "passing a second argument is deprecated, please use render options instead");
+              options.target = deprecated.renderTexture;
+            }
+          }
+          options.target || (options.target = this.view.renderTarget);
+          if (options.target === this.view.renderTarget) {
+            this._lastObjectRendered = options.container;
+            options.clearColor = this.background.colorRgba;
+          }
+          if (options.clearColor) {
+            const isRGBAArray = Array.isArray(options.clearColor) && options.clearColor.length === 4;
+            options.clearColor = isRGBAArray ? options.clearColor : Color.shared.setValue(options.clearColor).toArray();
+          }
+          if (!options.transform) {
+            options.container.updateLocalTransform();
+            options.transform = options.container.localTransform;
+          }
+          this.runners.prerender.emit(options);
+          this.runners.renderStart.emit(options);
+          this.runners.render.emit(options);
+          this.runners.renderEnd.emit(options);
+          this.runners.postrender.emit(options);
+        }
+        /**
+         * Resizes the WebGL view to the specified width and height.
+         * @param desiredScreenWidth - The desired width of the screen.
+         * @param desiredScreenHeight - The desired height of the screen.
+         * @param resolution - The resolution / device pixel ratio of the renderer.
+         */
+        resize(desiredScreenWidth, desiredScreenHeight, resolution) {
+          this.view.resize(desiredScreenWidth, desiredScreenHeight, resolution);
+          this.emit("resize", this.view.screen.width, this.view.screen.height, this.view.resolution);
+        }
+        clear(options = {}) {
+          const renderer = this;
+          options.target || (options.target = renderer.renderTarget.renderTarget);
+          options.clearColor || (options.clearColor = this.background.colorRgba);
+          options.clear ?? (options.clear = CLEAR.ALL);
+          const { clear, clearColor, target } = options;
+          Color.shared.setValue(clearColor ?? this.background.colorRgba);
+          renderer.renderTarget.clear(target, clear, Color.shared.toArray());
+        }
+        /** The resolution / device pixel ratio of the renderer. */
+        get resolution() {
+          return this.view.resolution;
+        }
+        set resolution(value) {
+          this.view.resolution = value;
+          this.runners.resolutionChange.emit(value);
+        }
+        /**
+         * Same as view.width, actual number of pixels in the canvas by horizontal.
+         * @member {number}
+         * @readonly
+         * @default 800
+         */
+        get width() {
+          return this.view.texture.frame.width;
+        }
+        /**
+         * Same as view.height, actual number of pixels in the canvas by vertical.
+         * @default 600
+         */
+        get height() {
+          return this.view.texture.frame.height;
+        }
+        // NOTE: this was `view` in v7
+        /**
+         * The canvas element that everything is drawn to.
+         * @type {environment.ICanvas}
+         */
+        get canvas() {
+          return this.view.canvas;
+        }
+        /**
+         * the last object rendered by the renderer. Useful for other plugins like interaction managers
+         * @readonly
+         */
+        get lastObjectRendered() {
+          return this._lastObjectRendered;
+        }
+        /**
+         * Flag if we are rendering to the screen vs renderTexture
+         * @readonly
+         * @default true
+         */
+        get renderingToScreen() {
+          const renderer = this;
+          return renderer.renderTarget.renderingToScreen;
+        }
+        /**
+         * Measurements of the screen. (0, 0, screenWidth, screenHeight).
+         *
+         * Its safe to use as filterArea or hitArea for the whole stage.
+         */
+        get screen() {
+          return this.view.screen;
+        }
+        /**
+         * Create a bunch of runners based of a collection of ids
+         * @param runnerIds - the runner ids to add
+         */
+        _addRunners(...runnerIds) {
+          runnerIds.forEach((runnerId) => {
+            this.runners[runnerId] = new SystemRunner(runnerId);
+          });
+        }
+        _addSystems(systems3) {
+          let i3;
+          for (i3 in systems3) {
+            const val = systems3[i3];
+            this._addSystem(val.value, val.name);
+          }
+        }
+        /**
+         * Add a new system to the renderer.
+         * @param ClassRef - Class reference
+         * @param name - Property name for system, if not specified
+         *        will use a static `name` property on the class itself. This
+         *        name will be assigned as s property on the Renderer so make
+         *        sure it doesn't collide with properties on Renderer.
+         * @returns Return instance of renderer
+         */
+        _addSystem(ClassRef, name) {
+          const system = new ClassRef(this);
+          if (this[name]) {
+            throw new Error(`Whoops! The name "${name}" is already in use`);
+          }
+          this[name] = system;
+          this._systemsHash[name] = system;
+          for (const i3 in this.runners) {
+            this.runners[i3].add(system);
+          }
+          return this;
+        }
+        _addPipes(pipes, pipeAdaptors) {
+          const adaptors = pipeAdaptors.reduce((acc, adaptor) => {
+            acc[adaptor.name] = adaptor.value;
+            return acc;
+          }, {});
+          pipes.forEach((pipe) => {
+            const PipeClass = pipe.value;
+            const name = pipe.name;
+            const Adaptor = adaptors[name];
+            this.renderPipes[name] = new PipeClass(
+              this,
+              Adaptor ? new Adaptor() : null
+            );
+          });
+        }
+        destroy(options = false) {
+          this.runners.destroy.items.reverse();
+          this.runners.destroy.emit(options);
+          Object.values(this.runners).forEach((runner) => {
+            runner.destroy();
+          });
+          this._systemsHash = null;
+          this.renderPipes = null;
+        }
+        /**
+         * Generate a texture from a container.
+         * @param options - options or container target to use when generating the texture
+         * @returns a texture
+         */
+        generateTexture(options) {
+          return this.textureGenerator.generateTexture(options);
+        }
+        /**
+         * Whether the renderer will round coordinates to whole pixels when rendering.
+         * Can be overridden on a per scene item basis.
+         */
+        get roundPixels() {
+          return !!this._roundPixels;
+        }
+        /**
+         * Overridable function by `pixi.js/unsafe-eval` to silence
+         * throwing an error if platform doesn't support unsafe-evals.
+         * @private
+         * @ignore
+         */
+        _unsafeEvalCheck() {
+          if (!unsafeEvalSupported()) {
+            throw new Error("Current environment does not allow unsafe-eval, please use pixi.js/unsafe-eval module to enable support.");
+          }
+        }
+      };
+      _AbstractRenderer.defaultOptions = {
+        /**
+         * Default resolution / device pixel ratio of the renderer.
+         * @default 1
+         */
+        resolution: 1,
+        /**
+         * Should the `failIfMajorPerformanceCaveat` flag be enabled as a context option used in the `isWebGLSupported`
+         * function. If set to true, a WebGL renderer can fail to be created if the browser thinks there could be
+         * performance issues when using WebGL.
+         *
+         * In PixiJS v6 this has changed from true to false by default, to allow WebGL to work in as many
+         * scenarios as possible. However, some users may have a poor experience, for example, if a user has a gpu or
+         * driver version blacklisted by the
+         * browser.
+         *
+         * If your application requires high performance rendering, you may wish to set this to false.
+         * We recommend one of two options if you decide to set this flag to false:
+         *
+         * 1: Use the Canvas renderer as a fallback in case high performance WebGL is
+         *    not supported.
+         *
+         * 2: Call `isWebGLSupported` (which if found in the utils package) in your code before attempting to create a
+         *    PixiJS renderer, and show an error message to the user if the function returns false, explaining that their
+         *    device & browser combination does not support high performance WebGL.
+         *    This is a much better strategy than trying to create a PixiJS renderer and finding it then fails.
+         * @default false
+         */
+        failIfMajorPerformanceCaveat: false,
+        /**
+         * Should round pixels be forced when rendering?
+         * @default false
+         */
+        roundPixels: false
+      };
+      AbstractRenderer = _AbstractRenderer;
     }
   });
 
@@ -5002,7 +8463,7 @@ Deprecated since v${version}`);
 
   // node_modules/pixi.js/lib/ticker/const.mjs
   var UPDATE_PRIORITY;
-  var init_const2 = __esm({
+  var init_const4 = __esm({
     "node_modules/pixi.js/lib/ticker/const.mjs"() {
       "use strict";
       UPDATE_PRIORITY = /* @__PURE__ */ ((UPDATE_PRIORITY2) => {
@@ -5112,7 +8573,7 @@ Deprecated since v${version}`);
   var init_Ticker = __esm({
     "node_modules/pixi.js/lib/ticker/Ticker.mjs"() {
       "use strict";
-      init_const2();
+      init_const4();
       init_TickerListener();
       _Ticker = class _Ticker2 {
         constructor() {
@@ -5468,7 +8929,7 @@ Deprecated since v${version}`);
     "node_modules/pixi.js/lib/app/TickerPlugin.mjs"() {
       "use strict";
       init_Extensions();
-      init_const2();
+      init_const4();
       init_Ticker();
       TickerPlugin = class {
         /**
@@ -5546,7 +9007,7 @@ Deprecated since v${version}`);
   var init_EventTicker = __esm({
     "node_modules/pixi.js/lib/events/EventTicker.mjs"() {
       "use strict";
-      init_const2();
+      init_const4();
       init_Ticker();
       EventsTickerClass = class {
         constructor() {
@@ -5611,7 +9072,9 @@ Deprecated since v${version}`);
           }
           globalThis.document.dispatchEvent(new PointerEvent("pointermove", {
             clientX: rootPointerEvent.clientX,
-            clientY: rootPointerEvent.clientY
+            clientY: rootPointerEvent.clientY,
+            pointerType: rootPointerEvent.pointerType,
+            pointerId: rootPointerEvent.pointerId
           }));
         }
         /**
@@ -6161,6 +9624,9 @@ Deprecated since v${version}`);
          * @param type - The type of event to notify. Defaults to `e.type`.
          */
         notifyTarget(e3, type) {
+          if (!e3.currentTarget.isInteractive()) {
+            return;
+          }
           type = type ?? e3.type;
           const handlerKey = `on${type}`;
           e3.currentTarget[handlerKey]?.(e3);
@@ -6714,8 +10180,6 @@ Deprecated since v${version}`);
         _notifyListeners(e3, type) {
           const listeners = e3.currentTarget._events[type];
           if (!listeners)
-            return;
-          if (!e3.currentTarget.isInteractive())
             return;
           if ("fn" in listeners) {
             if (listeners.once)
@@ -7775,58 +11239,6 @@ Deprecated since v${version}`);
         LoaderParserPriority2[LoaderParserPriority2["High"] = 2] = "High";
         return LoaderParserPriority2;
       })(LoaderParserPriority || {});
-    }
-  });
-
-  // node_modules/pixi.js/lib/environment-browser/BrowserAdapter.mjs
-  var BrowserAdapter;
-  var init_BrowserAdapter = __esm({
-    "node_modules/pixi.js/lib/environment-browser/BrowserAdapter.mjs"() {
-      "use strict";
-      BrowserAdapter = {
-        createCanvas: (width, height) => {
-          const canvas = document.createElement("canvas");
-          canvas.width = width;
-          canvas.height = height;
-          return canvas;
-        },
-        getCanvasRenderingContext2D: () => CanvasRenderingContext2D,
-        getWebGLRenderingContext: () => WebGLRenderingContext,
-        getNavigator: () => navigator,
-        getBaseUrl: () => document.baseURI ?? window.location.href,
-        getFontFaceSet: () => document.fonts,
-        fetch: (url, options) => fetch(url, options),
-        parseXML: (xml) => {
-          const parser = new DOMParser();
-          return parser.parseFromString(xml, "text/xml");
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/environment/adapter.mjs
-  var currentAdapter, DOMAdapter;
-  var init_adapter = __esm({
-    "node_modules/pixi.js/lib/environment/adapter.mjs"() {
-      "use strict";
-      init_BrowserAdapter();
-      currentAdapter = BrowserAdapter;
-      DOMAdapter = {
-        /**
-         * Returns the current adapter.
-         * @returns {environment.Adapter} The current adapter.
-         */
-        get() {
-          return currentAdapter;
-        },
-        /**
-         * Sets the current adapter.
-         * @param adapter - The new adapter.
-         */
-        set(adapter) {
-          currentAdapter = adapter;
-        }
-      };
     }
   });
 
@@ -9163,417 +12575,6 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/maths/misc/pow2.mjs
-  function nextPow2(v3) {
-    v3 += v3 === 0 ? 1 : 0;
-    --v3;
-    v3 |= v3 >>> 1;
-    v3 |= v3 >>> 2;
-    v3 |= v3 >>> 4;
-    v3 |= v3 >>> 8;
-    v3 |= v3 >>> 16;
-    return v3 + 1;
-  }
-  function isPow2(v3) {
-    return !(v3 & v3 - 1) && !!v3;
-  }
-  var init_pow2 = __esm({
-    "node_modules/pixi.js/lib/maths/misc/pow2.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/scene/container/utils/definedProps.mjs
-  function definedProps(obj) {
-    const result = {};
-    for (const key in obj) {
-      if (obj[key] !== void 0) {
-        result[key] = obj[key];
-      }
-    }
-    return result;
-  }
-  var init_definedProps = __esm({
-    "node_modules/pixi.js/lib/scene/container/utils/definedProps.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureStyle.mjs
-  function createResourceIdFromString(value) {
-    const id = idHash[value];
-    if (id === void 0) {
-      idHash[value] = uid("resource");
-    }
-    return id;
-  }
-  var idHash, _TextureStyle, TextureStyle;
-  var init_TextureStyle = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureStyle.mjs"() {
-      "use strict";
-      init_eventemitter3();
-      init_uid();
-      init_deprecation();
-      idHash = /* @__PURE__ */ Object.create(null);
-      _TextureStyle = class _TextureStyle2 extends eventemitter3_default {
-        /**
-         * @param options - options for the style
-         */
-        constructor(options = {}) {
-          super();
-          this._resourceType = "textureSampler";
-          this._touched = 0;
-          this._maxAnisotropy = 1;
-          this.destroyed = false;
-          options = { ..._TextureStyle2.defaultOptions, ...options };
-          this.addressMode = options.addressMode;
-          this.addressModeU = options.addressModeU ?? this.addressModeU;
-          this.addressModeV = options.addressModeV ?? this.addressModeV;
-          this.addressModeW = options.addressModeW ?? this.addressModeW;
-          this.scaleMode = options.scaleMode;
-          this.magFilter = options.magFilter ?? this.magFilter;
-          this.minFilter = options.minFilter ?? this.minFilter;
-          this.mipmapFilter = options.mipmapFilter ?? this.mipmapFilter;
-          this.lodMinClamp = options.lodMinClamp;
-          this.lodMaxClamp = options.lodMaxClamp;
-          this.compare = options.compare;
-          this.maxAnisotropy = options.maxAnisotropy ?? 1;
-        }
-        set addressMode(value) {
-          this.addressModeU = value;
-          this.addressModeV = value;
-          this.addressModeW = value;
-        }
-        /** setting this will set wrapModeU,wrapModeV and wrapModeW all at once! */
-        get addressMode() {
-          return this.addressModeU;
-        }
-        set wrapMode(value) {
-          deprecation(v8_0_0, "TextureStyle.wrapMode is now TextureStyle.addressMode");
-          this.addressMode = value;
-        }
-        get wrapMode() {
-          return this.addressMode;
-        }
-        set scaleMode(value) {
-          this.magFilter = value;
-          this.minFilter = value;
-          this.mipmapFilter = value;
-        }
-        /** setting this will set magFilter,minFilter and mipmapFilter all at once!  */
-        get scaleMode() {
-          return this.magFilter;
-        }
-        /** Specifies the maximum anisotropy value clamp used by the sampler. */
-        set maxAnisotropy(value) {
-          this._maxAnisotropy = Math.min(value, 16);
-          if (this._maxAnisotropy > 1) {
-            this.scaleMode = "linear";
-          }
-        }
-        get maxAnisotropy() {
-          return this._maxAnisotropy;
-        }
-        // TODO - move this to WebGL?
-        get _resourceId() {
-          return this._sharedResourceId || this._generateResourceId();
-        }
-        update() {
-          this.emit("change", this);
-          this._sharedResourceId = null;
-        }
-        _generateResourceId() {
-          const bigKey = `${this.addressModeU}-${this.addressModeV}-${this.addressModeW}-${this.magFilter}-${this.minFilter}-${this.mipmapFilter}-${this.lodMinClamp}-${this.lodMaxClamp}-${this.compare}-${this._maxAnisotropy}`;
-          this._sharedResourceId = createResourceIdFromString(bigKey);
-          return this._resourceId;
-        }
-        /** Destroys the style */
-        destroy() {
-          this.destroyed = true;
-          this.emit("destroy", this);
-          this.emit("change", this);
-          this.removeAllListeners();
-        }
-      };
-      _TextureStyle.defaultOptions = {
-        addressMode: "clamp-to-edge",
-        scaleMode: "linear"
-      };
-      TextureStyle = _TextureStyle;
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/TextureSource.mjs
-  var _TextureSource, TextureSource;
-  var init_TextureSource = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/TextureSource.mjs"() {
-      "use strict";
-      init_eventemitter3();
-      init_pow2();
-      init_definedProps();
-      init_uid();
-      init_TextureStyle();
-      _TextureSource = class _TextureSource2 extends eventemitter3_default {
-        /**
-         * @param options - options for creating a new TextureSource
-         */
-        constructor(options = {}) {
-          super();
-          this.options = options;
-          this.uid = uid("textureSource");
-          this._resourceType = "textureSource";
-          this._resourceId = uid("resource");
-          this.uploadMethodId = "unknown";
-          this._resolution = 1;
-          this.pixelWidth = 1;
-          this.pixelHeight = 1;
-          this.width = 1;
-          this.height = 1;
-          this.sampleCount = 1;
-          this.mipLevelCount = 1;
-          this.autoGenerateMipmaps = false;
-          this.format = "rgba8unorm";
-          this.dimension = "2d";
-          this.antialias = false;
-          this._touched = 0;
-          this._batchTick = -1;
-          this._textureBindLocation = -1;
-          options = { ..._TextureSource2.defaultOptions, ...options };
-          this.label = options.label ?? "";
-          this.resource = options.resource;
-          this.autoGarbageCollect = options.autoGarbageCollect;
-          this._resolution = options.resolution;
-          if (options.width) {
-            this.pixelWidth = options.width * this._resolution;
-          } else {
-            this.pixelWidth = this.resource ? this.resourceWidth ?? 1 : 1;
-          }
-          if (options.height) {
-            this.pixelHeight = options.height * this._resolution;
-          } else {
-            this.pixelHeight = this.resource ? this.resourceHeight ?? 1 : 1;
-          }
-          this.width = this.pixelWidth / this._resolution;
-          this.height = this.pixelHeight / this._resolution;
-          this.format = options.format;
-          this.dimension = options.dimensions;
-          this.mipLevelCount = options.mipLevelCount;
-          this.autoGenerateMipmaps = options.autoGenerateMipmaps;
-          this.sampleCount = options.sampleCount;
-          this.antialias = options.antialias;
-          this.alphaMode = options.alphaMode;
-          this.style = new TextureStyle(definedProps(options));
-          this.destroyed = false;
-          this._refreshPOT();
-        }
-        /** returns itself */
-        get source() {
-          return this;
-        }
-        /** the style of the texture */
-        get style() {
-          return this._style;
-        }
-        set style(value) {
-          if (this.style === value)
-            return;
-          this._style?.off("change", this._onStyleChange, this);
-          this._style = value;
-          this._style?.on("change", this._onStyleChange, this);
-          this._onStyleChange();
-        }
-        /** setting this will set wrapModeU,wrapModeV and wrapModeW all at once! */
-        get addressMode() {
-          return this._style.addressMode;
-        }
-        set addressMode(value) {
-          this._style.addressMode = value;
-        }
-        /** setting this will set wrapModeU,wrapModeV and wrapModeW all at once! */
-        get repeatMode() {
-          return this._style.addressMode;
-        }
-        set repeatMode(value) {
-          this._style.addressMode = value;
-        }
-        /** Specifies the sampling behavior when the sample footprint is smaller than or equal to one texel. */
-        get magFilter() {
-          return this._style.magFilter;
-        }
-        set magFilter(value) {
-          this._style.magFilter = value;
-        }
-        /** Specifies the sampling behavior when the sample footprint is larger than one texel. */
-        get minFilter() {
-          return this._style.minFilter;
-        }
-        set minFilter(value) {
-          this._style.minFilter = value;
-        }
-        /** Specifies behavior for sampling between mipmap levels. */
-        get mipmapFilter() {
-          return this._style.mipmapFilter;
-        }
-        set mipmapFilter(value) {
-          this._style.mipmapFilter = value;
-        }
-        /** Specifies the minimum and maximum levels of detail, respectively, used internally when sampling a texture. */
-        get lodMinClamp() {
-          return this._style.lodMinClamp;
-        }
-        set lodMinClamp(value) {
-          this._style.lodMinClamp = value;
-        }
-        /** Specifies the minimum and maximum levels of detail, respectively, used internally when sampling a texture. */
-        get lodMaxClamp() {
-          return this._style.lodMaxClamp;
-        }
-        set lodMaxClamp(value) {
-          this._style.lodMaxClamp = value;
-        }
-        _onStyleChange() {
-          this.emit("styleChange", this);
-        }
-        /** call this if you have modified the texture outside of the constructor */
-        update() {
-          if (this.resource) {
-            const resolution = this._resolution;
-            const didResize = this.resize(this.resourceWidth / resolution, this.resourceHeight / resolution);
-            if (didResize)
-              return;
-          }
-          this.emit("update", this);
-        }
-        /** Destroys this texture source */
-        destroy() {
-          this.destroyed = true;
-          this.emit("destroy", this);
-          this.emit("change", this);
-          if (this._style) {
-            this._style.destroy();
-            this._style = null;
-          }
-          this.uploadMethodId = null;
-          this.resource = null;
-          this.removeAllListeners();
-        }
-        /**
-         * This will unload the Texture source from the GPU. This will free up the GPU memory
-         * As soon as it is required fore rendering, it will be re-uploaded.
-         */
-        unload() {
-          this._resourceId = uid("resource");
-          this.emit("change", this);
-          this.emit("unload", this);
-        }
-        /** the width of the resource. This is the REAL pure number, not accounting resolution   */
-        get resourceWidth() {
-          const { resource } = this;
-          return resource.naturalWidth || resource.videoWidth || resource.displayWidth || resource.width;
-        }
-        /** the height of the resource. This is the REAL pure number, not accounting resolution */
-        get resourceHeight() {
-          const { resource } = this;
-          return resource.naturalHeight || resource.videoHeight || resource.displayHeight || resource.height;
-        }
-        /**
-         * the resolution of the texture. Changing this number, will not change the number of pixels in the actual texture
-         * but will the size of the texture when rendered.
-         *
-         * changing the resolution of this texture to 2 for example will make it appear twice as small when rendered (as pixel
-         * density will have increased)
-         */
-        get resolution() {
-          return this._resolution;
-        }
-        set resolution(resolution) {
-          if (this._resolution === resolution)
-            return;
-          this._resolution = resolution;
-          this.width = this.pixelWidth / resolution;
-          this.height = this.pixelHeight / resolution;
-        }
-        /**
-         * Resize the texture, this is handy if you want to use the texture as a render texture
-         * @param width - the new width of the texture
-         * @param height - the new height of the texture
-         * @param resolution - the new resolution of the texture
-         * @returns - if the texture was resized
-         */
-        resize(width, height, resolution) {
-          resolution = resolution || this._resolution;
-          width = width || this.width;
-          height = height || this.height;
-          const newPixelWidth = Math.round(width * resolution);
-          const newPixelHeight = Math.round(height * resolution);
-          this.width = newPixelWidth / resolution;
-          this.height = newPixelHeight / resolution;
-          this._resolution = resolution;
-          if (this.pixelWidth === newPixelWidth && this.pixelHeight === newPixelHeight) {
-            return false;
-          }
-          this._refreshPOT();
-          this.pixelWidth = newPixelWidth;
-          this.pixelHeight = newPixelHeight;
-          this.emit("resize", this);
-          this._resourceId = uid("resource");
-          this.emit("change", this);
-          return true;
-        }
-        /**
-         * Lets the renderer know that this texture has been updated and its mipmaps should be re-generated.
-         * This is only important for RenderTexture instances, as standard Texture instances will have their
-         * mipmaps generated on upload. You should call this method after you make any change to the texture
-         *
-         * The reason for this is is can be quite expensive to update mipmaps for a texture. So by default,
-         * We want you, the developer to specify when this action should happen.
-         *
-         * Generally you don't want to have mipmaps generated on Render targets that are changed every frame,
-         */
-        updateMipmaps() {
-          if (this.autoGenerateMipmaps && this.mipLevelCount > 1) {
-            this.emit("updateMipmaps", this);
-          }
-        }
-        set wrapMode(value) {
-          this._style.wrapMode = value;
-        }
-        get wrapMode() {
-          return this._style.wrapMode;
-        }
-        set scaleMode(value) {
-          this._style.scaleMode = value;
-        }
-        /** setting this will set magFilter,minFilter and mipmapFilter all at once!  */
-        get scaleMode() {
-          return this._style.scaleMode;
-        }
-        /**
-         * Refresh check for isPowerOfTwo texture based on size
-         * @private
-         */
-        _refreshPOT() {
-          this.isPowerOfTwo = isPow2(this.pixelWidth) && isPow2(this.pixelHeight);
-        }
-        static test(_resource) {
-          throw new Error("Unimplemented");
-        }
-      };
-      _TextureSource.defaultOptions = {
-        resolution: 1,
-        format: "bgra8unorm",
-        alphaMode: "premultiply-alpha-on-upload",
-        dimensions: "2d",
-        mipLevelCount: 1,
-        autoGenerateMipmaps: false,
-        sampleCount: 1,
-        antialias: false,
-        autoGarbageCollect: false
-      };
-      TextureSource = _TextureSource;
-    }
-  });
-
   // node_modules/pixi.js/lib/rendering/renderers/shared/texture/sources/BufferImageSource.mjs
   var BufferImageSource;
   var init_BufferImageSource = __esm({
@@ -9700,13 +12701,13 @@ Deprecated since v${version}`);
           const texBase = tex.source;
           const frame = this.uClampFrame;
           const margin = this.clampMargin / texBase._resolution;
-          const offset = this.clampOffset;
+          const offset = this.clampOffset / texBase._resolution;
           frame[0] = (tex.frame.x + margin + offset) / texBase.width;
           frame[1] = (tex.frame.y + margin + offset) / texBase.height;
           frame[2] = (tex.frame.x + tex.frame.width - margin + offset) / texBase.width;
           frame[3] = (tex.frame.y + tex.frame.height - margin + offset) / texBase.height;
-          this.uClampOffset[0] = offset / texBase.pixelWidth;
-          this.uClampOffset[1] = offset / texBase.pixelHeight;
+          this.uClampOffset[0] = this.clampOffset / texBase.pixelWidth;
+          this.uClampOffset[1] = this.clampOffset / texBase.pixelHeight;
           this.isSimple = tex.frame.width === texBase.width && tex.frame.height === texBase.height && tex.rotate === 0;
           return true;
         }
@@ -9730,7 +12731,7 @@ Deprecated since v${version}`);
       init_TextureMatrix();
       Texture = class extends eventemitter3_default {
         /**
-         * @param {TextureOptions} param0 - Options for the texture
+         * @param {rendering.TextureOptions} options - Options for the texture
          */
         constructor({
           source: source2,
@@ -10235,6 +13236,54 @@ Deprecated since v${version}`);
     }
   });
 
+  // node_modules/pixi.js/lib/scene/view/View.mjs
+  var ViewContainer;
+  var init_View = __esm({
+    "node_modules/pixi.js/lib/scene/view/View.mjs"() {
+      "use strict";
+      init_Bounds();
+      init_Container();
+      ViewContainer = class extends Container {
+        constructor() {
+          super(...arguments);
+          this.canBundle = true;
+          this.allowChildren = false;
+          this._roundPixels = 0;
+          this._lastUsed = 0;
+          this._lastInstructionTick = -1;
+          this._bounds = new Bounds(0, 1, 0, 0);
+          this._boundsDirty = true;
+        }
+        /** @private */
+        _updateBounds() {
+        }
+        /**
+         * Whether or not to round the x/y position of the sprite.
+         * @type {boolean}
+         */
+        get roundPixels() {
+          return !!this._roundPixels;
+        }
+        set roundPixels(value) {
+          this._roundPixels = value ? 1 : 0;
+        }
+        /**
+         * Checks if the object contains the given point.
+         * @param point - The point to check
+         */
+        containsPoint(point) {
+          const bounds = this.bounds;
+          const { x: x3, y: y3 } = point;
+          return x3 >= bounds.minX && x3 <= bounds.maxX && y3 >= bounds.minY && y3 <= bounds.maxY;
+        }
+        destroy(options) {
+          super.destroy(options);
+          this._bounds = null;
+        }
+      };
+    }
+  });
+
   // node_modules/pixi.js/lib/scene/sprite/Sprite.mjs
   var Sprite;
   var init_Sprite = __esm({
@@ -10243,8 +13292,8 @@ Deprecated since v${version}`);
       init_ObservablePoint();
       init_Texture();
       init_updateQuadBounds();
-      init_Container();
-      Sprite = class _Sprite extends Container {
+      init_View();
+      Sprite = class _Sprite extends ViewContainer {
         /**
          * @param options - The options for creating the sprite.
          */
@@ -10260,11 +13309,8 @@ Deprecated since v${version}`);
           this.renderPipeId = "sprite";
           this.batched = true;
           this._didSpriteUpdate = false;
-          this._bounds = { minX: 0, maxX: 1, minY: 0, maxY: 0 };
           this._sourceBounds = { minX: 0, maxX: 1, minY: 0, maxY: 0 };
-          this._boundsDirty = true;
           this._sourceBoundsDirty = true;
-          this._roundPixels = 0;
           this._anchor = new ObservablePoint(
             {
               _onUpdate: () => {
@@ -10280,9 +13326,9 @@ Deprecated since v${version}`);
           this.texture = texture;
           this.allowChildren = false;
           this.roundPixels = roundPixels ?? false;
-          if (width)
+          if (width !== void 0)
             this.width = width;
-          if (height)
+          if (height !== void 0)
             this.height = height;
         }
         /**
@@ -10364,7 +13410,7 @@ Deprecated since v${version}`);
           bounds.addFrame(_bounds.minX, _bounds.minY, _bounds.maxX, _bounds.maxY);
         }
         onViewUpdate() {
-          this._didChangeId += 1 << 12;
+          this._didViewChangeTick++;
           this._didSpriteUpdate = true;
           this._sourceBoundsDirty = this._boundsDirty = true;
           if (this.didViewUpdate)
@@ -10429,16 +13475,6 @@ Deprecated since v${version}`);
         }
         set anchor(value) {
           typeof value === "number" ? this._anchor.set(value) : this._anchor.copyFrom(value);
-        }
-        /**
-         *  Whether or not to round the x/y position of the sprite.
-         * @type {boolean}
-         */
-        get roundPixels() {
-          return !!this._roundPixels;
-        }
-        set roundPixels(value) {
-          this._roundPixels = value ? 1 : 0;
         }
         /** The width of the sprite, setting this will actually modify the scale to achieve the value set. */
         get width() {
@@ -10745,7 +13781,7 @@ Deprecated since v${version}`);
           if (options.resource && (globalThis.HTMLImageElement && options.resource instanceof HTMLImageElement)) {
             const canvas = DOMAdapter.get().createCanvas(options.resource.width, options.resource.height);
             const context2 = canvas.getContext("2d");
-            context2.drawImage(options.resource, 0, 0);
+            context2.drawImage(options.resource, 0, 0, options.resource.width, options.resource.height);
             options.resource = canvas;
             warn("ImageSource: Image element passed, converting to canvas. Use CanvasSource instead.");
           }
@@ -10754,7 +13790,7 @@ Deprecated since v${version}`);
           this.autoGarbageCollect = true;
         }
         static test(resource) {
-          return globalThis.HTMLImageElement && resource instanceof HTMLImageElement || typeof ImageBitmap !== "undefined" && resource instanceof ImageBitmap;
+          return globalThis.HTMLImageElement && resource instanceof HTMLImageElement || typeof ImageBitmap !== "undefined" && resource instanceof ImageBitmap || globalThis.VideoFrame && resource instanceof VideoFrame;
         }
       };
       ImageSource.extension = ExtensionType.TextureSource;
@@ -11100,7 +14136,7 @@ Deprecated since v${version}`);
           }
         }
         static test(resource) {
-          return globalThis.HTMLVideoElement && resource instanceof HTMLVideoElement || globalThis.VideoFrame && resource instanceof VideoFrame;
+          return globalThis.HTMLVideoElement && resource instanceof HTMLVideoElement;
         }
       };
       _VideoSource.extension = ExtensionType.TextureSource;
@@ -11235,7 +14271,7 @@ Deprecated since v${version}`);
   });
 
   // node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/textureFrom.mjs
-  function autoDetectSource(options = {}) {
+  function textureSourceFrom(options = {}) {
     const hasResource = options && options.resource;
     const res = hasResource ? options.resource : options;
     const opts = hasResource ? options : { resource: options };
@@ -11254,7 +14290,7 @@ Deprecated since v${version}`);
     if (!skipCache && Cache.has(resource)) {
       return Cache.get(resource);
     }
-    const texture = new Texture({ source: autoDetectSource(opts) });
+    const texture = new Texture({ source: textureSourceFrom(opts) });
     texture.on("destroy", () => {
       if (Cache.has(resource)) {
         Cache.remove(resource);
@@ -11284,6 +14320,7 @@ Deprecated since v${version}`);
       sources = [];
       extensions.handleByList(ExtensionType.TextureSource, sources);
       Texture.from = textureFrom;
+      TextureSource.from = textureSourceFrom;
     }
   });
 
@@ -11304,136 +14341,578 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/renderers/shared/buffer/const.mjs
-  var BufferUsage;
-  var init_const3 = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/buffer/const.mjs"() {
+  // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/BindGroup.mjs
+  var BindGroup;
+  var init_BindGroup = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/BindGroup.mjs"() {
       "use strict";
-      BufferUsage = /* @__PURE__ */ ((BufferUsage2) => {
-        BufferUsage2[BufferUsage2["MAP_READ"] = 1] = "MAP_READ";
-        BufferUsage2[BufferUsage2["MAP_WRITE"] = 2] = "MAP_WRITE";
-        BufferUsage2[BufferUsage2["COPY_SRC"] = 4] = "COPY_SRC";
-        BufferUsage2[BufferUsage2["COPY_DST"] = 8] = "COPY_DST";
-        BufferUsage2[BufferUsage2["INDEX"] = 16] = "INDEX";
-        BufferUsage2[BufferUsage2["VERTEX"] = 32] = "VERTEX";
-        BufferUsage2[BufferUsage2["UNIFORM"] = 64] = "UNIFORM";
-        BufferUsage2[BufferUsage2["STORAGE"] = 128] = "STORAGE";
-        BufferUsage2[BufferUsage2["INDIRECT"] = 256] = "INDIRECT";
-        BufferUsage2[BufferUsage2["QUERY_RESOLVE"] = 512] = "QUERY_RESOLVE";
-        BufferUsage2[BufferUsage2["STATIC"] = 1024] = "STATIC";
-        return BufferUsage2;
-      })(BufferUsage || {});
+      BindGroup = class {
+        /**
+         * Create a new instance eof the Bind Group.
+         * @param resources - The resources that are bound together for use by a shader.
+         */
+        constructor(resources) {
+          this.resources = /* @__PURE__ */ Object.create(null);
+          this._dirty = true;
+          let index = 0;
+          for (const i3 in resources) {
+            const resource = resources[i3];
+            this.setResource(resource, index++);
+          }
+          this._updateKey();
+        }
+        /**
+         * Updates the key if its flagged as dirty. This is used internally to
+         * match this bind group to a WebGPU BindGroup.
+         * @internal
+         * @ignore
+         */
+        _updateKey() {
+          if (!this._dirty)
+            return;
+          this._dirty = false;
+          const keyParts = [];
+          let index = 0;
+          for (const i3 in this.resources) {
+            keyParts[index++] = this.resources[i3]._resourceId;
+          }
+          this._key = keyParts.join("|");
+        }
+        /**
+         * Set a resource at a given index. this function will
+         * ensure that listeners will be removed from the current resource
+         * and added to the new resource.
+         * @param resource - The resource to set.
+         * @param index - The index to set the resource at.
+         */
+        setResource(resource, index) {
+          const currentResource = this.resources[index];
+          if (resource === currentResource)
+            return;
+          if (currentResource) {
+            resource.off?.("change", this.onResourceChange, this);
+          }
+          resource.on?.("change", this.onResourceChange, this);
+          this.resources[index] = resource;
+          this._dirty = true;
+        }
+        /**
+         * Returns the resource at the current specified index.
+         * @param index - The index of the resource to get.
+         * @returns - The resource at the specified index.
+         */
+        getResource(index) {
+          return this.resources[index];
+        }
+        /**
+         * Used internally to 'touch' each resource, to ensure that the GC
+         * knows that all resources in this bind group are still being used.
+         * @param tick - The current tick.
+         * @internal
+         * @ignore
+         */
+        _touch(tick) {
+          const resources = this.resources;
+          for (const i3 in resources) {
+            resources[i3]._touched = tick;
+          }
+        }
+        /** Destroys this bind group and removes all listeners. */
+        destroy() {
+          const resources = this.resources;
+          for (const i3 in resources) {
+            const resource = resources[i3];
+            resource.off?.("change", this.onResourceChange, this);
+          }
+          this.resources = null;
+        }
+        onResourceChange(resource) {
+          this._dirty = true;
+          if (resource.destroyed) {
+            const resources = this.resources;
+            for (const i3 in resources) {
+              if (resources[i3] === resource) {
+                resources[i3] = null;
+              }
+            }
+          } else {
+            this._updateKey();
+          }
+        }
+      };
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/renderers/shared/buffer/Buffer.mjs
-  var Buffer2;
-  var init_Buffer = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/buffer/Buffer.mjs"() {
+  // node_modules/pixi.js/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
+  function getTextureBatchBindGroup(textures, size) {
+    let uid3 = 2166136261;
+    for (let i3 = 0; i3 < size; i3++) {
+      uid3 ^= textures[i3].uid;
+      uid3 = Math.imul(uid3, 16777619);
+      uid3 >>>= 0;
+    }
+    return cachedGroups[uid3] || generateTextureBatchBindGroup(textures, size, uid3);
+  }
+  function generateTextureBatchBindGroup(textures, size, key) {
+    const bindGroupResources = {};
+    let bindIndex = 0;
+    if (!maxTextures)
+      maxTextures = getMaxTexturesPerBatch();
+    for (let i3 = 0; i3 < maxTextures; i3++) {
+      const texture = i3 < size ? textures[i3] : Texture.EMPTY.source;
+      bindGroupResources[bindIndex++] = texture.source;
+      bindGroupResources[bindIndex++] = texture.style;
+    }
+    const bindGroup = new BindGroup(bindGroupResources);
+    cachedGroups[key] = bindGroup;
+    return bindGroup;
+  }
+  var cachedGroups, maxTextures;
+  var init_getTextureBatchBindGroup = __esm({
+    "node_modules/pixi.js/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs"() {
       "use strict";
-      init_eventemitter3();
-      init_uid();
-      init_const3();
-      Buffer2 = class extends eventemitter3_default {
-        /**
-         * Creates a new Buffer with the given options
-         * @param options - the options for the buffer
-         */
-        constructor(options) {
-          let { data, size } = options;
-          const { usage, label, shrinkToFit } = options;
-          super();
-          this.uid = uid("buffer");
-          this._resourceType = "buffer";
-          this._resourceId = uid("resource");
-          this._touched = 0;
-          this._updateID = 1;
-          this.shrinkToFit = true;
-          this.destroyed = false;
-          if (data instanceof Array) {
-            data = new Float32Array(data);
-          }
-          this._data = data;
-          size = size ?? data?.byteLength;
-          const mappedAtCreation = !!data;
-          this.descriptor = {
-            size,
-            usage,
-            mappedAtCreation,
-            label
-          };
-          this.shrinkToFit = shrinkToFit ?? true;
-        }
-        /** the data in the buffer */
-        get data() {
-          return this._data;
-        }
-        set data(value) {
-          this.setDataWithSize(value, value.length, true);
-        }
-        /** whether the buffer is static or not */
-        get static() {
-          return !!(this.descriptor.usage & BufferUsage.STATIC);
-        }
-        set static(value) {
-          if (value) {
-            this.descriptor.usage |= BufferUsage.STATIC;
+      init_BindGroup();
+      init_Texture();
+      init_maxRecommendedTextures();
+      cachedGroups = {};
+      maxTextures = 0;
+    }
+  });
+
+  // node_modules/pixi.js/lib/utils/data/ViewableBuffer.mjs
+  var ViewableBuffer;
+  var init_ViewableBuffer = __esm({
+    "node_modules/pixi.js/lib/utils/data/ViewableBuffer.mjs"() {
+      "use strict";
+      ViewableBuffer = class {
+        constructor(sizeOrBuffer) {
+          if (typeof sizeOrBuffer === "number") {
+            this.rawBinaryData = new ArrayBuffer(sizeOrBuffer);
+          } else if (sizeOrBuffer instanceof Uint8Array) {
+            this.rawBinaryData = sizeOrBuffer.buffer;
           } else {
-            this.descriptor.usage &= ~BufferUsage.STATIC;
+            this.rawBinaryData = sizeOrBuffer;
           }
+          this.uint32View = new Uint32Array(this.rawBinaryData);
+          this.float32View = new Float32Array(this.rawBinaryData);
+          this.size = this.rawBinaryData.byteLength;
+        }
+        /** View on the raw binary data as a `Int8Array`. */
+        get int8View() {
+          if (!this._int8View) {
+            this._int8View = new Int8Array(this.rawBinaryData);
+          }
+          return this._int8View;
+        }
+        /** View on the raw binary data as a `Uint8Array`. */
+        get uint8View() {
+          if (!this._uint8View) {
+            this._uint8View = new Uint8Array(this.rawBinaryData);
+          }
+          return this._uint8View;
+        }
+        /**  View on the raw binary data as a `Int16Array`. */
+        get int16View() {
+          if (!this._int16View) {
+            this._int16View = new Int16Array(this.rawBinaryData);
+          }
+          return this._int16View;
+        }
+        /** View on the raw binary data as a `Int32Array`. */
+        get int32View() {
+          if (!this._int32View) {
+            this._int32View = new Int32Array(this.rawBinaryData);
+          }
+          return this._int32View;
+        }
+        /** View on the raw binary data as a `Float64Array`. */
+        get float64View() {
+          if (!this._float64Array) {
+            this._float64Array = new Float64Array(this.rawBinaryData);
+          }
+          return this._float64Array;
+        }
+        /** View on the raw binary data as a `BigUint64Array`. */
+        get bigUint64View() {
+          if (!this._bigUint64Array) {
+            this._bigUint64Array = new BigUint64Array(this.rawBinaryData);
+          }
+          return this._bigUint64Array;
         }
         /**
-         * Sets the data in the buffer to the given value. This will immediately update the buffer on the GPU.
-         * If you only want to update a subset of the buffer, you can pass in the size of the data.
-         * @param value - the data to set
-         * @param size - the size of the data in bytes
-         * @param syncGPU - should the buffer be updated on the GPU immediately?
+         * Returns the view of the given type.
+         * @param type - One of `int8`, `uint8`, `int16`,
+         *    `uint16`, `int32`, `uint32`, and `float32`.
+         * @returns - typed array of given type
          */
-        setDataWithSize(value, size, syncGPU) {
-          this._updateID++;
-          this._updateSize = size * value.BYTES_PER_ELEMENT;
-          if (this._data === value) {
-            if (syncGPU)
-              this.emit("update", this);
-            return;
-          }
-          const oldData = this._data;
-          this._data = value;
-          if (oldData.length !== value.length) {
-            if (!this.shrinkToFit && value.byteLength < oldData.byteLength) {
-              if (syncGPU)
-                this.emit("update", this);
-            } else {
-              this.descriptor.size = value.byteLength;
-              this._resourceId = uid("resource");
-              this.emit("change", this);
-            }
-            return;
-          }
-          if (syncGPU)
-            this.emit("update", this);
+        view(type) {
+          return this[`${type}View`];
         }
-        /**
-         * updates the buffer on the GPU to reflect the data in the buffer.
-         * By default it will update the entire buffer. If you only want to update a subset of the buffer,
-         * you can pass in the size of the buffer to update.
-         * @param sizeInBytes - the new size of the buffer in bytes
-         */
-        update(sizeInBytes) {
-          this._updateSize = sizeInBytes ?? this._updateSize;
-          this._updateID++;
-          this.emit("update", this);
-        }
-        /** Destroys the buffer */
+        /** Destroys all buffer references. Do not use after calling this. */
         destroy() {
-          this.destroyed = true;
-          this.emit("destroy", this);
-          this.emit("change", this);
-          this._data = null;
-          this.descriptor = null;
-          this.removeAllListeners();
+          this.rawBinaryData = null;
+          this._int8View = null;
+          this._uint8View = null;
+          this._int16View = null;
+          this.uint16View = null;
+          this._int32View = null;
+          this.uint32View = null;
+          this.float32View = null;
+        }
+        /**
+         * Returns the size of the given type in bytes.
+         * @param type - One of `int8`, `uint8`, `int16`,
+         *   `uint16`, `int32`, `uint32`, and `float32`.
+         * @returns - size of the type in bytes
+         */
+        static sizeOf(type) {
+          switch (type) {
+            case "int8":
+            case "uint8":
+              return 1;
+            case "int16":
+            case "uint16":
+              return 2;
+            case "int32":
+            case "uint32":
+            case "float32":
+              return 4;
+            default:
+              throw new Error(`${type} isn't a valid view type`);
+          }
         }
       };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/buffer/utils/fastCopy.mjs
+  function fastCopy(sourceBuffer, destinationBuffer) {
+    const lengthDouble = sourceBuffer.byteLength / 8 | 0;
+    const sourceFloat64View = new Float64Array(sourceBuffer, 0, lengthDouble);
+    const destinationFloat64View = new Float64Array(destinationBuffer, 0, lengthDouble);
+    destinationFloat64View.set(sourceFloat64View);
+    const remainingBytes = sourceBuffer.byteLength - lengthDouble * 8;
+    if (remainingBytes > 0) {
+      const sourceUint8View = new Uint8Array(sourceBuffer, lengthDouble * 8, remainingBytes);
+      const destinationUint8View = new Uint8Array(destinationBuffer, lengthDouble * 8, remainingBytes);
+      destinationUint8View.set(sourceUint8View);
+    }
+  }
+  var init_fastCopy = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/buffer/utils/fastCopy.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/state/const.mjs
+  var BLEND_TO_NPM, STENCIL_MODES;
+  var init_const5 = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/state/const.mjs"() {
+      "use strict";
+      BLEND_TO_NPM = {
+        normal: "normal-npm",
+        add: "add-npm",
+        screen: "screen-npm"
+      };
+      STENCIL_MODES = /* @__PURE__ */ ((STENCIL_MODES2) => {
+        STENCIL_MODES2[STENCIL_MODES2["DISABLED"] = 0] = "DISABLED";
+        STENCIL_MODES2[STENCIL_MODES2["RENDERING_MASK_ADD"] = 1] = "RENDERING_MASK_ADD";
+        STENCIL_MODES2[STENCIL_MODES2["MASK_ACTIVE"] = 2] = "MASK_ACTIVE";
+        STENCIL_MODES2[STENCIL_MODES2["RENDERING_MASK_REMOVE"] = 3] = "RENDERING_MASK_REMOVE";
+        STENCIL_MODES2[STENCIL_MODES2["NONE"] = 4] = "NONE";
+        return STENCIL_MODES2;
+      })(STENCIL_MODES || {});
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/renderers/shared/state/getAdjustedBlendModeBlend.mjs
+  function getAdjustedBlendModeBlend(blendMode, textureSource) {
+    if (textureSource.alphaMode === "no-premultiply-alpha") {
+      return BLEND_TO_NPM[blendMode] || blendMode;
+    }
+    return blendMode;
+  }
+  var init_getAdjustedBlendModeBlend = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/state/getAdjustedBlendModeBlend.mjs"() {
+      "use strict";
+      init_const5();
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/batcher/shared/BatchTextureArray.mjs
+  var BatchTextureArray;
+  var init_BatchTextureArray = __esm({
+    "node_modules/pixi.js/lib/rendering/batcher/shared/BatchTextureArray.mjs"() {
+      "use strict";
+      BatchTextureArray = class {
+        constructor() {
+          this.ids = /* @__PURE__ */ Object.create(null);
+          this.textures = [];
+          this.count = 0;
+        }
+        /** Clear the textures and their locations. */
+        clear() {
+          for (let i3 = 0; i3 < this.count; i3++) {
+            const t3 = this.textures[i3];
+            this.textures[i3] = null;
+            this.ids[t3.uid] = null;
+          }
+          this.count = 0;
+        }
+      };
+    }
+  });
+
+  // node_modules/pixi.js/lib/rendering/batcher/shared/Batcher.mjs
+  function getBatchFromPool() {
+    return batchPoolIndex > 0 ? batchPool[--batchPoolIndex] : new Batch();
+  }
+  function returnBatchToPool(batch) {
+    batchPool[batchPoolIndex++] = batch;
+  }
+  var Batch, batchPool, batchPoolIndex, BATCH_TICK, _Batcher, Batcher;
+  var init_Batcher = __esm({
+    "node_modules/pixi.js/lib/rendering/batcher/shared/Batcher.mjs"() {
+      "use strict";
+      init_uid();
+      init_ViewableBuffer();
+      init_fastCopy();
+      init_getAdjustedBlendModeBlend();
+      init_maxRecommendedTextures();
+      init_BatchTextureArray();
+      Batch = class {
+        constructor() {
+          this.renderPipeId = "batch";
+          this.action = "startBatch";
+          this.start = 0;
+          this.size = 0;
+          this.textures = new BatchTextureArray();
+          this.blendMode = "normal";
+          this.canBundle = true;
+        }
+        destroy() {
+          this.textures = null;
+          this.gpuBindGroup = null;
+          this.bindGroup = null;
+          this.batcher = null;
+        }
+      };
+      batchPool = [];
+      batchPoolIndex = 0;
+      BATCH_TICK = 0;
+      _Batcher = class _Batcher2 {
+        constructor(options = {}) {
+          this.uid = uid("batcher");
+          this.dirty = true;
+          this.batchIndex = 0;
+          this.batches = [];
+          this._vertexSize = 6;
+          this._elements = [];
+          _Batcher2.defaultOptions.maxTextures = _Batcher2.defaultOptions.maxTextures ?? getMaxTexturesPerBatch();
+          options = { ..._Batcher2.defaultOptions, ...options };
+          const { vertexSize, indexSize, maxTextures: maxTextures2 } = options;
+          this.attributeBuffer = new ViewableBuffer(vertexSize * this._vertexSize * 4);
+          this.indexBuffer = new Uint16Array(indexSize);
+          this.maxTextures = maxTextures2;
+        }
+        begin() {
+          this.elementSize = 0;
+          this.elementStart = 0;
+          this.indexSize = 0;
+          this.attributeSize = 0;
+          for (let i3 = 0; i3 < this.batchIndex; i3++) {
+            returnBatchToPool(this.batches[i3]);
+          }
+          this.batchIndex = 0;
+          this._batchIndexStart = 0;
+          this._batchIndexSize = 0;
+          this.dirty = true;
+        }
+        add(batchableObject) {
+          this._elements[this.elementSize++] = batchableObject;
+          batchableObject.indexStart = this.indexSize;
+          batchableObject.location = this.attributeSize;
+          batchableObject.batcher = this;
+          this.indexSize += batchableObject.indexSize;
+          this.attributeSize += batchableObject.vertexSize * this._vertexSize;
+        }
+        checkAndUpdateTexture(batchableObject, texture) {
+          const textureId = batchableObject.batch.textures.ids[texture._source.uid];
+          if (!textureId && textureId !== 0)
+            return false;
+          batchableObject.textureId = textureId;
+          batchableObject.texture = texture;
+          return true;
+        }
+        updateElement(batchableObject) {
+          this.dirty = true;
+          batchableObject.packAttributes(
+            this.attributeBuffer.float32View,
+            this.attributeBuffer.uint32View,
+            batchableObject.location,
+            batchableObject.textureId
+          );
+        }
+        /**
+         * breaks the batcher. This happens when a batch gets too big,
+         * or we need to switch to a different type of rendering (a filter for example)
+         * @param instructionSet
+         */
+        break(instructionSet) {
+          const elements = this._elements;
+          if (!elements[this.elementStart])
+            return;
+          let batch = getBatchFromPool();
+          let textureBatch = batch.textures;
+          textureBatch.clear();
+          const firstElement = elements[this.elementStart];
+          let blendMode = getAdjustedBlendModeBlend(firstElement.blendMode, firstElement.texture._source);
+          if (this.attributeSize * 4 > this.attributeBuffer.size) {
+            this._resizeAttributeBuffer(this.attributeSize * 4);
+          }
+          if (this.indexSize > this.indexBuffer.length) {
+            this._resizeIndexBuffer(this.indexSize);
+          }
+          const f32 = this.attributeBuffer.float32View;
+          const u32 = this.attributeBuffer.uint32View;
+          const iBuffer = this.indexBuffer;
+          let size = this._batchIndexSize;
+          let start = this._batchIndexStart;
+          let action = "startBatch";
+          const maxTextures2 = this.maxTextures;
+          for (let i3 = this.elementStart; i3 < this.elementSize; ++i3) {
+            const element = elements[i3];
+            elements[i3] = null;
+            const texture = element.texture;
+            const source2 = texture._source;
+            const adjustedBlendMode = getAdjustedBlendModeBlend(element.blendMode, source2);
+            const blendModeChange = blendMode !== adjustedBlendMode;
+            if (source2._batchTick === BATCH_TICK && !blendModeChange) {
+              element.textureId = source2._textureBindLocation;
+              size += element.indexSize;
+              element.packAttributes(f32, u32, element.location, element.textureId);
+              element.packIndex(iBuffer, element.indexStart, element.location / this._vertexSize);
+              element.batch = batch;
+              continue;
+            }
+            source2._batchTick = BATCH_TICK;
+            if (textureBatch.count >= maxTextures2 || blendModeChange) {
+              this._finishBatch(
+                batch,
+                start,
+                size - start,
+                textureBatch,
+                blendMode,
+                instructionSet,
+                action
+              );
+              action = "renderBatch";
+              start = size;
+              blendMode = adjustedBlendMode;
+              batch = getBatchFromPool();
+              textureBatch = batch.textures;
+              textureBatch.clear();
+              ++BATCH_TICK;
+            }
+            element.textureId = source2._textureBindLocation = textureBatch.count;
+            textureBatch.ids[source2.uid] = textureBatch.count;
+            textureBatch.textures[textureBatch.count++] = source2;
+            element.batch = batch;
+            size += element.indexSize;
+            element.packAttributes(f32, u32, element.location, element.textureId);
+            element.packIndex(iBuffer, element.indexStart, element.location / this._vertexSize);
+          }
+          if (textureBatch.count > 0) {
+            this._finishBatch(
+              batch,
+              start,
+              size - start,
+              textureBatch,
+              blendMode,
+              instructionSet,
+              action
+            );
+            start = size;
+            ++BATCH_TICK;
+          }
+          this.elementStart = this.elementSize;
+          this._batchIndexStart = start;
+          this._batchIndexSize = size;
+        }
+        _finishBatch(batch, indexStart, indexSize, textureBatch, blendMode, instructionSet, action) {
+          batch.gpuBindGroup = null;
+          batch.bindGroup = null;
+          batch.action = action;
+          batch.batcher = this;
+          batch.textures = textureBatch;
+          batch.blendMode = blendMode;
+          batch.start = indexStart;
+          batch.size = indexSize;
+          ++BATCH_TICK;
+          this.batches[this.batchIndex++] = batch;
+          instructionSet.add(batch);
+        }
+        finish(instructionSet) {
+          this.break(instructionSet);
+        }
+        /**
+         * Resizes the attribute buffer to the given size (1 = 1 float32)
+         * @param size - the size in vertices to ensure (not bytes!)
+         */
+        ensureAttributeBuffer(size) {
+          if (size * 4 <= this.attributeBuffer.size)
+            return;
+          this._resizeAttributeBuffer(size * 4);
+        }
+        /**
+         * Resizes the index buffer to the given size (1 = 1 float32)
+         * @param size - the size in vertices to ensure (not bytes!)
+         */
+        ensureIndexBuffer(size) {
+          if (size <= this.indexBuffer.length)
+            return;
+          this._resizeIndexBuffer(size);
+        }
+        _resizeAttributeBuffer(size) {
+          const newSize = Math.max(size, this.attributeBuffer.size * 2);
+          const newArrayBuffer = new ViewableBuffer(newSize);
+          fastCopy(this.attributeBuffer.rawBinaryData, newArrayBuffer.rawBinaryData);
+          this.attributeBuffer = newArrayBuffer;
+        }
+        _resizeIndexBuffer(size) {
+          const indexBuffer = this.indexBuffer;
+          let newSize = Math.max(size, indexBuffer.length * 1.5);
+          newSize += newSize % 2;
+          const newIndexBuffer = newSize > 65535 ? new Uint32Array(newSize) : new Uint16Array(newSize);
+          if (newIndexBuffer.BYTES_PER_ELEMENT !== indexBuffer.BYTES_PER_ELEMENT) {
+            for (let i3 = 0; i3 < indexBuffer.length; i3++) {
+              newIndexBuffer[i3] = indexBuffer[i3];
+            }
+          } else {
+            fastCopy(indexBuffer.buffer, newIndexBuffer.buffer);
+          }
+          this.indexBuffer = newIndexBuffer;
+        }
+        destroy() {
+          for (let i3 = 0; i3 < this.batches.length; i3++) {
+            returnBatchToPool(this.batches[i3]);
+          }
+          this.batches = null;
+          for (let i3 = 0; i3 < this._elements.length; i3++) {
+            this._elements[i3].batch = null;
+          }
+          this._elements = null;
+          this.indexBuffer = null;
+          this.attributeBuffer.destroy();
+          this.attributeBuffer = null;
+        }
+      };
+      _Batcher.defaultOptions = {
+        vertexSize: 4,
+        indexSize: 6,
+        maxTextures: null
+      };
+      Batcher = _Batcher;
     }
   });
 
@@ -11462,7 +14941,7 @@ Deprecated since v${version}`);
     "node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/ensureIsBuffer.mjs"() {
       "use strict";
       init_Buffer();
-      init_const3();
+      init_const();
     }
   });
 
@@ -11624,13 +15103,13 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/batcher/gpu/BatchGeometry.mjs
+  // node_modules/pixi.js/lib/rendering/batcher/shared/BatchGeometry.mjs
   var placeHolderBufferData, placeHolderIndexData, BatchGeometry;
   var init_BatchGeometry = __esm({
-    "node_modules/pixi.js/lib/rendering/batcher/gpu/BatchGeometry.mjs"() {
+    "node_modules/pixi.js/lib/rendering/batcher/shared/BatchGeometry.mjs"() {
       "use strict";
       init_Buffer();
-      init_const3();
+      init_const();
       init_Geometry();
       placeHolderBufferData = new Float32Array(1);
       placeHolderIndexData = new Uint32Array(1);
@@ -11657,631 +15136,31 @@ Deprecated since v${version}`);
                 buffer: attributeBuffer,
                 format: "float32x2",
                 stride,
-                offset: 0,
-                location: 1
+                offset: 0
               },
               aUV: {
                 buffer: attributeBuffer,
                 format: "float32x2",
                 stride,
-                offset: 2 * 4,
-                location: 3
+                offset: 2 * 4
               },
               aColor: {
                 buffer: attributeBuffer,
                 format: "unorm8x4",
                 stride,
-                offset: 4 * 4,
-                location: 0
+                offset: 4 * 4
               },
               aTextureIdAndRound: {
                 buffer: attributeBuffer,
                 format: "uint16x2",
                 stride,
-                offset: 5 * 4,
-                location: 2
+                offset: 5 * 4
               }
             },
             indexBuffer
           });
         }
       };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/BindGroup.mjs
-  var BindGroup;
-  var init_BindGroup = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/BindGroup.mjs"() {
-      "use strict";
-      BindGroup = class {
-        /**
-         * Create a new instance eof the Bind Group.
-         * @param resources - The resources that are bound together for use by a shader.
-         */
-        constructor(resources) {
-          this.resources = /* @__PURE__ */ Object.create(null);
-          this._dirty = true;
-          let index = 0;
-          for (const i3 in resources) {
-            const resource = resources[i3];
-            this.setResource(resource, index++);
-          }
-          this._updateKey();
-        }
-        /**
-         * Updates the key if its flagged as dirty. This is used internally to
-         * match this bind group to a WebGPU BindGroup.
-         * @internal
-         * @ignore
-         */
-        _updateKey() {
-          if (!this._dirty)
-            return;
-          this._dirty = false;
-          const keyParts = [];
-          let index = 0;
-          for (const i3 in this.resources) {
-            keyParts[index++] = this.resources[i3]._resourceId;
-          }
-          this._key = keyParts.join("|");
-        }
-        /**
-         * Set a resource at a given index. this function will
-         * ensure that listeners will be removed from the current resource
-         * and added to the new resource.
-         * @param resource - The resource to set.
-         * @param index - The index to set the resource at.
-         */
-        setResource(resource, index) {
-          const currentResource = this.resources[index];
-          if (resource === currentResource)
-            return;
-          if (currentResource) {
-            resource.off?.("change", this.onResourceChange, this);
-          }
-          resource.on?.("change", this.onResourceChange, this);
-          this.resources[index] = resource;
-          this._dirty = true;
-        }
-        /**
-         * Returns the resource at the current specified index.
-         * @param index - The index of the resource to get.
-         * @returns - The resource at the specified index.
-         */
-        getResource(index) {
-          return this.resources[index];
-        }
-        /**
-         * Used internally to 'touch' each resource, to ensure that the GC
-         * knows that all resources in this bind group are still being used.
-         * @param tick - The current tick.
-         * @internal
-         * @ignore
-         */
-        _touch(tick) {
-          const resources = this.resources;
-          for (const i3 in resources) {
-            resources[i3]._touched = tick;
-          }
-        }
-        /** Destroys this bind group and removes all listeners. */
-        destroy() {
-          const resources = this.resources;
-          for (const i3 in resources) {
-            const resource = resources[i3];
-            resource.off?.("change", this.onResourceChange, this);
-          }
-          this.resources = null;
-        }
-        onResourceChange(resource) {
-          this._dirty = true;
-          if (resource.destroyed) {
-            const resources = this.resources;
-            for (const i3 in resources) {
-              if (resources[i3] === resource) {
-                resources[i3] = null;
-              }
-            }
-          } else {
-            this._updateKey();
-          }
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.mjs
-  function getTestContext() {
-    if (!context || context?.isContextLost()) {
-      const canvas = DOMAdapter.get().createCanvas();
-      context = canvas.getContext("webgl", {});
-    }
-    return context;
-  }
-  var context;
-  var init_getTestContext = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getTestContext.mjs"() {
-      "use strict";
-      init_adapter();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/maxRecommendedTextures.mjs
-  function maxRecommendedTextures() {
-    if (maxRecommendedTexturesCache)
-      return maxRecommendedTexturesCache;
-    const gl = getTestContext();
-    maxRecommendedTexturesCache = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
-    return maxRecommendedTexturesCache;
-  }
-  var maxRecommendedTexturesCache;
-  var init_maxRecommendedTextures = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/utils/maxRecommendedTextures.mjs"() {
-      "use strict";
-      init_getTestContext();
-      maxRecommendedTexturesCache = null;
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
-  function getTextureBatchBindGroup(textures, size) {
-    let uid2 = 0;
-    for (let i3 = 0; i3 < size; i3++) {
-      uid2 = uid2 * 31 + textures[i3].uid >>> 0;
-    }
-    return cachedGroups[uid2] || generateTextureBatchBindGroup(textures, uid2);
-  }
-  function generateTextureBatchBindGroup(textures, key) {
-    const bindGroupResources = {};
-    let bindIndex = 0;
-    if (!maxTextures)
-      maxTextures = maxRecommendedTextures();
-    for (let i3 = 0; i3 < maxTextures; i3++) {
-      const texture = i3 < textures.length ? textures[i3] : Texture.EMPTY.source;
-      bindGroupResources[bindIndex++] = texture.source;
-      bindGroupResources[bindIndex++] = texture.style;
-    }
-    const bindGroup = new BindGroup(bindGroupResources);
-    cachedGroups[key] = bindGroup;
-    return bindGroup;
-  }
-  var cachedGroups, maxTextures;
-  var init_getTextureBatchBindGroup = __esm({
-    "node_modules/pixi.js/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs"() {
-      "use strict";
-      init_BindGroup();
-      init_Texture();
-      init_maxRecommendedTextures();
-      cachedGroups = {};
-      maxTextures = 0;
-    }
-  });
-
-  // node_modules/pixi.js/lib/utils/data/ViewableBuffer.mjs
-  var ViewableBuffer;
-  var init_ViewableBuffer = __esm({
-    "node_modules/pixi.js/lib/utils/data/ViewableBuffer.mjs"() {
-      "use strict";
-      ViewableBuffer = class {
-        constructor(sizeOrBuffer) {
-          if (typeof sizeOrBuffer === "number") {
-            this.rawBinaryData = new ArrayBuffer(sizeOrBuffer);
-          } else if (sizeOrBuffer instanceof Uint8Array) {
-            this.rawBinaryData = sizeOrBuffer.buffer;
-          } else {
-            this.rawBinaryData = sizeOrBuffer;
-          }
-          this.uint32View = new Uint32Array(this.rawBinaryData);
-          this.float32View = new Float32Array(this.rawBinaryData);
-          this.size = this.rawBinaryData.byteLength;
-        }
-        /** View on the raw binary data as a `Int8Array`. */
-        get int8View() {
-          if (!this._int8View) {
-            this._int8View = new Int8Array(this.rawBinaryData);
-          }
-          return this._int8View;
-        }
-        /** View on the raw binary data as a `Uint8Array`. */
-        get uint8View() {
-          if (!this._uint8View) {
-            this._uint8View = new Uint8Array(this.rawBinaryData);
-          }
-          return this._uint8View;
-        }
-        /**  View on the raw binary data as a `Int16Array`. */
-        get int16View() {
-          if (!this._int16View) {
-            this._int16View = new Int16Array(this.rawBinaryData);
-          }
-          return this._int16View;
-        }
-        /** View on the raw binary data as a `Int32Array`. */
-        get int32View() {
-          if (!this._int32View) {
-            this._int32View = new Int32Array(this.rawBinaryData);
-          }
-          return this._int32View;
-        }
-        /** View on the raw binary data as a `Float64Array`. */
-        get float64View() {
-          if (!this._float64Array) {
-            this._float64Array = new Float64Array(this.rawBinaryData);
-          }
-          return this._float64Array;
-        }
-        /** View on the raw binary data as a `BigUint64Array`. */
-        get bigUint64View() {
-          if (!this._bigUint64Array) {
-            this._bigUint64Array = new BigUint64Array(this.rawBinaryData);
-          }
-          return this._bigUint64Array;
-        }
-        /**
-         * Returns the view of the given type.
-         * @param type - One of `int8`, `uint8`, `int16`,
-         *    `uint16`, `int32`, `uint32`, and `float32`.
-         * @returns - typed array of given type
-         */
-        view(type) {
-          return this[`${type}View`];
-        }
-        /** Destroys all buffer references. Do not use after calling this. */
-        destroy() {
-          this.rawBinaryData = null;
-          this._int8View = null;
-          this._uint8View = null;
-          this._int16View = null;
-          this.uint16View = null;
-          this._int32View = null;
-          this.uint32View = null;
-          this.float32View = null;
-        }
-        /**
-         * Returns the size of the given type in bytes.
-         * @param type - One of `int8`, `uint8`, `int16`,
-         *   `uint16`, `int32`, `uint32`, and `float32`.
-         * @returns - size of the type in bytes
-         */
-        static sizeOf(type) {
-          switch (type) {
-            case "int8":
-            case "uint8":
-              return 1;
-            case "int16":
-            case "uint16":
-              return 2;
-            case "int32":
-            case "uint32":
-            case "float32":
-              return 4;
-            default:
-              throw new Error(`${type} isn't a valid view type`);
-          }
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/buffer/utils/fastCopy.mjs
-  function fastCopy(sourceBuffer, destinationBuffer) {
-    const lengthDouble = sourceBuffer.byteLength / 8 | 0;
-    const sourceFloat64View = new Float64Array(sourceBuffer, 0, lengthDouble);
-    const destinationFloat64View = new Float64Array(destinationBuffer, 0, lengthDouble);
-    destinationFloat64View.set(sourceFloat64View);
-    const remainingBytes = sourceBuffer.byteLength - lengthDouble * 8;
-    if (remainingBytes > 0) {
-      const sourceUint8View = new Uint8Array(sourceBuffer, lengthDouble * 8, remainingBytes);
-      const destinationUint8View = new Uint8Array(destinationBuffer, lengthDouble * 8, remainingBytes);
-      destinationUint8View.set(sourceUint8View);
-    }
-  }
-  var init_fastCopy = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/buffer/utils/fastCopy.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/state/const.mjs
-  var BLEND_TO_NPM, STENCIL_MODES;
-  var init_const4 = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/state/const.mjs"() {
-      "use strict";
-      BLEND_TO_NPM = {
-        normal: "normal-npm",
-        add: "add-npm",
-        screen: "screen-npm"
-      };
-      STENCIL_MODES = /* @__PURE__ */ ((STENCIL_MODES2) => {
-        STENCIL_MODES2[STENCIL_MODES2["DISABLED"] = 0] = "DISABLED";
-        STENCIL_MODES2[STENCIL_MODES2["RENDERING_MASK_ADD"] = 1] = "RENDERING_MASK_ADD";
-        STENCIL_MODES2[STENCIL_MODES2["MASK_ACTIVE"] = 2] = "MASK_ACTIVE";
-        STENCIL_MODES2[STENCIL_MODES2["RENDERING_MASK_REMOVE"] = 3] = "RENDERING_MASK_REMOVE";
-        STENCIL_MODES2[STENCIL_MODES2["NONE"] = 4] = "NONE";
-        return STENCIL_MODES2;
-      })(STENCIL_MODES || {});
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/state/getAdjustedBlendModeBlend.mjs
-  function getAdjustedBlendModeBlend(blendMode, textureSource) {
-    if (textureSource.alphaMode === "no-premultiply-alpha") {
-      return BLEND_TO_NPM[blendMode] || blendMode;
-    }
-    return blendMode;
-  }
-  var init_getAdjustedBlendModeBlend = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/state/getAdjustedBlendModeBlend.mjs"() {
-      "use strict";
-      init_const4();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/batcher/shared/BatchTextureArray.mjs
-  var BatchTextureArray;
-  var init_BatchTextureArray = __esm({
-    "node_modules/pixi.js/lib/rendering/batcher/shared/BatchTextureArray.mjs"() {
-      "use strict";
-      BatchTextureArray = class {
-        constructor() {
-          this.ids = /* @__PURE__ */ Object.create(null);
-          this.textures = [];
-          this.count = 0;
-        }
-        /** Clear the textures and their locations. */
-        clear() {
-          for (let i3 = 0; i3 < this.count; i3++) {
-            const t3 = this.textures[i3];
-            this.textures[i3] = null;
-            this.ids[t3.uid] = null;
-          }
-          this.count = 0;
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/batcher/shared/Batcher.mjs
-  var Batch, BATCH_TICK, _Batcher, Batcher;
-  var init_Batcher = __esm({
-    "node_modules/pixi.js/lib/rendering/batcher/shared/Batcher.mjs"() {
-      "use strict";
-      init_uid();
-      init_ViewableBuffer();
-      init_fastCopy();
-      init_getAdjustedBlendModeBlend();
-      init_maxRecommendedTextures();
-      init_BatchTextureArray();
-      Batch = class {
-        constructor() {
-          this.renderPipeId = "batch";
-          this.action = "startBatch";
-          this.start = 0;
-          this.size = 0;
-          this.blendMode = "normal";
-          this.canBundle = true;
-        }
-        destroy() {
-          this.textures = null;
-          this.gpuBindGroup = null;
-          this.bindGroup = null;
-          this.batcher = null;
-        }
-      };
-      BATCH_TICK = 0;
-      _Batcher = class _Batcher2 {
-        constructor(options = {}) {
-          this.uid = uid("batcher");
-          this.dirty = true;
-          this.batchIndex = 0;
-          this.batches = [];
-          this._vertexSize = 6;
-          this._elements = [];
-          this._batchPool = [];
-          this._batchPoolIndex = 0;
-          this._textureBatchPool = [];
-          this._textureBatchPoolIndex = 0;
-          options = { ..._Batcher2.defaultOptions, ...options };
-          const { vertexSize, indexSize } = options;
-          this.attributeBuffer = new ViewableBuffer(vertexSize * this._vertexSize * 4);
-          this.indexBuffer = new Uint16Array(indexSize);
-          this._maxTextures = maxRecommendedTextures();
-        }
-        begin() {
-          this.batchIndex = 0;
-          this.elementSize = 0;
-          this.elementStart = 0;
-          this.indexSize = 0;
-          this.attributeSize = 0;
-          this._batchPoolIndex = 0;
-          this._textureBatchPoolIndex = 0;
-          this._batchIndexStart = 0;
-          this._batchIndexSize = 0;
-          this.dirty = true;
-        }
-        add(batchableObject) {
-          this._elements[this.elementSize++] = batchableObject;
-          batchableObject.indexStart = this.indexSize;
-          batchableObject.location = this.attributeSize;
-          batchableObject.batcher = this;
-          this.indexSize += batchableObject.indexSize;
-          this.attributeSize += batchableObject.vertexSize * this._vertexSize;
-        }
-        checkAndUpdateTexture(batchableObject, texture) {
-          const textureId = batchableObject.batch.textures.ids[texture._source.uid];
-          if (!textureId && textureId !== 0)
-            return false;
-          batchableObject.textureId = textureId;
-          batchableObject.texture = texture;
-          return true;
-        }
-        updateElement(batchableObject) {
-          this.dirty = true;
-          batchableObject.packAttributes(
-            this.attributeBuffer.float32View,
-            this.attributeBuffer.uint32View,
-            batchableObject.location,
-            batchableObject.textureId
-          );
-        }
-        /**
-         * breaks the batcher. This happens when a batch gets too big,
-         * or we need to switch to a different type of rendering (a filter for example)
-         * @param instructionSet
-         */
-        break(instructionSet) {
-          const elements = this._elements;
-          let textureBatch = this._textureBatchPool[this._textureBatchPoolIndex++] || new BatchTextureArray();
-          textureBatch.clear();
-          if (!elements[this.elementStart])
-            return;
-          const firstElement = elements[this.elementStart];
-          let blendMode = getAdjustedBlendModeBlend(firstElement.blendMode, firstElement.texture._source);
-          if (this.attributeSize * 4 > this.attributeBuffer.size) {
-            this._resizeAttributeBuffer(this.attributeSize * 4);
-          }
-          if (this.indexSize > this.indexBuffer.length) {
-            this._resizeIndexBuffer(this.indexSize);
-          }
-          const f32 = this.attributeBuffer.float32View;
-          const u32 = this.attributeBuffer.uint32View;
-          const iBuffer = this.indexBuffer;
-          let size = this._batchIndexSize;
-          let start = this._batchIndexStart;
-          let action = "startBatch";
-          let batch = this._batchPool[this._batchPoolIndex++] || new Batch();
-          const maxTextures2 = this._maxTextures;
-          for (let i3 = this.elementStart; i3 < this.elementSize; ++i3) {
-            const element = elements[i3];
-            elements[i3] = null;
-            const texture = element.texture;
-            const source2 = texture._source;
-            const adjustedBlendMode = getAdjustedBlendModeBlend(element.blendMode, source2);
-            const blendModeChange = blendMode !== adjustedBlendMode;
-            if (source2._batchTick === BATCH_TICK && !blendModeChange) {
-              element.textureId = source2._textureBindLocation;
-              size += element.indexSize;
-              element.packAttributes(f32, u32, element.location, element.textureId);
-              element.packIndex(iBuffer, element.indexStart, element.location / this._vertexSize);
-              element.batch = batch;
-              continue;
-            }
-            source2._batchTick = BATCH_TICK;
-            if (textureBatch.count >= maxTextures2 || blendModeChange) {
-              this._finishBatch(
-                batch,
-                start,
-                size - start,
-                textureBatch,
-                blendMode,
-                instructionSet,
-                action
-              );
-              action = "renderBatch";
-              start = size;
-              blendMode = adjustedBlendMode;
-              textureBatch = this._textureBatchPool[this._textureBatchPoolIndex++] || new BatchTextureArray();
-              textureBatch.clear();
-              batch = this._batchPool[this._batchPoolIndex++] || new Batch();
-              ++BATCH_TICK;
-            }
-            element.textureId = source2._textureBindLocation = textureBatch.count;
-            textureBatch.ids[source2.uid] = textureBatch.count;
-            textureBatch.textures[textureBatch.count++] = source2;
-            element.batch = batch;
-            size += element.indexSize;
-            element.packAttributes(f32, u32, element.location, element.textureId);
-            element.packIndex(iBuffer, element.indexStart, element.location / this._vertexSize);
-          }
-          if (textureBatch.count > 0) {
-            this._finishBatch(
-              batch,
-              start,
-              size - start,
-              textureBatch,
-              blendMode,
-              instructionSet,
-              action
-            );
-            start = size;
-            ++BATCH_TICK;
-          }
-          this.elementStart = this.elementSize;
-          this._batchIndexStart = start;
-          this._batchIndexSize = size;
-        }
-        _finishBatch(batch, indexStart, indexSize, textureBatch, blendMode, instructionSet, action) {
-          batch.gpuBindGroup = null;
-          batch.action = action;
-          batch.batcher = this;
-          batch.textures = textureBatch;
-          batch.blendMode = blendMode;
-          batch.start = indexStart;
-          batch.size = indexSize;
-          ++BATCH_TICK;
-          instructionSet.add(batch);
-        }
-        finish(instructionSet) {
-          this.break(instructionSet);
-        }
-        /**
-         * Resizes the attribute buffer to the given size (1 = 1 float32)
-         * @param size - the size in vertices to ensure (not bytes!)
-         */
-        ensureAttributeBuffer(size) {
-          if (size * 4 <= this.attributeBuffer.size)
-            return;
-          this._resizeAttributeBuffer(size * 4);
-        }
-        /**
-         * Resizes the index buffer to the given size (1 = 1 float32)
-         * @param size - the size in vertices to ensure (not bytes!)
-         */
-        ensureIndexBuffer(size) {
-          if (size <= this.indexBuffer.length)
-            return;
-          this._resizeIndexBuffer(size);
-        }
-        _resizeAttributeBuffer(size) {
-          const newSize = Math.max(size, this.attributeBuffer.size * 2);
-          const newArrayBuffer = new ViewableBuffer(newSize);
-          fastCopy(this.attributeBuffer.rawBinaryData, newArrayBuffer.rawBinaryData);
-          this.attributeBuffer = newArrayBuffer;
-        }
-        _resizeIndexBuffer(size) {
-          const indexBuffer = this.indexBuffer;
-          let newSize = Math.max(size, indexBuffer.length * 1.5);
-          newSize += newSize % 2;
-          const newIndexBuffer = newSize > 65535 ? new Uint32Array(newSize) : new Uint16Array(newSize);
-          if (newIndexBuffer.BYTES_PER_ELEMENT !== indexBuffer.BYTES_PER_ELEMENT) {
-            for (let i3 = 0; i3 < indexBuffer.length; i3++) {
-              newIndexBuffer[i3] = indexBuffer[i3];
-            }
-          } else {
-            fastCopy(indexBuffer.buffer, newIndexBuffer.buffer);
-          }
-          this.indexBuffer = newIndexBuffer;
-        }
-        destroy() {
-          for (let i3 = 0; i3 < this.batches.length; i3++) {
-            this.batches[i3].destroy();
-          }
-          this.batches = null;
-          for (let i3 = 0; i3 < this._elements.length; i3++) {
-            this._elements[i3].batch = null;
-          }
-          this._elements = null;
-          this.indexBuffer = null;
-          this.attributeBuffer.destroy();
-          this.attributeBuffer = null;
-        }
-      };
-      _Batcher.defaultOptions = {
-        vertexSize: 4,
-        indexSize: 6
-      };
-      Batcher = _Batcher;
     }
   });
 
@@ -12461,11 +15340,16 @@ Deprecated since v${version}`);
   });
 
   // node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildCircle.mjs
-  var buildCircle;
+  var buildCircle, buildEllipse, buildRoundedRectangle;
   var init_buildCircle = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildCircle.mjs"() {
       "use strict";
+      init_Extensions();
       buildCircle = {
+        extension: {
+          type: ExtensionType.ShapeBuilder,
+          name: "circle"
+        },
         build(shape, points) {
           let x3;
           let y3;
@@ -12597,12 +15481,14 @@ Deprecated since v${version}`);
           indices[indicesOffset++] = count2 - 1;
         }
       };
+      buildEllipse = { ...buildCircle, extension: { ...buildCircle.extension, name: "ellipse" } };
+      buildRoundedRectangle = { ...buildCircle, extension: { ...buildCircle.extension, name: "roundedRectangle" } };
     }
   });
 
   // node_modules/pixi.js/lib/scene/graphics/shared/const.mjs
   var closePointEps, curveEps;
-  var init_const5 = __esm({
+  var init_const6 = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/const.mjs"() {
       "use strict";
       closePointEps = 1e-4;
@@ -12995,474 +15881,8 @@ Deprecated since v${version}`);
     "node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildLine.mjs"() {
       "use strict";
       init_Point();
-      init_const5();
+      init_const6();
       init_getOrientationOfPoints();
-    }
-  });
-
-  // node_modules/earcut/src/earcut.js
-  var require_earcut = __commonJS({
-    "node_modules/earcut/src/earcut.js"(exports, module) {
-      "use strict";
-      module.exports = earcut2;
-      module.exports.default = earcut2;
-      function earcut2(data, holeIndices, dim) {
-        dim = dim || 2;
-        var hasHoles = holeIndices && holeIndices.length, outerLen = hasHoles ? holeIndices[0] * dim : data.length, outerNode = linkedList(data, 0, outerLen, dim, true), triangles = [];
-        if (!outerNode || outerNode.next === outerNode.prev)
-          return triangles;
-        var minX, minY, maxX, maxY, x3, y3, invSize;
-        if (hasHoles)
-          outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
-        if (data.length > 80 * dim) {
-          minX = maxX = data[0];
-          minY = maxY = data[1];
-          for (var i3 = dim; i3 < outerLen; i3 += dim) {
-            x3 = data[i3];
-            y3 = data[i3 + 1];
-            if (x3 < minX)
-              minX = x3;
-            if (y3 < minY)
-              minY = y3;
-            if (x3 > maxX)
-              maxX = x3;
-            if (y3 > maxY)
-              maxY = y3;
-          }
-          invSize = Math.max(maxX - minX, maxY - minY);
-          invSize = invSize !== 0 ? 32767 / invSize : 0;
-        }
-        earcutLinked(outerNode, triangles, dim, minX, minY, invSize, 0);
-        return triangles;
-      }
-      function linkedList(data, start, end, dim, clockwise) {
-        var i3, last;
-        if (clockwise === signedArea(data, start, end, dim) > 0) {
-          for (i3 = start; i3 < end; i3 += dim)
-            last = insertNode(i3, data[i3], data[i3 + 1], last);
-        } else {
-          for (i3 = end - dim; i3 >= start; i3 -= dim)
-            last = insertNode(i3, data[i3], data[i3 + 1], last);
-        }
-        if (last && equals(last, last.next)) {
-          removeNode(last);
-          last = last.next;
-        }
-        return last;
-      }
-      function filterPoints(start, end) {
-        if (!start)
-          return start;
-        if (!end)
-          end = start;
-        var p3 = start, again;
-        do {
-          again = false;
-          if (!p3.steiner && (equals(p3, p3.next) || area(p3.prev, p3, p3.next) === 0)) {
-            removeNode(p3);
-            p3 = end = p3.prev;
-            if (p3 === p3.next)
-              break;
-            again = true;
-          } else {
-            p3 = p3.next;
-          }
-        } while (again || p3 !== end);
-        return end;
-      }
-      function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
-        if (!ear)
-          return;
-        if (!pass && invSize)
-          indexCurve(ear, minX, minY, invSize);
-        var stop = ear, prev, next;
-        while (ear.prev !== ear.next) {
-          prev = ear.prev;
-          next = ear.next;
-          if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
-            triangles.push(prev.i / dim | 0);
-            triangles.push(ear.i / dim | 0);
-            triangles.push(next.i / dim | 0);
-            removeNode(ear);
-            ear = next.next;
-            stop = next.next;
-            continue;
-          }
-          ear = next;
-          if (ear === stop) {
-            if (!pass) {
-              earcutLinked(filterPoints(ear), triangles, dim, minX, minY, invSize, 1);
-            } else if (pass === 1) {
-              ear = cureLocalIntersections(filterPoints(ear), triangles, dim);
-              earcutLinked(ear, triangles, dim, minX, minY, invSize, 2);
-            } else if (pass === 2) {
-              splitEarcut(ear, triangles, dim, minX, minY, invSize);
-            }
-            break;
-          }
-        }
-      }
-      function isEar(ear) {
-        var a3 = ear.prev, b3 = ear, c3 = ear.next;
-        if (area(a3, b3, c3) >= 0)
-          return false;
-        var ax = a3.x, bx = b3.x, cx = c3.x, ay = a3.y, by = b3.y, cy = c3.y;
-        var x0 = ax < bx ? ax < cx ? ax : cx : bx < cx ? bx : cx, y0 = ay < by ? ay < cy ? ay : cy : by < cy ? by : cy, x1 = ax > bx ? ax > cx ? ax : cx : bx > cx ? bx : cx, y1 = ay > by ? ay > cy ? ay : cy : by > cy ? by : cy;
-        var p3 = c3.next;
-        while (p3 !== a3) {
-          if (p3.x >= x0 && p3.x <= x1 && p3.y >= y0 && p3.y <= y1 && pointInTriangle(ax, ay, bx, by, cx, cy, p3.x, p3.y) && area(p3.prev, p3, p3.next) >= 0)
-            return false;
-          p3 = p3.next;
-        }
-        return true;
-      }
-      function isEarHashed(ear, minX, minY, invSize) {
-        var a3 = ear.prev, b3 = ear, c3 = ear.next;
-        if (area(a3, b3, c3) >= 0)
-          return false;
-        var ax = a3.x, bx = b3.x, cx = c3.x, ay = a3.y, by = b3.y, cy = c3.y;
-        var x0 = ax < bx ? ax < cx ? ax : cx : bx < cx ? bx : cx, y0 = ay < by ? ay < cy ? ay : cy : by < cy ? by : cy, x1 = ax > bx ? ax > cx ? ax : cx : bx > cx ? bx : cx, y1 = ay > by ? ay > cy ? ay : cy : by > cy ? by : cy;
-        var minZ = zOrder(x0, y0, minX, minY, invSize), maxZ = zOrder(x1, y1, minX, minY, invSize);
-        var p3 = ear.prevZ, n3 = ear.nextZ;
-        while (p3 && p3.z >= minZ && n3 && n3.z <= maxZ) {
-          if (p3.x >= x0 && p3.x <= x1 && p3.y >= y0 && p3.y <= y1 && p3 !== a3 && p3 !== c3 && pointInTriangle(ax, ay, bx, by, cx, cy, p3.x, p3.y) && area(p3.prev, p3, p3.next) >= 0)
-            return false;
-          p3 = p3.prevZ;
-          if (n3.x >= x0 && n3.x <= x1 && n3.y >= y0 && n3.y <= y1 && n3 !== a3 && n3 !== c3 && pointInTriangle(ax, ay, bx, by, cx, cy, n3.x, n3.y) && area(n3.prev, n3, n3.next) >= 0)
-            return false;
-          n3 = n3.nextZ;
-        }
-        while (p3 && p3.z >= minZ) {
-          if (p3.x >= x0 && p3.x <= x1 && p3.y >= y0 && p3.y <= y1 && p3 !== a3 && p3 !== c3 && pointInTriangle(ax, ay, bx, by, cx, cy, p3.x, p3.y) && area(p3.prev, p3, p3.next) >= 0)
-            return false;
-          p3 = p3.prevZ;
-        }
-        while (n3 && n3.z <= maxZ) {
-          if (n3.x >= x0 && n3.x <= x1 && n3.y >= y0 && n3.y <= y1 && n3 !== a3 && n3 !== c3 && pointInTriangle(ax, ay, bx, by, cx, cy, n3.x, n3.y) && area(n3.prev, n3, n3.next) >= 0)
-            return false;
-          n3 = n3.nextZ;
-        }
-        return true;
-      }
-      function cureLocalIntersections(start, triangles, dim) {
-        var p3 = start;
-        do {
-          var a3 = p3.prev, b3 = p3.next.next;
-          if (!equals(a3, b3) && intersects(a3, p3, p3.next, b3) && locallyInside(a3, b3) && locallyInside(b3, a3)) {
-            triangles.push(a3.i / dim | 0);
-            triangles.push(p3.i / dim | 0);
-            triangles.push(b3.i / dim | 0);
-            removeNode(p3);
-            removeNode(p3.next);
-            p3 = start = b3;
-          }
-          p3 = p3.next;
-        } while (p3 !== start);
-        return filterPoints(p3);
-      }
-      function splitEarcut(start, triangles, dim, minX, minY, invSize) {
-        var a3 = start;
-        do {
-          var b3 = a3.next.next;
-          while (b3 !== a3.prev) {
-            if (a3.i !== b3.i && isValidDiagonal(a3, b3)) {
-              var c3 = splitPolygon(a3, b3);
-              a3 = filterPoints(a3, a3.next);
-              c3 = filterPoints(c3, c3.next);
-              earcutLinked(a3, triangles, dim, minX, minY, invSize, 0);
-              earcutLinked(c3, triangles, dim, minX, minY, invSize, 0);
-              return;
-            }
-            b3 = b3.next;
-          }
-          a3 = a3.next;
-        } while (a3 !== start);
-      }
-      function eliminateHoles(data, holeIndices, outerNode, dim) {
-        var queue = [], i3, len, start, end, list;
-        for (i3 = 0, len = holeIndices.length; i3 < len; i3++) {
-          start = holeIndices[i3] * dim;
-          end = i3 < len - 1 ? holeIndices[i3 + 1] * dim : data.length;
-          list = linkedList(data, start, end, dim, false);
-          if (list === list.next)
-            list.steiner = true;
-          queue.push(getLeftmost(list));
-        }
-        queue.sort(compareX);
-        for (i3 = 0; i3 < queue.length; i3++) {
-          outerNode = eliminateHole(queue[i3], outerNode);
-        }
-        return outerNode;
-      }
-      function compareX(a3, b3) {
-        return a3.x - b3.x;
-      }
-      function eliminateHole(hole, outerNode) {
-        var bridge = findHoleBridge(hole, outerNode);
-        if (!bridge) {
-          return outerNode;
-        }
-        var bridgeReverse = splitPolygon(bridge, hole);
-        filterPoints(bridgeReverse, bridgeReverse.next);
-        return filterPoints(bridge, bridge.next);
-      }
-      function findHoleBridge(hole, outerNode) {
-        var p3 = outerNode, hx = hole.x, hy = hole.y, qx = -Infinity, m3;
-        do {
-          if (hy <= p3.y && hy >= p3.next.y && p3.next.y !== p3.y) {
-            var x3 = p3.x + (hy - p3.y) * (p3.next.x - p3.x) / (p3.next.y - p3.y);
-            if (x3 <= hx && x3 > qx) {
-              qx = x3;
-              m3 = p3.x < p3.next.x ? p3 : p3.next;
-              if (x3 === hx)
-                return m3;
-            }
-          }
-          p3 = p3.next;
-        } while (p3 !== outerNode);
-        if (!m3)
-          return null;
-        var stop = m3, mx = m3.x, my = m3.y, tanMin = Infinity, tan;
-        p3 = m3;
-        do {
-          if (hx >= p3.x && p3.x >= mx && hx !== p3.x && pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p3.x, p3.y)) {
-            tan = Math.abs(hy - p3.y) / (hx - p3.x);
-            if (locallyInside(p3, hole) && (tan < tanMin || tan === tanMin && (p3.x > m3.x || p3.x === m3.x && sectorContainsSector(m3, p3)))) {
-              m3 = p3;
-              tanMin = tan;
-            }
-          }
-          p3 = p3.next;
-        } while (p3 !== stop);
-        return m3;
-      }
-      function sectorContainsSector(m3, p3) {
-        return area(m3.prev, m3, p3.prev) < 0 && area(p3.next, m3, m3.next) < 0;
-      }
-      function indexCurve(start, minX, minY, invSize) {
-        var p3 = start;
-        do {
-          if (p3.z === 0)
-            p3.z = zOrder(p3.x, p3.y, minX, minY, invSize);
-          p3.prevZ = p3.prev;
-          p3.nextZ = p3.next;
-          p3 = p3.next;
-        } while (p3 !== start);
-        p3.prevZ.nextZ = null;
-        p3.prevZ = null;
-        sortLinked(p3);
-      }
-      function sortLinked(list) {
-        var i3, p3, q, e3, tail, numMerges, pSize, qSize, inSize = 1;
-        do {
-          p3 = list;
-          list = null;
-          tail = null;
-          numMerges = 0;
-          while (p3) {
-            numMerges++;
-            q = p3;
-            pSize = 0;
-            for (i3 = 0; i3 < inSize; i3++) {
-              pSize++;
-              q = q.nextZ;
-              if (!q)
-                break;
-            }
-            qSize = inSize;
-            while (pSize > 0 || qSize > 0 && q) {
-              if (pSize !== 0 && (qSize === 0 || !q || p3.z <= q.z)) {
-                e3 = p3;
-                p3 = p3.nextZ;
-                pSize--;
-              } else {
-                e3 = q;
-                q = q.nextZ;
-                qSize--;
-              }
-              if (tail)
-                tail.nextZ = e3;
-              else
-                list = e3;
-              e3.prevZ = tail;
-              tail = e3;
-            }
-            p3 = q;
-          }
-          tail.nextZ = null;
-          inSize *= 2;
-        } while (numMerges > 1);
-        return list;
-      }
-      function zOrder(x3, y3, minX, minY, invSize) {
-        x3 = (x3 - minX) * invSize | 0;
-        y3 = (y3 - minY) * invSize | 0;
-        x3 = (x3 | x3 << 8) & 16711935;
-        x3 = (x3 | x3 << 4) & 252645135;
-        x3 = (x3 | x3 << 2) & 858993459;
-        x3 = (x3 | x3 << 1) & 1431655765;
-        y3 = (y3 | y3 << 8) & 16711935;
-        y3 = (y3 | y3 << 4) & 252645135;
-        y3 = (y3 | y3 << 2) & 858993459;
-        y3 = (y3 | y3 << 1) & 1431655765;
-        return x3 | y3 << 1;
-      }
-      function getLeftmost(start) {
-        var p3 = start, leftmost = start;
-        do {
-          if (p3.x < leftmost.x || p3.x === leftmost.x && p3.y < leftmost.y)
-            leftmost = p3;
-          p3 = p3.next;
-        } while (p3 !== start);
-        return leftmost;
-      }
-      function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
-        return (cx - px) * (ay - py) >= (ax - px) * (cy - py) && (ax - px) * (by - py) >= (bx - px) * (ay - py) && (bx - px) * (cy - py) >= (cx - px) * (by - py);
-      }
-      function isValidDiagonal(a3, b3) {
-        return a3.next.i !== b3.i && a3.prev.i !== b3.i && !intersectsPolygon(a3, b3) && // dones't intersect other edges
-        (locallyInside(a3, b3) && locallyInside(b3, a3) && middleInside(a3, b3) && // locally visible
-        (area(a3.prev, a3, b3.prev) || area(a3, b3.prev, b3)) || // does not create opposite-facing sectors
-        equals(a3, b3) && area(a3.prev, a3, a3.next) > 0 && area(b3.prev, b3, b3.next) > 0);
-      }
-      function area(p3, q, r3) {
-        return (q.y - p3.y) * (r3.x - q.x) - (q.x - p3.x) * (r3.y - q.y);
-      }
-      function equals(p1, p22) {
-        return p1.x === p22.x && p1.y === p22.y;
-      }
-      function intersects(p1, q1, p22, q2) {
-        var o1 = sign(area(p1, q1, p22));
-        var o22 = sign(area(p1, q1, q2));
-        var o3 = sign(area(p22, q2, p1));
-        var o4 = sign(area(p22, q2, q1));
-        if (o1 !== o22 && o3 !== o4)
-          return true;
-        if (o1 === 0 && onSegment(p1, p22, q1))
-          return true;
-        if (o22 === 0 && onSegment(p1, q2, q1))
-          return true;
-        if (o3 === 0 && onSegment(p22, p1, q2))
-          return true;
-        if (o4 === 0 && onSegment(p22, q1, q2))
-          return true;
-        return false;
-      }
-      function onSegment(p3, q, r3) {
-        return q.x <= Math.max(p3.x, r3.x) && q.x >= Math.min(p3.x, r3.x) && q.y <= Math.max(p3.y, r3.y) && q.y >= Math.min(p3.y, r3.y);
-      }
-      function sign(num) {
-        return num > 0 ? 1 : num < 0 ? -1 : 0;
-      }
-      function intersectsPolygon(a3, b3) {
-        var p3 = a3;
-        do {
-          if (p3.i !== a3.i && p3.next.i !== a3.i && p3.i !== b3.i && p3.next.i !== b3.i && intersects(p3, p3.next, a3, b3))
-            return true;
-          p3 = p3.next;
-        } while (p3 !== a3);
-        return false;
-      }
-      function locallyInside(a3, b3) {
-        return area(a3.prev, a3, a3.next) < 0 ? area(a3, b3, a3.next) >= 0 && area(a3, a3.prev, b3) >= 0 : area(a3, b3, a3.prev) < 0 || area(a3, a3.next, b3) < 0;
-      }
-      function middleInside(a3, b3) {
-        var p3 = a3, inside = false, px = (a3.x + b3.x) / 2, py = (a3.y + b3.y) / 2;
-        do {
-          if (p3.y > py !== p3.next.y > py && p3.next.y !== p3.y && px < (p3.next.x - p3.x) * (py - p3.y) / (p3.next.y - p3.y) + p3.x)
-            inside = !inside;
-          p3 = p3.next;
-        } while (p3 !== a3);
-        return inside;
-      }
-      function splitPolygon(a3, b3) {
-        var a22 = new Node(a3.i, a3.x, a3.y), b22 = new Node(b3.i, b3.x, b3.y), an = a3.next, bp = b3.prev;
-        a3.next = b3;
-        b3.prev = a3;
-        a22.next = an;
-        an.prev = a22;
-        b22.next = a22;
-        a22.prev = b22;
-        bp.next = b22;
-        b22.prev = bp;
-        return b22;
-      }
-      function insertNode(i3, x3, y3, last) {
-        var p3 = new Node(i3, x3, y3);
-        if (!last) {
-          p3.prev = p3;
-          p3.next = p3;
-        } else {
-          p3.next = last.next;
-          p3.prev = last;
-          last.next.prev = p3;
-          last.next = p3;
-        }
-        return p3;
-      }
-      function removeNode(p3) {
-        p3.next.prev = p3.prev;
-        p3.prev.next = p3.next;
-        if (p3.prevZ)
-          p3.prevZ.nextZ = p3.nextZ;
-        if (p3.nextZ)
-          p3.nextZ.prevZ = p3.prevZ;
-      }
-      function Node(i3, x3, y3) {
-        this.i = i3;
-        this.x = x3;
-        this.y = y3;
-        this.prev = null;
-        this.next = null;
-        this.z = 0;
-        this.prevZ = null;
-        this.nextZ = null;
-        this.steiner = false;
-      }
-      earcut2.deviation = function(data, holeIndices, dim, triangles) {
-        var hasHoles = holeIndices && holeIndices.length;
-        var outerLen = hasHoles ? holeIndices[0] * dim : data.length;
-        var polygonArea = Math.abs(signedArea(data, 0, outerLen, dim));
-        if (hasHoles) {
-          for (var i3 = 0, len = holeIndices.length; i3 < len; i3++) {
-            var start = holeIndices[i3] * dim;
-            var end = i3 < len - 1 ? holeIndices[i3 + 1] * dim : data.length;
-            polygonArea -= Math.abs(signedArea(data, start, end, dim));
-          }
-        }
-        var trianglesArea = 0;
-        for (i3 = 0; i3 < triangles.length; i3 += 3) {
-          var a3 = triangles[i3] * dim;
-          var b3 = triangles[i3 + 1] * dim;
-          var c3 = triangles[i3 + 2] * dim;
-          trianglesArea += Math.abs(
-            (data[a3] - data[c3]) * (data[b3 + 1] - data[a3 + 1]) - (data[a3] - data[b3]) * (data[c3 + 1] - data[a3 + 1])
-          );
-        }
-        return polygonArea === 0 && trianglesArea === 0 ? 0 : Math.abs((trianglesArea - polygonArea) / polygonArea);
-      };
-      function signedArea(data, start, end, dim) {
-        var sum = 0;
-        for (var i3 = start, j3 = end - dim; i3 < end; i3 += dim) {
-          sum += (data[j3] - data[i3]) * (data[i3 + 1] + data[j3 + 1]);
-          j3 = i3;
-        }
-        return sum;
-      }
-      earcut2.flatten = function(data) {
-        var dim = data[0][0].length, result = { vertices: [], holes: [], dimensions: dim }, holeIndex = 0;
-        for (var i3 = 0; i3 < data.length; i3++) {
-          for (var j3 = 0; j3 < data[i3].length; j3++) {
-            for (var d3 = 0; d3 < dim; d3++)
-              result.vertices.push(data[i3][j3][d3]);
-          }
-          if (i3 > 0) {
-            holeIndex += data[i3 - 1].length;
-            result.holes.push(holeIndex);
-          }
-        }
-        return result;
-      };
     }
   });
 
@@ -13497,9 +15917,14 @@ Deprecated since v${version}`);
   var init_buildPolygon = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildPolygon.mjs"() {
       "use strict";
+      init_Extensions();
       init_triangulateWithHoles();
       emptyArray = [];
       buildPolygon = {
+        extension: {
+          type: ExtensionType.ShapeBuilder,
+          name: "polygon"
+        },
         build(shape, points) {
           for (let i3 = 0; i3 < shape.points.length; i3++) {
             points[i3] = shape.points[i3];
@@ -13518,7 +15943,12 @@ Deprecated since v${version}`);
   var init_buildRectangle = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildRectangle.mjs"() {
       "use strict";
+      init_Extensions();
       buildRectangle = {
+        extension: {
+          type: ExtensionType.ShapeBuilder,
+          name: "rectangle"
+        },
         build(shape, points) {
           const rectData = shape;
           const x3 = rectData.x;
@@ -13570,7 +16000,12 @@ Deprecated since v${version}`);
   var init_buildTriangle = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/buildCommands/buildTriangle.mjs"() {
       "use strict";
+      init_Extensions();
       buildTriangle = {
+        extension: {
+          type: ExtensionType.ShapeBuilder,
+          name: "triangle"
+        },
         build(shape, points) {
           points[0] = shape.x;
           points[1] = shape.y;
@@ -13628,7 +16063,7 @@ Deprecated since v${version}`);
     const indexOffset = indices.length;
     const vertOffset = vertices.length / 2;
     const points = [];
-    const build = buildMap.rectangle;
+    const build = shapeBuilders.rectangle;
     const rect = tempRect;
     const texture = data.image;
     rect.x = data.dx;
@@ -13670,7 +16105,7 @@ Deprecated since v${version}`);
       const indexOffset = indices.length;
       const vertOffset = vertices.length / 2;
       const points = [];
-      const build = buildMap[shape.type];
+      const build = shapeBuilders[shape.type];
       build.build(shape, points);
       if (matrix) {
         transformVertices(points, matrix);
@@ -13700,10 +16135,12 @@ Deprecated since v${version}`);
       const texture = style.texture;
       if (texture !== Texture.WHITE) {
         const textureMatrix = style.matrix;
-        if (matrix && textureMatrix) {
-          textureMatrix.append(matrix.clone().invert());
+        if (textureMatrix) {
+          if (matrix) {
+            textureMatrix.append(matrix.clone().invert());
+          }
+          buildUvs(vertices, 2, vertOffset, uvs, uvsOffset, 2, vertices.length / 2 - vertOffset, textureMatrix);
         }
-        buildUvs(vertices, 2, vertOffset, uvs, uvsOffset, 2, vertices.length / 2 - vertOffset, textureMatrix);
       } else {
         buildSimpleUvs(uvs, uvsOffset, 2, vertices.length / 2 - vertOffset);
       }
@@ -13727,16 +16164,17 @@ Deprecated since v${version}`);
     for (let k3 = 0; k3 < holePrimitives.length; k3++) {
       const holePrimitive = holePrimitives[k3].shape;
       const holePoints = [];
-      const holeBuilder = buildMap[holePrimitive.type];
+      const holeBuilder = shapeBuilders[holePrimitive.type];
       holeBuilder.build(holePrimitive, holePoints);
       holeArrays.push(holePoints);
     }
     return holeArrays;
   }
-  var buildMap, tempRect;
+  var shapeBuilders, tempRect;
   var init_buildContextBatches = __esm({
     "node_modules/pixi.js/lib/scene/graphics/shared/utils/buildContextBatches.mjs"() {
       "use strict";
+      init_Extensions();
       init_Rectangle();
       init_buildUvs();
       init_transformVertices();
@@ -13749,14 +16187,9 @@ Deprecated since v${version}`);
       init_buildRectangle();
       init_buildTriangle();
       init_triangulateWithHoles();
-      buildMap = {
-        rectangle: buildRectangle,
-        polygon: buildPolygon,
-        triangle: buildTriangle,
-        circle: buildCircle,
-        ellipse: buildCircle,
-        roundedRectangle: buildCircle
-      };
+      shapeBuilders = {};
+      extensions.handleByMap(ExtensionType.ShapeBuilder, shapeBuilders);
+      extensions.add(buildRectangle, buildPolygon, buildTriangle, buildCircle, buildEllipse, buildRoundedRectangle);
       tempRect = new Rectangle();
     }
   });
@@ -13767,14 +16200,15 @@ Deprecated since v${version}`);
     "node_modules/pixi.js/lib/scene/graphics/shared/GraphicsContextSystem.mjs"() {
       "use strict";
       init_Extensions();
-      init_BatchGeometry();
       init_getTextureBatchBindGroup();
       init_Batcher();
+      init_BatchGeometry();
       init_InstructionSet();
       init_PoolGroup();
       init_buildContextBatches();
       GpuGraphicsContext = class {
         constructor() {
+          this.batcher = new Batcher();
           this.batches = [];
           this.geometryData = {
             vertices: [],
@@ -13794,7 +16228,6 @@ Deprecated since v${version}`);
       };
       _GraphicsContextSystem = class _GraphicsContextSystem2 {
         constructor() {
-          this._activeBatchers = [];
           this._gpuContextHash = {};
           this._graphicsDataContextHash = /* @__PURE__ */ Object.create(null);
         }
@@ -13804,9 +16237,6 @@ Deprecated since v${version}`);
          */
         init(options) {
           _GraphicsContextSystem2.defaultOptions.bezierSmoothness = options?.bezierSmoothness ?? _GraphicsContextSystem2.defaultOptions.bezierSmoothness;
-        }
-        prerender() {
-          this._returnActiveBatchers();
         }
         getContextRenderData(context2) {
           return this._graphicsDataContextHash[context2.uid] || this._initContextRenderData(context2);
@@ -13834,22 +16264,14 @@ Deprecated since v${version}`);
         getGpuContext(context2) {
           return this._gpuContextHash[context2.uid] || this._initContext(context2);
         }
-        _returnActiveBatchers() {
-          for (let i3 = 0; i3 < this._activeBatchers.length; i3++) {
-            BigPool.return(this._activeBatchers[i3]);
-          }
-          this._activeBatchers.length = 0;
-        }
         _initContextRenderData(context2) {
           const graphicsData = BigPool.get(GraphicsContextRenderData);
-          const { batches, geometryData } = this._gpuContextHash[context2.uid];
+          const { batches, geometryData, batcher } = this._gpuContextHash[context2.uid];
           const vertexSize = geometryData.vertices.length;
           const indexSize = geometryData.indices.length;
           for (let i3 = 0; i3 < batches.length; i3++) {
             batches[i3].applyTransform = false;
           }
-          const batcher = BigPool.get(Batcher);
-          this._activeBatchers.push(batcher);
           batcher.ensureAttributeBuffer(vertexSize);
           batcher.ensureIndexBuffer(indexSize);
           batcher.begin();
@@ -13936,7 +16358,9 @@ Deprecated since v${version}`);
         erase: 5,
         "normal-npm": 6,
         "add-npm": 7,
-        "screen-npm": 8
+        "screen-npm": 8,
+        min: 9,
+        max: 10
       };
       BLEND = 0;
       OFFSET = 1;
@@ -14110,6 +16534,7 @@ Deprecated since v${version}`);
         constructor(renderer, adaptor) {
           this.state = State.for2d();
           this._graphicsBatchesHash = /* @__PURE__ */ Object.create(null);
+          this._destroyRenderableBound = this.destroyRenderable.bind(this);
           this.renderer = renderer;
           this._adaptor = adaptor;
           this._adaptor.init();
@@ -14130,7 +16555,7 @@ Deprecated since v${version}`);
             this._rebuild(graphics);
           }
           if (gpuContext.isBatchable) {
-            this._addToBatcher(graphics, instructionSet);
+            this._addToBatcher(graphics);
           } else {
             this.renderer.renderPipes.batch.break(instructionSet);
             instructionSet.add(graphics);
@@ -14149,6 +16574,7 @@ Deprecated since v${version}`);
           if (this._graphicsBatchesHash[graphics.uid]) {
             this._removeBatchForRenderable(graphics.uid);
           }
+          graphics.off("destroyed", this._destroyRenderableBound);
         }
         execute(graphics) {
           if (!graphics.isRenderable)
@@ -14182,12 +16608,12 @@ Deprecated since v${version}`);
           }
           graphics.batched = gpuContext.isBatchable;
         }
-        _addToBatcher(graphics, instructionSet) {
+        _addToBatcher(graphics) {
           const batchPipe = this.renderer.renderPipes.batch;
           const batches = this._getBatchesForRenderable(graphics);
           for (let i3 = 0; i3 < batches.length; i3++) {
             const batch = batches[i3];
-            batchPipe.addToBatch(batch, instructionSet);
+            batchPipe.addToBatch(batch);
           }
         }
         _getBatchesForRenderable(graphics) {
@@ -14205,9 +16631,7 @@ Deprecated since v${version}`);
             return batchClone;
           });
           if (this._graphicsBatchesHash[graphics.uid] === void 0) {
-            graphics.on("destroyed", () => {
-              this.destroyRenderable(graphics);
-            });
+            graphics.on("destroyed", this._destroyRenderableBound);
           }
           this._graphicsBatchesHash[graphics.uid] = batches;
           return batches;
@@ -14252,171 +16676,6 @@ Deprecated since v${version}`);
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/renderers/shared/utils/createIdFromString.mjs
-  function createIdFromString(value, groupId) {
-    let id = idHash2[value];
-    if (id === void 0) {
-      if (idCounts[groupId] === void 0) {
-        idCounts[groupId] = 1;
-      }
-      idHash2[value] = id = idCounts[groupId]++;
-    }
-    return id;
-  }
-  var idCounts, idHash2;
-  var init_createIdFromString = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/utils/createIdFromString.mjs"() {
-      "use strict";
-      idCounts = /* @__PURE__ */ Object.create(null);
-      idHash2 = /* @__PURE__ */ Object.create(null);
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/types.mjs
-  var UNIFORM_TYPES_VALUES, UNIFORM_TYPES_MAP;
-  var init_types = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/types.mjs"() {
-      "use strict";
-      UNIFORM_TYPES_VALUES = [
-        "f32",
-        "i32",
-        "vec2<f32>",
-        "vec3<f32>",
-        "vec4<f32>",
-        "mat2x2<f32>",
-        "mat3x3<f32>",
-        "mat4x4<f32>",
-        "mat3x2<f32>",
-        "mat4x2<f32>",
-        "mat2x3<f32>",
-        "mat4x3<f32>",
-        "mat2x4<f32>",
-        "mat3x4<f32>"
-      ];
-      UNIFORM_TYPES_MAP = UNIFORM_TYPES_VALUES.reduce((acc, type) => {
-        acc[type] = true;
-        return acc;
-      }, {});
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/getDefaultUniformValue.mjs
-  function getDefaultUniformValue(type, size) {
-    switch (type) {
-      case "f32":
-        return 0;
-      case "vec2<f32>":
-        return new Float32Array(2 * size);
-      case "vec3<f32>":
-        return new Float32Array(3 * size);
-      case "vec4<f32>":
-        return new Float32Array(4 * size);
-      case "mat2x2<f32>":
-        return new Float32Array([
-          1,
-          0,
-          0,
-          1
-        ]);
-      case "mat3x3<f32>":
-        return new Float32Array([
-          1,
-          0,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          1
-        ]);
-      case "mat4x4<f32>":
-        return new Float32Array([
-          1,
-          0,
-          0,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          0,
-          1
-        ]);
-    }
-    return null;
-  }
-  var init_getDefaultUniformValue = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/getDefaultUniformValue.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/UniformGroup.mjs
-  var _UniformGroup, UniformGroup;
-  var init_UniformGroup = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/UniformGroup.mjs"() {
-      "use strict";
-      init_uid();
-      init_createIdFromString();
-      init_types();
-      init_getDefaultUniformValue();
-      _UniformGroup = class _UniformGroup2 {
-        /**
-         * Create a new Uniform group
-         * @param uniformStructures - The structures of the uniform group
-         * @param options - The optional parameters of this uniform group
-         */
-        constructor(uniformStructures, options) {
-          this._touched = 0;
-          this.uid = uid("uniform");
-          this._resourceType = "uniformGroup";
-          this._resourceId = uid("resource");
-          this.isUniformGroup = true;
-          this._dirtyId = 0;
-          this.destroyed = false;
-          options = { ..._UniformGroup2.defaultOptions, ...options };
-          this.uniformStructures = uniformStructures;
-          const uniforms = {};
-          for (const i3 in uniformStructures) {
-            const uniformData = uniformStructures[i3];
-            uniformData.name = i3;
-            uniformData.size = uniformData.size ?? 1;
-            if (!UNIFORM_TYPES_MAP[uniformData.type]) {
-              throw new Error(`Uniform type ${uniformData.type} is not supported. Supported uniform types are: ${UNIFORM_TYPES_VALUES.join(", ")}`);
-            }
-            uniformData.value ?? (uniformData.value = getDefaultUniformValue(uniformData.type, uniformData.size));
-            uniforms[i3] = uniformData.value;
-          }
-          this.uniforms = uniforms;
-          this._dirtyId = 1;
-          this.ubo = options.ubo;
-          this.isStatic = options.isStatic;
-          this._signature = createIdFromString(Object.keys(uniforms).map(
-            (i3) => `${i3}-${uniformStructures[i3].type}`
-          ).join("-"), "uniform-group");
-        }
-        /** Call this if you want the uniform groups data to be uploaded to the GPU only useful if `isStatic` is true. */
-        update() {
-          this._dirtyId++;
-        }
-      };
-      _UniformGroup.defaultOptions = {
-        /** if true the UniformGroup is handled as an Uniform buffer object. */
-        ubo: false,
-        /** if true, then you are responsible for when the data is uploaded to the GPU by calling `update()` */
-        isStatic: false
-      };
-      UniformGroup = _UniformGroup;
-    }
-  });
-
   // node_modules/pixi.js/lib/scene/mesh/shared/BatchableMesh.mjs
   var BatchableMesh;
   var init_BatchableMesh = __esm({
@@ -14438,6 +16697,9 @@ Deprecated since v${version}`);
           this.texture = null;
           this.batcher = null;
           this.batch = null;
+          this.geometry = null;
+          this._uvUpdateId = -1;
+          this._textureMatrixUpdateId = -1;
         }
         packIndex(indexBuffer, index, indicesOffset) {
           const indices = this.geometry.indices;
@@ -14504,6 +16766,7 @@ Deprecated since v${version}`);
       init_Matrix();
       init_BindGroup();
       init_UniformGroup();
+      init_getAdjustedBlendModeBlend();
       init_PoolGroup();
       init_colorToUniform();
       init_BatchableMesh();
@@ -14519,6 +16782,7 @@ Deprecated since v${version}`);
           });
           this._meshDataHash = /* @__PURE__ */ Object.create(null);
           this._gpuBatchableMeshHash = /* @__PURE__ */ Object.create(null);
+          this._destroyRenderableBound = this.destroyRenderable.bind(this);
           this.renderer = renderer;
           this._adaptor = adaptor;
           this._adaptor.init();
@@ -14557,10 +16821,7 @@ Deprecated since v${version}`);
             batcher.addToBatch(gpuBatchableMesh);
           } else {
             batcher.break(instructionSet);
-            instructionSet.add({
-              renderPipeId: "mesh",
-              mesh
-            });
+            instructionSet.add(mesh);
           }
         }
         updateRenderable(mesh) {
@@ -14578,11 +16839,12 @@ Deprecated since v${version}`);
             BigPool.return(gpuMesh);
             this._gpuBatchableMeshHash[mesh.uid] = null;
           }
+          mesh.off("destroyed", this._destroyRenderableBound);
         }
-        execute({ mesh }) {
+        execute(mesh) {
           if (!mesh.isRenderable)
             return;
-          mesh.state.blendMode = mesh.groupBlendMode;
+          mesh.state.blendMode = getAdjustedBlendModeBlend(mesh.groupBlendMode, mesh.texture._source);
           const localUniforms = this.localUniforms;
           localUniforms.uniforms.uTransformMatrix = mesh.groupTransform;
           localUniforms.uniforms.uRound = this.renderer._roundPixels | mesh._roundPixels;
@@ -14603,9 +16865,7 @@ Deprecated since v${version}`);
             indexSize: mesh._geometry.indices?.length,
             vertexSize: mesh._geometry.positions?.length
           };
-          mesh.on("destroyed", () => {
-            this.destroyRenderable(mesh);
-          });
+          mesh.on("destroyed", this._destroyRenderableBound);
           return this._meshDataHash[mesh.uid];
         }
         _getBatchableMesh(mesh) {
@@ -14747,16 +17007,27 @@ Deprecated since v${version}`);
       CanvasTextPipe = class {
         constructor(renderer) {
           this._gpuText = /* @__PURE__ */ Object.create(null);
+          this._destroyRenderableBound = this.destroyRenderable.bind(this);
           this._renderer = renderer;
+          this._renderer.runners.resolutionChange.add(this);
+        }
+        resolutionChange() {
+          for (const i3 in this._gpuText) {
+            const gpuText = this._gpuText[i3];
+            const text = gpuText.batchableSprite.renderable;
+            if (text._autoResolution) {
+              text._resolution = this._renderer.resolution;
+              text.onViewUpdate();
+            }
+          }
         }
         validateRenderable(text) {
           const gpuText = this._getGpuText(text);
           const newKey = text._getKey();
           if (gpuText.currentKey !== newKey) {
-            const resolution = text.resolution ?? this._renderer.resolution;
             const { width, height } = this._renderer.canvasText.getTextureSize(
               text.text,
-              resolution,
+              text.resolution,
               text._style
             );
             if (
@@ -14786,6 +17057,7 @@ Deprecated since v${version}`);
           batchableSprite.batcher.updateElement(batchableSprite);
         }
         destroyRenderable(text) {
+          text.off("destroyed", this._destroyRenderableBound);
           this._destroyRenderableById(text.uid);
         }
         _destroyRenderableById(textUid) {
@@ -14828,10 +17100,9 @@ Deprecated since v${version}`);
           gpuTextData.batchableSprite.bounds = { minX: 0, maxX: 1, minY: 0, maxY: 0 };
           gpuTextData.batchableSprite.roundPixels = this._renderer._roundPixels | text._roundPixels;
           this._gpuText[text.uid] = gpuTextData;
+          text._resolution = text._autoResolution ? this._renderer.resolution : text.resolution;
           this._updateText(text);
-          text.on("destroyed", () => {
-            this.destroyRenderable(text);
-          });
+          text.on("destroyed", this._destroyRenderableBound);
           return gpuTextData;
         }
         destroy() {
@@ -14905,7 +17176,8 @@ Deprecated since v${version}`);
          * @param canvasAndContext
          */
         returnCanvasAndContext(canvasAndContext) {
-          const { width, height } = canvasAndContext.canvas;
+          const canvas = canvasAndContext.canvas;
+          const { width, height } = canvas;
           const key = (width << 17) + (height << 1);
           this._canvasPool[key].push(canvasAndContext);
         }
@@ -15106,7 +17378,7 @@ Deprecated since v${version}`);
           this.y1 = y1;
         }
         addColorStop(offset, color) {
-          this.gradientStops.push({ offset, color: Color.shared.setValue(color).toHex() });
+          this.gradientStops.push({ offset, color: Color.shared.setValue(color).toHexa() });
           this._styleKey = null;
           return this;
         }
@@ -15613,10 +17885,16 @@ Deprecated since v${version}`);
         }
         /**
          * Returns the framing rectangle of the ellipse as a Rectangle object
+         * @param out
          * @returns The framing rectangle
          */
-        getBounds() {
-          return new Rectangle(this.x - this.halfWidth, this.y - this.halfHeight, this.halfWidth * 2, this.halfHeight * 2);
+        getBounds(out2) {
+          out2 = out2 || new Rectangle();
+          out2.x = this.x - this.halfWidth;
+          out2.y = this.y - this.halfHeight;
+          out2.width = this.halfWidth * 2;
+          out2.height = this.halfHeight * 2;
+          return out2;
         }
         /**
          * Copies another ellipse to this one.
@@ -17031,7 +19309,7 @@ Deprecated since v${version}`);
             if (lastShape) {
               let lx = lastShape.shape.x;
               let ly = lastShape.shape.y;
-              if (!lastShape.transform.isIdentity()) {
+              if (lastShape.transform && !lastShape.transform.isIdentity()) {
                 const t3 = lastShape.transform;
                 const tempX = lx;
                 lx = t3.a * lx + t3.c * ly + t3.tx;
@@ -17766,12 +20044,14 @@ Deprecated since v${version}`);
     if (style.texture) {
       if (style.texture !== Texture.WHITE) {
         const m3 = style.matrix?.invert() || new Matrix();
-        m3.scale(1 / style.texture.frame.width, 1 / style.texture.frame.height);
+        m3.translate(style.texture.frame.x, style.texture.frame.y);
+        m3.scale(1 / style.texture.source.width, 1 / style.texture.source.height);
         style.matrix = m3;
       }
       const sourceStyle = style.texture.source.style;
       if (sourceStyle.addressMode === "clamp-to-edge") {
         sourceStyle.addressMode = "repeat";
+        sourceStyle.update();
       }
     }
     const color = Color.shared.setValue(style.color);
@@ -18684,9 +20964,6 @@ Deprecated since v${version}`);
         "align",
         "breakWords",
         "cssOverrides",
-        "fontFamily",
-        "fontSize",
-        "fontStyle",
         "fontVariant",
         "fontWeight",
         "leading",
@@ -18697,7 +20974,10 @@ Deprecated since v${version}`);
         "trim",
         "whiteSpace",
         "wordWrap",
-        "wordWrapWidth"
+        "wordWrapWidth",
+        "fontFamily",
+        "fontStyle",
+        "fontSize"
       ];
     }
   });
@@ -19312,8 +21592,8 @@ Deprecated since v${version}`);
           if (style.dropShadow) {
             width += style.dropShadow.distance;
           }
-          const lineHeight = style.lineHeight || fontProperties.fontSize + strokeWidth;
-          let height = Math.max(lineHeight, fontProperties.fontSize + strokeWidth * 2) + (lines.length - 1) * (lineHeight + style.leading);
+          const lineHeight = style.lineHeight || fontProperties.fontSize;
+          let height = Math.max(lineHeight, fontProperties.fontSize + strokeWidth) + (lines.length - 1) * (lineHeight + style.leading);
           if (style.dropShadow) {
             height += style.dropShadow.distance;
           }
@@ -19454,7 +21734,7 @@ Deprecated since v${version}`);
           return lines;
         }
         /**
-         * Convienience function for logging each line added during the wordWrap method.
+         * Convenience function for logging each line added during the wordWrap method.
          * @param line    - The line of text to add
          * @param newLine - Add new line character to end
          * @returns A formatted line
@@ -19737,7 +22017,7 @@ Deprecated since v${version}`);
   // node_modules/pixi.js/lib/scene/text/canvas/utils/getCanvasFillStyle.mjs
   function getCanvasFillStyle(fillStyle, context2) {
     if (fillStyle.texture === Texture.WHITE && !fillStyle.fill) {
-      return Color.shared.setValue(fillStyle.color).toHex();
+      return Color.shared.setValue(fillStyle.color).setAlpha(fillStyle.alpha ?? 1).toHexa();
     } else if (!fillStyle.fill) {
       const pattern = context2.createPattern(fillStyle.texture.source.resource, "repeat");
       const tempMatrix6 = fillStyle.matrix.copyTo(Matrix.shared);
@@ -19853,6 +22133,7 @@ Deprecated since v${version}`);
           return { texture, canvasAndContext };
         }
         getManagedTexture(text) {
+          text._resolution = text._autoResolution ? this._renderer.resolution : text.resolution;
           const textKey = text._getKey();
           if (this._activeTextures[textKey]) {
             this._increaseReferenceCount(textKey);
@@ -20065,9 +22346,9 @@ Deprecated since v${version}`);
     "node_modules/pixi.js/lib/scene/graphics/shared/Graphics.mjs"() {
       "use strict";
       init_deprecation();
-      init_Container();
+      init_View();
       init_GraphicsContext();
-      Graphics = class _Graphics extends Container {
+      Graphics = class _Graphics extends ViewContainer {
         /**
          * @param options - Options for the Graphics.
          */
@@ -20080,9 +22361,7 @@ Deprecated since v${version}`);
             label: "Graphics",
             ...rest
           });
-          this.canBundle = true;
           this.renderPipeId = "graphics";
-          this._roundPixels = 0;
           if (!context2) {
             this._context = this._ownedContext = new GraphicsContext();
           } else {
@@ -20124,18 +22403,8 @@ Deprecated since v${version}`);
         containsPoint(point) {
           return this._context.containsPoint(point);
         }
-        /**
-         *  Whether or not to round the x/y position of the graphic.
-         * @type {boolean}
-         */
-        get roundPixels() {
-          return !!this._roundPixels;
-        }
-        set roundPixels(value) {
-          this._roundPixels = value ? 1 : 0;
-        }
         onViewUpdate() {
-          this._didChangeId += 1 << 12;
+          this._didViewChangeTick++;
           this._didGraphicsUpdate = true;
           if (this.didViewUpdate)
             return;
@@ -20684,49 +22953,6 @@ ${src}`;
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/getAttributeInfoFromFormat.mjs
-  function getAttributeInfoFromFormat(format) {
-    return attributeFormatData[format] ?? attributeFormatData.float32;
-  }
-  var attributeFormatData;
-  var init_getAttributeInfoFromFormat = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/getAttributeInfoFromFormat.mjs"() {
-      "use strict";
-      attributeFormatData = {
-        uint8x2: { size: 2, stride: 2, normalised: false },
-        uint8x4: { size: 4, stride: 4, normalised: false },
-        sint8x2: { size: 2, stride: 2, normalised: false },
-        sint8x4: { size: 4, stride: 4, normalised: false },
-        unorm8x2: { size: 2, stride: 2, normalised: true },
-        unorm8x4: { size: 4, stride: 4, normalised: true },
-        snorm8x2: { size: 2, stride: 2, normalised: true },
-        snorm8x4: { size: 4, stride: 4, normalised: true },
-        uint16x2: { size: 2, stride: 4, normalised: false },
-        uint16x4: { size: 4, stride: 8, normalised: false },
-        sint16x2: { size: 2, stride: 4, normalised: false },
-        sint16x4: { size: 4, stride: 8, normalised: false },
-        unorm16x2: { size: 2, stride: 4, normalised: true },
-        unorm16x4: { size: 4, stride: 8, normalised: true },
-        snorm16x2: { size: 2, stride: 4, normalised: true },
-        snorm16x4: { size: 4, stride: 8, normalised: true },
-        float16x2: { size: 2, stride: 4, normalised: false },
-        float16x4: { size: 4, stride: 8, normalised: false },
-        float32: { size: 1, stride: 4, normalised: false },
-        float32x2: { size: 2, stride: 8, normalised: false },
-        float32x3: { size: 3, stride: 12, normalised: false },
-        float32x4: { size: 4, stride: 16, normalised: false },
-        uint32: { size: 1, stride: 4, normalised: false },
-        uint32x2: { size: 2, stride: 8, normalised: false },
-        uint32x3: { size: 3, stride: 12, normalised: false },
-        uint32x4: { size: 4, stride: 16, normalised: false },
-        sint32: { size: 1, stride: 4, normalised: false },
-        sint32x2: { size: 2, stride: 8, normalised: false },
-        sint32x3: { size: 3, stride: 12, normalised: false },
-        sint32x4: { size: 4, stride: 16, normalised: false }
-      };
-    }
-  });
-
   // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/extractAttributesFromGpuProgram.mjs
   function extractAttributesFromGpuProgram({ source: source2, entryPoint }) {
     const results = {};
@@ -20829,7 +23055,7 @@ ${src}`;
 
   // node_modules/pixi.js/lib/rendering/renderers/shared/shader/const.mjs
   var ShaderStage;
-  var init_const6 = __esm({
+  var init_const7 = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/shared/shader/const.mjs"() {
       "use strict";
       ShaderStage = /* @__PURE__ */ ((ShaderStage2) => {
@@ -20882,7 +23108,7 @@ ${src}`;
   var init_generateGpuLayoutGroups = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateGpuLayoutGroups.mjs"() {
       "use strict";
-      init_const6();
+      init_const7();
     }
   });
 
@@ -20950,6 +23176,7 @@ ${src}`;
          */
         constructor(options) {
           this._layoutKey = 0;
+          this._attributeLocationsKey = 0;
           const { fragment: fragment2, vertex: vertex2, layout, gpuLayout, name } = options;
           this.name = name;
           this.fragment = fragment2;
@@ -21547,14 +23774,14 @@ ${parts.join("\n")}
         fragment: {
           header: `
                 @in @interpolate(flat) vTextureId: u32;
-    
-                ${generateBindingSrc(maxRecommendedTextures())}
+
+                ${generateBindingSrc(maxTextures2)}
             `,
           main: `
                 var uvDx = dpdx(vUV);
                 var uvDy = dpdy(vUV);
-    
-                ${generateSampleSrc(maxRecommendedTextures())}
+
+                ${generateSampleSrc(maxTextures2)}
             `
         }
       };
@@ -21584,7 +23811,7 @@ ${parts.join("\n")}
           header: `
                 in vec2 aTextureIdAndRound;
                 out float vTextureId;
-              
+
             `,
           main: `
                 vTextureId = aTextureIdAndRound.y;
@@ -21599,13 +23826,13 @@ ${parts.join("\n")}
         fragment: {
           header: `
                 in float vTextureId;
-    
+
                 uniform sampler2D uTextures[${maxTextures2}];
-              
+
             `,
           main: `
-    
-                ${generateSampleGlSrc(maxRecommendedTextures())}
+
+                ${generateSampleGlSrc(maxTextures2)}
             `
         }
       };
@@ -21616,7 +23843,6 @@ ${parts.join("\n")}
   var init_generateTextureBatchBit = __esm({
     "node_modules/pixi.js/lib/rendering/high-shader/shader-bits/generateTextureBatchBit.mjs"() {
       "use strict";
-      init_maxRecommendedTextures();
       textureBatchBitGpuCache = {};
       textureBatchBitGlCache = {};
     }
@@ -21757,29 +23983,29 @@ ${parts.join("\n")}
               nameHash[data.name] = data;
             });
           } else if (resources) {
-            if (!gpuProgram3) {
-              groupMap = {};
-              groups = {
-                99: new BindGroup()
-              };
-              this._ownedBindGroups.push(groups[99]);
-              let bindTick = 0;
-              for (const i3 in resources) {
-                nameHash[i3] = { group: 99, binding: bindTick, name: i3 };
-                groupMap[99] = groupMap[99] || {};
-                groupMap[99][bindTick] = i3;
-                bindTick++;
-              }
-            } else {
+            groups = {};
+            groupMap = {};
+            if (gpuProgram3) {
               const groupData = gpuProgram3.structsAndGroups.groups;
-              groupMap = {};
               groupData.forEach((data) => {
                 groupMap[data.group] = groupMap[data.group] || {};
                 groupMap[data.group][data.binding] = data.name;
                 nameHash[data.name] = data;
               });
             }
-            groups = {};
+            let bindTick = 0;
+            for (const i3 in resources) {
+              if (nameHash[i3])
+                continue;
+              if (!groups[99]) {
+                groups[99] = new BindGroup();
+                this._ownedBindGroups.push(groups[99]);
+              }
+              nameHash[i3] = { group: 99, binding: bindTick, name: i3 };
+              groupMap[99] = groupMap[99] || {};
+              groupMap[99][bindTick] = i3;
+              bindTick++;
+            }
             for (const i3 in resources) {
               const name = i3;
               let value = resources[i3];
@@ -22065,6 +24291,7 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/scene/text/sdfShader/SdfShader.mjs"() {
       "use strict";
       init_Matrix();
+      init_maxRecommendedTextures();
       init_compileHighShaderToProgram();
       init_colorBit();
       init_generateTextureBatchBit();
@@ -22072,7 +24299,6 @@ ${parts.join("\n")}
       init_getBatchSamplersUniformGroup();
       init_Shader();
       init_UniformGroup();
-      init_maxRecommendedTextures();
       init_localUniformMSDFBit();
       init_mSDFBit();
       SdfShader = class extends Shader {
@@ -22083,7 +24309,7 @@ ${parts.join("\n")}
             uDistance: { value: 4, type: "f32" },
             uRound: { value: 0, type: "f32" }
           });
-          const maxTextures2 = maxRecommendedTextures();
+          const maxTextures2 = getMaxTexturesPerBatch();
           gpuProgram ?? (gpuProgram = compileHighShaderGpuProgram({
             name: "sdf-shader",
             bits: [
@@ -22134,6 +24360,7 @@ ${parts.join("\n")}
           this.baseLineOffset = 0;
           this.distanceField = { type: "none", range: 0 };
           this.pages = [];
+          this.applyFillAsTint = true;
           this.baseMeasurementFontSize = 100;
           this.baseRenderedFontSize = 100;
         }
@@ -22235,7 +24462,7 @@ ${parts.join("\n")}
   });
 
   // node_modules/pixi.js/lib/scene/text-bitmap/DynamicBitmapFont.mjs
-  var DynamicBitmapFont;
+  var _DynamicBitmapFont, DynamicBitmapFont;
   var init_DynamicBitmapFont = __esm({
     "node_modules/pixi.js/lib/scene/text-bitmap/DynamicBitmapFont.mjs"() {
       "use strict";
@@ -22248,9 +24475,10 @@ ${parts.join("\n")}
       init_CanvasTextMetrics();
       init_fontStringFromTextStyle();
       init_getCanvasFillStyle();
+      init_TextStyle();
       init_AbstractBitmapFont();
       init_resolveCharacters();
-      DynamicBitmapFont = class extends AbstractBitmapFont {
+      _DynamicBitmapFont = class _DynamicBitmapFont2 extends AbstractBitmapFont {
         /**
          * @param options - The options for the dynamic bitmap font.
          */
@@ -22258,14 +24486,16 @@ ${parts.join("\n")}
           super();
           this.resolution = 1;
           this.pages = [];
-          this._padding = 4;
+          this._padding = 0;
           this._measureCache = /* @__PURE__ */ Object.create(null);
           this._currentChars = [];
           this._currentX = 0;
           this._currentY = 0;
           this._currentPageIndex = -1;
           this._skipKerning = false;
-          const dynamicOptions = options;
+          const dynamicOptions = { ..._DynamicBitmapFont2.defaultOptions, ...options };
+          this._textureSize = dynamicOptions.textureSize;
+          this._mipmap = dynamicOptions.mipmap;
           const style = dynamicOptions.style.clone();
           if (dynamicOptions.overrideFill) {
             style._fill.color = 16777215;
@@ -22273,6 +24503,7 @@ ${parts.join("\n")}
             style._fill.texture = Texture.WHITE;
             style._fill.fill = null;
           }
+          this.applyFillAsTint = dynamicOptions.overrideFill;
           const requestedFontSize = style.fontSize;
           style.fontSize = this.baseMeasurementFontSize;
           const font = fontStringFromTextStyle(style);
@@ -22324,11 +24555,11 @@ ${parts.join("\n")}
               skipTexture = true;
               maxCharHeight = Math.ceil(Math.max(paddedHeight, maxCharHeight));
             }
-            if (currentX + paddedWidth > 512) {
+            if (currentX + paddedWidth > this._textureSize) {
               currentY += maxCharHeight;
               maxCharHeight = paddedHeight;
               currentX = 0;
-              if (currentY + maxCharHeight > 512) {
+              if (currentY + maxCharHeight > this._textureSize) {
                 textureSource.update();
                 const pageData2 = this._nextPage();
                 canvas = pageData2.canvasAndContext.canvas;
@@ -22410,14 +24641,19 @@ ${parts.join("\n")}
         _nextPage() {
           this._currentPageIndex++;
           const textureResolution = this.resolution;
-          const canvasAndContext = CanvasPool.getOptimalCanvasAndContext(512, 512, textureResolution);
+          const canvasAndContext = CanvasPool.getOptimalCanvasAndContext(
+            this._textureSize,
+            this._textureSize,
+            textureResolution
+          );
           this._setupContext(canvasAndContext.context, this._style, textureResolution);
           const resolution = textureResolution * (this.baseRenderedFontSize / this.baseMeasurementFontSize);
           const texture = new Texture({
             source: new ImageSource({
               resource: canvasAndContext.canvas,
               resolution,
-              alphaMode: "premultiply-alpha-on-upload"
+              alphaMode: "premultiply-alpha-on-upload",
+              autoGenerateMipmaps: this._mipmap
             })
           });
           const pageData = {
@@ -22481,12 +24717,19 @@ ${parts.join("\n")}
           super.destroy();
           for (let i3 = 0; i3 < this.pages.length; i3++) {
             const { canvasAndContext, texture } = this.pages[i3];
+            canvasAndContext.canvas.width = canvasAndContext.canvas.width;
             CanvasPool.returnCanvasAndContext(canvasAndContext);
             texture.destroy(true);
           }
           this.pages = null;
         }
       };
+      _DynamicBitmapFont.defaultOptions = {
+        textureSize: 512,
+        style: new TextStyle(),
+        mipmap: true
+      };
+      DynamicBitmapFont = _DynamicBitmapFont;
     }
   });
 
@@ -22651,16 +24894,18 @@ ${parts.join("\n")}
   });
 
   // node_modules/pixi.js/lib/scene/text-bitmap/BitmapFontManager.mjs
-  var BitmapFontManagerClass, BitmapFontManager;
+  var fontCount, BitmapFontManagerClass, BitmapFontManager;
   var init_BitmapFontManager = __esm({
     "node_modules/pixi.js/lib/scene/text-bitmap/BitmapFontManager.mjs"() {
       "use strict";
       init_Cache();
       init_deprecation();
+      init_warn();
       init_TextStyle();
       init_DynamicBitmapFont();
       init_getBitmapTextLayout();
       init_resolveCharacters();
+      fontCount = 0;
       BitmapFontManagerClass = class {
         constructor() {
           this.ALPHA = [["a", "z"], ["A", "Z"], " "];
@@ -22682,8 +24927,13 @@ ${parts.join("\n")}
         getFont(text, style) {
           let fontFamilyKey = `${style.fontFamily}-bitmap`;
           let overrideFill = true;
-          if (style._fill.fill) {
-            fontFamilyKey += style._fill.fill.uid;
+          if (style._fill.fill && !style._stroke) {
+            fontFamilyKey += style._fill.fill.styleKey;
+            overrideFill = false;
+          } else if (style._stroke || style.dropShadow) {
+            let key = style.styleKey;
+            key = key.substring(0, key.lastIndexOf("-"));
+            fontFamilyKey = `${key}-bitmap`;
             overrideFill = false;
           }
           if (!Cache.has(fontFamilyKey)) {
@@ -22693,7 +24943,14 @@ ${parts.join("\n")}
               overrideSize: true,
               ...this.defaultOptions
             });
-            fnt.once("destroy", () => Cache.remove(fontFamilyKey));
+            fontCount++;
+            if (fontCount > 50) {
+              warn("BitmapText", `You have dynamically created ${fontCount} bitmap fonts, this can be inefficient. Try pre installing your font styles using \`BitmapFont.install({name:"style1", style})\``);
+            }
+            fnt.once("destroy", () => {
+              fontCount--;
+              Cache.remove(fontFamilyKey);
+            });
             Cache.set(
               fontFamilyKey,
               fnt
@@ -22797,9 +25054,9 @@ ${parts.join("\n")}
       init_BitmapFontManager();
       init_getBitmapTextLayout();
       BitmapTextPipe = class {
-        // private _sdfShader: SdfShader;
         constructor(renderer) {
           this._gpuBitmapText = {};
+          this._destroyRenderableBound = this.destroyRenderable.bind(this);
           this._renderer = renderer;
         }
         validateRenderable(bitmapText) {
@@ -22823,6 +25080,7 @@ ${parts.join("\n")}
           }
         }
         destroyRenderable(bitmapText) {
+          bitmapText.off("destroyed", this._destroyRenderableBound);
           this._destroyRenderableByUid(bitmapText.uid);
         }
         _destroyRenderableByUid(renderableUid) {
@@ -22853,17 +25111,19 @@ ${parts.join("\n")}
           }
           const chars = Array.from(bitmapText.text);
           const style = bitmapText._style;
-          let currentY = (style._stroke?.width || 0) / 2;
-          currentY += bitmapFont.baseLineOffset;
+          let currentY = bitmapFont.baseLineOffset;
           const bitmapTextLayout = getBitmapTextLayout(chars, style, bitmapFont);
           let index = 0;
           const padding = style.padding;
           const scale = bitmapTextLayout.scale;
-          context2.translate(
-            -bitmapText._anchor._x * bitmapTextLayout.width - padding,
-            -bitmapText._anchor._y * (bitmapTextLayout.height + bitmapTextLayout.offsetY) - padding
-          ).scale(scale, scale);
-          const tint = style._fill.color;
+          let tx = bitmapTextLayout.width;
+          let ty = bitmapTextLayout.height + bitmapTextLayout.offsetY;
+          if (style._stroke) {
+            tx += style._stroke.width / scale;
+            ty += style._stroke.width / scale;
+          }
+          context2.translate(-bitmapText._anchor._x * tx - padding, -bitmapText._anchor._y * ty - padding).scale(scale, scale);
+          const tint = bitmapFont.applyFillAsTint ? style._fill.color : 16777215;
           for (let i3 = 0; i3 < bitmapTextLayout.lines.length; i3++) {
             const line = bitmapTextLayout.lines[i3];
             for (let j3 = 0; j3 < line.charPositions.length; j3++) {
@@ -22888,9 +25148,7 @@ ${parts.join("\n")}
           const proxyRenderable = BigPool.get(Graphics);
           this._gpuBitmapText[bitmapText.uid] = proxyRenderable;
           this._updateContext(bitmapText, proxyRenderable);
-          bitmapText.on("destroyed", () => {
-            this.destroyRenderable(bitmapText);
-          });
+          bitmapText.on("destroyed", this._destroyRenderableBound);
           return this._gpuBitmapText[bitmapText.uid];
         }
         _updateDistanceField(bitmapText) {
@@ -22906,8 +25164,8 @@ ${parts.join("\n")}
           context2.customShader.resources.localUniforms.uniforms.uDistance = distance;
         }
         destroy() {
-          for (const uid2 in this._gpuBitmapText) {
-            this._destroyRenderableByUid(uid2);
+          for (const uid3 in this._gpuBitmapText) {
+            this._destroyRenderableByUid(uid3);
           }
           this._gpuBitmapText = null;
           this._renderer = null;
@@ -22947,7 +25205,19 @@ ${parts.join("\n")}
       HTMLTextPipe = class {
         constructor(renderer) {
           this._gpuText = /* @__PURE__ */ Object.create(null);
+          this._destroyRenderableBound = this.destroyRenderable.bind(this);
           this._renderer = renderer;
+          this._renderer.runners.resolutionChange.add(this);
+        }
+        resolutionChange() {
+          for (const i3 in this._gpuText) {
+            const gpuText = this._gpuText[i3];
+            const text = gpuText.batchableSprite.renderable;
+            if (text._autoResolution) {
+              text._resolution = this._renderer.resolution;
+              text.onViewUpdate();
+            }
+          }
         }
         validateRenderable(htmlText) {
           const gpuText = this._getGpuText(htmlText);
@@ -22961,7 +25231,7 @@ ${parts.join("\n")}
           }
           return false;
         }
-        addRenderable(htmlText) {
+        addRenderable(htmlText, _instructionSet) {
           const gpuText = this._getGpuText(htmlText);
           const batchableSprite = gpuText.batchableSprite;
           if (htmlText._didTextUpdate) {
@@ -22978,6 +25248,7 @@ ${parts.join("\n")}
           batchableSprite.batcher.updateElement(batchableSprite);
         }
         destroyRenderable(htmlText) {
+          htmlText.off("destroyed", this._destroyRenderableBound);
           this._destroyRenderableById(htmlText.uid);
         }
         _destroyRenderableById(htmlTextUid) {
@@ -23039,10 +25310,9 @@ ${parts.join("\n")}
           batchableSprite.texture = Texture.EMPTY;
           batchableSprite.bounds = { minX: 0, maxX: 1, minY: 0, maxY: 0 };
           batchableSprite.roundPixels = this._renderer._roundPixels | htmlText._roundPixels;
+          htmlText._resolution = htmlText._autoResolution ? this._renderer.resolution : htmlText.resolution;
           this._gpuText[htmlText.uid] = gpuTextData;
-          htmlText.on("destroyed", () => {
-            this.destroyRenderable(htmlText);
-          });
+          htmlText.on("destroyed", this._destroyRenderableBound);
           return gpuTextData;
         }
         destroy() {
@@ -23378,7 +25648,11 @@ ${parts.join("\n")}
       if (!FontStylePromiseCache.has(fontFamily)) {
         const { url } = Cache.get(`${fontFamily}-and-url`);
         if (i3 === 0) {
-          FontStylePromiseCache.set(fontFamily, loadFontCSS(style, url));
+          FontStylePromiseCache.set(fontFamily, loadFontCSS({
+            fontWeight: style.fontWeight,
+            fontStyle: style.fontStyle,
+            fontFamily
+          }, url));
         } else {
           FontStylePromiseCache.set(fontFamily, loadFontCSS({
             fontWeight: defaultOptions.fontWeight,
@@ -23404,7 +25678,7 @@ ${parts.join("\n")}
   // node_modules/pixi.js/lib/scene/text-html/utils/getSVGUrl.mjs
   function getSVGUrl(text, style, resolution, fontCSS, htmlTextData) {
     const { domElement, styleElement, svgRoot } = htmlTextData;
-    domElement.innerHTML = `<style>${style.cssStyle}</style><div>${text}</div>`;
+    domElement.innerHTML = `<style>${style.cssStyle}</style><div style='padding:0;'>${text}</div>`;
     domElement.setAttribute("style", `transform: scale(${resolution});transform-origin: top left; display: inline-block`);
     styleElement.textContent = fontCSS;
     const { width, height } = htmlTextData.image;
@@ -23461,7 +25735,7 @@ ${parts.join("\n")}
   function measureHtmlText(text, style, fontStyleCSS, htmlTextRenderData) {
     htmlTextRenderData = htmlTextRenderData || tempHTMLTextRenderData || (tempHTMLTextRenderData = new HTMLTextRenderData());
     const { domElement, styleElement, svgRoot } = htmlTextRenderData;
-    domElement.innerHTML = `<style>${style.cssStyle}</style><div>${text}</div>`;
+    domElement.innerHTML = `<style>${style.cssStyle};</style><div style='padding:0'>${text}</div>`;
     domElement.setAttribute("style", "transform-origin: top left; display: inline-block");
     if (fontStyleCSS) {
       styleElement.textContent = fontStyleCSS;
@@ -23470,9 +25744,10 @@ ${parts.join("\n")}
     const contentBounds = domElement.getBoundingClientRect();
     svgRoot.remove();
     const descenderPadding = CanvasTextMetrics.measureFont(style.fontStyle).descent;
+    const doublePadding = style.padding * 2;
     return {
-      width: contentBounds.width,
-      height: contentBounds.height + descenderPadding
+      width: contentBounds.width - doublePadding,
+      height: contentBounds.height + descenderPadding - doublePadding
     };
   }
   var tempHTMLTextRenderData;
@@ -23545,15 +25820,21 @@ ${parts.join("\n")}
           const width = Math.ceil(Math.ceil(Math.max(1, measured.width) + style.padding * 2) * resolution);
           const height = Math.ceil(Math.ceil(Math.max(1, measured.height) + style.padding * 2) * resolution);
           const image = htmlTextData.image;
-          image.width = width | 0;
-          image.height = height | 0;
+          const uvSafeOffset = 2;
+          image.width = (width | 0) + uvSafeOffset;
+          image.height = (height | 0) + uvSafeOffset;
           const svgURL = getSVGUrl(text, style, resolution, fontCSS, htmlTextData);
           await loadSVGImage(image, svgURL, isSafari() && fontFamilies.length > 0);
           let resource = image;
           if (this._createCanvas) {
             resource = getTemporaryCanvasFromImage(image, resolution);
           }
-          const texture = getPo2TextureFromSource(resource, image.width, image.height, resolution);
+          const texture = getPo2TextureFromSource(
+            resource,
+            image.width - uvSafeOffset,
+            image.height - uvSafeOffset,
+            resolution
+          );
           if (this._createCanvas) {
             this._renderer.texture.initSource(texture.source);
           }
@@ -23628,7 +25909,7 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/scene/mesh/shared/MeshGeometry.mjs"() {
       "use strict";
       init_Buffer();
-      init_const3();
+      init_const();
       init_Geometry();
       init_deprecation();
       _MeshGeometry = class _MeshGeometry2 extends Geometry {
@@ -24099,6 +26380,7 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/scene/sprite-tiling/TilingSpritePipe.mjs"() {
       "use strict";
       init_Extensions();
+      init_getAdjustedBlendModeBlend();
       init_State();
       init_types2();
       init_colorToUniform();
@@ -24111,7 +26393,9 @@ ${parts.join("\n")}
       sharedQuad = new QuadGeometry();
       TilingSpritePipe = class {
         constructor(renderer) {
+          this._state = State.default2d;
           this._tilingSpriteDataHash = /* @__PURE__ */ Object.create(null);
+          this._destroyRenderableBound = this.destroyRenderable.bind(this);
           this._renderer = renderer;
         }
         validateRenderable(renderable) {
@@ -24121,7 +26405,7 @@ ${parts.join("\n")}
           const canBatch = tilingSpriteData.canBatch;
           if (canBatch && canBatch === couldBatch) {
             const { batchableMesh } = tilingSpriteData;
-            if (batchableMesh.texture._source !== renderable.texture._source) {
+            if (batchableMesh && batchableMesh.texture._source !== renderable.texture._source) {
               return !batchableMesh.batcher.checkAndUpdateTexture(batchableMesh, renderable.texture);
             }
           }
@@ -24162,10 +26446,11 @@ ${parts.join("\n")}
             localUniforms.uColor,
             0
           );
+          this._state.blendMode = getAdjustedBlendModeBlend(tilingSprite.groupBlendMode, tilingSprite.texture._source);
           this._renderer.encoder.draw({
             geometry: sharedQuad,
             shader,
-            state: State.default2d
+            state: this._state
           });
         }
         updateRenderable(tilingSprite) {
@@ -24194,6 +26479,7 @@ ${parts.join("\n")}
           tilingSpriteData.batchableMesh = null;
           tilingSpriteData.shader?.destroy();
           this._tilingSpriteDataHash[tilingSprite.uid] = null;
+          tilingSprite.off("destroyed", this._destroyRenderableBound);
         }
         _getTilingSpriteData(renderable) {
           return this._tilingSpriteDataHash[renderable.uid] || this._initTilingSpriteData(renderable);
@@ -24209,9 +26495,7 @@ ${parts.join("\n")}
             renderable: tilingSprite,
             geometry
           };
-          tilingSprite.on("destroyed", () => {
-            this.destroyRenderable(tilingSprite);
-          });
+          tilingSprite.on("destroyed", this._destroyRenderableBound);
           return this._tilingSpriteDataHash[tilingSprite.uid];
         }
         _updateBatchableMesh(tilingSprite) {
@@ -24444,6 +26728,7 @@ ${parts.join("\n")}
       NineSliceSpritePipe = class {
         constructor(renderer) {
           this._gpuSpriteHash = /* @__PURE__ */ Object.create(null);
+          this._destroyRenderableBound = this.destroyRenderable.bind(this);
           this._renderer = renderer;
         }
         addRenderable(sprite, _instructionSet) {
@@ -24467,9 +26752,11 @@ ${parts.join("\n")}
           return false;
         }
         destroyRenderable(sprite) {
-          const batchableSprite = this._gpuSpriteHash[sprite.uid];
-          BigPool.return(batchableSprite);
+          const batchableMesh = this._gpuSpriteHash[sprite.uid];
+          BigPool.return(batchableMesh.geometry);
+          BigPool.return(batchableMesh);
           this._gpuSpriteHash[sprite.uid] = null;
+          sprite.off("destroyed", this._destroyRenderableBound);
         }
         _updateBatchableSprite(sprite, batchableSprite) {
           sprite._didSpriteUpdate = false;
@@ -24480,15 +26767,14 @@ ${parts.join("\n")}
           return this._gpuSpriteHash[sprite.uid] || this._initGPUSprite(sprite);
         }
         _initGPUSprite(sprite) {
-          const batchableMesh = new BatchableMesh();
-          batchableMesh.geometry = new NineSliceGeometry();
+          const batchableMesh = BigPool.get(BatchableMesh);
+          batchableMesh.geometry = BigPool.get(NineSliceGeometry);
           batchableMesh.mesh = sprite;
           batchableMesh.texture = sprite._texture;
           batchableMesh.roundPixels = this._renderer._roundPixels | sprite._roundPixels;
+          sprite._didSpriteUpdate = true;
           this._gpuSpriteHash[sprite.uid] = batchableMesh;
-          sprite.on("destroyed", () => {
-            this.destroyRenderable(sprite);
-          });
+          sprite.on("destroyed", this._destroyRenderableBound);
           return batchableMesh;
         }
         destroy() {
@@ -24688,7 +26974,6 @@ ${parts.join("\n")}
         attributes: {
           aPosition: {
             buffer: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
-            location: 0,
             format: "float32x2",
             stride: 2 * 4,
             offset: 0
@@ -24740,22 +27025,20 @@ ${parts.join("\n")}
           } else {
             getFastGlobalBounds(instruction.container, bounds);
           }
-          const colorTextureSource = renderer.renderTarget.rootRenderTarget.colorTexture.source;
-          let resolution = colorTextureSource._resolution;
+          const colorTextureSource = renderer.renderTarget.renderTarget.colorTexture.source;
+          let resolution = Infinity;
           let padding = 0;
-          let antialias = colorTextureSource.antialias;
+          let antialias = true;
           let blendRequired = false;
           let enabled = false;
           for (let i3 = 0; i3 < filters.length; i3++) {
             const filter = filters[i3];
-            resolution = Math.min(resolution, filter.resolution);
+            resolution = Math.min(resolution, filter.resolution === "inherit" ? colorTextureSource._resolution : filter.resolution);
             padding += filter.padding;
-            if (filter.antialias !== "inherit") {
-              if (filter.antialias === "on") {
-                antialias = true;
-              } else {
-                antialias = false;
-              }
+            if (filter.antialias === "off") {
+              antialias = false;
+            } else if (filter.antialias === "inherit") {
+              antialias && (antialias = colorTextureSource.antialias);
             }
             const isCompatible = !!(filter.compatibleRenderers & renderer.type);
             if (!isCompatible) {
@@ -25082,6 +27365,7 @@ ${parts.join("\n")}
           super(options);
           this.enabled = true;
           this._state = State.for2d();
+          this.blendMode = options.blendMode;
           this.padding = options.padding;
           if (typeof options.antialias === "boolean") {
             this.antialias = options.antialias ? "on" : "off";
@@ -25146,461 +27430,6 @@ ${parts.join("\n")}
     }
   });
 
-  // node_modules/pixi.js/lib/environment/autoDetectEnvironment.mjs
-  async function loadEnvironmentExtensions(skip) {
-    if (skip)
-      return;
-    for (let i3 = 0; i3 < environments.length; i3++) {
-      const env = environments[i3];
-      if (env.value.test()) {
-        await env.value.load();
-        return;
-      }
-    }
-  }
-  var environments;
-  var init_autoDetectEnvironment = __esm({
-    "node_modules/pixi.js/lib/environment/autoDetectEnvironment.mjs"() {
-      "use strict";
-      init_Extensions();
-      environments = [];
-      extensions.handleByNamedList(ExtensionType.Environment, environments);
-    }
-  });
-
-  // node_modules/pixi.js/lib/utils/browser/unsafeEvalSupported.mjs
-  function unsafeEvalSupported() {
-    if (typeof unsafeEval === "boolean") {
-      return unsafeEval;
-    }
-    try {
-      const func = new Function("param1", "param2", "param3", "return param1[param2] === param3;");
-      unsafeEval = func({ a: "b" }, "a", "b") === true;
-    } catch (e3) {
-      unsafeEval = false;
-    }
-    return unsafeEval;
-  }
-  var unsafeEval;
-  var init_unsafeEvalSupported = __esm({
-    "node_modules/pixi.js/lib/utils/browser/unsafeEvalSupported.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/const.mjs
-  var CLEAR;
-  var init_const7 = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/const.mjs"() {
-      "use strict";
-      CLEAR = /* @__PURE__ */ ((CLEAR2) => {
-        CLEAR2[CLEAR2["NONE"] = 0] = "NONE";
-        CLEAR2[CLEAR2["COLOR"] = 16384] = "COLOR";
-        CLEAR2[CLEAR2["STENCIL"] = 1024] = "STENCIL";
-        CLEAR2[CLEAR2["DEPTH"] = 256] = "DEPTH";
-        CLEAR2[CLEAR2["COLOR_DEPTH"] = 16640] = "COLOR_DEPTH";
-        CLEAR2[CLEAR2["COLOR_STENCIL"] = 17408] = "COLOR_STENCIL";
-        CLEAR2[CLEAR2["DEPTH_STENCIL"] = 1280] = "DEPTH_STENCIL";
-        CLEAR2[CLEAR2["ALL"] = 17664] = "ALL";
-        return CLEAR2;
-      })(CLEAR || {});
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/system/SystemRunner.mjs
-  var SystemRunner;
-  var init_SystemRunner = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/system/SystemRunner.mjs"() {
-      "use strict";
-      SystemRunner = class {
-        /**
-         * @param name - The function name that will be executed on the listeners added to this Runner.
-         */
-        constructor(name) {
-          this.items = [];
-          this._name = name;
-        }
-        /* eslint-disable jsdoc/require-param, jsdoc/check-param-names */
-        /**
-         * Dispatch/Broadcast Runner to all listeners added to the queue.
-         * @param {...any} params - (optional) parameters to pass to each listener
-         */
-        /*  eslint-enable jsdoc/require-param, jsdoc/check-param-names */
-        emit(a0, a1, a22, a3, a4, a5, a6, a7) {
-          const { name, items } = this;
-          for (let i3 = 0, len = items.length; i3 < len; i3++) {
-            items[i3][name](a0, a1, a22, a3, a4, a5, a6, a7);
-          }
-          return this;
-        }
-        /**
-         * Add a listener to the Runner
-         *
-         * Runners do not need to have scope or functions passed to them.
-         * All that is required is to pass the listening object and ensure that it has contains a function that has the same name
-         * as the name provided to the Runner when it was created.
-         *
-         * Eg A listener passed to this Runner will require a 'complete' function.
-         *
-         * ```
-         * import { Runner } from 'pixi.js';
-         *
-         * const complete = new Runner('complete');
-         * ```
-         *
-         * The scope used will be the object itself.
-         * @param {any} item - The object that will be listening.
-         */
-        add(item) {
-          if (item[this._name]) {
-            this.remove(item);
-            this.items.push(item);
-          }
-          return this;
-        }
-        /**
-         * Remove a single listener from the dispatch queue.
-         * @param {any} item - The listener that you would like to remove.
-         */
-        remove(item) {
-          const index = this.items.indexOf(item);
-          if (index !== -1) {
-            this.items.splice(index, 1);
-          }
-          return this;
-        }
-        /**
-         * Check to see if the listener is already in the Runner
-         * @param {any} item - The listener that you would like to check.
-         */
-        contains(item) {
-          return this.items.indexOf(item) !== -1;
-        }
-        /** Remove all listeners from the Runner */
-        removeAll() {
-          this.items.length = 0;
-          return this;
-        }
-        /** Remove all references, don't use after this. */
-        destroy() {
-          this.removeAll();
-          this.items = null;
-          this._name = null;
-        }
-        /**
-         * `true` if there are no this Runner contains no listeners
-         * @readonly
-         */
-        get empty() {
-          return this.items.length === 0;
-        }
-        /**
-         * The name of the runner.
-         * @readonly
-         */
-        get name() {
-          return this._name;
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/system/AbstractRenderer.mjs
-  var defaultRunners, _AbstractRenderer, AbstractRenderer;
-  var init_AbstractRenderer = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/system/AbstractRenderer.mjs"() {
-      "use strict";
-      init_Color();
-      init_autoDetectEnvironment();
-      init_Container();
-      init_unsafeEvalSupported();
-      init_deprecation();
-      init_const7();
-      init_SystemRunner();
-      init_eventemitter3();
-      defaultRunners = [
-        "init",
-        "destroy",
-        "contextChange",
-        "resolutionChange",
-        "reset",
-        "renderEnd",
-        "renderStart",
-        "render",
-        "update",
-        "postrender",
-        "prerender"
-      ];
-      _AbstractRenderer = class _AbstractRenderer2 extends eventemitter3_default {
-        /**
-         * Set up a system with a collection of SystemClasses and runners.
-         * Systems are attached dynamically to this class when added.
-         * @param config - the config for the system manager
-         */
-        constructor(config) {
-          super();
-          this.runners = /* @__PURE__ */ Object.create(null);
-          this.renderPipes = /* @__PURE__ */ Object.create(null);
-          this._initOptions = {};
-          this._systemsHash = /* @__PURE__ */ Object.create(null);
-          this.type = config.type;
-          this.name = config.name;
-          this.config = config;
-          const combinedRunners = [...defaultRunners, ...this.config.runners ?? []];
-          this._addRunners(...combinedRunners);
-          this._unsafeEvalCheck();
-        }
-        /**
-         * Initialize the renderer.
-         * @param options - The options to use to create the renderer.
-         */
-        async init(options = {}) {
-          const skip = options.skipExtensionImports === true ? true : options.manageImports === false;
-          await loadEnvironmentExtensions(skip);
-          this._addSystems(this.config.systems);
-          this._addPipes(this.config.renderPipes, this.config.renderPipeAdaptors);
-          for (const systemName in this._systemsHash) {
-            const system = this._systemsHash[systemName];
-            const defaultSystemOptions = system.constructor.defaultOptions;
-            options = { ...defaultSystemOptions, ...options };
-          }
-          options = { ..._AbstractRenderer2.defaultOptions, ...options };
-          this._roundPixels = options.roundPixels ? 1 : 0;
-          for (let i3 = 0; i3 < this.runners.init.items.length; i3++) {
-            await this.runners.init.items[i3].init(options);
-          }
-          this._initOptions = options;
-        }
-        render(args, deprecated) {
-          let options = args;
-          if (options instanceof Container) {
-            options = { container: options };
-            if (deprecated) {
-              deprecation(v8_0_0, "passing a second argument is deprecated, please use render options instead");
-              options.target = deprecated.renderTexture;
-            }
-          }
-          options.target || (options.target = this.view.renderTarget);
-          if (options.target === this.view.renderTarget) {
-            this._lastObjectRendered = options.container;
-            options.clearColor = this.background.colorRgba;
-          }
-          if (options.clearColor) {
-            const isRGBAArray = Array.isArray(options.clearColor) && options.clearColor.length === 4;
-            options.clearColor = isRGBAArray ? options.clearColor : Color.shared.setValue(options.clearColor).toArray();
-          }
-          if (!options.transform) {
-            options.container.updateLocalTransform();
-            options.transform = options.container.localTransform;
-          }
-          this.runners.prerender.emit(options);
-          this.runners.renderStart.emit(options);
-          this.runners.render.emit(options);
-          this.runners.renderEnd.emit(options);
-          this.runners.postrender.emit(options);
-        }
-        /**
-         * Resizes the WebGL view to the specified width and height.
-         * @param desiredScreenWidth - The desired width of the screen.
-         * @param desiredScreenHeight - The desired height of the screen.
-         * @param resolution - The resolution / device pixel ratio of the renderer.
-         */
-        resize(desiredScreenWidth, desiredScreenHeight, resolution) {
-          this.view.resize(desiredScreenWidth, desiredScreenHeight, resolution);
-          this.emit("resize", this.view.screen.width, this.view.screen.height);
-        }
-        clear(options = {}) {
-          const renderer = this;
-          options.target || (options.target = renderer.renderTarget.renderTarget);
-          options.clearColor || (options.clearColor = this.background.colorRgba);
-          options.clear ?? (options.clear = CLEAR.ALL);
-          const { clear, clearColor, target } = options;
-          Color.shared.setValue(clearColor ?? this.background.colorRgba);
-          renderer.renderTarget.clear(target, clear, Color.shared.toArray());
-        }
-        /** The resolution / device pixel ratio of the renderer. */
-        get resolution() {
-          return this.view.resolution;
-        }
-        set resolution(value) {
-          this.view.resolution = value;
-          this.runners.resolutionChange.emit(value);
-        }
-        /**
-         * Same as view.width, actual number of pixels in the canvas by horizontal.
-         * @member {number}
-         * @readonly
-         * @default 800
-         */
-        get width() {
-          return this.view.texture.frame.width;
-        }
-        /**
-         * Same as view.height, actual number of pixels in the canvas by vertical.
-         * @default 600
-         */
-        get height() {
-          return this.view.texture.frame.height;
-        }
-        // NOTE: this was `view` in v7
-        /**
-         * The canvas element that everything is drawn to.
-         * @type {environment.ICanvas}
-         */
-        get canvas() {
-          return this.view.canvas;
-        }
-        /**
-         * the last object rendered by the renderer. Useful for other plugins like interaction managers
-         * @readonly
-         */
-        get lastObjectRendered() {
-          return this._lastObjectRendered;
-        }
-        /**
-         * Flag if we are rendering to the screen vs renderTexture
-         * @readonly
-         * @default true
-         */
-        get renderingToScreen() {
-          const renderer = this;
-          return renderer.renderTarget.renderingToScreen;
-        }
-        /**
-         * Measurements of the screen. (0, 0, screenWidth, screenHeight).
-         *
-         * Its safe to use as filterArea or hitArea for the whole stage.
-         */
-        get screen() {
-          return this.view.screen;
-        }
-        /**
-         * Create a bunch of runners based of a collection of ids
-         * @param runnerIds - the runner ids to add
-         */
-        _addRunners(...runnerIds) {
-          runnerIds.forEach((runnerId) => {
-            this.runners[runnerId] = new SystemRunner(runnerId);
-          });
-        }
-        _addSystems(systems3) {
-          let i3;
-          for (i3 in systems3) {
-            const val = systems3[i3];
-            this._addSystem(val.value, val.name);
-          }
-        }
-        /**
-         * Add a new system to the renderer.
-         * @param ClassRef - Class reference
-         * @param name - Property name for system, if not specified
-         *        will use a static `name` property on the class itself. This
-         *        name will be assigned as s property on the Renderer so make
-         *        sure it doesn't collide with properties on Renderer.
-         * @returns Return instance of renderer
-         */
-        _addSystem(ClassRef, name) {
-          const system = new ClassRef(this);
-          if (this[name]) {
-            throw new Error(`Whoops! The name "${name}" is already in use`);
-          }
-          this[name] = system;
-          this._systemsHash[name] = system;
-          for (const i3 in this.runners) {
-            this.runners[i3].add(system);
-          }
-          return this;
-        }
-        _addPipes(pipes, pipeAdaptors) {
-          const adaptors = pipeAdaptors.reduce((acc, adaptor) => {
-            acc[adaptor.name] = adaptor.value;
-            return acc;
-          }, {});
-          pipes.forEach((pipe) => {
-            const PipeClass = pipe.value;
-            const name = pipe.name;
-            const Adaptor = adaptors[name];
-            this.renderPipes[name] = new PipeClass(
-              this,
-              Adaptor ? new Adaptor() : null
-            );
-          });
-        }
-        destroy(options = false) {
-          this.runners.destroy.items.reverse();
-          this.runners.destroy.emit(options);
-          Object.values(this.runners).forEach((runner) => {
-            runner.destroy();
-          });
-          this._systemsHash = null;
-          this.renderPipes = null;
-        }
-        /**
-         * Generate a texture from a container.
-         * @param options - options or container target to use when generating the texture
-         * @returns a texture
-         */
-        generateTexture(options) {
-          return this.textureGenerator.generateTexture(options);
-        }
-        /**
-         * Whether the renderer will round coordinates to whole pixels when rendering.
-         * Can be overridden on a per scene item basis.
-         */
-        get roundPixels() {
-          return !!this._roundPixels;
-        }
-        /**
-         * Overrideable function by `pixi.js/unsafe-eval` to silence
-         * throwing an error if platform doesn't support unsafe-evals.
-         * @private
-         * @ignore
-         */
-        _unsafeEvalCheck() {
-          if (!unsafeEvalSupported()) {
-            throw new Error("Current environment does not allow unsafe-eval, please use pixi.js/unsafe-eval module to enable support.");
-          }
-        }
-      };
-      _AbstractRenderer.defaultOptions = {
-        /**
-         * Default resolution / device pixel ratio of the renderer.
-         * @default 1
-         */
-        resolution: 1,
-        /**
-         * Should the `failIfMajorPerformanceCaveat` flag be enabled as a context option used in the `isWebGLSupported`
-         * function. If set to true, a WebGL renderer can fail to be created if the browser thinks there could be
-         * performance issues when using WebGL.
-         *
-         * In PixiJS v6 this has changed from true to false by default, to allow WebGL to work in as many
-         * scenarios as possible. However, some users may have a poor experience, for example, if a user has a gpu or
-         * driver version blacklisted by the
-         * browser.
-         *
-         * If your application requires high performance rendering, you may wish to set this to false.
-         * We recommend one of two options if you decide to set this flag to false:
-         *
-         * 1: Use the Canvas renderer as a fallback in case high performance WebGL is
-         *    not supported.
-         *
-         * 2: Call `isWebGLSupported` (which if found in the utils package) in your code before attempting to create a
-         *    PixiJS renderer, and show an error message to the user if the function returns false, explaining that their
-         *    device & browser combination does not support high performance WebGL.
-         *    This is a much better strategy than trying to create a PixiJS renderer and finding it then fails.
-         * @default false
-         */
-        failIfMajorPerformanceCaveat: false,
-        /**
-         * Should round pixels be forced when rendering?
-         * @default false
-         */
-        roundPixels: false
-      };
-      AbstractRenderer = _AbstractRenderer;
-    }
-  });
-
   // node_modules/pixi.js/lib/scene/graphics/gpu/GpuGraphicsAdaptor.mjs
   var GpuGraphicsAdaptor;
   var init_GpuGraphicsAdaptor = __esm({
@@ -25608,6 +27437,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_Matrix();
+      init_maxRecommendedTextures();
       init_getTextureBatchBindGroup();
       init_compileHighShaderToProgram();
       init_colorBit();
@@ -25616,7 +27446,6 @@ ${parts.join("\n")}
       init_roundPixelsBit();
       init_Shader();
       init_UniformGroup();
-      init_maxRecommendedTextures();
       GpuGraphicsAdaptor = class {
         init() {
           const localUniforms = new UniformGroup({
@@ -25628,7 +27457,7 @@ ${parts.join("\n")}
             name: "graphics",
             bits: [
               colorBit,
-              generateTextureBatchBit(maxRecommendedTextures()),
+              generateTextureBatchBit(getMaxTexturesPerBatch()),
               localUniformBitGroup2,
               roundPixelsBit
             ]
@@ -25656,7 +27485,7 @@ ${parts.join("\n")}
             shader.gpuProgram,
             graphicsPipe.state
           );
-          encoder.setGeometry(geometry);
+          encoder.setGeometry(geometry, shader.gpuProgram);
           const globalUniformsBindGroup = renderer.globalUniforms.bindGroup;
           encoder.setBindGroup(0, globalUniformsBindGroup, shader.gpuProgram);
           const localBindGroup = renderer.renderPipes.uniformBatch.getUniformBindGroup(shader.resources.localUniforms, true);
@@ -25812,9 +27641,7 @@ ${parts.join("\n")}
           let shader = mesh._shader;
           if (!shader) {
             shader = this._shader;
-            shader.resources.uTexture = mesh.texture.source;
-            shader.resources.uSampler = mesh.texture.source.style;
-            shader.resources.textureUniforms.uniforms.uTextureMatrix = mesh.texture.textureMatrix.mapCoord;
+            shader.groups[2] = renderer.texture.getTextureBindGroup(mesh.texture);
           } else if (!shader.gpuProgram) {
             warn("Mesh shader has no gpuProgram", mesh.shader);
             return;
@@ -25868,7 +27695,7 @@ ${parts.join("\n")}
             name: "batch",
             bits: [
               colorBit,
-              generateTextureBatchBit(maxRecommendedTextures()),
+              generateTextureBatchBit(getMaxTexturesPerBatch()),
               roundPixelsBit
             ]
           });
@@ -25884,7 +27711,7 @@ ${parts.join("\n")}
           const encoder = renderer.encoder;
           const program = this._shader.gpuProgram;
           this._geometry = geometry;
-          encoder.setGeometry(geometry);
+          encoder.setGeometry(geometry, program);
           tempState.blendMode = "normal";
           renderer.pipeline.getPipeline(
             geometry,
@@ -26023,48 +27850,54 @@ ${parts.join("\n")}
   });
 
   // node_modules/pixi.js/lib/scene/container/utils/buildInstructions.mjs
-  function buildInstructions(renderGroup, renderPipes3) {
+  function buildInstructions(renderGroup, rendererOrPipes) {
     const root = renderGroup.root;
     const instructionSet = renderGroup.instructionSet;
     instructionSet.reset();
+    const renderer = rendererOrPipes.renderPipes ? rendererOrPipes : rendererOrPipes.batch.renderer;
+    const renderPipes3 = renderer.renderPipes;
     renderPipes3.batch.buildStart(instructionSet);
     renderPipes3.blendMode.buildStart();
     renderPipes3.colorMask.buildStart();
     if (root.sortableChildren) {
       root.sortChildren();
     }
-    collectAllRenderablesAdvanced(root, instructionSet, renderPipes3, true);
+    collectAllRenderablesAdvanced(root, instructionSet, renderer, true);
     renderPipes3.batch.buildEnd(instructionSet);
     renderPipes3.blendMode.buildEnd(instructionSet);
   }
-  function collectAllRenderables(container, instructionSet, rendererPipes) {
+  function collectAllRenderables(container, instructionSet, rendererOrPipes) {
+    const renderer = rendererOrPipes.renderPipes ? rendererOrPipes : rendererOrPipes.batch.renderer;
     if (container.globalDisplayStatus < 7 || !container.includeInBuild)
       return;
     if (container.sortableChildren) {
       container.sortChildren();
     }
     if (container.isSimple) {
-      collectAllRenderablesSimple(container, instructionSet, rendererPipes);
+      collectAllRenderablesSimple(container, instructionSet, renderer);
     } else {
-      collectAllRenderablesAdvanced(container, instructionSet, rendererPipes, false);
+      collectAllRenderablesAdvanced(container, instructionSet, renderer, false);
     }
   }
-  function collectAllRenderablesSimple(container, instructionSet, renderPipes3) {
+  function collectAllRenderablesSimple(container, instructionSet, renderer) {
     if (container.renderPipeId) {
+      const { renderPipes: renderPipes3, renderableGC } = renderer;
       renderPipes3.blendMode.setBlendMode(container, container.groupBlendMode, instructionSet);
       container.didViewUpdate = false;
       const rp = renderPipes3;
       rp[container.renderPipeId].addRenderable(container, instructionSet);
+      renderableGC.addRenderable(container, instructionSet);
     }
     if (!container.renderGroup) {
       const children = container.children;
       const length = children.length;
       for (let i3 = 0; i3 < length; i3++) {
-        collectAllRenderables(children[i3], instructionSet, renderPipes3);
+        collectAllRenderables(children[i3], instructionSet, renderer);
       }
     }
   }
-  function collectAllRenderablesAdvanced(container, instructionSet, renderPipes3, isRoot) {
+  function collectAllRenderablesAdvanced(container, instructionSet, renderer, isRoot) {
+    const { renderPipes: renderPipes3, renderableGC } = renderer;
     if (!isRoot && container.renderGroup) {
       renderPipes3.renderGroup.addRenderGroup(container.renderGroup, instructionSet);
     } else {
@@ -26079,11 +27912,12 @@ ${parts.join("\n")}
         container.didViewUpdate = false;
         const pipe = renderPipes3[renderPipeId];
         pipe.addRenderable(container, instructionSet);
+        renderableGC.addRenderable(container, instructionSet);
       }
       const children = container.children;
       if (children.length) {
         for (let i3 = 0; i3 < children.length; i3++) {
-          collectAllRenderables(children[i3], instructionSet, renderPipes3);
+          collectAllRenderables(children[i3], instructionSet, renderer);
         }
       }
       for (let i3 = container.effects.length - 1; i3 >= 0; i3--) {
@@ -26095,6 +27929,23 @@ ${parts.join("\n")}
   }
   var init_buildInstructions = __esm({
     "node_modules/pixi.js/lib/scene/container/utils/buildInstructions.mjs"() {
+      "use strict";
+    }
+  });
+
+  // node_modules/pixi.js/lib/scene/container/utils/clearList.mjs
+  function clearList(list, index) {
+    index || (index = 0);
+    for (let j3 = index; j3 < list.length; j3++) {
+      if (list[j3]) {
+        list[j3] = null;
+      } else {
+        break;
+      }
+    }
+  }
+  var init_clearList = __esm({
+    "node_modules/pixi.js/lib/scene/container/utils/clearList.mjs"() {
       "use strict";
     }
   });
@@ -26154,15 +28005,17 @@ ${parts.join("\n")}
     const childrenToUpdate = renderGroup.childrenToUpdate;
     const updateTick = renderGroup.updateTick++;
     for (const j3 in childrenToUpdate) {
+      const renderGroupDepth = Number(j3);
       const childrenAtDepth = childrenToUpdate[j3];
       const list = childrenAtDepth.list;
       const index = childrenAtDepth.index;
       for (let i3 = 0; i3 < index; i3++) {
         const child = list[i3];
-        if (child.parentRenderGroup === renderGroup) {
+        if (child.parentRenderGroup === renderGroup && child.relativeRenderGroupDepth === renderGroupDepth) {
           updateTransformAndChildren(child, updateTick, 0);
         }
       }
+      clearList(list, index);
       childrenAtDepth.index = 0;
     }
     if (updateChildRenderGroups) {
@@ -26208,13 +28061,13 @@ ${parts.join("\n")}
         localTransform,
         parent.relativeGroupTransform
       );
-      if (updateFlags) {
+      if (updateFlags & UPDATE_BLEND_COLOR_VISIBLE) {
         updateColorBlendVisibility(container, parent, updateFlags);
       }
     } else {
       updateFlags = container._updateFlags;
       container.relativeGroupTransform.copyFrom(localTransform);
-      if (updateFlags) {
+      if (updateFlags & UPDATE_BLEND_COLOR_VISIBLE) {
         updateColorBlendVisibility(container, tempContainer, updateFlags);
       }
     }
@@ -26249,13 +28102,15 @@ ${parts.join("\n")}
     }
     container._updateFlags = 0;
   }
-  var tempContainer;
+  var tempContainer, UPDATE_BLEND_COLOR_VISIBLE;
   var init_updateRenderGroupTransforms = __esm({
     "node_modules/pixi.js/lib/scene/container/utils/updateRenderGroupTransforms.mjs"() {
       "use strict";
       init_Container();
+      init_clearList();
       init_mixColors();
       tempContainer = new Container();
+      UPDATE_BLEND_COLOR_VISIBLE = UPDATE_VISIBLE | UPDATE_COLOR | UPDATE_BLEND;
     }
   });
 
@@ -26290,6 +28145,7 @@ ${parts.join("\n")}
         renderGroup.updateRenderable(container);
       }
     }
+    clearList(list, index);
   }
   var tempMatrix5, RenderGroupSystem;
   var init_RenderGroupSystem = __esm({
@@ -26298,6 +28154,7 @@ ${parts.join("\n")}
       init_Extensions();
       init_Matrix();
       init_buildInstructions();
+      init_clearList();
       init_collectRenderGroups();
       init_executeInstructions();
       init_updateRenderGroupTransforms();
@@ -26327,11 +28184,13 @@ ${parts.join("\n")}
             renderGroup.instructionSet.renderPipes = renderPipes3;
             if (!renderGroup.structureDidChange) {
               validateRenderables(renderGroup, renderPipes3);
+            } else {
+              clearList(renderGroup.childrenRenderablesToUpdate.list, 0);
             }
             updateRenderGroupTransforms(renderGroup);
             if (renderGroup.structureDidChange) {
               renderGroup.structureDidChange = false;
-              buildInstructions(renderGroup, renderPipes3);
+              buildInstructions(renderGroup, renderer);
             } else {
               updateRenderables(renderGroup);
             }
@@ -26378,6 +28237,7 @@ ${parts.join("\n")}
       SpritePipe = class {
         constructor(renderer) {
           this._gpuSpriteHash = /* @__PURE__ */ Object.create(null);
+          this._destroyRenderableBound = this.destroyRenderable.bind(this);
           this._renderer = renderer;
         }
         addRenderable(sprite, _instructionSet) {
@@ -26404,6 +28264,7 @@ ${parts.join("\n")}
           const batchableSprite = this._gpuSpriteHash[sprite.uid];
           BigPool.return(batchableSprite);
           this._gpuSpriteHash[sprite.uid] = null;
+          sprite.off("destroyed", this._destroyRenderableBound);
         }
         _updateBatchableSprite(sprite, batchableSprite) {
           sprite._didSpriteUpdate = false;
@@ -26421,9 +28282,7 @@ ${parts.join("\n")}
           batchableSprite.roundPixels = this._renderer._roundPixels | sprite._roundPixels;
           this._gpuSpriteHash[sprite.uid] = batchableSprite;
           sprite._didSpriteUpdate = false;
-          sprite.on("destroyed", () => {
-            this.destroyRenderable(sprite);
-          });
+          sprite.on("destroyed", this._destroyRenderableBound);
           return batchableSprite;
         }
         destroy() {
@@ -26445,6 +28304,42 @@ ${parts.join("\n")}
     }
   });
 
+  // node_modules/pixi.js/lib/utils/global/globalHooks.mjs
+  var ApplicationInitHook, RendererInitHook;
+  var init_globalHooks = __esm({
+    "node_modules/pixi.js/lib/utils/global/globalHooks.mjs"() {
+      "use strict";
+      init_Extensions();
+      ApplicationInitHook = class {
+        static init() {
+          globalThis.__PIXI_APP_INIT__?.(this);
+        }
+        static destroy() {
+        }
+      };
+      ApplicationInitHook.extension = ExtensionType.Application;
+      RendererInitHook = class {
+        constructor(renderer) {
+          this._renderer = renderer;
+        }
+        init() {
+          globalThis.__PIXI_RENDERER_INIT__?.(this._renderer);
+        }
+        destroy() {
+          this._renderer = null;
+        }
+      };
+      RendererInitHook.extension = {
+        type: [
+          ExtensionType.WebGLSystem,
+          ExtensionType.WebGPUSystem
+        ],
+        name: "initHook",
+        priority: -10
+      };
+    }
+  });
+
   // node_modules/pixi.js/lib/rendering/batcher/shared/BatcherPipe.mjs
   var BatcherPipe;
   var init_BatcherPipe = __esm({
@@ -26452,8 +28347,8 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_State();
-      init_BatchGeometry();
       init_Batcher();
+      init_BatchGeometry();
       BatcherPipe = class {
         constructor(renderer, adaptor) {
           this.state = State.for2d();
@@ -26633,12 +28528,15 @@ ${parts.join("\n")}
       init_PoolGroup();
       init_Texture();
       init_TexturePool();
+      init_types2();
       tempBounds3 = new Bounds();
       AlphaMaskEffect = class extends FilterEffect {
         constructor() {
           super();
           this.filters = [new MaskFilter({
-            sprite: new Sprite(Texture.EMPTY)
+            sprite: new Sprite(Texture.EMPTY),
+            resolution: "inherit",
+            antialias: "inherit"
           })];
         }
         get sprite() {
@@ -26669,7 +28567,7 @@ ${parts.join("\n")}
             collectAllRenderables(
               maskContainer,
               instructionSet,
-              renderer.renderPipes
+              renderer
             );
             maskContainer.includeInBuild = false;
           }
@@ -26702,11 +28600,12 @@ ${parts.join("\n")}
               const bounds = getGlobalBounds(instruction.mask.mask, true, tempBounds3);
               instruction.mask.mask.measurable = false;
               bounds.ceil();
+              const colorTextureSource = renderer.renderTarget.renderTarget.colorTexture.source;
               const filterTexture = TexturePool.getOptimalTexture(
                 bounds.width,
                 bounds.height,
-                1,
-                false
+                colorTextureSource._resolution,
+                colorTextureSource.antialias
               );
               renderer.renderTarget.push(filterTexture, true);
               renderer.globalUniforms.push({
@@ -26732,6 +28631,9 @@ ${parts.join("\n")}
           } else if (instruction.action === "pushMaskEnd") {
             const maskData = this._activeMaskStage[this._activeMaskStage.length - 1];
             if (renderMask) {
+              if (renderer.type === RendererType.WEBGL) {
+                renderer.renderTarget.finishRenderPass();
+              }
               renderer.renderTarget.pop();
               renderer.globalUniforms.pop();
             }
@@ -26842,8 +28744,8 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_buildInstructions();
-      init_const7();
-      init_const4();
+      init_const3();
+      init_const5();
       StencilMaskPipe = class {
         constructor(renderer) {
           this._maskStackHash = {};
@@ -26875,7 +28777,7 @@ ${parts.join("\n")}
           collectAllRenderables(
             maskContainer,
             instructionSet,
-            renderer.renderPipes
+            renderer
           );
           maskContainer.includeInBuild = false;
           renderer.renderPipes.batch.break(instructionSet);
@@ -27341,9 +29243,9 @@ ${parts.join("\n")}
       "use strict";
       init_TextureSource();
       init_Texture();
-      RenderTexture = class extends Texture {
+      RenderTexture = class _RenderTexture extends Texture {
         static create(options) {
-          return new Texture({
+          return new _RenderTexture({
             source: new TextureSource(options)
           });
         }
@@ -27429,6 +29331,7 @@ ${parts.join("\n")}
             target,
             clearColor
           });
+          target.source.updateMipmaps();
           return target;
         }
         destroy() {
@@ -27572,6 +29475,89 @@ ${parts.join("\n")}
     }
   });
 
+  // node_modules/pixi.js/lib/rendering/renderers/shared/SchedulerSystem.mjs
+  var uid2, SchedulerSystem;
+  var init_SchedulerSystem = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/SchedulerSystem.mjs"() {
+      "use strict";
+      init_Extensions();
+      init_Ticker();
+      uid2 = 1;
+      SchedulerSystem = class {
+        constructor() {
+          this._tasks = [];
+        }
+        /** Initializes the scheduler system and starts the ticker. */
+        init() {
+          Ticker.system.add(this._update, this);
+        }
+        /**
+         * Schedules a repeating task.
+         * @param func - The function to execute.
+         * @param duration - The interval duration in milliseconds.
+         * @returns The unique identifier for the scheduled task.
+         */
+        repeat(func, duration) {
+          const id = uid2++;
+          this._tasks.push({
+            func,
+            duration,
+            start: performance.now(),
+            last: performance.now(),
+            repeat: true,
+            id
+          });
+          return id;
+        }
+        /**
+         * Cancels a scheduled task.
+         * @param id - The unique identifier of the task to cancel.
+         */
+        cancel(id) {
+          for (let i3 = 0; i3 < this._tasks.length; i3++) {
+            if (this._tasks[i3].id === id) {
+              this._tasks.splice(i3, 1);
+              return;
+            }
+          }
+        }
+        /**
+         * Updates and executes the scheduled tasks.
+         * @private
+         */
+        _update() {
+          const now2 = performance.now();
+          for (let i3 = 0; i3 < this._tasks.length; i3++) {
+            const task = this._tasks[i3];
+            if (now2 - task.last >= task.duration) {
+              const elapsed = now2 - task.start;
+              task.func(elapsed);
+              task.last = now2;
+            }
+          }
+        }
+        /**
+         * Destroys the scheduler system and removes all tasks.
+         * @internal
+         * @ignore
+         */
+        destroy() {
+          Ticker.system.remove(this._update, this);
+          this._tasks.length = 0;
+        }
+      };
+      SchedulerSystem.extension = {
+        type: [
+          ExtensionType.WebGLSystem,
+          ExtensionType.WebGPUSystem,
+          ExtensionType.CanvasSystem
+        ],
+        name: "scheduler",
+        priority: 0
+      };
+    }
+  });
+
   // node_modules/pixi.js/lib/utils/sayHello.mjs
   function sayHello(type) {
     if (saidHello) {
@@ -27601,7 +29587,7 @@ ${parts.join("\n")}
       "use strict";
       init_adapter();
       saidHello = false;
-      VERSION = "8.1.6";
+      VERSION = "8.3.3";
     }
   });
 
@@ -27647,6 +29633,106 @@ ${parts.join("\n")}
     }
   });
 
+  // node_modules/pixi.js/lib/rendering/renderers/shared/texture/RenderableGCSystem.mjs
+  var _RenderableGCSystem, RenderableGCSystem;
+  var init_RenderableGCSystem = __esm({
+    "node_modules/pixi.js/lib/rendering/renderers/shared/texture/RenderableGCSystem.mjs"() {
+      "use strict";
+      init_Extensions();
+      _RenderableGCSystem = class _RenderableGCSystem2 {
+        /** @param renderer - The renderer this System works for. */
+        constructor(renderer) {
+          this._managedRenderables = [];
+          this._renderer = renderer;
+        }
+        init(options) {
+          options = { ..._RenderableGCSystem2.defaultOptions, ...options };
+          this.maxUnusedTime = options.renderableGCMaxUnusedTime;
+          this._frequency = options.renderableGCFrequency;
+          this.enabled = options.renderableGCActive;
+        }
+        get enabled() {
+          return !!this._handler;
+        }
+        set enabled(value) {
+          if (this.enabled === value)
+            return;
+          if (value) {
+            this._handler = this._renderer.scheduler.repeat(
+              () => this.run(),
+              this._frequency
+            );
+          } else {
+            this._renderer.scheduler.cancel(this._handler);
+          }
+        }
+        prerender() {
+          this._now = performance.now();
+        }
+        addRenderable(renderable, instructionSet) {
+          renderable._lastUsed = this._now;
+          if (renderable._lastInstructionTick === -1) {
+            this._managedRenderables.push(renderable);
+          }
+          renderable._lastInstructionTick = instructionSet.tick;
+        }
+        /** Runs the scheduled garbage collection */
+        run() {
+          const now2 = performance.now();
+          const managedRenderables = this._managedRenderables;
+          const renderPipes3 = this._renderer.renderPipes;
+          let offset = 0;
+          for (let i3 = 0; i3 < managedRenderables.length; i3++) {
+            const renderable = managedRenderables[i3];
+            const renderGroup = renderable.renderGroup ?? renderable.parentRenderGroup;
+            const currentIndex = renderGroup?.instructionSet?.tick ?? -1;
+            if (renderable._lastInstructionTick !== currentIndex && now2 - renderable._lastUsed > this.maxUnusedTime) {
+              if (!renderable.destroyed) {
+                const rp = renderPipes3;
+                rp[renderable.renderPipeId].destroyRenderable(renderable);
+              }
+              renderable._lastInstructionTick = -1;
+              offset++;
+            } else {
+              managedRenderables[i3 - offset] = renderable;
+            }
+          }
+          managedRenderables.length = managedRenderables.length - offset;
+        }
+        destroy() {
+          this.enabled = false;
+          this._renderer = null;
+          this._managedRenderables.length = 0;
+        }
+      };
+      _RenderableGCSystem.extension = {
+        type: [
+          ExtensionType.WebGLSystem,
+          ExtensionType.WebGPUSystem
+        ],
+        name: "renderableGC"
+      };
+      _RenderableGCSystem.defaultOptions = {
+        /**
+         * If set to true, this will enable the garbage collector on the GPU.
+         * @default true
+         */
+        renderableGCActive: true,
+        /**
+         * The maximum idle frames before a texture is destroyed by garbage collection.
+         * @default 60 * 60
+         */
+        renderableGCMaxUnusedTime: 6e4,
+        /**
+         * Frames between two garbage collections.
+         * @default 600
+         */
+        renderableGCFrequency: 3e4
+      };
+      RenderableGCSystem = _RenderableGCSystem;
+    }
+  });
+
   // node_modules/pixi.js/lib/rendering/renderers/shared/texture/TextureGCSystem.mjs
   var _TextureGCSystem, TextureGCSystem;
   var init_TextureGCSystem = __esm({
@@ -27663,7 +29749,7 @@ ${parts.join("\n")}
         init(options) {
           options = { ..._TextureGCSystem2.defaultOptions, ...options };
           this.checkCountMax = options.textureGCCheckCountMax;
-          this.maxIdle = options.textureGCAMaxIdle;
+          this.maxIdle = options.textureGCAMaxIdle ?? options.textureGCMaxIdle;
           this.active = options.textureGCActive;
         }
         /**
@@ -27715,10 +29801,15 @@ ${parts.join("\n")}
          */
         textureGCActive: true,
         /**
+         * @deprecated since 8.3.0
+         * @see {@link TextureGCSystem.textureGCMaxIdle}
+         */
+        textureGCAMaxIdle: null,
+        /**
          * The maximum idle frames before a texture is destroyed by garbage collection.
          * @default 60 * 60
          */
-        textureGCAMaxIdle: 60 * 60,
+        textureGCMaxIdle: 60 * 60,
         /**
          * Frames between two garbage collections.
          * @default 600
@@ -27726,7 +29817,6 @@ ${parts.join("\n")}
         textureGCCheckCountMax: 600
       };
       TextureGCSystem = _TextureGCSystem;
-      extensions.add(TextureGCSystem);
     }
   });
 
@@ -28027,6 +30117,7 @@ ${parts.join("\n")}
       init_RenderGroupPipe();
       init_RenderGroupSystem();
       init_SpritePipe();
+      init_globalHooks();
       init_BatcherPipe();
       init_AlphaMaskPipe();
       init_ColorMaskPipe();
@@ -28036,7 +30127,9 @@ ${parts.join("\n")}
       init_ExtractSystem();
       init_GenerateTextureSystem();
       init_GlobalUniformSystem();
+      init_SchedulerSystem();
       init_HelloSystem();
+      init_RenderableGCSystem();
       init_TextureGCSystem();
       init_ViewSystem();
       SharedSystems = [
@@ -28047,7 +30140,10 @@ ${parts.join("\n")}
         RenderGroupSystem,
         TextureGCSystem,
         GenerateTextureSystem,
-        ExtractSystem
+        ExtractSystem,
+        RendererInitHook,
+        RenderableGCSystem,
+        SchedulerSystem
       ];
       SharedRenderPipes = [
         BlendModePipe,
@@ -28195,6 +30291,7 @@ ${parts.join("\n")}
             buffer.on("update", this.updateBuffer, this);
             buffer.on("change", this.onBufferChange, this);
             buffer.on("destroy", this.onBufferDestroy, this);
+            this._managedBuffers.push(buffer);
           }
           const gpuBuffer = this._gpu.device.createBuffer(buffer.descriptor);
           buffer._updateID = 0;
@@ -28203,7 +30300,6 @@ ${parts.join("\n")}
             gpuBuffer.unmap();
           }
           this._gpuBuffers[buffer.uid] = gpuBuffer;
-          this._managedBuffers.push(buffer);
           return gpuBuffer;
         }
         onBufferChange(buffer) {
@@ -28279,6 +30375,7 @@ ${parts.join("\n")}
   var init_GpuDeviceSystem = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gpu/GpuDeviceSystem.mjs"() {
       "use strict";
+      init_adapter();
       init_Extensions();
       GpuDeviceSystem = class {
         /**
@@ -28311,7 +30408,7 @@ ${parts.join("\n")}
          * @returns {WebGLRenderingContext} the WebGL context
          */
         async _createDeviceAndAdaptor(options) {
-          const adapter = await navigator.gpu.requestAdapter({
+          const adapter = await DOMAdapter.get().getNavigator().gpu.requestAdapter({
             powerPreference: options.powerPreference,
             forceFallbackAdapter: options.forceFallbackAdapter
           });
@@ -28417,10 +30514,9 @@ ${parts.join("\n")}
           const gpuBindGroup = this._renderer.bindGroup.getBindGroup(bindGroup, program, index);
           this.renderPassEncoder.setBindGroup(index, gpuBindGroup);
         }
-        setGeometry(geometry) {
-          for (const i3 in geometry.attributes) {
-            const attribute = geometry.attributes[i3];
-            this._setVertexBuffer(attribute.location, attribute.buffer);
+        setGeometry(geometry, program) {
+          for (const i3 in program.attributeData) {
+            this._setVertexBuffer(program.attributeData[i3].location, geometry.attributes[i3].buffer);
           }
           if (geometry.indexBuffer) {
             this._setIndexBuffer(geometry.indexBuffer);
@@ -28446,7 +30542,7 @@ ${parts.join("\n")}
         draw(options) {
           const { geometry, shader, state, topology, size, start, instanceCount, skipSync } = options;
           this.setPipelineFromGeometryProgramAndState(geometry, shader.gpuProgram, state, topology);
-          this.setGeometry(geometry);
+          this.setGeometry(geometry, shader.gpuProgram);
           this._setShaderBindGroups(shader, skipSync);
           if (geometry.indexBuffer) {
             this.renderPassEncoder.drawIndexed(
@@ -28530,7 +30626,7 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/rendering/renderers/gpu/GpuStencilSystem.mjs"() {
       "use strict";
       init_Extensions();
-      init_const4();
+      init_const5();
       GpuStencilSystem = class {
         constructor(renderer) {
           this._renderTargetStencilState = /* @__PURE__ */ Object.create(null);
@@ -28568,524 +30664,6 @@ ${parts.join("\n")}
           ExtensionType.WebGPUSystem
         ],
         name: "stencil"
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/UboSystem.mjs
-  var UboSystem;
-  var init_UboSystem = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/UboSystem.mjs"() {
-      "use strict";
-      init_unsafeEvalSupported();
-      init_Buffer();
-      init_const3();
-      UboSystem = class {
-        constructor(adaptor) {
-          this._syncFunctionHash = /* @__PURE__ */ Object.create(null);
-          this._adaptor = adaptor;
-          this._systemCheck();
-        }
-        /**
-         * Overrideable function by `pixi.js/unsafe-eval` to silence
-         * throwing an error if platform doesn't support unsafe-evals.
-         * @private
-         */
-        _systemCheck() {
-          if (!unsafeEvalSupported()) {
-            throw new Error("Current environment does not allow unsafe-eval, please use pixi.js/unsafe-eval module to enable support.");
-          }
-        }
-        ensureUniformGroup(uniformGroup) {
-          const uniformData = this.getUniformGroupData(uniformGroup);
-          uniformGroup.buffer || (uniformGroup.buffer = new Buffer2({
-            data: new Float32Array(uniformData.layout.size / 4),
-            usage: BufferUsage.UNIFORM | BufferUsage.COPY_DST
-          }));
-        }
-        getUniformGroupData(uniformGroup) {
-          return this._syncFunctionHash[uniformGroup._signature] || this._initUniformGroup(uniformGroup);
-        }
-        _initUniformGroup(uniformGroup) {
-          const uniformGroupSignature = uniformGroup._signature;
-          let uniformData = this._syncFunctionHash[uniformGroupSignature];
-          if (!uniformData) {
-            const elements = Object.keys(uniformGroup.uniformStructures).map((i3) => uniformGroup.uniformStructures[i3]);
-            const layout = this._adaptor.createUboElements(elements);
-            const syncFunction = this._generateUboSync(layout.uboElements);
-            uniformData = this._syncFunctionHash[uniformGroupSignature] = {
-              layout,
-              syncFunction
-            };
-          }
-          return this._syncFunctionHash[uniformGroupSignature];
-        }
-        _generateUboSync(uboElements) {
-          return this._adaptor.generateUboSync(uboElements);
-        }
-        syncUniformGroup(uniformGroup, data, offset) {
-          const uniformGroupData = this.getUniformGroupData(uniformGroup);
-          uniformGroup.buffer || (uniformGroup.buffer = new Buffer2({
-            data: new Float32Array(uniformGroupData.layout.size / 4),
-            usage: BufferUsage.UNIFORM | BufferUsage.COPY_DST
-          }));
-          data || (data = uniformGroup.buffer.data);
-          offset || (offset = 0);
-          uniformGroupData.syncFunction(uniformGroup.uniforms, data, offset);
-          return true;
-        }
-        updateUniformGroup(uniformGroup) {
-          if (uniformGroup.isStatic && !uniformGroup._dirtyId)
-            return false;
-          uniformGroup._dirtyId = 0;
-          const synced = this.syncUniformGroup(uniformGroup);
-          uniformGroup.buffer.update();
-          return synced;
-        }
-        destroy() {
-          this._syncFunctionHash = null;
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboElementsWGSL.mjs
-  function createUboElementsWGSL(uniformData) {
-    const uboElements = uniformData.map((data) => ({
-      data,
-      offset: 0,
-      size: 0
-    }));
-    let offset = 0;
-    for (let i3 = 0; i3 < uboElements.length; i3++) {
-      const uboElement = uboElements[i3];
-      let size = WGSL_ALIGN_SIZE_DATA[uboElement.data.type].size;
-      const align = WGSL_ALIGN_SIZE_DATA[uboElement.data.type].align;
-      if (!WGSL_ALIGN_SIZE_DATA[uboElement.data.type]) {
-        throw new Error(`[Pixi.js] WebGPU UniformBuffer: Unknown type ${uboElement.data.type}`);
-      }
-      if (uboElement.data.size > 1) {
-        size = Math.max(size, align) * uboElement.data.size;
-      }
-      offset = Math.ceil(offset / align) * align;
-      uboElement.size = size;
-      uboElement.offset = offset;
-      offset += size;
-    }
-    offset = Math.ceil(offset / 16) * 16;
-    return { uboElements, size: offset };
-  }
-  var WGSL_ALIGN_SIZE_DATA;
-  var init_createUboElementsWGSL = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboElementsWGSL.mjs"() {
-      "use strict";
-      WGSL_ALIGN_SIZE_DATA = {
-        i32: { align: 4, size: 4 },
-        u32: { align: 4, size: 4 },
-        f32: { align: 4, size: 4 },
-        f16: { align: 2, size: 2 },
-        "vec2<i32>": { align: 8, size: 8 },
-        "vec2<u32>": { align: 8, size: 8 },
-        "vec2<f32>": { align: 8, size: 8 },
-        "vec2<f16>": { align: 4, size: 4 },
-        "vec3<i32>": { align: 16, size: 12 },
-        "vec3<u32>": { align: 16, size: 12 },
-        "vec3<f32>": { align: 16, size: 12 },
-        "vec3<f16>": { align: 8, size: 6 },
-        "vec4<i32>": { align: 16, size: 16 },
-        "vec4<u32>": { align: 16, size: 16 },
-        "vec4<f32>": { align: 16, size: 16 },
-        "vec4<f16>": { align: 8, size: 8 },
-        "mat2x2<f32>": { align: 8, size: 16 },
-        "mat2x2<f16>": { align: 4, size: 8 },
-        "mat3x2<f32>": { align: 8, size: 24 },
-        "mat3x2<f16>": { align: 4, size: 12 },
-        "mat4x2<f32>": { align: 8, size: 32 },
-        "mat4x2<f16>": { align: 4, size: 16 },
-        "mat2x3<f32>": { align: 16, size: 32 },
-        "mat2x3<f16>": { align: 8, size: 16 },
-        "mat3x3<f32>": { align: 16, size: 48 },
-        "mat3x3<f16>": { align: 8, size: 24 },
-        "mat4x3<f32>": { align: 16, size: 64 },
-        "mat4x3<f16>": { align: 8, size: 32 },
-        "mat2x4<f32>": { align: 16, size: 32 },
-        "mat2x4<f16>": { align: 8, size: 16 },
-        "mat3x4<f32>": { align: 16, size: 48 },
-        "mat3x4<f16>": { align: 8, size: 24 },
-        "mat4x4<f32>": { align: 16, size: 64 },
-        "mat4x4<f16>": { align: 8, size: 32 }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uniformParsers.mjs
-  var uniformParsers;
-  var init_uniformParsers = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uniformParsers.mjs"() {
-      "use strict";
-      uniformParsers = [
-        // uploading pixi matrix object to mat3
-        {
-          type: "mat3x3<f32>",
-          test: (data) => {
-            const value = data.value;
-            return value.a !== void 0;
-          },
-          ubo: `
-            var matrix = uv[name].toArray(true);
-            data[offset] = matrix[0];
-            data[offset + 1] = matrix[1];
-            data[offset + 2] = matrix[2];
-            data[offset + 4] = matrix[3];
-            data[offset + 5] = matrix[4];
-            data[offset + 6] = matrix[5];
-            data[offset + 8] = matrix[6];
-            data[offset + 9] = matrix[7];
-            data[offset + 10] = matrix[8];
-        `,
-          uniform: `
-            gl.uniformMatrix3fv(ud[name].location, false, uv[name].toArray(true));
-        `
-        },
-        // uploading a pixi rectangle as a vec4
-        {
-          type: "vec4<f32>",
-          test: (data) => data.type === "vec4<f32>" && data.size === 1 && data.value.width !== void 0,
-          ubo: `
-            v = uv[name];
-            data[offset] = v.x;
-            data[offset + 1] = v.y;
-            data[offset + 2] = v.width;
-            data[offset + 3] = v.height;
-        `,
-          uniform: `
-            cv = ud[name].value;
-            v = uv[name];
-            if (cv[0] !== v.x || cv[1] !== v.y || cv[2] !== v.width || cv[3] !== v.height) {
-                cv[0] = v.x;
-                cv[1] = v.y;
-                cv[2] = v.width;
-                cv[3] = v.height;
-                gl.uniform4f(ud[name].location, v.x, v.y, v.width, v.height);
-            }
-        `
-        },
-        // uploading a pixi point as a vec2
-        {
-          type: "vec2<f32>",
-          test: (data) => data.type === "vec2<f32>" && data.size === 1 && data.value.x !== void 0,
-          ubo: `
-            v = uv[name];
-            data[offset] = v.x;
-            data[offset + 1] = v.y;
-        `,
-          uniform: `
-            cv = ud[name].value;
-            v = uv[name];
-            if (cv[0] !== v.x || cv[1] !== v.y) {
-                cv[0] = v.x;
-                cv[1] = v.y;
-                gl.uniform2f(ud[name].location, v.x, v.y);
-            }
-        `
-        },
-        // uploading a pixi color as a vec4
-        {
-          type: "vec4<f32>",
-          test: (data) => data.type === "vec4<f32>" && data.size === 1 && data.value.red !== void 0,
-          ubo: `
-            v = uv[name];
-            data[offset] = v.red;
-            data[offset + 1] = v.green;
-            data[offset + 2] = v.blue;
-            data[offset + 3] = v.alpha;
-        `,
-          uniform: `
-            cv = ud[name].value;
-            v = uv[name];
-            if (cv[0] !== v.red || cv[1] !== v.green || cv[2] !== v.blue || cv[3] !== v.alpha) {
-                cv[0] = v.red;
-                cv[1] = v.green;
-                cv[2] = v.blue;
-                cv[3] = v.alpha;
-                gl.uniform4f(ud[name].location, v.red, v.green, v.blue, v.alpha);
-            }
-        `
-        },
-        // uploading a pixi color as a vec3
-        {
-          type: "vec3<f32>",
-          test: (data) => data.type === "vec3<f32>" && data.size === 1 && data.value.red !== void 0,
-          ubo: `
-            v = uv[name];
-            data[offset] = v.red;
-            data[offset + 1] = v.green;
-            data[offset + 2] = v.blue;
-        `,
-          uniform: `
-            cv = ud[name].value;
-            v = uv[name];
-            if (cv[0] !== v.red || cv[1] !== v.green || cv[2] !== v.blue) {
-                cv[0] = v.red;
-                cv[1] = v.green;
-                cv[2] = v.blue;
-                gl.uniform3f(ud[name].location, v.red, v.green, v.blue);
-            }
-        `
-        }
-      ];
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/createUboSyncFunction.mjs
-  function createUboSyncFunction(uboElements, parserCode, arrayGenerationFunction, singleSettersMap) {
-    const funcFragments = [`
-        var v = null;
-        var v2 = null;
-        var t = 0;
-        var index = 0;
-        var name = null;
-        var arrayOffset = null;
-    `];
-    let prev = 0;
-    for (let i3 = 0; i3 < uboElements.length; i3++) {
-      const uboElement = uboElements[i3];
-      const name = uboElement.data.name;
-      let parsed = false;
-      let offset = 0;
-      for (let j3 = 0; j3 < uniformParsers.length; j3++) {
-        const uniformParser = uniformParsers[j3];
-        if (uniformParser.test(uboElement.data)) {
-          offset = uboElement.offset / 4;
-          funcFragments.push(
-            `name = "${name}";`,
-            `offset += ${offset - prev};`,
-            uniformParsers[j3][parserCode] || uniformParsers[j3].ubo
-          );
-          parsed = true;
-          break;
-        }
-      }
-      if (!parsed) {
-        if (uboElement.data.size > 1) {
-          offset = uboElement.offset / 4;
-          funcFragments.push(arrayGenerationFunction(uboElement, offset - prev));
-        } else {
-          const template = singleSettersMap[uboElement.data.type];
-          offset = uboElement.offset / 4;
-          funcFragments.push(
-            /* wgsl */
-            `
-                    v = uv.${name};
-                    offset += ${offset - prev};
-                    ${template};
-                `
-          );
-        }
-      }
-      prev = offset;
-    }
-    const fragmentSrc = funcFragments.join("\n");
-    return new Function(
-      "uv",
-      "data",
-      "offset",
-      fragmentSrc
-    );
-  }
-  var init_createUboSyncFunction = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/createUboSyncFunction.mjs"() {
-      "use strict";
-      init_uniformParsers();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uboSyncFunctions.mjs
-  function loopMatrix(col, row) {
-    const total = col * row;
-    return `
-        for (let i = 0; i < ${total}; i++) {
-            data[offset + (((i / ${col})|0) * 4) + (i % ${col})] = v[i];
-        }
-    `;
-  }
-  var uboSyncFunctionsSTD40, uboSyncFunctionsWGSL;
-  var init_uboSyncFunctions = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/uboSyncFunctions.mjs"() {
-      "use strict";
-      uboSyncFunctionsSTD40 = {
-        f32: `
-        data[offset] = v;`,
-        i32: `
-        data[offset] = v;`,
-        "vec2<f32>": `
-        data[offset] = v[0];
-        data[offset + 1] = v[1];`,
-        "vec3<f32>": `
-        data[offset] = v[0];
-        data[offset + 1] = v[1];
-        data[offset + 2] = v[2];`,
-        "vec4<f32>": `
-        data[offset] = v[0];
-        data[offset + 1] = v[1];
-        data[offset + 2] = v[2];
-        data[offset + 3] = v[3];`,
-        "mat2x2<f32>": `
-        data[offset] = v[0];
-        data[offset + 1] = v[1];
-        data[offset + 4] = v[2];
-        data[offset + 5] = v[3];`,
-        "mat3x3<f32>": `
-        data[offset] = v[0];
-        data[offset + 1] = v[1];
-        data[offset + 2] = v[2];
-        data[offset + 4] = v[3];
-        data[offset + 5] = v[4];
-        data[offset + 6] = v[5];
-        data[offset + 8] = v[6];
-        data[offset + 9] = v[7];
-        data[offset + 10] = v[8];`,
-        "mat4x4<f32>": `
-        for (let i = 0; i < 16; i++) {
-            data[offset + i] = v[i];
-        }`,
-        "mat3x2<f32>": loopMatrix(3, 2),
-        "mat4x2<f32>": loopMatrix(4, 2),
-        "mat2x3<f32>": loopMatrix(2, 3),
-        "mat4x3<f32>": loopMatrix(4, 3),
-        "mat2x4<f32>": loopMatrix(2, 4),
-        "mat3x4<f32>": loopMatrix(3, 4)
-      };
-      uboSyncFunctionsWGSL = {
-        ...uboSyncFunctionsSTD40,
-        "mat2x2<f32>": `
-        data[offset] = v[0];
-        data[offset + 1] = v[1];
-        data[offset + 2] = v[2];
-        data[offset + 3] = v[3];
-    `
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateArraySyncWGSL.mjs
-  function generateArraySyncWGSL(uboElement, offsetToAdd) {
-    const { size, align } = WGSL_ALIGN_SIZE_DATA[uboElement.data.type];
-    const remainder = (align - size) / 4;
-    return `
-         v = uv.${uboElement.data.name};
-         ${offsetToAdd !== 0 ? `offset += ${offsetToAdd};` : ""}
-
-         arrayOffset = offset;
-
-         t = 0;
-
-         for(var i=0; i < ${uboElement.data.size * (size / 4)}; i++)
-         {
-             for(var j = 0; j < ${size / 4}; j++)
-             {
-                 data[arrayOffset++] = v[t++];
-             }
-             ${remainder !== 0 ? `arrayOffset += ${remainder};` : ""}
-         }
-     `;
-  }
-  var init_generateArraySyncWGSL = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateArraySyncWGSL.mjs"() {
-      "use strict";
-      init_createUboElementsWGSL();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboSyncFunctionWGSL.mjs
-  function createUboSyncFunctionWGSL(uboElements) {
-    return createUboSyncFunction(
-      uboElements,
-      "uboWgsl",
-      generateArraySyncWGSL,
-      uboSyncFunctionsWGSL
-    );
-  }
-  var init_createUboSyncFunctionWGSL = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/createUboSyncFunctionWGSL.mjs"() {
-      "use strict";
-      init_createUboSyncFunction();
-      init_uboSyncFunctions();
-      init_generateArraySyncWGSL();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gpu/GpuUboSystem.mjs
-  var GpuUboSystem;
-  var init_GpuUboSystem = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gpu/GpuUboSystem.mjs"() {
-      "use strict";
-      init_Extensions();
-      init_UboSystem();
-      init_createUboElementsWGSL();
-      init_createUboSyncFunctionWGSL();
-      GpuUboSystem = class extends UboSystem {
-        constructor() {
-          super({
-            createUboElements: createUboElementsWGSL,
-            generateUboSync: createUboSyncFunctionWGSL
-          });
-        }
-      };
-      GpuUboSystem.extension = {
-        type: [ExtensionType.WebGPUSystem],
-        name: "ubo"
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/shared/buffer/BufferResource.mjs
-  var BufferResource;
-  var init_BufferResource = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/shared/buffer/BufferResource.mjs"() {
-      "use strict";
-      init_eventemitter3();
-      init_uid();
-      BufferResource = class extends eventemitter3_default {
-        /**
-         * Create a new Buffer Resource.
-         * @param options - The options for the buffer resource
-         * @param options.buffer - The underlying buffer that this resource is using
-         * @param options.offset - The offset of the buffer this resource is using.
-         * If not provided, then it will use the offset of the buffer.
-         * @param options.size - The size of the buffer this resource is using.
-         * If not provided, then it will use the size of the buffer.
-         */
-        constructor({ buffer, offset, size }) {
-          super();
-          this.uid = uid("buffer");
-          this._resourceType = "bufferResource";
-          this._touched = 0;
-          this._resourceId = uid("resource");
-          this._bufferResource = true;
-          this.destroyed = false;
-          this.buffer = buffer;
-          this.offset = offset | 0;
-          this.size = size;
-          this.buffer.on("change", this.onBufferChange, this);
-        }
-        onBufferChange() {
-          this._resourceId = uid("resource");
-          this.emit("change", this);
-        }
-        /**
-         * Destroys this resource. Make sure the underlying buffer is not used anywhere else
-         * if you want to destroy it as well, or code will explode
-         * @param destroyBuffer - Should the underlying buffer be destroyed as well?
-         */
-        destroy(destroyBuffer = false) {
-          this.destroyed = true;
-          if (destroyBuffer) {
-            this.buffer.destroy();
-          }
-          this.emit("change", this);
-          this.buffer = null;
-        }
       };
     }
   });
@@ -29142,7 +30720,7 @@ ${parts.join("\n")}
       init_Extensions();
       init_Buffer();
       init_BufferResource();
-      init_const3();
+      init_const();
       init_UboBatch();
       init_BindGroup();
       minUniformOffsetAlignment = 128;
@@ -29274,7 +30852,6 @@ ${parts.join("\n")}
       const attribute = geometry.attributes[i3];
       const attributeData = extractedData[i3];
       if (attributeData) {
-        attribute.location ?? (attribute.location = attributeData.location);
         attribute.format ?? (attribute.format = attributeData.format);
         attribute.offset ?? (attribute.offset = attributeData.offset);
         attribute.instance ?? (attribute.instance = attributeData.instance);
@@ -29317,7 +30894,7 @@ ${parts.join("\n")}
   var init_GpuStencilModesToPixi = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gpu/state/GpuStencilModesToPixi.mjs"() {
       "use strict";
-      init_const4();
+      init_const5();
       GpuStencilModesToPixi = [];
       GpuStencilModesToPixi[STENCIL_MODES.NONE] = void 0;
       GpuStencilModesToPixi[STENCIL_MODES.DISABLED] = {
@@ -29370,8 +30947,9 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/rendering/renderers/gpu/pipeline/PipelineSystem.mjs"() {
       "use strict";
       init_Extensions();
+      init_warn();
       init_ensureAttributes();
-      init_const4();
+      init_const5();
       init_createIdFromString();
       init_GpuStencilModesToPixi();
       topologyStringToId = {
@@ -29444,7 +31022,7 @@ ${parts.join("\n")}
         }
         _createPipeline(geometry, program, state, topology) {
           const device = this._gpu.device;
-          const buffers = this._createVertexBufferLayouts(geometry);
+          const buffers = this._createVertexBufferLayouts(geometry, program);
           const blendModes = this._renderer.state.getColorTargets(state);
           blendModes[0].writeMask = this._stencilMode === STENCIL_MODES.RENDERING_MASK_ADD ? 0 : this._colorMask;
           const layout = this._renderer.shader.getProgramData(program).pipeline;
@@ -29500,18 +31078,33 @@ ${parts.join("\n")}
           const attributeKeys = Object.keys(geometry.attributes).sort();
           for (let i3 = 0; i3 < attributeKeys.length; i3++) {
             const attribute = geometry.attributes[attributeKeys[i3]];
-            keyGen[index++] = attribute.location;
             keyGen[index++] = attribute.offset;
             keyGen[index++] = attribute.format;
             keyGen[index++] = attribute.stride;
+            keyGen[index++] = attribute.instance;
           }
-          const stringKey = keyGen.join("");
+          const stringKey = keyGen.join("|");
           geometry._layoutKey = createIdFromString(stringKey, "geometry");
           return geometry._layoutKey;
         }
-        _createVertexBufferLayouts(geometry) {
-          if (this._bufferLayoutsCache[geometry._layoutKey]) {
-            return this._bufferLayoutsCache[geometry._layoutKey];
+        _generateAttributeLocationsKey(program) {
+          const keyGen = [];
+          let index = 0;
+          const attributeKeys = Object.keys(program.attributeData).sort();
+          for (let i3 = 0; i3 < attributeKeys.length; i3++) {
+            const attribute = program.attributeData[attributeKeys[i3]];
+            keyGen[index++] = attribute.location;
+          }
+          const stringKey = keyGen.join("|");
+          program._attributeLocationsKey = createIdFromString(stringKey, "programAttributes");
+          return program._attributeLocationsKey;
+        }
+        _createVertexBufferLayouts(geometry, program) {
+          if (!program._attributeLocationsKey)
+            this._generateAttributeLocationsKey(program);
+          const key = geometry._layoutKey << 16 | program._attributeLocationsKey;
+          if (this._bufferLayoutsCache[key]) {
+            return this._bufferLayoutsCache[key];
           }
           const vertexBuffersLayout = [];
           geometry.buffers.forEach((buffer) => {
@@ -29521,13 +31114,16 @@ ${parts.join("\n")}
               attributes: []
             };
             const bufferEntryAttributes = bufferEntry.attributes;
-            for (const i3 in geometry.attributes) {
+            for (const i3 in program.attributeData) {
               const attribute = geometry.attributes[i3];
+              if ((attribute.divisor ?? 1) !== 1) {
+                warn(`Attribute ${i3} has an invalid divisor value of '${attribute.divisor}'. WebGPU only supports a divisor value of 1`);
+              }
               if (attribute.buffer === buffer) {
                 bufferEntry.arrayStride = attribute.stride;
                 bufferEntry.stepMode = attribute.instance ? "instance" : "vertex";
                 bufferEntryAttributes.push({
-                  shaderLocation: attribute.location,
+                  shaderLocation: program.attributeData[i3].location,
                   offset: attribute.offset,
                   format: attribute.format
                 });
@@ -29537,7 +31133,7 @@ ${parts.join("\n")}
               vertexBuffersLayout.push(bufferEntry);
             }
           });
-          this._bufferLayoutsCache[geometry._layoutKey] = vertexBuffersLayout;
+          this._bufferLayoutsCache[key] = vertexBuffersLayout;
           return vertexBuffersLayout;
         }
         _updatePipeHash() {
@@ -29598,7 +31194,7 @@ ${parts.join("\n")}
       "use strict";
       init_Matrix();
       init_Rectangle();
-      init_const7();
+      init_const3();
       init_calculateProjection();
       init_SystemRunner();
       init_CanvasSource();
@@ -29827,6 +31423,7 @@ ${parts.join("\n")}
             }
             renderSurface.once("destroy", () => {
               renderTarget.destroy();
+              this._renderSurfaceToRenderTargetHash.delete(renderSurface);
               const gpuRenderTarget = this._gpuRenderTargetHash[renderTarget.uid];
               if (gpuRenderTarget) {
                 this._gpuRenderTargetHash[renderTarget.uid] = null;
@@ -29864,7 +31461,7 @@ ${parts.join("\n")}
   var init_GpuRenderTargetAdaptor = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gpu/renderTarget/GpuRenderTargetAdaptor.mjs"() {
       "use strict";
-      init_const7();
+      init_const3();
       init_CanvasSource();
       init_TextureSource();
       init_GpuRenderTarget();
@@ -30108,6 +31705,7 @@ ${parts.join("\n")}
         }
         contextChange(gpu) {
           this._gpu = gpu;
+          this.maxTextures = gpu.device.limits.maxSampledTexturesPerShaderStage;
         }
         getProgramData(program) {
           return this._gpuProgramData[program._layoutKey] || this._createGPUProgramData(program);
@@ -30260,6 +31858,30 @@ ${parts.join("\n")}
           srcFactor: "zero",
           dstFactor: "one-minus-src",
           operation: "add"
+        }
+      };
+      GpuBlendModesToPixi.min = {
+        alpha: {
+          srcFactor: "one",
+          dstFactor: "one",
+          operation: "min"
+        },
+        color: {
+          srcFactor: "one",
+          dstFactor: "one",
+          operation: "min"
+        }
+      };
+      GpuBlendModesToPixi.max = {
+        alpha: {
+          srcFactor: "one",
+          dstFactor: "one",
+          operation: "max"
+        },
+        color: {
+          srcFactor: "one",
+          dstFactor: "one",
+          operation: "max"
         }
       };
     }
@@ -30595,6 +32217,7 @@ ${parts.join("\n")}
       "use strict";
       init_adapter();
       init_Extensions();
+      init_UniformGroup();
       init_CanvasPool();
       init_BindGroup();
       init_gpuUploadBufferImageResource();
@@ -30710,17 +32333,28 @@ ${parts.join("\n")}
         getGpuSource(source2) {
           return this._gpuSources[source2.uid] || this.initSource(source2);
         }
+        /**
+         * this returns s bind group for a specific texture, the bind group contains
+         * - the texture source
+         * - the texture style
+         * - the texture matrix
+         * This is cached so the bind group should only be created once per texture
+         * @param texture - the texture you want the bindgroup for
+         * @returns the bind group for the texture
+         */
         getTextureBindGroup(texture) {
           return this._bindGroupHash[texture.uid] ?? this._createTextureBindGroup(texture);
         }
         _createTextureBindGroup(texture) {
           const source2 = texture.source;
-          const bindGroupId = source2.uid;
-          this._bindGroupHash[bindGroupId] = new BindGroup({
+          this._bindGroupHash[texture.uid] = new BindGroup({
             0: source2,
-            1: source2.style
+            1: source2.style,
+            2: new UniformGroup({
+              uTextureMatrix: { type: "mat3x3<f32>", value: texture.textureMatrix.mapCoord }
+            })
           });
-          return this._bindGroupHash[bindGroupId];
+          return this._bindGroupHash[texture.uid];
         }
         getTextureView(texture) {
           const source2 = texture.source;
@@ -30741,7 +32375,7 @@ ${parts.join("\n")}
             device: renderer.gpu.device,
             // eslint-disable-next-line max-len
             usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
-            format: navigator.gpu.getPreferredCanvasFormat(),
+            format: DOMAdapter.get().getNavigator().gpu.getPreferredCanvasFormat(),
             alphaMode: "premultiplied"
           });
           commandEncoder.copyTextureToTexture({
@@ -30871,6 +32505,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_Matrix();
+      init_maxRecommendedTextures();
       init_compileHighShaderToProgram();
       init_colorBit();
       init_generateTextureBatchBit();
@@ -30879,7 +32514,6 @@ ${parts.join("\n")}
       init_getBatchSamplersUniformGroup();
       init_Shader();
       init_UniformGroup();
-      init_maxRecommendedTextures();
       GlGraphicsAdaptor = class {
         init() {
           const uniforms = new UniformGroup({
@@ -30887,7 +32521,7 @@ ${parts.join("\n")}
             uTransformMatrix: { value: new Matrix(), type: "mat3x3<f32>" },
             uRound: { value: 0, type: "f32" }
           });
-          const maxTextures2 = maxRecommendedTextures();
+          const maxTextures2 = getMaxTexturesPerBatch();
           const glProgram3 = compileHighShaderGlProgram({
             name: "graphics",
             bits: [
@@ -30922,7 +32556,7 @@ ${parts.join("\n")}
           for (let i3 = 0; i3 < instructions.instructionSize; i3++) {
             const batch = batches[i3];
             if (batch.size) {
-              for (let j3 = 0; j3 < batch.textures.textures.length; j3++) {
+              for (let j3 = 0; j3 < batch.textures.count; j3++) {
                 renderer.texture.bind(batch.textures.textures[j3], j3);
               }
               renderer.geometry.draw("triangle-list", batch.size, batch.start);
@@ -31033,7 +32667,7 @@ ${parts.join("\n")}
           this._tempState = State.for2d();
         }
         init(batcherPipe) {
-          const maxTextures2 = maxRecommendedTextures();
+          const maxTextures2 = getMaxTexturesPerBatch();
           const glProgram3 = compileHighShaderGlProgram({
             name: "batch",
             bits: [
@@ -31065,7 +32699,7 @@ ${parts.join("\n")}
           this._tempState.blendMode = batch.blendMode;
           renderer.state.set(this._tempState);
           const textures = batch.textures.textures;
-          for (let i3 = 0; i3 < textures.length; i3++) {
+          for (let i3 = 0; i3 < batch.textures.count; i3++) {
             renderer.texture.bind(textures[i3], i3);
           }
           renderer.geometry.draw("triangle-list", batch.size, batch.start);
@@ -31120,7 +32754,7 @@ ${parts.join("\n")}
     "node_modules/pixi.js/lib/rendering/renderers/gl/buffer/GlBufferSystem.mjs"() {
       "use strict";
       init_Extensions();
-      init_const3();
+      init_const();
       init_const8();
       init_GlBuffer();
       GlBufferSystem = class {
@@ -31815,7 +33449,7 @@ ${parts.join("\n")}
                 bufferSystem.bind(buffer);
                 lastBuffer = glBuffer;
               }
-              const location = attribute.location;
+              const location = programAttrib.location;
               gl.enableVertexAttribArray(location);
               const attributeInfo = getAttributeInfoFromFormat(attribute.format);
               const type = getGlTypeFromFormat(attribute.format);
@@ -31839,7 +33473,8 @@ ${parts.join("\n")}
               }
               if (attribute.instance) {
                 if (this.hasInstance) {
-                  gl.vertexAttribDivisor(location, 1);
+                  const divisor = attribute.divisor ?? 1;
+                  gl.vertexAttribDivisor(location, divisor);
                 } else {
                   throw new Error("geometry error, GPU Instancing is not supported on this device");
                 }
@@ -32120,7 +33755,7 @@ ${parts.join("\n")}
       "use strict";
       init_Extensions();
       init_GpuStencilModesToPixi();
-      init_const4();
+      init_const5();
       GlStencilSystem = class {
         constructor(renderer) {
           this._stencilCache = {
@@ -32205,149 +33840,6 @@ ${parts.join("\n")}
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboElementsSTD40.mjs
-  function createUboElementsSTD40(uniformData) {
-    const uboElements = uniformData.map((data) => ({
-      data,
-      offset: 0,
-      size: 0
-    }));
-    let size = 0;
-    let chunkSize = 0;
-    let offset = 0;
-    for (let i3 = 0; i3 < uboElements.length; i3++) {
-      const uboElement = uboElements[i3];
-      size = WGSL_TO_STD40_SIZE[uboElement.data.type];
-      if (!size) {
-        throw new Error(`Unknown type ${uboElement.data.type}`);
-      }
-      if (uboElement.data.size > 1) {
-        size = Math.max(size, 16) * uboElement.data.size;
-      }
-      uboElement.size = size;
-      if (chunkSize % size !== 0 && chunkSize < 16) {
-        const lineUpValue = chunkSize % size % 16;
-        chunkSize += lineUpValue;
-        offset += lineUpValue;
-      }
-      if (chunkSize + size > 16) {
-        offset = Math.ceil(offset / 16) * 16;
-        uboElement.offset = offset;
-        offset += size;
-        chunkSize = size;
-      } else {
-        uboElement.offset = offset;
-        chunkSize += size;
-        offset += size;
-      }
-    }
-    offset = Math.ceil(offset / 16) * 16;
-    return { uboElements, size: offset };
-  }
-  var WGSL_TO_STD40_SIZE;
-  var init_createUboElementsSTD40 = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboElementsSTD40.mjs"() {
-      "use strict";
-      WGSL_TO_STD40_SIZE = {
-        f32: 4,
-        "vec2<f32>": 8,
-        "vec3<f32>": 12,
-        "vec4<f32>": 16,
-        "mat2x2<f32>": 16 * 2,
-        "mat3x3<f32>": 16 * 3,
-        "mat4x4<f32>": 16 * 4
-        // TODO - not essential for now but support these in the future
-        // int:      4,
-        // ivec2:    8,
-        // ivec3:    12,
-        // ivec4:    16,
-        // uint:     4,
-        // uvec2:    8,
-        // uvec3:    12,
-        // uvec4:    16,
-        // bool:     4,
-        // bvec2:    8,
-        // bvec3:    12,
-        // bvec4:    16,
-        // mat2:     16 * 2,
-        // mat3:     16 * 3,
-        // mat4:     16 * 4,
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateArraySyncSTD40.mjs
-  function generateArraySyncSTD40(uboElement, offsetToAdd) {
-    const rowSize = Math.max(WGSL_TO_STD40_SIZE[uboElement.data.type] / 16, 1);
-    const elementSize = uboElement.data.value.length / uboElement.data.size;
-    const remainder = (4 - elementSize % 4) % 4;
-    return `
-        v = uv.${uboElement.data.name};
-        offset += ${offsetToAdd};
-
-        arrayOffset = offset;
-
-        t = 0;
-
-        for(var i=0; i < ${uboElement.data.size * rowSize}; i++)
-        {
-            for(var j = 0; j < ${elementSize}; j++)
-            {
-                data[arrayOffset++] = v[t++];
-            }
-            ${remainder !== 0 ? `arrayOffset += ${remainder};` : ""}
-        }
-    `;
-  }
-  var init_generateArraySyncSTD40 = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateArraySyncSTD40.mjs"() {
-      "use strict";
-      init_createUboElementsSTD40();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboSyncSTD40.mjs
-  function createUboSyncFunctionSTD40(uboElements) {
-    return createUboSyncFunction(
-      uboElements,
-      "uboStd40",
-      generateArraySyncSTD40,
-      uboSyncFunctionsSTD40
-    );
-  }
-  var init_createUboSyncSTD40 = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/createUboSyncSTD40.mjs"() {
-      "use strict";
-      init_createUboSyncFunction();
-      init_uboSyncFunctions();
-      init_generateArraySyncSTD40();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/GlUboSystem.mjs
-  var GlUboSystem;
-  var init_GlUboSystem = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/GlUboSystem.mjs"() {
-      "use strict";
-      init_Extensions();
-      init_UboSystem();
-      init_createUboElementsSTD40();
-      init_createUboSyncSTD40();
-      GlUboSystem = class extends UboSystem {
-        constructor() {
-          super({
-            createUboElements: createUboElementsSTD40,
-            generateUboSync: createUboSyncFunctionSTD40
-          });
-        }
-      };
-      GlUboSystem.extension = {
-        type: [ExtensionType.WebGLSystem],
-        name: "ubo"
-      };
-    }
-  });
-
   // node_modules/pixi.js/lib/rendering/renderers/gl/GlRenderTarget.mjs
   var GlRenderTarget;
   var init_GlRenderTarget = __esm({
@@ -32371,7 +33863,7 @@ ${parts.join("\n")}
       "use strict";
       init_Rectangle();
       init_warn();
-      init_const7();
+      init_const3();
       init_GlRenderTarget();
       GlRenderTargetAdaptor = class {
         constructor() {
@@ -32519,7 +34011,7 @@ ${parts.join("\n")}
           const renderTargetSystem = this._renderTargetSystem;
           const glRenderTarget = renderTargetSystem.getGpuRenderTarget(renderTarget);
           this._resizeColor(renderTarget, glRenderTarget);
-          if (renderTarget.stencil) {
+          if (renderTarget.stencil || renderTarget.depth) {
             this._resizeStencil(glRenderTarget);
           }
         }
@@ -32672,894 +34164,6 @@ ${parts.join("\n")}
     }
   });
 
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/GenerateShaderSyncCode.mjs
-  function generateShaderSyncCode(shader, shaderSystem) {
-    const funcFragments = [];
-    const headerFragments = [`
-        var g = s.groups;
-        var sS = r.shader;
-        var p = s.glProgram;
-        var ugS = r.uniformGroup;
-        var resources;
-    `];
-    let addedTextreSystem = false;
-    let blockIndex = 0;
-    let textureCount = 0;
-    const programData = shaderSystem._getProgramData(shader.glProgram);
-    for (const i3 in shader.groups) {
-      const group = shader.groups[i3];
-      funcFragments.push(`
-            resources = g[${i3}].resources;
-        `);
-      for (const j3 in group.resources) {
-        const resource = group.resources[j3];
-        if (resource instanceof UniformGroup) {
-          if (resource.ubo) {
-            funcFragments.push(`
-                        sS.bindUniformBlock(
-                            resources[${j3}],
-                            sS._uniformBindMap[${i3}[${j3}],
-                            ${blockIndex++}
-                        );
-                    `);
-          } else {
-            funcFragments.push(`
-                        ugS.updateUniformGroup(resources[${j3}], p, sD);
-                    `);
-          }
-        } else if (resource instanceof BufferResource) {
-          funcFragments.push(`
-                    sS.bindUniformBlock(
-                        resources[${j3}],
-                        sS._uniformBindMap[${i3}[${j3}],
-                        ${blockIndex++}
-                    );
-                `);
-        } else if (resource instanceof TextureSource) {
-          const uniformName = shader._uniformBindMap[i3][j3];
-          const uniformData = programData.uniformData[uniformName];
-          if (uniformData) {
-            if (!addedTextreSystem) {
-              addedTextreSystem = true;
-              headerFragments.push(`
-                        var tS = r.texture;
-                        `);
-            }
-            shaderSystem._gl.uniform1i(uniformData.location, textureCount);
-            funcFragments.push(`
-                        tS.bind(resources[${j3}], ${textureCount});
-                    `);
-            textureCount++;
-          }
-        }
-      }
-    }
-    const functionSource = [...headerFragments, ...funcFragments].join("\n");
-    return new Function("r", "s", "sD", functionSource);
-  }
-  var init_GenerateShaderSyncCode = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/GenerateShaderSyncCode.mjs"() {
-      "use strict";
-      init_BufferResource();
-      init_UniformGroup();
-      init_TextureSource();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlProgramData.mjs
-  var GlProgramData;
-  var init_GlProgramData = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlProgramData.mjs"() {
-      "use strict";
-      GlProgramData = class {
-        /**
-         * Makes a new Pixi program.
-         * @param program - webgl program
-         * @param uniformData - uniforms
-         */
-        constructor(program, uniformData) {
-          this.program = program;
-          this.uniformData = uniformData;
-          this.uniformGroups = {};
-          this.uniformDirtyGroups = {};
-          this.uniformBlockBindings = {};
-        }
-        /** Destroys this program. */
-        destroy() {
-          this.uniformData = null;
-          this.uniformGroups = null;
-          this.uniformDirtyGroups = null;
-          this.uniformBlockBindings = null;
-          this.program = null;
-        }
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/compileShader.mjs
-  function compileShader(gl, type, src) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-    return shader;
-  }
-  var init_compileShader = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/compileShader.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/defaultValue.mjs
-  function booleanArray(size) {
-    const array = new Array(size);
-    for (let i3 = 0; i3 < array.length; i3++) {
-      array[i3] = false;
-    }
-    return array;
-  }
-  function defaultValue(type, size) {
-    switch (type) {
-      case "float":
-        return 0;
-      case "vec2":
-        return new Float32Array(2 * size);
-      case "vec3":
-        return new Float32Array(3 * size);
-      case "vec4":
-        return new Float32Array(4 * size);
-      case "int":
-      case "uint":
-      case "sampler2D":
-      case "sampler2DArray":
-        return 0;
-      case "ivec2":
-        return new Int32Array(2 * size);
-      case "ivec3":
-        return new Int32Array(3 * size);
-      case "ivec4":
-        return new Int32Array(4 * size);
-      case "uvec2":
-        return new Uint32Array(2 * size);
-      case "uvec3":
-        return new Uint32Array(3 * size);
-      case "uvec4":
-        return new Uint32Array(4 * size);
-      case "bool":
-        return false;
-      case "bvec2":
-        return booleanArray(2 * size);
-      case "bvec3":
-        return booleanArray(3 * size);
-      case "bvec4":
-        return booleanArray(4 * size);
-      case "mat2":
-        return new Float32Array([
-          1,
-          0,
-          0,
-          1
-        ]);
-      case "mat3":
-        return new Float32Array([
-          1,
-          0,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          1
-        ]);
-      case "mat4":
-        return new Float32Array([
-          1,
-          0,
-          0,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0,
-          0,
-          1
-        ]);
-    }
-    return null;
-  }
-  var init_defaultValue = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/defaultValue.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/mapType.mjs
-  function mapType(gl, type) {
-    if (!GL_TABLE) {
-      const typeNames = Object.keys(GL_TO_GLSL_TYPES);
-      GL_TABLE = {};
-      for (let i3 = 0; i3 < typeNames.length; ++i3) {
-        const tn = typeNames[i3];
-        GL_TABLE[gl[tn]] = GL_TO_GLSL_TYPES[tn];
-      }
-    }
-    return GL_TABLE[type];
-  }
-  function mapGlToVertexFormat(gl, type) {
-    const typeValue = mapType(gl, type);
-    return GLSL_TO_VERTEX_TYPES[typeValue] || "float32";
-  }
-  var GL_TABLE, GL_TO_GLSL_TYPES, GLSL_TO_VERTEX_TYPES;
-  var init_mapType = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/mapType.mjs"() {
-      "use strict";
-      GL_TABLE = null;
-      GL_TO_GLSL_TYPES = {
-        FLOAT: "float",
-        FLOAT_VEC2: "vec2",
-        FLOAT_VEC3: "vec3",
-        FLOAT_VEC4: "vec4",
-        INT: "int",
-        INT_VEC2: "ivec2",
-        INT_VEC3: "ivec3",
-        INT_VEC4: "ivec4",
-        UNSIGNED_INT: "uint",
-        UNSIGNED_INT_VEC2: "uvec2",
-        UNSIGNED_INT_VEC3: "uvec3",
-        UNSIGNED_INT_VEC4: "uvec4",
-        BOOL: "bool",
-        BOOL_VEC2: "bvec2",
-        BOOL_VEC3: "bvec3",
-        BOOL_VEC4: "bvec4",
-        FLOAT_MAT2: "mat2",
-        FLOAT_MAT3: "mat3",
-        FLOAT_MAT4: "mat4",
-        SAMPLER_2D: "sampler2D",
-        INT_SAMPLER_2D: "sampler2D",
-        UNSIGNED_INT_SAMPLER_2D: "sampler2D",
-        SAMPLER_CUBE: "samplerCube",
-        INT_SAMPLER_CUBE: "samplerCube",
-        UNSIGNED_INT_SAMPLER_CUBE: "samplerCube",
-        SAMPLER_2D_ARRAY: "sampler2DArray",
-        INT_SAMPLER_2D_ARRAY: "sampler2DArray",
-        UNSIGNED_INT_SAMPLER_2D_ARRAY: "sampler2DArray"
-      };
-      GLSL_TO_VERTEX_TYPES = {
-        float: "float32",
-        vec2: "float32x2",
-        vec3: "float32x3",
-        vec4: "float32x4",
-        int: "sint32",
-        ivec2: "sint32x2",
-        ivec3: "sint32x3",
-        ivec4: "sint32x4",
-        uint: "uint32",
-        uvec2: "uint32x2",
-        uvec3: "uint32x3",
-        uvec4: "uint32x4",
-        bool: "uint32",
-        bvec2: "uint32x2",
-        bvec3: "uint32x3",
-        bvec4: "uint32x4"
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/extractAttributesFromGlProgram.mjs
-  function extractAttributesFromGlProgram(program, gl, sortAttributes = false) {
-    const attributes = {};
-    const totalAttributes = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
-    for (let i3 = 0; i3 < totalAttributes; i3++) {
-      const attribData = gl.getActiveAttrib(program, i3);
-      if (attribData.name.startsWith("gl_")) {
-        continue;
-      }
-      const format = mapGlToVertexFormat(gl, attribData.type);
-      attributes[attribData.name] = {
-        location: 0,
-        // set further down..
-        format,
-        stride: getAttributeInfoFromFormat(format).stride,
-        offset: 0,
-        instance: false,
-        start: 0
-      };
-    }
-    const keys = Object.keys(attributes);
-    if (sortAttributes) {
-      keys.sort((a3, b3) => a3 > b3 ? 1 : -1);
-      for (let i3 = 0; i3 < keys.length; i3++) {
-        attributes[keys[i3]].location = i3;
-        gl.bindAttribLocation(program, i3, keys[i3]);
-      }
-      gl.linkProgram(program);
-    } else {
-      for (let i3 = 0; i3 < keys.length; i3++) {
-        attributes[keys[i3]].location = gl.getAttribLocation(program, keys[i3]);
-      }
-    }
-    return attributes;
-  }
-  var init_extractAttributesFromGlProgram = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/extractAttributesFromGlProgram.mjs"() {
-      "use strict";
-      init_getAttributeInfoFromFormat();
-      init_mapType();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUboData.mjs
-  function getUboData(program, gl) {
-    if (!gl.ACTIVE_UNIFORM_BLOCKS)
-      return {};
-    const uniformBlocks = {};
-    const totalUniformsBlocks = gl.getProgramParameter(program, gl.ACTIVE_UNIFORM_BLOCKS);
-    for (let i3 = 0; i3 < totalUniformsBlocks; i3++) {
-      const name = gl.getActiveUniformBlockName(program, i3);
-      const uniformBlockIndex = gl.getUniformBlockIndex(program, name);
-      const size = gl.getActiveUniformBlockParameter(program, i3, gl.UNIFORM_BLOCK_DATA_SIZE);
-      uniformBlocks[name] = {
-        name,
-        index: uniformBlockIndex,
-        size
-      };
-    }
-    return uniformBlocks;
-  }
-  var init_getUboData = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUboData.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUniformData.mjs
-  function getUniformData(program, gl) {
-    const uniforms = {};
-    const totalUniforms = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
-    for (let i3 = 0; i3 < totalUniforms; i3++) {
-      const uniformData = gl.getActiveUniform(program, i3);
-      const name = uniformData.name.replace(/\[.*?\]$/, "");
-      const isArray = !!uniformData.name.match(/\[.*?\]$/);
-      const type = mapType(gl, uniformData.type);
-      uniforms[name] = {
-        name,
-        index: i3,
-        type,
-        size: uniformData.size,
-        isArray,
-        value: defaultValue(type, uniformData.size)
-      };
-    }
-    return uniforms;
-  }
-  var init_getUniformData = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/getUniformData.mjs"() {
-      "use strict";
-      init_defaultValue();
-      init_mapType();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/logProgramError.mjs
-  function logPrettyShaderError(gl, shader) {
-    const shaderSrc = gl.getShaderSource(shader).split("\n").map((line, index) => `${index}: ${line}`);
-    const shaderLog = gl.getShaderInfoLog(shader);
-    const splitShader = shaderLog.split("\n");
-    const dedupe = {};
-    const lineNumbers = splitShader.map((line) => parseFloat(line.replace(/^ERROR\: 0\:([\d]+)\:.*$/, "$1"))).filter((n3) => {
-      if (n3 && !dedupe[n3]) {
-        dedupe[n3] = true;
-        return true;
-      }
-      return false;
-    });
-    const logArgs = [""];
-    lineNumbers.forEach((number) => {
-      shaderSrc[number - 1] = `%c${shaderSrc[number - 1]}%c`;
-      logArgs.push("background: #FF0000; color:#FFFFFF; font-size: 10px", "font-size: 10px");
-    });
-    const fragmentSourceToLog = shaderSrc.join("\n");
-    logArgs[0] = fragmentSourceToLog;
-    console.error(shaderLog);
-    console.groupCollapsed("click to view full shader code");
-    console.warn(...logArgs);
-    console.groupEnd();
-  }
-  function logProgramError(gl, program, vertexShader, fragmentShader) {
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        logPrettyShaderError(gl, vertexShader);
-      }
-      if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        logPrettyShaderError(gl, fragmentShader);
-      }
-      console.error("PixiJS Error: Could not initialize shader.");
-      if (gl.getProgramInfoLog(program) !== "") {
-        console.warn("PixiJS Warning: gl.getProgramInfoLog()", gl.getProgramInfoLog(program));
-      }
-    }
-  }
-  var init_logProgramError = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/logProgramError.mjs"() {
-      "use strict";
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/generateProgram.mjs
-  function generateProgram(gl, program) {
-    const glVertShader = compileShader(gl, gl.VERTEX_SHADER, program.vertex);
-    const glFragShader = compileShader(gl, gl.FRAGMENT_SHADER, program.fragment);
-    const webGLProgram = gl.createProgram();
-    gl.attachShader(webGLProgram, glVertShader);
-    gl.attachShader(webGLProgram, glFragShader);
-    const transformFeedbackVaryings = program.transformFeedbackVaryings;
-    if (transformFeedbackVaryings) {
-      if (typeof gl.transformFeedbackVaryings !== "function") {
-        warn(`TransformFeedback is not supported but TransformFeedbackVaryings are given.`);
-      } else {
-        gl.transformFeedbackVaryings(
-          webGLProgram,
-          transformFeedbackVaryings.names,
-          transformFeedbackVaryings.bufferMode === "separate" ? gl.SEPARATE_ATTRIBS : gl.INTERLEAVED_ATTRIBS
-        );
-      }
-    }
-    gl.linkProgram(webGLProgram);
-    if (!gl.getProgramParameter(webGLProgram, gl.LINK_STATUS)) {
-      logProgramError(gl, webGLProgram, glVertShader, glFragShader);
-    }
-    program._attributeData = extractAttributesFromGlProgram(
-      webGLProgram,
-      gl,
-      !/^[ \t]*#[ \t]*version[ \t]+300[ \t]+es[ \t]*$/m.test(program.vertex)
-    );
-    program._uniformData = getUniformData(webGLProgram, gl);
-    program._uniformBlockData = getUboData(webGLProgram, gl);
-    gl.deleteShader(glVertShader);
-    gl.deleteShader(glFragShader);
-    const uniformData = {};
-    for (const i3 in program._uniformData) {
-      const data = program._uniformData[i3];
-      uniformData[i3] = {
-        location: gl.getUniformLocation(webGLProgram, i3),
-        value: defaultValue(data.type, data.size)
-      };
-    }
-    const glProgram3 = new GlProgramData(webGLProgram, uniformData);
-    return glProgram3;
-  }
-  var init_generateProgram = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/generateProgram.mjs"() {
-      "use strict";
-      init_warn();
-      init_GlProgramData();
-      init_compileShader();
-      init_defaultValue();
-      init_extractAttributesFromGlProgram();
-      init_getUboData();
-      init_getUniformData();
-      init_logProgramError();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlShaderSystem.mjs
-  var defaultSyncData, GlShaderSystem;
-  var init_GlShaderSystem = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlShaderSystem.mjs"() {
-      "use strict";
-      init_Extensions();
-      init_GenerateShaderSyncCode();
-      init_generateProgram();
-      defaultSyncData = {
-        textureCount: 0,
-        blockIndex: 0
-      };
-      GlShaderSystem = class {
-        constructor(renderer) {
-          this._activeProgram = null;
-          this._programDataHash = /* @__PURE__ */ Object.create(null);
-          this._nextIndex = 0;
-          this._boundUniformsIdsToIndexHash = /* @__PURE__ */ Object.create(null);
-          this._boundIndexToUniformsHash = /* @__PURE__ */ Object.create(null);
-          this._shaderSyncFunctions = /* @__PURE__ */ Object.create(null);
-          this._renderer = renderer;
-        }
-        contextChange(gl) {
-          this._gl = gl;
-          this._maxBindings = gl.MAX_UNIFORM_BUFFER_BINDINGS ? gl.getParameter(gl.MAX_UNIFORM_BUFFER_BINDINGS) : 0;
-          this._programDataHash = /* @__PURE__ */ Object.create(null);
-          this._boundUniformsIdsToIndexHash = /* @__PURE__ */ Object.create(null);
-          this._boundIndexToUniformsHash = /* @__PURE__ */ Object.create(null);
-          this._activeProgram = null;
-        }
-        /**
-         * Changes the current shader to the one given in parameter.
-         * @param shader - the new shader
-         * @param skipSync - false if the shader should automatically sync its uniforms.
-         * @returns the glProgram that belongs to the shader.
-         */
-        bind(shader, skipSync) {
-          this._setProgram(shader.glProgram);
-          if (skipSync)
-            return;
-          defaultSyncData.textureCount = 0;
-          defaultSyncData.blockIndex = 0;
-          let syncFunction = this._shaderSyncFunctions[shader.glProgram._key];
-          if (!syncFunction) {
-            syncFunction = this._shaderSyncFunctions[shader.glProgram._key] = this._generateShaderSync(shader, this);
-          }
-          syncFunction(this._renderer, shader, defaultSyncData);
-        }
-        /**
-         * Updates the uniform group.
-         * @param uniformGroup - the uniform group to update
-         */
-        updateUniformGroup(uniformGroup) {
-          this._renderer.uniformGroup.updateUniformGroup(uniformGroup, this._activeProgram, defaultSyncData);
-        }
-        /**
-         * Binds a uniform block to the shader.
-         * @param uniformGroup - the uniform group to bind
-         * @param name - the name of the uniform block
-         * @param index - the index of the uniform block
-         */
-        bindUniformBlock(uniformGroup, name, index = 0) {
-          const bufferSystem = this._renderer.buffer;
-          const programData = this._getProgramData(this._activeProgram);
-          const isBufferResource = uniformGroup._bufferResource;
-          if (isBufferResource) {
-            this._renderer.ubo.updateUniformGroup(uniformGroup);
-          }
-          bufferSystem.updateBuffer(uniformGroup.buffer);
-          let boundIndex = this._boundUniformsIdsToIndexHash[uniformGroup.uid];
-          if (boundIndex === void 0) {
-            const nextIndex = this._nextIndex++ % this._maxBindings;
-            const currentBoundUniformGroup = this._boundIndexToUniformsHash[nextIndex];
-            if (currentBoundUniformGroup) {
-              this._boundUniformsIdsToIndexHash[currentBoundUniformGroup.uid] = void 0;
-            }
-            boundIndex = this._boundUniformsIdsToIndexHash[uniformGroup.uid] = nextIndex;
-            this._boundIndexToUniformsHash[nextIndex] = uniformGroup;
-            if (isBufferResource) {
-              bufferSystem.bindBufferRange(uniformGroup.buffer, nextIndex, uniformGroup.offset);
-            } else {
-              bufferSystem.bindBufferBase(uniformGroup.buffer, nextIndex);
-            }
-          }
-          const gl = this._gl;
-          const uniformBlockIndex = this._activeProgram._uniformBlockData[name].index;
-          if (programData.uniformBlockBindings[index] === boundIndex)
-            return;
-          programData.uniformBlockBindings[index] = boundIndex;
-          gl.uniformBlockBinding(programData.program, uniformBlockIndex, boundIndex);
-        }
-        _setProgram(program) {
-          if (this._activeProgram === program)
-            return;
-          this._activeProgram = program;
-          const programData = this._getProgramData(program);
-          this._gl.useProgram(programData.program);
-        }
-        /**
-         * @param program - the program to get the data for
-         * @internal
-         * @private
-         */
-        _getProgramData(program) {
-          return this._programDataHash[program._key] || this._createProgramData(program);
-        }
-        _createProgramData(program) {
-          const key = program._key;
-          this._programDataHash[key] = generateProgram(this._gl, program);
-          return this._programDataHash[key];
-        }
-        destroy() {
-          for (const key of Object.keys(this._programDataHash)) {
-            const programData = this._programDataHash[key];
-            programData.destroy();
-            this._programDataHash[key] = null;
-          }
-          this._programDataHash = null;
-          this._boundUniformsIdsToIndexHash = null;
-        }
-        /**
-         * Creates a function that can be executed that will sync the shader as efficiently as possible.
-         * Overridden by the unsafe eval package if you don't want eval used in your project.
-         * @param shader - the shader to generate the sync function for
-         * @param shaderSystem - the shader system to use
-         * @returns - the generated sync function
-         * @ignore
-         */
-        _generateShaderSync(shader, shaderSystem) {
-          return generateShaderSyncCode(shader, shaderSystem);
-        }
-      };
-      GlShaderSystem.extension = {
-        type: [
-          ExtensionType.WebGLSystem
-        ],
-        name: "shader"
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSyncTypes.mjs
-  var UNIFORM_TO_SINGLE_SETTERS, UNIFORM_TO_ARRAY_SETTERS;
-  var init_generateUniformsSyncTypes = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSyncTypes.mjs"() {
-      "use strict";
-      UNIFORM_TO_SINGLE_SETTERS = {
-        f32: `if (cv !== v) {
-            cu.value = v;
-            gl.uniform1f(location, v);
-        }`,
-        "vec2<f32>": `if (cv[0] !== v[0] || cv[1] !== v[1]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            gl.uniform2f(location, v[0], v[1]);
-        }`,
-        "vec3<f32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            cv[2] = v[2];
-            gl.uniform3f(location, v[0], v[1], v[2]);
-        }`,
-        "vec4<f32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2] || cv[3] !== v[3]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            cv[2] = v[2];
-            cv[3] = v[3];
-            gl.uniform4f(location, v[0], v[1], v[2], v[3]);
-        }`,
-        i32: `if (cv !== v) {
-            cu.value = v;
-            gl.uniform1i(location, v);
-        }`,
-        "vec2<i32>": `if (cv[0] !== v[0] || cv[1] !== v[1]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            gl.uniform2i(location, v[0], v[1]);
-        }`,
-        "vec3<i32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            cv[2] = v[2];
-            gl.uniform3i(location, v[0], v[1], v[2]);
-        }`,
-        "vec4<i32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2] || cv[3] !== v[3]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            cv[2] = v[2];
-            cv[3] = v[3];
-            gl.uniform4i(location, v[0], v[1], v[2], v[3]);
-        }`,
-        u32: `if (cv !== v) {
-            cu.value = v;
-            gl.uniform1ui(location, v);
-        }`,
-        "vec2<u32>": `if (cv[0] !== v[0] || cv[1] !== v[1]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            gl.uniform2ui(location, v[0], v[1]);
-        }`,
-        "vec3<u32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            cv[2] = v[2];
-            gl.uniform3ui(location, v[0], v[1], v[2]);
-        }`,
-        "vec4<u32>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2] || cv[3] !== v[3]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            cv[2] = v[2];
-            cv[3] = v[3];
-            gl.uniform4ui(location, v[0], v[1], v[2], v[3]);
-        }`,
-        bool: `if (cv !== v) {
-            cu.value = v;
-            gl.uniform1i(location, v);
-        }`,
-        "vec2<bool>": `if (cv[0] !== v[0] || cv[1] !== v[1]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            gl.uniform2i(location, v[0], v[1]);
-        }`,
-        "vec3<bool>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            cv[2] = v[2];
-            gl.uniform3i(location, v[0], v[1], v[2]);
-        }`,
-        "vec4<bool>": `if (cv[0] !== v[0] || cv[1] !== v[1] || cv[2] !== v[2] || cv[3] !== v[3]) {
-            cv[0] = v[0];
-            cv[1] = v[1];
-            cv[2] = v[2];
-            cv[3] = v[3];
-            gl.uniform4i(location, v[0], v[1], v[2], v[3]);
-        }`,
-        "mat2x2<f32>": `gl.uniformMatrix2fv(location, false, v);`,
-        "mat3x3<f32>": `gl.uniformMatrix3fv(location, false, v);`,
-        "mat4x4<f32>": `gl.uniformMatrix4fv(location, false, v);`
-      };
-      UNIFORM_TO_ARRAY_SETTERS = {
-        f32: `gl.uniform1fv(location, v);`,
-        "vec2<f32>": `gl.uniform2fv(location, v);`,
-        "vec3<f32>": `gl.uniform3fv(location, v);`,
-        "vec4<f32>": `gl.uniform4fv(location, v);`,
-        "mat2x2<f32>": `gl.uniformMatrix2fv(location, false, v);`,
-        "mat3x3<f32>": `gl.uniformMatrix3fv(location, false, v);`,
-        "mat4x4<f32>": `gl.uniformMatrix4fv(location, false, v);`,
-        i32: `gl.uniform1iv(location, v);`,
-        "vec2<i32>": `gl.uniform2iv(location, v);`,
-        "vec3<i32>": `gl.uniform3iv(location, v);`,
-        "vec4<i32>": `gl.uniform4iv(location, v);`,
-        u32: `gl.uniform1iv(location, v);`,
-        "vec2<u32>": `gl.uniform2iv(location, v);`,
-        "vec3<u32>": `gl.uniform3iv(location, v);`,
-        "vec4<u32>": `gl.uniform4iv(location, v);`,
-        bool: `gl.uniform1iv(location, v);`,
-        "vec2<bool>": `gl.uniform2iv(location, v);`,
-        "vec3<bool>": `gl.uniform3iv(location, v);`,
-        "vec4<bool>": `gl.uniform4iv(location, v);`
-      };
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSync.mjs
-  function generateUniformsSync(group, uniformData) {
-    const funcFragments = [`
-        var v = null;
-        var cv = null;
-        var cu = null;
-        var t = 0;
-        var gl = renderer.gl;
-        var name = null;
-    `];
-    for (const i3 in group.uniforms) {
-      if (!uniformData[i3]) {
-        if (group.uniforms[i3] instanceof UniformGroup) {
-          if (group.uniforms[i3].ubo) {
-            funcFragments.push(`
-                        renderer.shader.bindUniformBlock(uv.${i3}, "${i3}");
-                    `);
-          } else {
-            funcFragments.push(`
-                        renderer.shader.updateUniformGroup(uv.${i3});
-                    `);
-          }
-        } else if (group.uniforms[i3] instanceof BufferResource) {
-          funcFragments.push(`
-                        renderer.shader.bindBufferResource(uv.${i3}, "${i3}");
-                    `);
-        }
-        continue;
-      }
-      const uniform = group.uniformStructures[i3];
-      let parsed = false;
-      for (let j3 = 0; j3 < uniformParsers.length; j3++) {
-        const parser = uniformParsers[j3];
-        if (uniform.type === parser.type && parser.test(uniform)) {
-          funcFragments.push(`name = "${i3}";`, uniformParsers[j3].uniform);
-          parsed = true;
-          break;
-        }
-      }
-      if (!parsed) {
-        const templateType = uniform.size === 1 ? UNIFORM_TO_SINGLE_SETTERS : UNIFORM_TO_ARRAY_SETTERS;
-        const template = templateType[uniform.type].replace("location", `ud["${i3}"].location`);
-        funcFragments.push(`
-            cu = ud["${i3}"];
-            cv = cu.value;
-            v = uv["${i3}"];
-            ${template};`);
-      }
-    }
-    return new Function("ud", "uv", "renderer", "syncData", funcFragments.join("\n"));
-  }
-  var init_generateUniformsSync = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/utils/generateUniformsSync.mjs"() {
-      "use strict";
-      init_BufferResource();
-      init_UniformGroup();
-      init_uniformParsers();
-      init_generateUniformsSyncTypes();
-    }
-  });
-
-  // node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlUniformGroupSystem.mjs
-  var GlUniformGroupSystem;
-  var init_GlUniformGroupSystem = __esm({
-    "node_modules/pixi.js/lib/rendering/renderers/gl/shader/GlUniformGroupSystem.mjs"() {
-      "use strict";
-      init_Extensions();
-      init_generateUniformsSync();
-      GlUniformGroupSystem = class {
-        /** @param renderer - The renderer this System works for. */
-        constructor(renderer) {
-          this._cache = {};
-          this._uniformGroupSyncHash = {};
-          this._renderer = renderer;
-          this.gl = null;
-          this._cache = {};
-        }
-        contextChange(gl) {
-          this.gl = gl;
-        }
-        /**
-         * Uploads the uniforms values to the currently bound shader.
-         * @param group - the uniforms values that be applied to the current shader
-         * @param program
-         * @param syncData
-         * @param syncData.textureCount
-         */
-        updateUniformGroup(group, program, syncData) {
-          const programData = this._renderer.shader._getProgramData(program);
-          if (!group.isStatic || group._dirtyId !== programData.uniformDirtyGroups[group.uid]) {
-            programData.uniformDirtyGroups[group.uid] = group._dirtyId;
-            const syncFunc = this._getUniformSyncFunction(group, program);
-            syncFunc(programData.uniformData, group.uniforms, this._renderer, syncData);
-          }
-        }
-        /**
-         * Overrideable by the pixi.js/unsafe-eval package to use static syncUniforms instead.
-         * @param group
-         * @param program
-         */
-        _getUniformSyncFunction(group, program) {
-          return this._uniformGroupSyncHash[group._signature]?.[program._key] || this._createUniformSyncFunction(group, program);
-        }
-        _createUniformSyncFunction(group, program) {
-          const uniformGroupSyncHash = this._uniformGroupSyncHash[group._signature] || (this._uniformGroupSyncHash[group._signature] = {});
-          const id = this._getSignature(group, program._uniformData, "u");
-          if (!this._cache[id]) {
-            this._cache[id] = this._generateUniformsSync(group, program._uniformData);
-          }
-          uniformGroupSyncHash[program._key] = this._cache[id];
-          return uniformGroupSyncHash[program._key];
-        }
-        _generateUniformsSync(group, uniformData) {
-          return generateUniformsSync(group, uniformData);
-        }
-        /**
-         * Takes a uniform group and data and generates a unique signature for them.
-         * @param group - The uniform group to get signature of
-         * @param group.uniforms
-         * @param uniformData - Uniform information generated by the shader
-         * @param preFix
-         * @returns Unique signature of the uniform group
-         */
-        _getSignature(group, uniformData, preFix) {
-          const uniforms = group.uniforms;
-          const strings = [`${preFix}-`];
-          for (const i3 in uniforms) {
-            strings.push(i3);
-            if (uniformData[i3]) {
-              strings.push(uniformData[i3].type);
-            }
-          }
-          return strings.join("-");
-        }
-        /** Destroys this System and removes all its textures. */
-        destroy() {
-          this._renderer = null;
-          this._cache = null;
-        }
-      };
-      GlUniformGroupSystem.extension = {
-        type: [
-          ExtensionType.WebGLSystem
-        ],
-        name: "uniformGroup"
-      };
-    }
-  });
-
   // node_modules/pixi.js/lib/rendering/renderers/gl/state/mapWebGLBlendModesToPixi.mjs
   function mapWebGLBlendModesToPixi(gl) {
     const blendMap = {};
@@ -33572,11 +34176,23 @@ ${parts.join("\n")}
     blendMap["add-npm"] = [gl.SRC_ALPHA, gl.ONE, gl.ONE, gl.ONE];
     blendMap["screen-npm"] = [gl.SRC_ALPHA, gl.ONE_MINUS_SRC_COLOR, gl.ONE, gl.ONE_MINUS_SRC_ALPHA];
     blendMap.erase = [gl.ZERO, gl.ONE_MINUS_SRC_ALPHA];
+    const isWebGl2 = !(gl instanceof DOMAdapter.get().getWebGLRenderingContext());
+    if (isWebGl2) {
+      blendMap.min = [gl.ONE, gl.ONE, gl.ONE, gl.ONE, gl.MIN, gl.MIN];
+      blendMap.max = [gl.ONE, gl.ONE, gl.ONE, gl.ONE, gl.MAX, gl.MAX];
+    } else {
+      const ext = gl.getExtension("EXT_blend_minmax");
+      if (ext) {
+        blendMap.min = [gl.ONE, gl.ONE, gl.ONE, gl.ONE, ext.MIN_EXT, ext.MIN_EXT];
+        blendMap.max = [gl.ONE, gl.ONE, gl.ONE, gl.ONE, ext.MAX_EXT, ext.MAX_EXT];
+      }
+    }
     return blendMap;
   }
   var init_mapWebGLBlendModesToPixi = __esm({
     "node_modules/pixi.js/lib/rendering/renderers/gl/state/mapWebGLBlendModesToPixi.mjs"() {
       "use strict";
+      init_adapter();
     }
   });
 
@@ -36481,6 +37097,635 @@ ${parts.join("\n")}
     }
   });
 
+  // node_modules/pixi.js/lib/unsafe-eval/init.mjs
+  init_GlUboSystem();
+  init_GlShaderSystem();
+  init_GlUniformGroupSystem();
+  init_GpuUboSystem();
+  init_UboSystem();
+  init_AbstractRenderer();
+
+  // node_modules/pixi.js/lib/unsafe-eval/shader/generateShaderSyncPolyfill.mjs
+  init_BufferResource();
+  init_UniformGroup();
+  init_TextureSource();
+  init_TextureStyle();
+  function generateShaderSyncPolyfill() {
+    return syncShader;
+  }
+  function syncShader(renderer, shader, syncData) {
+    const gl = renderer.gl;
+    const shaderSystem = renderer.shader;
+    const programData = shaderSystem._getProgramData(shader.glProgram);
+    for (const i3 in shader.groups) {
+      const bindGroup = shader.groups[i3];
+      for (const j3 in bindGroup.resources) {
+        const resource = bindGroup.resources[j3];
+        if (resource instanceof UniformGroup) {
+          if (resource.ubo) {
+            shaderSystem.bindUniformBlock(
+              resource,
+              shader._uniformBindMap[i3][j3],
+              syncData.blockIndex++
+            );
+          } else {
+            shaderSystem.updateUniformGroup(resource);
+          }
+        } else if (resource instanceof BufferResource) {
+          shaderSystem.bindUniformBlock(
+            resource,
+            shader._uniformBindMap[i3][j3],
+            syncData.blockIndex++
+          );
+        } else if (resource instanceof TextureSource) {
+          renderer.texture.bind(resource, syncData.textureCount);
+          const uniformName = shader._uniformBindMap[i3][j3];
+          const uniformData = programData.uniformData[uniformName];
+          if (uniformData) {
+            if (uniformData.value !== syncData.textureCount) {
+              gl.uniform1i(uniformData.location, syncData.textureCount);
+            }
+            syncData.textureCount++;
+          }
+        } else if (resource instanceof TextureStyle) {
+        }
+      }
+    }
+  }
+
+  // node_modules/pixi.js/lib/unsafe-eval/ubo/generateUboSyncPolyfill.mjs
+  init_createUboElementsSTD40();
+  init_createUboElementsWGSL();
+  init_uniformParsers();
+
+  // node_modules/pixi.js/lib/unsafe-eval/ubo/uboSyncFunctions.mjs
+  var uboParserFunctions = [
+    (name, data, offset, uv, _v) => {
+      const matrix = uv[name].toArray(true);
+      data[offset] = matrix[0];
+      data[offset + 1] = matrix[1];
+      data[offset + 2] = matrix[2];
+      data[offset + 4] = matrix[3];
+      data[offset + 5] = matrix[4];
+      data[offset + 6] = matrix[5];
+      data[offset + 8] = matrix[6];
+      data[offset + 9] = matrix[7];
+      data[offset + 10] = matrix[8];
+    },
+    (name, data, offset, uv, v3) => {
+      v3 = uv[name];
+      data[offset] = v3.x;
+      data[offset + 1] = v3.y;
+      data[offset + 2] = v3.width;
+      data[offset + 3] = v3.height;
+    },
+    (name, data, offset, uv, v3) => {
+      v3 = uv[name];
+      data[offset] = v3.x;
+      data[offset + 1] = v3.y;
+    },
+    (name, data, offset, uv, v3) => {
+      v3 = uv[name];
+      data[offset] = v3.red;
+      data[offset + 1] = v3.green;
+      data[offset + 2] = v3.blue;
+      data[offset + 3] = v3.alpha;
+    },
+    (name, data, offset, uv, v3) => {
+      v3 = uv[name];
+      data[offset] = v3.red;
+      data[offset + 1] = v3.green;
+      data[offset + 2] = v3.blue;
+    }
+  ];
+  var uboSingleFunctionsWGSL = {
+    f32: (_name, data, offset, _uv, v3) => {
+      data[offset] = v3;
+    },
+    i32: (_name, data, offset, _uv, v3) => {
+      data[offset] = v3;
+    },
+    "vec2<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+    },
+    "vec3<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+      data[offset + 2] = v3[2];
+    },
+    "vec4<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+      data[offset + 2] = v3[2];
+      data[offset + 3] = v3[3];
+    },
+    "mat2x2<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+      data[offset + 2] = v3[2];
+      data[offset + 3] = v3[3];
+    },
+    "mat3x3<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+      data[offset + 2] = v3[2];
+      data[offset + 4] = v3[3];
+      data[offset + 5] = v3[4];
+      data[offset + 6] = v3[5];
+      data[offset + 8] = v3[6];
+      data[offset + 9] = v3[7];
+      data[offset + 10] = v3[8];
+    },
+    "mat4x4<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 16; i3++) {
+        data[offset + i3] = v3[i3];
+      }
+    },
+    "mat3x2<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 6; i3++) {
+        data[offset + (i3 / 3 | 0) * 4 + i3 % 3] = v3[i3];
+      }
+    },
+    "mat4x2<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 8; i3++) {
+        data[offset + (i3 / 4 | 0) * 4 + i3 % 4] = v3[i3];
+      }
+    },
+    "mat2x3<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 6; i3++) {
+        data[offset + (i3 / 2 | 0) * 4 + i3 % 2] = v3[i3];
+      }
+    },
+    "mat4x3<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 12; i3++) {
+        data[offset + (i3 / 4 | 0) * 4 + i3 % 4] = v3[i3];
+      }
+    },
+    "mat2x4<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 8; i3++) {
+        data[offset + (i3 / 2 | 0) * 4 + i3 % 2] = v3[i3];
+      }
+    },
+    "mat3x4<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 12; i3++) {
+        data[offset + (i3 / 3 | 0) * 4 + i3 % 3] = v3[i3];
+      }
+    }
+  };
+  var uboSingleFunctionsSTD40 = {
+    f32: (_name, data, offset, _uv, v3) => {
+      data[offset] = v3;
+    },
+    i32: (_name, data, offset, _uv, v3) => {
+      data[offset] = v3;
+    },
+    "vec2<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+    },
+    "vec3<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+      data[offset + 2] = v3[2];
+    },
+    "vec4<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+      data[offset + 2] = v3[2];
+      data[offset + 3] = v3[3];
+    },
+    "mat2x2<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+      data[offset + 4] = v3[2];
+      data[offset + 5] = v3[3];
+    },
+    "mat3x3<f32>": (_name, data, offset, _uv, v3) => {
+      data[offset] = v3[0];
+      data[offset + 1] = v3[1];
+      data[offset + 2] = v3[2];
+      data[offset + 4] = v3[3];
+      data[offset + 5] = v3[4];
+      data[offset + 6] = v3[5];
+      data[offset + 8] = v3[6];
+      data[offset + 9] = v3[7];
+      data[offset + 10] = v3[8];
+    },
+    "mat4x4<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 16; i3++) {
+        data[offset + i3] = v3[i3];
+      }
+    },
+    "mat3x2<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 6; i3++) {
+        data[offset + (i3 / 3 | 0) * 4 + i3 % 3] = v3[i3];
+      }
+    },
+    "mat4x2<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 8; i3++) {
+        data[offset + (i3 / 4 | 0) * 4 + i3 % 4] = v3[i3];
+      }
+    },
+    "mat2x3<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 6; i3++) {
+        data[offset + (i3 / 2 | 0) * 4 + i3 % 2] = v3[i3];
+      }
+    },
+    "mat4x3<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 12; i3++) {
+        data[offset + (i3 / 4 | 0) * 4 + i3 % 4] = v3[i3];
+      }
+    },
+    "mat2x4<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 8; i3++) {
+        data[offset + (i3 / 2 | 0) * 4 + i3 % 2] = v3[i3];
+      }
+    },
+    "mat3x4<f32>": (_name, data, offset, _uv, v3) => {
+      for (let i3 = 0; i3 < 12; i3++) {
+        data[offset + (i3 / 3 | 0) * 4 + i3 % 3] = v3[i3];
+      }
+    }
+  };
+
+  // node_modules/pixi.js/lib/unsafe-eval/ubo/generateUboSyncPolyfill.mjs
+  function generateUboSyncPolyfillSTD40(uboElements) {
+    return generateUboSyncPolyfill(
+      uboElements,
+      uboSingleFunctionsSTD40,
+      (uboElement) => {
+        const rowSize = Math.max(WGSL_TO_STD40_SIZE[uboElement.data.type] / 16, 1);
+        const elementSize = uboElement.data.value.length / uboElement.data.size;
+        const remainder = (4 - elementSize % 4) % 4;
+        return (_name, data, offset, _uv, v3) => {
+          let t3 = 0;
+          for (let i3 = 0; i3 < uboElement.data.size * rowSize; i3++) {
+            for (let j3 = 0; j3 < elementSize; j3++) {
+              data[offset++] = v3[t3++];
+            }
+            offset += remainder;
+          }
+        };
+      }
+    );
+  }
+  function generateUboSyncPolyfillWGSL(uboElements) {
+    return generateUboSyncPolyfill(
+      uboElements,
+      uboSingleFunctionsWGSL,
+      (uboElement) => {
+        const { size, align } = WGSL_ALIGN_SIZE_DATA[uboElement.data.type];
+        const remainder = (size - align) / 4;
+        return (_name, data, offset, _uv, v3) => {
+          let t3 = 0;
+          for (let i3 = 0; i3 < uboElement.data.size * (size / 4); i3++) {
+            for (let j3 = 0; j3 < size / 4; j3++) {
+              data[offset++] = v3[t3++];
+            }
+            offset += remainder;
+          }
+        };
+      }
+    );
+  }
+  function generateUboSyncPolyfill(uboElements, uboFunctions, arrayUploadFunction) {
+    const functionMap = {};
+    for (const i3 in uboElements) {
+      const uboElement = uboElements[i3];
+      const uniform = uboElement.data;
+      let parsed = false;
+      functionMap[uniform.name] = {
+        offset: uboElement.offset / 4,
+        func: null
+      };
+      for (let j3 = 0; j3 < uniformParsers.length; j3++) {
+        const parser = uniformParsers[j3];
+        if (uniform.type === parser.type && parser.test(uniform)) {
+          functionMap[uniform.name].func = uboParserFunctions[j3];
+          parsed = true;
+          break;
+        }
+      }
+      if (!parsed) {
+        if (uniform.size === 1) {
+          functionMap[uniform.name].func = uboFunctions[uniform.type];
+        } else {
+          functionMap[uniform.name].func = arrayUploadFunction(uboElement);
+        }
+      }
+    }
+    return (uniforms, data, offset) => {
+      for (const i3 in functionMap) {
+        functionMap[i3].func(i3, data, offset + functionMap[i3].offset, uniforms, uniforms[i3]);
+      }
+    };
+  }
+
+  // node_modules/pixi.js/lib/unsafe-eval/uniforms/generateUniformsSyncPolyfill.mjs
+  init_uniformParsers();
+
+  // node_modules/pixi.js/lib/unsafe-eval/uniforms/uniformSyncFunctions.mjs
+  var uniformSingleParserFunctions = {
+    f32(name, cu, cv, v3, ud, _uv, gl) {
+      if (cv !== v3) {
+        cu.value = v3;
+        gl.uniform1f(ud[name].location, v3);
+      }
+    },
+    "vec2<f32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        gl.uniform2f(ud[name].location, v3[0], v3[1]);
+      }
+    },
+    "vec3<f32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1] || cv[2] !== v3[2]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        cv[2] = v3[2];
+        gl.uniform3f(ud[name].location, v3[0], v3[1], v3[2]);
+      }
+    },
+    "vec4<f32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1] || cv[2] !== v3[2] || cv[3] !== v3[3]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        cv[2] = v3[2];
+        cv[3] = v3[3];
+        gl.uniform4f(ud[name].location, v3[0], v3[1], v3[2], v3[3]);
+      }
+    },
+    i32(name, cu, cv, v3, ud, _uv, gl) {
+      if (cv !== v3) {
+        cu.value = v3;
+        gl.uniform1i(ud[name].location, v3);
+      }
+    },
+    "vec2<i32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        gl.uniform2i(ud[name].location, v3[0], v3[1]);
+      }
+    },
+    "vec3<i32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1] || cv[2] !== v3[2]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        cv[2] = v3[2];
+        gl.uniform3i(ud[name].location, v3[0], v3[1], v3[2]);
+      }
+    },
+    "vec4<i32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1] || cv[2] !== v3[2] || cv[3] !== v3[3]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        cv[2] = v3[2];
+        cv[3] = v3[3];
+        gl.uniform4i(ud[name].location, v3[0], v3[1], v3[2], v3[3]);
+      }
+    },
+    u32(name, cu, cv, v3, ud, _uv, gl) {
+      if (cv !== v3) {
+        cu.value = v3;
+        gl.uniform1ui(ud[name].location, v3);
+      }
+    },
+    "vec2<u32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        gl.uniform2ui(ud[name].location, v3[0], v3[1]);
+      }
+    },
+    "vec3<u32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1] || cv[2] !== v3[2]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        cv[2] = v3[2];
+        gl.uniform3ui(ud[name].location, v3[0], v3[1], v3[2]);
+      }
+    },
+    "vec4<u32>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1] || cv[2] !== v3[2] || cv[3] !== v3[3]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        cv[2] = v3[2];
+        cv[3] = v3[3];
+        gl.uniform4ui(ud[name].location, v3[0], v3[1], v3[2], v3[3]);
+      }
+    },
+    bool(name, cu, cv, v3, ud, _uv, gl) {
+      if (cv !== v3) {
+        cu.value = v3;
+        gl.uniform1i(ud[name].location, v3);
+      }
+    },
+    "vec2<bool>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        gl.uniform2i(ud[name].location, v3[0], v3[1]);
+      }
+    },
+    "vec3<bool>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1] || cv[2] !== v3[2]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        cv[2] = v3[2];
+        gl.uniform3i(ud[name].location, v3[0], v3[1], v3[2]);
+      }
+    },
+    "vec4<bool>"(name, _cu, cv, v3, ud, _uv, gl) {
+      if (cv[0] !== v3[0] || cv[1] !== v3[1] || cv[2] !== v3[2] || cv[3] !== v3[3]) {
+        cv[0] = v3[0];
+        cv[1] = v3[1];
+        cv[2] = v3[2];
+        cv[3] = v3[3];
+        gl.uniform4i(ud[name].location, v3[0], v3[1], v3[2], v3[3]);
+      }
+    },
+    "mat2x2<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniformMatrix2fv(ud[name].location, false, v3);
+    },
+    "mat3x3<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniformMatrix3fv(ud[name].location, false, v3);
+    },
+    "mat4x4<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniformMatrix4fv(ud[name].location, false, v3);
+    }
+  };
+  var uniformArrayParserFunctions = {
+    f32(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform1fv(ud[name].location, v3);
+    },
+    "vec2<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform2fv(ud[name].location, v3);
+    },
+    "vec3<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform3fv(ud[name].location, v3);
+    },
+    "vec4<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform4fv(ud[name].location, v3);
+    },
+    "mat2x2<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniformMatrix2fv(ud[name].location, false, v3);
+    },
+    "mat3x3<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniformMatrix3fv(ud[name].location, false, v3);
+    },
+    "mat4x4<f32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniformMatrix4fv(ud[name].location, false, v3);
+    },
+    i32(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform1iv(ud[name].location, v3);
+    },
+    "vec2<i32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform2iv(ud[name].location, v3);
+    },
+    "vec3<i32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform3iv(ud[name].location, v3);
+    },
+    "vec4<i32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform4iv(ud[name].location, v3);
+    },
+    u32(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform1iv(ud[name].location, v3);
+    },
+    "vec2<u32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform2iv(ud[name].location, v3);
+    },
+    "vec3<u32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform3iv(ud[name].location, v3);
+    },
+    "vec4<u32>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform4iv(ud[name].location, v3);
+    },
+    bool(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform1iv(ud[name].location, v3);
+    },
+    "vec2<bool>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform2iv(ud[name].location, v3);
+    },
+    "vec3<bool>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform3iv(ud[name].location, v3);
+    },
+    "vec4<bool>"(name, _cu, _cv, v3, ud, _uv, gl) {
+      gl.uniform4iv(ud[name].location, v3);
+    }
+  };
+  var uniformParserFunctions = [
+    (name, _cu, _cv, _v, ud, uv, gl) => {
+      gl.uniformMatrix3fv(ud[name].location, false, uv[name].toArray(true));
+    },
+    (name, _cu, cv, v3, ud, uv, gl) => {
+      cv = ud[name].value;
+      v3 = uv[name];
+      if (cv[0] !== v3.x || cv[1] !== v3.y || cv[2] !== v3.width || cv[3] !== v3.height) {
+        cv[0] = v3.x;
+        cv[1] = v3.y;
+        cv[2] = v3.width;
+        cv[3] = v3.height;
+        gl.uniform4f(ud[name].location, v3.x, v3.y, v3.width, v3.height);
+      }
+    },
+    (name, _cu, cv, v3, ud, uv, gl) => {
+      cv = ud[name].value;
+      v3 = uv[name];
+      if (cv[0] !== v3.x || cv[1] !== v3.y) {
+        cv[0] = v3.x;
+        cv[1] = v3.y;
+        gl.uniform2f(ud[name].location, v3.x, v3.y);
+      }
+    },
+    (name, _cu, cv, v3, ud, uv, gl) => {
+      cv = ud[name].value;
+      v3 = uv[name];
+      if (cv[0] !== v3.red || cv[1] !== v3.green || cv[2] !== v3.blue || cv[3] !== v3.alpha) {
+        cv[0] = v3.red;
+        cv[1] = v3.green;
+        cv[2] = v3.blue;
+        cv[3] = v3.alpha;
+        gl.uniform4f(ud[name].location, v3.red, v3.green, v3.blue, v3.alpha);
+      }
+    },
+    (name, _cu, cv, v3, ud, uv, gl) => {
+      cv = ud[name].value;
+      v3 = uv[name];
+      if (cv[0] !== v3.red || cv[1] !== v3.green || cv[2] !== v3.blue) {
+        cv[0] = v3.red;
+        cv[1] = v3.green;
+        cv[2] = v3.blue;
+        gl.uniform3f(ud[name].location, v3.red, v3.green, v3.blue);
+      }
+    }
+  ];
+
+  // node_modules/pixi.js/lib/unsafe-eval/uniforms/generateUniformsSyncPolyfill.mjs
+  function generateUniformsSyncPolyfill(group, uniformData) {
+    const functionMap = {};
+    for (const i3 in group.uniformStructures) {
+      if (!uniformData[i3])
+        continue;
+      const uniform = group.uniformStructures[i3];
+      let parsed = false;
+      for (let j3 = 0; j3 < uniformParsers.length; j3++) {
+        const parser = uniformParsers[j3];
+        if (uniform.type === parser.type && parser.test(uniform)) {
+          functionMap[i3] = uniformParserFunctions[j3];
+          parsed = true;
+          break;
+        }
+      }
+      if (!parsed) {
+        const templateType = uniform.size === 1 ? uniformSingleParserFunctions : uniformArrayParserFunctions;
+        functionMap[i3] = templateType[uniform.type];
+      }
+    }
+    return (ud, uv, renderer) => {
+      const gl = renderer.gl;
+      for (const i3 in functionMap) {
+        const v3 = uv[i3];
+        const cu = ud[i3];
+        const cv = ud[i3].value;
+        functionMap[i3](i3, cu, cv, v3, ud, uv, gl);
+      }
+    };
+  }
+
+  // node_modules/pixi.js/lib/unsafe-eval/init.mjs
+  function selfInstall() {
+    Object.assign(AbstractRenderer.prototype, {
+      // override unsafeEval check, as we don't need to use it
+      _unsafeEvalCheck() {
+      }
+    });
+    Object.assign(UboSystem.prototype, {
+      // override unsafeEval check, as we don't need to use it
+      _systemCheck() {
+      }
+    });
+    Object.assign(GlUniformGroupSystem.prototype, {
+      // use polyfill which avoids eval method
+      _generateUniformsSync: generateUniformsSyncPolyfill
+    });
+    Object.assign(GlUboSystem.prototype, {
+      // use polyfill which avoids eval method
+      _generateUboSync: generateUboSyncPolyfillSTD40
+    });
+    Object.assign(GpuUboSystem.prototype, {
+      // use polyfill which avoids eval method
+      _generateUboSync: generateUboSyncPolyfillWGSL
+    });
+    Object.assign(GlShaderSystem.prototype, {
+      // use polyfill which avoids eval method
+      _generateShaderSync: generateShaderSyncPolyfill
+    });
+  }
+  selfInstall();
+
   // client/communication/index.ts
   var twitch_login_channel_name = "twitch";
   var signal_channel_name = "signal";
@@ -36564,7 +37809,7 @@ ${parts.join("\n")}
         return false;
       }
       try {
-        const adapter = await navigator.gpu.requestAdapter(options);
+        const adapter = await gpu.requestAdapter(options);
         await adapter.requestDevice();
         return true;
       } catch (e3) {
@@ -37259,7 +38504,8 @@ ${parts.join("\n")}
       const singleAsset = isSingleItem(assetsToLoadIn);
       const assetsToLoad = convertToList(assetsToLoadIn, (item) => ({
         alias: [item],
-        src: item
+        src: item,
+        data: {}
       }));
       const total = assetsToLoad.length;
       const promises = assetsToLoad.map(async (asset) => {
@@ -37648,7 +38894,7 @@ ${e3}`);
   };
 
   // node_modules/pixi.js/lib/_virtual/loadImageBitmap.worker.mjs
-  var WORKER_CODE2 = "(function () {\n    'use strict';\n\n    async function loadImageBitmap(url) {\n      const response = await fetch(url);\n      if (!response.ok) {\n        throw new Error(`[WorkerManager.loadImageBitmap] Failed to fetch ${url}: ${response.status} ${response.statusText}`);\n      }\n      const imageBlob = await response.blob();\n      const imageBitmap = await createImageBitmap(imageBlob);\n      return imageBitmap;\n    }\n    self.onmessage = async (event) => {\n      try {\n        const imageBitmap = await loadImageBitmap(event.data.data[0]);\n        self.postMessage({\n          data: imageBitmap,\n          uuid: event.data.uuid,\n          id: event.data.id\n        }, [imageBitmap]);\n      } catch (e) {\n        self.postMessage({\n          error: e,\n          uuid: event.data.uuid,\n          id: event.data.id\n        });\n      }\n    };\n\n})();\n";
+  var WORKER_CODE2 = '(function () {\n    \'use strict\';\n\n    async function loadImageBitmap(url, alphaMode) {\n      const response = await fetch(url);\n      if (!response.ok) {\n        throw new Error(`[WorkerManager.loadImageBitmap] Failed to fetch ${url}: ${response.status} ${response.statusText}`);\n      }\n      const imageBlob = await response.blob();\n      return alphaMode === "premultiplied-alpha" ? createImageBitmap(imageBlob, { premultiplyAlpha: "none" }) : createImageBitmap(imageBlob);\n    }\n    self.onmessage = async (event) => {\n      try {\n        const imageBitmap = await loadImageBitmap(event.data.data[0], event.data.data[1]);\n        self.postMessage({\n          data: imageBitmap,\n          uuid: event.data.uuid,\n          id: event.data.id\n        }, [imageBitmap]);\n      } catch (e) {\n        self.postMessage({\n          error: e,\n          uuid: event.data.uuid,\n          id: event.data.id\n        });\n      }\n    };\n\n})();\n';
   var WORKER_URL2 = null;
   var WorkerInstance2 = class {
     constructor() {
@@ -37689,8 +38935,8 @@ ${e3}`);
       });
       return this._isImageBitmapSupported;
     }
-    loadImageBitmap(src) {
-      return this._run("loadImageBitmap", [src]);
+    loadImageBitmap(src, asset) {
+      return this._run("loadImageBitmap", [src, asset?.data?.alphaMode]);
     }
     async _initWorkers() {
       if (this._initialized)
@@ -37760,14 +39006,13 @@ ${e3}`);
     "image/webp",
     "image/avif"
   ];
-  async function loadImageBitmap(url) {
+  async function loadImageBitmap(url, asset) {
     const response = await DOMAdapter.get().fetch(url);
     if (!response.ok) {
       throw new Error(`[loadImageBitmap] Failed to fetch ${url}: ${response.status} ${response.statusText}`);
     }
     const imageBlob = await response.blob();
-    const imageBitmap = await createImageBitmap(imageBlob);
-    return imageBitmap;
+    return asset?.data?.alphaMode === "premultiplied-alpha" ? createImageBitmap(imageBlob, { premultiplyAlpha: "none" }) : createImageBitmap(imageBlob);
   }
   var loadTextures = {
     name: "loadTextures",
@@ -37788,9 +39033,9 @@ ${e3}`);
       let src = null;
       if (globalThis.createImageBitmap && this.config.preferCreateImageBitmap) {
         if (this.config.preferWorkers && await WorkerManager.isImageBitmapSupported()) {
-          src = await WorkerManager.loadImageBitmap(url);
+          src = await WorkerManager.loadImageBitmap(url, asset);
         } else {
-          src = await loadImageBitmap(url);
+          src = await loadImageBitmap(url, asset);
         }
       } else {
         src = await new Promise((resolve) => {
@@ -38192,7 +39437,7 @@ ${e3}`);
      * Initiate a background load of some assets. It will passively begin to load these assets in the background.
      * So when you actually come to loading them you will get a promise that resolves to the loaded assets immediately
      *
-     * An example of this might be that you would background load game assets after your inital load.
+     * An example of this might be that you would background load game assets after your initial load.
      * then when you got to actually load your game screen assets when a player goes to the game - the loading
      * would already have stared or may even be complete, saving you having to show an interim load bar.
      * @example
@@ -38447,20 +39692,28 @@ ${e3}`);
 
   // node_modules/pixi.js/lib/scene/sprite-animated/AnimatedSprite.mjs
   init_Texture();
-  init_const2();
+  init_const4();
   init_Ticker();
   init_Sprite();
   var AnimatedSprite = class _AnimatedSprite extends Sprite {
-    /**
-     * @param textures - An array of {@link Texture} or frame
-     *  objects that make up the animation.
-     * @param {boolean} [autoUpdate=true] - Whether to use Ticker.shared to auto update animation time.
-     */
-    constructor(textures, autoUpdate = true) {
-      super(textures[0] instanceof Texture ? textures[0] : textures[0].texture);
+    /** @ignore */
+    constructor(...args) {
+      let options = args[0];
+      if (Array.isArray(args[0])) {
+        options = {
+          textures: args[0],
+          autoUpdate: args[1]
+        };
+      }
+      const { textures, autoUpdate, ...rest } = options;
+      const [firstFrame] = textures;
+      super({
+        ...rest,
+        texture: firstFrame instanceof Texture ? firstFrame : firstFrame.texture
+      });
       this._textures = null;
       this._durations = null;
-      this._autoUpdate = autoUpdate;
+      this._autoUpdate = autoUpdate ?? true;
       this._isConnectedToTicker = false;
       this.animationSpeed = 1;
       this.loop = true;
@@ -38769,8 +40022,8 @@ ${e3}`);
   };
 
   // node_modules/pixi.js/lib/scene/sprite-tiling/TilingSprite.mjs
-  init_Container();
-  var _TilingSprite = class _TilingSprite2 extends Container {
+  init_View();
+  var _TilingSprite = class _TilingSprite2 extends ViewContainer {
     constructor(...args) {
       let options = args[0] || {};
       if (options instanceof Texture) {
@@ -38799,11 +40052,7 @@ ${e3}`);
         ...rest
       });
       this.renderPipeId = "tilingSprite";
-      this.canBundle = true;
       this.batched = true;
-      this._roundPixels = 0;
-      this._bounds = { minX: 0, maxX: 1, minY: 0, maxY: 0 };
-      this._boundsDirty = true;
       this.allowChildren = false;
       this._anchor = new ObservablePoint(
         {
@@ -38907,16 +40156,6 @@ ${e3}`);
       return this._tileTransform;
     }
     /**
-     *  Whether or not to round the x/y position of the sprite.
-     * @type {boolean}
-     */
-    get roundPixels() {
-      return !!this._roundPixels;
-    }
-    set roundPixels(value) {
-      this._roundPixels = value ? 1 : 0;
-    }
-    /**
      * The local bounds of the sprite.
      * @type {rendering.Bounds}
      */
@@ -39001,7 +40240,7 @@ ${e3}`);
     onViewUpdate() {
       this._boundsDirty = true;
       this._didTilingSpriteUpdate = true;
-      this._didChangeId += 1 << 12;
+      this._didViewChangeTick++;
       if (this.didViewUpdate)
         return;
       this.didViewUpdate = true;
@@ -39049,9 +40288,8 @@ ${e3}`);
   // node_modules/pixi.js/lib/scene/text/AbstractText.mjs
   init_ObservablePoint();
   init_deprecation();
-  init_Bounds();
-  init_Container();
-  var AbstractText = class extends Container {
+  init_View();
+  var AbstractText = class extends ViewContainer {
     constructor(options, styleClass) {
       const { text, resolution, style, anchor, width, height, roundPixels, ...rest } = options;
       super({
@@ -39059,10 +40297,8 @@ ${e3}`);
       });
       this.batched = true;
       this._resolution = null;
+      this._autoResolution = true;
       this._didTextUpdate = true;
-      this._roundPixels = 0;
-      this._bounds = new Bounds();
-      this._boundsDirty = true;
       this._styleClass = styleClass;
       this.text = text ?? "";
       this.style = style;
@@ -39078,9 +40314,9 @@ ${e3}`);
       if (anchor)
         this.anchor = anchor;
       this.roundPixels = roundPixels ?? false;
-      if (width)
+      if (width !== void 0)
         this.width = width;
-      if (height)
+      if (height !== void 0)
         this.height = height;
     }
     /**
@@ -39104,16 +40340,6 @@ ${e3}`);
     set anchor(value) {
       typeof value === "number" ? this._anchor.set(value) : this._anchor.copyFrom(value);
     }
-    /**
-     *  Whether or not to round the x/y position of the text.
-     * @type {boolean}
-     */
-    get roundPixels() {
-      return !!this._roundPixels;
-    }
-    set roundPixels(value) {
-      this._roundPixels = value ? 1 : 0;
-    }
     /** Set the copy for the text object. To split a line you can use '\n'. */
     set text(value) {
       value = value.toString();
@@ -39130,6 +40356,7 @@ ${e3}`);
      * @default 1
      */
     set resolution(value) {
+      this._autoResolution = value === null;
       this._resolution = value;
       this.onViewUpdate();
     }
@@ -39257,7 +40484,7 @@ ${e3}`);
       return false;
     }
     onViewUpdate() {
-      this._didChangeId += 1 << 12;
+      this._didViewChangeTick++;
       this._boundsDirty = true;
       if (this.didViewUpdate)
         return;
@@ -39269,7 +40496,7 @@ ${e3}`);
       }
     }
     _getKey() {
-      return `${this.text}:${this._style.styleKey}-${this.resolution}`;
+      return `${this.text}:${this._style.styleKey}:${this._resolution}`;
     }
     /**
      * Destroys this text renderable and optionally its style texture.
@@ -39317,16 +40544,20 @@ ${e3}`);
     }
     _updateBounds() {
       const bounds = this._bounds;
-      const padding = this._style.padding;
       const anchor = this._anchor;
       const bitmapMeasurement = BitmapFontManager.measureText(this.text, this._style);
       const scale = bitmapMeasurement.scale;
       const offset = bitmapMeasurement.offsetY * scale;
-      const width = bitmapMeasurement.width * scale;
-      const height = bitmapMeasurement.height * scale;
-      bounds.minX = -anchor._x * width - padding;
+      let width = bitmapMeasurement.width * scale;
+      let height = bitmapMeasurement.height * scale;
+      const stroke = this._style._stroke;
+      if (stroke) {
+        width += stroke.width;
+        height += stroke.width;
+      }
+      bounds.minX = -anchor._x * width;
       bounds.maxX = bounds.minX + width;
-      bounds.minY = -anchor._y * (height + offset) - padding;
+      bounds.minY = -anchor._y * (height + offset);
       bounds.maxY = bounds.minY + height;
     }
   };
@@ -39458,10 +40689,16 @@ ${e3}`);
   // client/communication/api/twitch/twitch.ts
   var import_strongly_typed_events = __toESM(require_dist8());
   var TwitchService = class {
-    auth;
     onAuth;
+    _authToken;
     constructor() {
       this.onAuth = new import_strongly_typed_events.SimpleEventDispatcher();
+    }
+    set authToken(auth) {
+      this._authToken = auth.token;
+    }
+    get authToken() {
+      return this._authToken ?? Twitch?.ext?.viewer?.sessionToken;
     }
     get canIdentifyUser() {
       return Twitch.ext.viewer && Twitch.ext.viewer.isLinked;
@@ -39506,8 +40743,9 @@ ${e3}`);
       twitch.rig.log(context2 && context2.mode ? context2.mode : "");
     });
     twitch.onAuthorized(function(auth) {
+      console.log("Twitch authorized", auth);
       if (Twitch.ext.viewer && Twitch.ext.viewer.isLinked) {
-        twitch_service2.auth = auth;
+        twitch_service2.authToken = auth;
         twitch_service2.onAuth.dispatch(auth);
       } else {
         Twitch.ext.actions.requestIdShare();
@@ -39767,6 +41005,56 @@ ${e3}`);
       main_container_wrapper,
       terrain_params: world_params.terrain_params
     };
+  };
+  var setup_resizing = (renderer) => {
+    const canvas_wrapper = document.getElementById("canvas");
+    if (!canvas_wrapper) {
+      console.error("Could not find canvas wrapper!");
+      return;
+    }
+    window.addEventListener("resize", () => {
+      viewPortResize(
+        canvas_wrapper.offsetWidth,
+        canvas_wrapper.offsetHeight,
+        renderer.renderer
+      );
+    });
+    viewPortResize(
+      canvas_wrapper.offsetWidth,
+      canvas_wrapper.offsetHeight,
+      renderer.renderer
+    );
+    const twitch_chat = document.getElementById("twitch-chat") || {
+      className: "",
+      clientWidth: 0,
+      style: { width: "" }
+    };
+    const toggle_chat_element = document.getElementById("toggle-chat");
+    if (toggle_chat_element && twitch_chat) {
+      twitch_chat.className = "";
+      toggle_chat_element.addEventListener("click", (e3) => {
+        const toggle = e3.target;
+        if (toggle.innerHTML === "\xBB") {
+          twitch_chat.style.width = "0px";
+          toggle.innerHTML = "\xAB";
+        } else {
+          twitch_chat.style.width = "";
+          toggle.innerHTML = "\xBB";
+        }
+        viewPortResize(
+          canvas_wrapper.offsetWidth,
+          canvas_wrapper.offsetHeight,
+          renderer.renderer
+        );
+      });
+    }
+  };
+  var viewPortResize = (width, height, renderer) => {
+    renderer.canvas.style.width = `${width}px`;
+    renderer.canvas.style.height = `${height}px`;
+    set_stage_width(width);
+    set_stage_height(height);
+    renderer.resize(get_stage_width(), get_stage_height());
   };
 
   // client/is_admin.ts
@@ -40490,9 +41778,9 @@ ${e3}`);
           twitch_login_channel.close();
           signal_channel.close();
         };
-        if (twitch_service.auth && twitch_service.auth.token) {
+        if (twitch_service.authToken) {
           send_twitch_login(communication_state, {
-            data: { access_token: twitch_service.auth.token }
+            data: { access_token: twitch_service.authToken }
           });
         } else {
           window.open(
@@ -42532,6 +43820,7 @@ ${e3}`);
     }
     const door = document.getElementById("door");
     const render_system = await create_game_renderer();
+    setup_resizing(render_system);
     const menu_system = new MenuSystem();
     const communication_system = setup_communication_system(menu_system);
     const guest_input = create_guest_input();
@@ -42591,7 +43880,11 @@ ${e3}`);
             );
           }
           if (should_login) {
-            menu_system.activate(MenuSystem.static_menus.LoginMenu);
+            if (twitch_service.canIdentifyUser) {
+              login(communication_system);
+            } else {
+              menu_system.activate(MenuSystem.static_menus.LoginMenu);
+            }
           } else if (is_admin) {
             window.medium_gui.editor.show_editor();
           }
@@ -42788,6 +44081,12 @@ ${e3}`);
   }
 
   // client/index.ts
+  Assets.init({
+    preferences: {
+      preferWorkers: false,
+      preferCreateImageBitmap: false
+    }
+  });
   setup_plugin_system();
   var twitch_broadcast_channel = new BroadcastChannel(
     twitch_login_channel_name

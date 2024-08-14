@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>Shiku's World</title>
-
-    <link rel="stylesheet" type="text/css" href="style.css?t=1698245108352">
-    <script src="medium.js?t=1698245108352"></script>
-    <script src="keyboard-input.js?t=1698245108352"></script>
-    <script src="controller-input.js?t=1698245108352"></script>
-    <script src="mouse-input.js?t=1698245108352"></script>
+    
+    <link rel="stylesheet" type="text/css" href="style.css?t=1723618414538">
+    <script src="medium.js?t=1723618414538"></script>
+    <script src="keyboard-input.js?t=1723618414538"></script>
+    <script src="controller-input.js?t=1723618414538"></script>
+    <script src="mouse-input.js?t=1723618414538"></script>
 </head>
 <body class="">
 <div id="game-wrapper">
-    <div id="ui"></div>
     <div id="canvas">
-        <div id="temp">
-        </div>
+        <div id="temp"></div>
+        <div id="ui"></div>
         <div id="loading-indicator">
             <div class="lds-heart"><div></div></div>
         </div>
@@ -28,14 +27,7 @@
             <div id="input-feedback-Right" class="button-inactive"><span class="material-icons-sharp">east</span></div>
         </div>
     </div>
-    <div id="twitch-chat" class="twitch-chat-hidden">
-        <div id="toggle-chat">»</div>
-        <iframe src="https://www.twitch.tv/embed/shikusworld/chat?parent=localhost&parent=shiku.world&parent=dev.shiku.world&darkpopout"
-                height="100%"
-                width="100%">
-        </iframe>
-    </div>
-    <script type="module" src="src/main.ts"></script>
 </div>
+<script type="module" src="src/main.ts"></script>
 </body>
 </html>

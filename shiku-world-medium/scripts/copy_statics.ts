@@ -6,13 +6,20 @@ export const copy_statics = async () => {
     .readFileSync("./ui/dist/index.html")
     .toString()
     .split("\n")
-    .filter((l) => /<script type="module" | <link rel="stylesheet"/g.test(l));
+    .filter((l) => /<script type="module" | <link rel="stylesheet"/g.test(l))
+    .map((l) =>
+      l
+        .replace(
+          /link rel="stylesheet" href/g,
+          'link rel="stylesheet" type="text/css" href',
+        )
+        .replace(/\.\/assets\//g, "assets/"),
+    );
 
   fs.copySync("./ui/dist", "./build/", {
     overwrite: true,
     filter: (f) => !f.includes("index.html"),
   });
-
   const index = fs
     .readFileSync("./static/index.html", "utf-8")
     .replace(/<!--/g, "")
@@ -20,7 +27,15 @@ export const copy_statics = async () => {
     .replace(/{{timestamp}}/g, Date.now().toString())
     .replace(/{{twitch}}/, "")
     .replace(/{{bodyClass}}/, "")
-    .replace(/{{gui}}/, gui_includes.join("\n    "))
+    .replace(
+      /{{gui}}/,
+      gui_includes
+        .join("\n    ")
+        .replace(
+          /link rel="stylesheet" href/g,
+          'link rel="stylesheet" type="text/css" href',
+        ),
+    )
     .replace(
       /{{input_methods}}/,
       `<script src="keyboard-input.js?t=${Date.now().toString()}"></script>

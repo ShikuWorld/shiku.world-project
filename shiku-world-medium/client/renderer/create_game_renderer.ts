@@ -8,6 +8,7 @@ import {
   autoDetectRenderer,
   Container,
   FederatedMouseEvent,
+  Renderer,
   Texture,
 } from "pixi.js";
 import { Config } from "../config";
@@ -16,6 +17,12 @@ import { SimpleEventDispatcher } from "strongly-typed-events";
 import { GameInstancesStore } from "@/editor/stores/game-instances";
 import { GameInstanceMap } from "@/client/game-instance";
 import { WorldParams } from "@/editor/blueprints/WorldParams";
+import {
+  get_stage_height,
+  get_stage_width,
+  set_stage_height,
+  set_stage_width,
+} from "@/client/config/config";
 
 export interface ParallaxContainer extends Container {
   x_pscaling: number;
@@ -139,6 +146,7 @@ export const create_instance_rendering = (
     console.log("Setting camera ref", world_params.camera_ref);
     camera.set_camera_ref(world_params.camera_ref);
   }
+
   return {
     camera,
     layer_map,
@@ -149,47 +157,63 @@ export const create_instance_rendering = (
   };
 };
 
-/*
-const setup_resizing = (_renderer: Renderer) => {
+export const setup_resizing = (renderer: RenderSystem) => {
   const canvas_wrapper = document.getElementById("canvas");
+
+  if (!canvas_wrapper) {
+    console.error("Could not find canvas wrapper!");
+    return;
+  }
+
+  window.addEventListener("resize", () => {
+    viewPortResize(
+      canvas_wrapper.offsetWidth,
+      canvas_wrapper.offsetHeight,
+      renderer.renderer,
+    );
+  });
+  viewPortResize(
+    canvas_wrapper.offsetWidth,
+    canvas_wrapper.offsetHeight,
+    renderer.renderer,
+  );
 
   const twitch_chat = document.getElementById("twitch-chat") || {
     className: "",
     clientWidth: 0,
     style: { width: "" },
   };
-  twitch_chat.className = "";
-
-  window.addEventListener("resize", () => {
-    viewPortResize(
-      canvas_wrapper.offsetWidth,
-      canvas_wrapper.offsetHeight,
-      renderer,
-    );
-  });
-  viewPortResize(
-    canvas_wrapper.offsetWidth,
-    canvas_wrapper.offsetHeight,
-    renderer,
-  );
-
   const toggle_chat_element = document.getElementById("toggle-chat");
-  if (toggle_chat_element) {
+  if (toggle_chat_element && twitch_chat) {
+    twitch_chat.className = "";
     toggle_chat_element.addEventListener("click", (e) => {
       const toggle = e.target as HTMLElement;
       if (toggle.innerHTML === "»") {
         twitch_chat.style.width = "0px";
         toggle.innerHTML = "«";
       } else {
-        twitch_chat.style.width = null;
+        twitch_chat.style.width = "";
         toggle.innerHTML = "»";
       }
       viewPortResize(
         canvas_wrapper.offsetWidth,
         canvas_wrapper.offsetHeight,
-        renderer,
+        renderer.renderer,
       );
     });
   }
 };
-*/
+
+export const viewPortResize = (
+  width: number,
+  height: number,
+  renderer: Renderer,
+) => {
+  renderer.canvas.style.width = `${width}px`;
+  renderer.canvas.style.height = `${height}px`;
+
+  set_stage_width(width);
+  set_stage_height(height);
+
+  renderer.resize(get_stage_width(), get_stage_height());
+};

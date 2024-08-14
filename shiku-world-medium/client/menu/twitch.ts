@@ -60,9 +60,9 @@ export function login(communication_state: CommunicationState): Promise<void> {
         signal_channel.close();
       };
 
-      if (twitch_service.auth && twitch_service.auth.token) {
+      if (twitch_service.authToken) {
         send_twitch_login(communication_state, {
-          data: { access_token: twitch_service.auth.token },
+          data: { access_token: twitch_service.authToken },
         });
       } else {
         window.open(

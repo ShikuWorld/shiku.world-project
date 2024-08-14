@@ -1,7 +1,16 @@
+import "pixi.js/unsafe-eval";
 import { twitch_login_channel_name } from "./communication";
 import { start_medium } from "./game";
 import { twitch_service } from "./communication/api/twitch/twitch";
 import { setup_plugin_system } from "./plugins";
+import { Assets } from "pixi.js";
+
+Assets.init({
+  preferences: {
+    preferWorkers: false,
+    preferCreateImageBitmap: false,
+  },
+});
 
 setup_plugin_system();
 

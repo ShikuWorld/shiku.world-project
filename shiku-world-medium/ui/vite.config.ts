@@ -11,6 +11,7 @@ export default {
     https: true,
     port: 8080,
   },
+  base: "",
   resolve: {
     alias: {
       "@/editor": fileURLToPath(new URL("./src", import.meta.url)),

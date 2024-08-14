@@ -3966,10 +3966,10 @@ pinia@^2.1.7:
     "@vue/devtools-api" "^6.5.0"
     vue-demi ">=0.14.5"
 
-pixi.js@^8.1.6:
-  version "8.1.6"
-  resolved "https://registry.yarnpkg.com/pixi.js/-/pixi.js-8.1.6.tgz#5aaa9f480fea2a029974d8fd4074ba39e03058fc"
-  integrity sha512-FZT/dLZ9Tdw8eN6odgunSQHORsgHcvLlfOWm7cpR4ZxVGPRqFgDQ4hXpwVxeY9UK4PZtlJ4U910H1QZ4XNLJxg==
+pixi.js@^8.3.3:
+  version "8.3.3"
+  resolved "https://registry.yarnpkg.com/pixi.js/-/pixi.js-8.3.3.tgz#d9f7a94b6f0f49ecadce300359ec963782991aca"
+  integrity sha512-dpucBKAqEm0K51MQKlXvyIJ40bcxniP82uz4ZPEQejGtPp0P+vueuG5DyArHCkC48mkVE2FEDvyYvBa45/JlQg==
   dependencies:
     "@pixi/colord" "^2.9.6"
     "@types/css-font-loading-module" "^0.0.12"

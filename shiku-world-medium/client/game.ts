@@ -1,4 +1,7 @@
-import { create_game_renderer } from "./renderer/create_game_renderer";
+import {
+  create_game_renderer,
+  setup_resizing,
+} from "./renderer/create_game_renderer";
 import {
   check_for_connection_ready,
   send_admin_event,
@@ -25,6 +28,8 @@ import { create_resource_manager } from "@/client/resources/create_resource_mana
 import { is_admin } from "@/client/is_admin";
 import { handle_editor_event } from "@/client/handle-editor-event";
 import { init_grid, toggle_grid } from "@/client/renderer/grid";
+import { twitch_service } from "@/client/communication/api/twitch/twitch";
+import { login } from "@/client/menu/twitch";
 
 export async function start_medium() {
   const signal_broadcast_channel = new BroadcastChannel(signal_channel_name);
@@ -38,6 +43,7 @@ export async function start_medium() {
   }
   const door = document.getElementById("door");
   const render_system = await create_game_renderer();
+  setup_resizing(render_system);
   const menu_system = new MenuSystem();
   const communication_system = setup_communication_system(menu_system);
   const guest_input = create_guest_input();
@@ -120,7 +126,11 @@ export async function start_medium() {
             );
           }
           if (should_login) {
-            menu_system.activate(MenuSystem.static_menus.LoginMenu);
+            if (twitch_service.canIdentifyUser) {
+              login(communication_system);
+            } else {
+              menu_system.activate(MenuSystem.static_menus.LoginMenu);
+            }
           } else if (is_admin) {
             window.medium_gui.editor.show_editor();
           }
