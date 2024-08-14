@@ -119,10 +119,13 @@ const props = defineProps<{
 }>();
 const previews = ref<VImg[]>();
 const tileset_brushes = computed(() => {
-  return props.tileset.brushes.map((b) => ({
-    label: b.StandardKernelThree[0],
-    value: b,
-  }));
+  return props.tileset.brushes.map(
+    (b) =>
+      ({
+        label: Object.values(b)[0][0],
+        value: b,
+      }) as { label: string; value: TerrainBrush },
+  );
 });
 function image_loaded(image_index: number, gid: number) {
   const tile = tileset.value.tiles[gid];

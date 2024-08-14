@@ -205,34 +205,22 @@ impl World {
                     .get(&collision_event.collider2())
                     .cloned(),
             ) {
-                let call_script = |scripts: &mut HashMap<Entity, GameNodeScript>,
-                                   entity,
-                                   function,
-                                   entity_collided_with| {
-                    if let Some(script) = scripts.get_mut(&entity) {
-                        script.call(function, script_engine, (entity_collided_with,));
-                    }
-                };
-
                 let call_parent_script =
                     |scripts: &mut HashMap<Entity, GameNodeScript>,
                      entity,
                      function,
                      entity_collided_with| {
                         if let (Some(parent_entity), Some(entity_collided_with_parent)) = (
-                            shared_ecs.entities.game_node_parent.get(&entity).cloned(),
-                            shared_ecs
-                                .entities
-                                .game_node_parent
-                                .get(&entity_collided_with)
-                                .cloned(),
+                            shared_ecs.get_parent_entity(&entity),
+                            shared_ecs.get_parent_entity(&entity_collided_with),
                         ) {
-                            call_script(
-                                scripts,
-                                parent_entity,
-                                function,
-                                entity_collided_with_parent,
-                            );
+                            if let Some(script) = scripts.get_mut(&parent_entity) {
+                                script.call(
+                                    function,
+                                    script_engine,
+                                    (entity_collided_with_parent, entity, entity_collided_with),
+                                );
+                            }
                         }
                     };
 
@@ -248,12 +236,9 @@ impl World {
                     )
                 };
 
-                call_script(
-                    entity_scripts,
-                    collider_entity_1,
-                    function_child.clone(),
-                    collider_entity_2,
-                );
+                if let Some(script) = entity_scripts.get_mut(&collider_entity_1) {
+                    script.call(function_child.clone(), script_engine, (collider_entity_2,));
+                }
                 call_parent_script(
                     entity_scripts,
                     collider_entity_1,
@@ -261,12 +246,9 @@ impl World {
                     collider_entity_2,
                 );
 
-                call_script(
-                    entity_scripts,
-                    collider_entity_2,
-                    function_child,
-                    collider_entity_1,
-                );
+                if let Some(script) = entity_scripts.get_mut(&collider_entity_2) {
+                    script.call(function_child.clone(), script_engine, (collider_entity_1,));
+                }
                 call_parent_script(
                     entity_scripts,
                     collider_entity_2,

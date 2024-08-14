@@ -695,6 +695,10 @@ impl ECS {
 }
 
 impl ECSShared {
+    pub fn get_parent_entity(&self, entity: &Entity) -> Option<Entity> {
+        self.entities.game_node_parent.get(entity).cloned()
+    }
+
     pub fn get_instance_root_entity(&self, entity: &Entity) -> Option<&Entity> {
         if let Some(Node2DKindClean::Instance) = self.entities.node_2d_kind.get(entity) {
             return self
