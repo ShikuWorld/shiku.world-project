@@ -40701,7 +40701,7 @@ ${e3}`);
       return this._authToken ?? Twitch?.ext?.viewer?.sessionToken;
     }
     get canIdentifyUser() {
-      return Twitch.ext.viewer && Twitch.ext.viewer.isLinked;
+      return window?.Twitch?.ext?.viewer && window?.Twitch?.ext?.viewer?.isLinked;
     }
     getConfigurationValue(key) {
       if (!window.Twitch || !Twitch.ext.configuration.broadcaster) {

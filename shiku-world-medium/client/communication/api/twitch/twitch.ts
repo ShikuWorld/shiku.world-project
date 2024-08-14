@@ -17,7 +17,7 @@ class TwitchService {
   }
 
   get canIdentifyUser() {
-    return Twitch?.ext?.viewer && Twitch?.ext?.viewer?.isLinked;
+    return window?.Twitch?.ext?.viewer && window?.Twitch?.ext?.viewer?.isLinked;
   }
 
   getConfigurationValue(key: string): string | undefined {
