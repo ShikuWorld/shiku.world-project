@@ -1,8 +1,9 @@
 @use 'vuetify' with (
   $utilities: false,
   $color-pack: false,
-  $font-size-root: 16px,
-  $body-font-family: 'ChevyRay - Express',
+  $font-size-root: 12px,
+  $line-height-root: 1.0,
+  $body-font-family: 'ChevyRay - Express'
 );
 
 :root {
@@ -27,6 +28,21 @@ html {
 
 .v-badge {
   font-family: Convergence, sans-serif;
+}
+
+.v-expansion-panel-title {
+  padding: 0 8px !important;
+  min-height: 32px !important;
+}
+
+.v-expansion-panels .node-component {
+  min-height: 19px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.v-expansion-panels .node-container {
+  padding: 0 0 0 8px !important;
 }
 
 .v-list-item__spacer {

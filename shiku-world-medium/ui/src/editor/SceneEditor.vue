@@ -1,6 +1,7 @@
 <template>
   <div class="entities-list">
     <v-btn
+      class="scene-editor-entities-list-plus"
       :icon="mdiPlus"
       :id="menu_id"
       density="comfortable"
@@ -80,7 +81,12 @@
 
 <style>
 .entities-list {
-  padding: 10px;
+  padding: 8px;
+}
+.scene-editor-entities-list-plus {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
 }
 </style>
 
