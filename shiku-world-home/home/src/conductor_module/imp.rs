@@ -140,6 +140,10 @@ impl ConductorModule {
                                 }
                                 continue;
                             }
+                            if let AdminToSystemEvent::UpdateConductor(conductor) = &event {
+                                self.module_connection_map =
+                                    conductor.module_connection_map.clone();
+                            }
                             handle_admin_to_system_event(
                                 &mut self.module_communication_map,
                                 &mut self.web_server_module,
