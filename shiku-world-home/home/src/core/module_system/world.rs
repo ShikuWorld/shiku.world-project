@@ -614,11 +614,6 @@ impl World {
                     impulse.x = 0.0;
                     impulse.y = 0.0;
                 }
-                debug!(
-                    "Impulse for entity: {:?} is: {:?}",
-                    entity,
-                    impulse.magnitude()
-                );
                 kinematic_body.desired_translation -= impulse * 0.5;
             }
             if let Some(kinematic_body) = shared

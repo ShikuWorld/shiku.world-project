@@ -996,7 +996,15 @@ impl DynamicGameModule {
         Ok(EnterSuccessState::Entered)
     }
 
-    pub fn try_leave(&mut self, _guest: &Guest) -> Result<LeaveSuccessState, LeaveFailedState> {
+    pub fn try_leave(&mut self, guest: &Guest) -> Result<LeaveSuccessState, LeaveFailedState> {
+        if let Some(world_id) = self.guest_to_world.remove(&guest.id) {
+            self.world_to_guest.remove_entry(&world_id, &guest.id);
+            if let Some(world) = self.world_map.get_mut(&world_id) {
+                world.actor_left_world(guest.id);
+            }
+        }
+        self.guests.remove(&guest.id);
+
         Ok(LeaveSuccessState::Left)
     }
 
