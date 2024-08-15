@@ -295,6 +295,22 @@ impl DynamicGameModule {
                         );
                     }
                 }
+                for entity in event_cache.remove_entity_events.drain(..) {
+                    Self::send_event_to_actors(
+                        &world.world_id,
+                        &mut self.module_communication,
+                        &self.world_to_guest,
+                        &self.world_to_admin,
+                        &self.connected_actor_set,
+                        ModuleInstanceEvent {
+                            world_id: None,
+                            module_id: self.module_id.clone(),
+                            instance_id: self.instance_id.clone(),
+                            event_type: GameSystemToGuestEvent::RemoveEntity(entity),
+                        },
+                        "Could not send event to actors from api",
+                    );
+                }
             }
 
             let position_updates = Self::get_position_updates(world);

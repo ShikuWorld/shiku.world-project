@@ -30,6 +30,7 @@ pub type ParentEntity = Entity;
 pub type ChildEntity = Entity;
 pub struct Events {
     pub add_entity_events: Vec<(ParentEntity, ChildEntity)>,
+    pub remove_entity_events: Vec<Entity>,
 }
 
 pub struct World {
@@ -100,6 +101,7 @@ impl World {
             game_map_path: game_map.get_full_resource_path(),
             event_cache: ApiShare::new(Events {
                 add_entity_events: Vec::new(),
+                remove_entity_events: Vec::new(),
             }),
             actor_api: ApiShare::new(ActorApi {
                 inputs: HashMap::new(),
@@ -694,6 +696,23 @@ impl World {
                     }
                 }
                 Dynamic::from(())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        let physics_clone = physics_share.clone();
+        let event_cache_clone = event_cache.clone();
+        FuncRegistration::new("remove_entity").set_into_module(
+            &mut module,
+            move |entity: Entity| {
+                if let (Some(mut physics), Some(mut shared), Some(mut events)) = (
+                    physics_clone.try_borrow_mut(),
+                    ecs_shared.try_borrow_mut(),
+                    event_cache_clone.try_borrow_mut(),
+                ) {
+                    Self::_remove_entity(&mut shared, &mut physics, entity);
+                    events.remove_entity_events.push(entity);
+                }
             },
         );
 

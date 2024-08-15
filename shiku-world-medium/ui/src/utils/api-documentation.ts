@@ -90,6 +90,12 @@ export const options = [
     detail: "(parent_entity: Entity, source: &str, x: f64, y: f64) -> Dynamic",
 },
 {
+    label: "shiku::nodes::remove_entity",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity) -> void",
+},
+{
     label: "shiku::nodes::set_scope_variable_on_entity",
     type: "function",
     info: "TODO: Add description",
