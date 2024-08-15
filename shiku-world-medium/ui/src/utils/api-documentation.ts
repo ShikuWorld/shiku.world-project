@@ -42,6 +42,12 @@ export const options = [
     detail: "(entity: Entity, x: f64, y: f64) -> void",
 },
 {
+    label: "shiku::physics::get_position",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity) -> Dynamic",
+},
+{
     label: "shiku::physics::apply_entity_friction_x",
     type: "function",
     info: "TODO: Add description",

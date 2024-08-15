@@ -485,6 +485,24 @@ impl World {
         );
 
         let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("get_position").set_into_module(
+            &mut module,
+            move |entity: Entity| -> Vec<Dynamic> {
+                if let Some(shared) = ecs_shared.try_borrow() {
+                    if let Some(transform) = shared.entities.transforms.get(&entity) {
+                        return vec![
+                            Dynamic::from(transform.position.0),
+                            Dynamic::from(transform.position.1),
+                        ];
+                    } else {
+                        error!("Could not find transform for entity: {}", entity);
+                    }
+                }
+                vec![Dynamic::from(0.0), Dynamic::from(0.0)]
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("apply_entity_friction_x").set_into_module(
             &mut module,
             move |entity: Entity, friction_x: f64| {
