@@ -99,9 +99,9 @@ pub struct BlueprintResource {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub struct Image {
-    path: String,
-    width: u32,
-    height: u32,
+    pub path: String,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

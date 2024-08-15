@@ -37,12 +37,12 @@ function get_x_y_from_gid(gId: number, rows: number): [number, number] {
 const tile_width = computed(() => {
   return tileset.value.image
     ? tileset.value.tile_width
-    : tile.value.image?.width;
+    : tile.value?.image?.width;
 });
 const tile_height = computed(() => {
   return tileset.value.image
     ? tileset.value.tile_height
-    : tile.value.image?.height;
+    : tile.value?.image?.height;
 });
 const style_window = computed(() => {
   return {

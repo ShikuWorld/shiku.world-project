@@ -189,12 +189,12 @@ const collision_data = computed(() => {
 const tile_width = computed(() => {
   return tileset.value.image
     ? tileset.value.tile_width
-    : tile.value.image?.width;
+    : tile.value?.image?.width;
 });
 const tile_height = computed(() => {
   return tileset.value.image
     ? tileset.value.tile_height
-    : tile.value.image?.height;
+    : tile.value?.image?.height;
 });
 
 function update_collider(new_value: KeysOfUnion<CollisionShape> | null) {

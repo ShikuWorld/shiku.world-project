@@ -81,7 +81,6 @@ export class TerrainManager {
       return;
     }
     const effects_for_gid = this.sprite_by_gid_map[gid];
-    console.log(effects_for_gid);
     const graphics = resource_manager.get_graphics_data_by_gid(gid);
     const is_animated = graphics.frame_objects.length > 0;
     for (const tile_key of effects_for_gid.effects.values()) {

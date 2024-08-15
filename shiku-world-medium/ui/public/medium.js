@@ -41931,33 +41931,66 @@ ${e3}`);
           for (const res of resource_bundle.assets.filter(
             (a3) => a3.kind === "Image"
           )) {
-            this.image_texture_map[res.path].source.resource = r3[res.path].source.resource;
-            this.image_texture_map[res.path].source.scaleMode = SCALE_MODES.NEAREST;
-            this.image_texture_map[res.path].source.update();
+            if (!r3[res.path] || res.path && res.path.trim() === "") {
+              console.warn("Could not load empty image");
+              continue;
+            }
+            if (!this.image_texture_map[res.path]) {
+              this.image_texture_map[res.path] = r3[res.path];
+              this.image_texture_map[res.path].source.scaleMode = SCALE_MODES.NEAREST;
+              console.log("Loaded", res.path);
+            } else {
+              try {
+                this.image_texture_map[res.path].source.resource = r3[res.path].source.resource;
+                this.image_texture_map[res.path].source.scaleMode = SCALE_MODES.NEAREST;
+                this.image_texture_map[res.path].source.update();
+              } catch (e3) {
+                console.error("Could not update texture", res, e3);
+              }
+            }
           }
           this._update_uv_maps();
         });
       }).with({ LoadTilesets: _.select() }, (tilesets) => {
         this.set_tileset_map(tilesets);
       }).with({ UpdateGidMap: _.select() }, (gid_map) => {
-        console.log("gid_map update", gid_map);
+        this.graphic_id_map = {};
+        console.log("gid_map", gid_map);
         this.gid_map = gid_map;
       }).with(
         { UpdateTileset: _.select() },
         ([resource_path, tileset_update]) => {
-          N2(tileset_update).with(
+          N2(tileset_update).with({ ChangeTileImage: _.select() }, ([id_in_tileset, image]) => {
+            this.tile_set_map[resource_path].tiles[id_in_tileset] = {
+              id: id_in_tileset,
+              animation: [],
+              image,
+              collision_shape: null
+            };
+            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
+          }).with({ AddTile: _.select() }, ([id_in_tileset, tile]) => {
+            this.tile_set_map[resource_path].tiles[id_in_tileset] = tile;
+            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
+          }).with({ RemoveTile: _.select() }, (id_in_tileset) => {
+            delete this.tile_set_map[resource_path].tiles[id_in_tileset];
+            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
+          }).with(
             { ChangeTileAnimation: _.select() },
-            ([gid, simple_animation_frames]) => {
+            ([id_in_tileset, simple_animation_frames]) => {
               if (simple_animation_frames !== null) {
-                this.tile_set_map[resource_path].tiles[gid] = {
-                  id: gid,
+                this.tile_set_map[resource_path].tiles[id_in_tileset] = {
+                  id: id_in_tileset,
                   animation: simple_animation_frames,
                   image: null,
                   collision_shape: null
                 };
               }
-              if (this.tile_set_map[resource_path] && this.tile_set_map[resource_path].tiles[gid] && simple_animation_frames) {
-                this.tile_set_map[resource_path].tiles[gid].animation = simple_animation_frames;
+              if (this.tile_set_map[resource_path] && this.tile_set_map[resource_path].tiles[id_in_tileset] && simple_animation_frames) {
+                this.tile_set_map[resource_path].tiles[id_in_tileset].animation = simple_animation_frames;
+                const gid = this.get_gid_from_local_id(
+                  id_in_tileset,
+                  resource_path
+                );
                 delete this.graphic_id_map[gid];
                 for (const worlds of Object.values(game_instance_map)) {
                   for (const game_instance of Object.values(worlds)) {
@@ -41993,6 +42026,7 @@ ${e3}`);
     }
     get_graphics_data_by_gid(gid) {
       if (!this.graphic_id_map[gid]) {
+        console.log("did not exist, creating", gid);
         const [tileset, start_gid] = this._get_tileset_by_gid(gid);
         const id_in_tileset = gid - start_gid;
         this.graphic_id_map[gid] = this._calculate_graphics(
@@ -42001,6 +42035,15 @@ ${e3}`);
         );
       }
       return this.graphic_id_map[gid];
+    }
+    get_gid_from_local_id(id_in_tileset, tileset_path) {
+      const tileset = this.tile_set_map[tileset_path];
+      if (!tileset) {
+        console.error("No tileset for", tileset_path, this.module_id);
+        return 0;
+      }
+      const start_gid = this.gid_map.find((g3) => g3[0] === tileset_path)?.[1] || 0;
+      return id_in_tileset + start_gid;
     }
     get_graphics_by_id_and_tileset_path(id_in_tileset, tileset_path) {
       const tileset = this.tile_set_map[tileset_path];
@@ -42011,8 +42054,10 @@ ${e3}`);
           frame_objects: []
         };
       }
-      const start_gid = this.gid_map.find((g3) => g3[0] === tileset_path)?.[1] || 0;
-      const gid = id_in_tileset + start_gid;
+      if (tileset.image && id_in_tileset >= tileset.tile_count || !tileset.image && id_in_tileset >= Object.keys(tileset.tiles).length) {
+        return this._calculate_graphics(id_in_tileset, tileset);
+      }
+      const gid = this.get_gid_from_local_id(id_in_tileset, tileset_path);
       if (!this.graphic_id_map[gid]) {
         this.graphic_id_map[gid] = this._calculate_graphics(
           id_in_tileset,
@@ -42038,6 +42083,7 @@ ${e3}`);
       return [this.tile_set_map[path2], start_gid];
     }
     _calculate_graphics(id, tileset) {
+      console.log("calculating", id, tileset);
       const graphics = { textures: [], frame_objects: [] };
       if (id < 0 || !tileset) {
         graphics.textures.push(this.dummy_texture_tileset_missing);
@@ -42255,7 +42301,9 @@ ${e3}`);
         });
       });
       grid.grid_container.on("wheel", (wheel) => {
-        grid.mouse_wheel_event.dispatch(wheel.deltaY);
+        if (wheel.altKey) {
+          grid.mouse_wheel_event.dispatch(wheel.deltaY);
+        }
       });
       grid.grid_container.on("pointerup", (mouse_event) => {
         N2(mouse_event.button).with(0, () => {
@@ -43346,7 +43394,6 @@ ${e3}`);
         return;
       }
       const effects_for_gid = this.sprite_by_gid_map[gid];
-      console.log(effects_for_gid);
       const graphics = resource_manager.get_graphics_data_by_gid(gid);
       const is_animated = graphics.frame_objects.length > 0;
       for (const tile_key of effects_for_gid.effects.values()) {

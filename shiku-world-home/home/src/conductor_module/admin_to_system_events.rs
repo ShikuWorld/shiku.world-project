@@ -598,6 +598,20 @@ pub async fn handle_admin_to_system_event(
                     }
                     TilesetUpdate::ChangeTileImage(gid, image) => {
                         let tile = tileset.tiles.entry(*gid).or_default();
+                        if let Some(tile_image) = &tile.image {
+                            for module_id in resource_to_module_map
+                                .entry(resource_path.clone())
+                                .or_default()
+                                .iter()
+                            {
+                                resource_module
+                                    .unregister_resource_for_module(module_id, &tile_image.path);
+                                resource_module.register_resource_for_module(
+                                    module_id.clone(),
+                                    LoadResource::image(image.path.clone()),
+                                );
+                            }
+                        }
                         tile.image = Some(image.clone());
                     }
                     TilesetUpdate::ChangeTileAnimation(gid, animation) => {
@@ -605,11 +619,35 @@ pub async fn handle_admin_to_system_event(
                         tile.animation.clone_from(animation);
                     }
                     TilesetUpdate::RemoveTile(gid) => {
-                        tileset.tiles.remove(gid);
+                        if let Some(tile) = tileset.tiles.remove(gid) {
+                            if let Some(image) = &tile.image {
+                                for module_id in resource_to_module_map
+                                    .entry(resource_path.clone())
+                                    .or_default()
+                                    .iter()
+                                {
+                                    resource_module
+                                        .unregister_resource_for_module(module_id, &image.path);
+                                }
+                            }
+                        }
                         tileset.tile_count = tileset.tiles.keys().cloned().max().unwrap_or(0);
                     }
                     TilesetUpdate::AddTile(gid, tile) => {
                         tileset.tiles.insert(*gid, tile.clone());
+                        if let Some(image) = &tile.image {
+                            for module_id in resource_to_module_map
+                                .entry(resource_path.clone())
+                                .or_default()
+                                .iter()
+                            {
+                                resource_module.register_resource_for_module(
+                                    module_id.clone(),
+                                    LoadResource::image(image.path.clone()),
+                                );
+                            }
+                        }
+
                         tileset.tile_count = tileset.tiles.keys().cloned().max().unwrap_or(0);
                     }
                     TilesetUpdate::UpdateCollisionShape(tile_id, collision_shape) => {

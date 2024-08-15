@@ -209,12 +209,27 @@ export class ResourceManager {
           for (const res of resource_bundle.assets.filter(
             (a) => a.kind === "Image",
           )) {
-            this.image_texture_map[res.path].source.resource = (
-              r[res.path] as Texture
-            ).source.resource;
-            this.image_texture_map[res.path].source.scaleMode =
-              SCALE_MODES.NEAREST;
-            this.image_texture_map[res.path].source.update();
+            if (!r[res.path] || (res.path && res.path.trim() === "")) {
+              console.warn("Could not load empty image");
+              continue;
+            }
+            if (!this.image_texture_map[res.path]) {
+              this.image_texture_map[res.path] = r[res.path] as Texture;
+              this.image_texture_map[res.path].source.scaleMode =
+                SCALE_MODES.NEAREST;
+              console.log("Loaded", res.path);
+            } else {
+              try {
+                this.image_texture_map[res.path].source.resource = (
+                  r[res.path] as Texture
+                ).source.resource;
+                this.image_texture_map[res.path].source.scaleMode =
+                  SCALE_MODES.NEAREST;
+                this.image_texture_map[res.path].source.update();
+              } catch (e) {
+                console.error("Could not update texture", res, e);
+              }
+            }
           }
           this._update_uv_maps();
         });
@@ -223,19 +238,42 @@ export class ResourceManager {
         this.set_tileset_map(tilesets);
       })
       .with({ UpdateGidMap: P.select() }, (gid_map) => {
-        console.log("gid_map update", gid_map);
+        this.graphic_id_map = {};
         this.gid_map = gid_map;
       })
       .with(
         { UpdateTileset: P.select() },
         ([resource_path, tileset_update]) => {
           match(tileset_update)
+            .with({ ChangeTileImage: P.select() }, ([id_in_tileset, image]) => {
+              this.tile_set_map[resource_path].tiles[id_in_tileset] = {
+                id: id_in_tileset,
+                animation: [],
+                image,
+                collision_shape: null,
+              };
+              delete this.graphic_id_map[
+                this.get_gid_from_local_id(id_in_tileset, resource_path)
+              ];
+            })
+            .with({ AddTile: P.select() }, ([id_in_tileset, tile]) => {
+              this.tile_set_map[resource_path].tiles[id_in_tileset] = tile;
+              delete this.graphic_id_map[
+                this.get_gid_from_local_id(id_in_tileset, resource_path)
+              ];
+            })
+            .with({ RemoveTile: P.select() }, (id_in_tileset) => {
+              delete this.tile_set_map[resource_path].tiles[id_in_tileset];
+              delete this.graphic_id_map[
+                this.get_gid_from_local_id(id_in_tileset, resource_path)
+              ];
+            })
             .with(
               { ChangeTileAnimation: P.select() },
-              ([gid, simple_animation_frames]) => {
+              ([id_in_tileset, simple_animation_frames]) => {
                 if (simple_animation_frames !== null) {
-                  this.tile_set_map[resource_path].tiles[gid] = {
-                    id: gid,
+                  this.tile_set_map[resource_path].tiles[id_in_tileset] = {
+                    id: id_in_tileset,
                     animation: simple_animation_frames,
                     image: null,
                     collision_shape: null,
@@ -244,11 +282,16 @@ export class ResourceManager {
 
                 if (
                   this.tile_set_map[resource_path] &&
-                  this.tile_set_map[resource_path].tiles[gid] &&
+                  this.tile_set_map[resource_path].tiles[id_in_tileset] &&
                   simple_animation_frames
                 ) {
-                  this.tile_set_map[resource_path].tiles[gid].animation =
-                    simple_animation_frames;
+                  this.tile_set_map[resource_path].tiles[
+                    id_in_tileset
+                  ].animation = simple_animation_frames;
+                  const gid = this.get_gid_from_local_id(
+                    id_in_tileset,
+                    resource_path,
+                  );
                   delete this.graphic_id_map[gid];
                   for (const worlds of Object.values(game_instance_map)) {
                     for (const game_instance of Object.values(worlds)) {
@@ -304,6 +347,16 @@ export class ResourceManager {
     return this.graphic_id_map[gid];
   }
 
+  get_gid_from_local_id(id_in_tileset: number, tileset_path: string): number {
+    const tileset = this.tile_set_map[tileset_path];
+    if (!tileset) {
+      console.error("No tileset for", tileset_path, this.module_id);
+      return 0;
+    }
+    const start_gid = this.gid_map.find((g) => g[0] === tileset_path)?.[1] || 0;
+    return id_in_tileset + start_gid;
+  }
+
   get_graphics_by_id_and_tileset_path(
     id_in_tileset: number,
     tileset_path: string,
@@ -316,8 +369,13 @@ export class ResourceManager {
         frame_objects: [],
       };
     }
-    const start_gid = this.gid_map.find((g) => g[0] === tileset_path)?.[1] || 0;
-    const gid = id_in_tileset + start_gid;
+    if (
+      (tileset.image && id_in_tileset >= tileset.tile_count) ||
+      (!tileset.image && id_in_tileset >= Object.keys(tileset.tiles).length)
+    ) {
+      return this._calculate_graphics(id_in_tileset, tileset);
+    }
+    const gid = this.get_gid_from_local_id(id_in_tileset, tileset_path);
     if (!this.graphic_id_map[gid]) {
       this.graphic_id_map[gid] = this._calculate_graphics(
         id_in_tileset,

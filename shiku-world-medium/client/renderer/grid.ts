@@ -110,7 +110,9 @@ export function init_grid(
     });
 
     grid.grid_container.on("wheel", (wheel) => {
-      grid.mouse_wheel_event.dispatch(wheel.deltaY);
+      if (wheel.altKey) {
+        grid.mouse_wheel_event.dispatch(wheel.deltaY);
+      }
     });
 
     grid.grid_container.on("pointerup", (mouse_event) => {
