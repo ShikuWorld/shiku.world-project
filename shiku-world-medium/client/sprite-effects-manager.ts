@@ -129,6 +129,8 @@ export class SpriteEffectsManager {
     unique_key: string,
     gid: number,
     is_animated: boolean,
+    fade_in_effect?: SpriteEffect,
+    fade_out_effect?: SpriteEffect,
   ) {
     if (!this.sprite_by_gid_map[gid]) {
       this.sprite_by_gid_map[gid] = {
@@ -152,8 +154,12 @@ export class SpriteEffectsManager {
         rotation: 0,
         alpha: 1,
       },
-      fade_in: create_basic_fade_in_animation(300, Math.random() * 600),
-      fade_out: create_basic_fade_out_animation(300, Math.random() * 600),
+      fade_in:
+        fade_in_effect ??
+        create_basic_fade_in_animation(300, Math.random() * 600),
+      fade_out:
+        fade_out_effect ??
+        create_basic_fade_out_animation(300, Math.random() * 600),
       sprite,
       gid,
     };
