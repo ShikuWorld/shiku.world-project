@@ -140,6 +140,9 @@ pub async fn handle_admin_to_system_event(
         };
 
     match event {
+        AdminToSystemEvent::MousePosition(_x, _y) => {
+            todo!()
+        }
         AdminToSystemEvent::ResetGameWorld(module_id, instance_id, world_id) => {
             if let Some(module) = module_map.get_mut(&module_id) {
                 if let Some(instance) = module.game_instances.get_mut(&instance_id) {

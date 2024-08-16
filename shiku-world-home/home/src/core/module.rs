@@ -133,6 +133,7 @@ pub enum CudResource {
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export)]
 pub enum AdminToSystemEvent {
+    MousePosition(Real, Real),
     ProviderLoggedIn(ProviderLoggedIn),
     UpdateConductor(Conductor),
     BrowseFolder(String),
