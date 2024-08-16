@@ -14,6 +14,22 @@
         <v-tab value="resources">Resources</v-tab>
         <v-tab value="settings">Settings</v-tab>
       </v-tabs>
+      <div class="editor-nav-top-toolbar">
+        <v-btn
+          @click="toggle_entity_colliders"
+          variant="text"
+          density="compact"
+          size="x-large"
+          :icon="mdiEgg"
+        ></v-btn>
+        <v-btn
+          @click="toggle_terrain_collisions"
+          variant="text"
+          density="compact"
+          size="x-large"
+          :icon="mdiTerrain"
+        ></v-btn>
+      </div>
     </div>
     <RhaiEditor
       v-if="selected_script_resource_path"
@@ -182,6 +198,8 @@ import { ChunkUpdate } from "@/editor/blueprints/ChunkUpdate";
 import { TerrainBrush } from "@/editor/blueprints/TerrainBrush";
 import { match, P } from "ts-pattern";
 import ServerLogs from "@/editor/editor/ServerLogs.vue";
+import { mdiEgg, mdiTerrain } from "@mdi/js";
+import { use_medium_api } from "@/editor/api";
 
 const {
   selected_module_id,
@@ -211,6 +229,8 @@ const {
   set_inspector_component,
   start_inspecting_world,
 } = use_editor_store();
+const { toggle_entity_colliders } = use_game_instances_store();
+const { toggle_terrain_collisions } = use_medium_api();
 const { set_and_render_blueprint_render } = use_game_instances_store();
 const rhai_editor = ref<typeof RhaiEditor>();
 const selected_script_resource_path = ref<string | null>();
@@ -888,8 +908,16 @@ function open_resource_editor(resource: BlueprintResource) {
 }
 
 .editor-nav-top {
+  background-color: rgb(var(--v-theme-primary)) !important;
   width: 100%;
-  display: block;
+  display: flex;
+  justify-content: space-between;
+}
+
+.editor-nav-top-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 4px 4px 0 4px;
 }
 
 .editor-nav-left,

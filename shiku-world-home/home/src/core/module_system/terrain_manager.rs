@@ -498,7 +498,7 @@ impl TerrainManager {
     ) -> TerrainPolyLine {
         let mut vec = Vec::from(polyline_builder.vertices.clone());
         vec.dedup();
-        let vertices: Vec<Point2<Real>> = vec
+        let mut vertices: Vec<Point2<Real>> = vec
             .into_iter()
             .map(|v| {
                 Point2::new(
@@ -507,6 +507,7 @@ impl TerrainManager {
                 )
             })
             .collect();
+        Self::remove_collinear_points(&mut vertices);
         let (body_handle, collider_handle) = physics.add_polyine(vertices.clone());
         TerrainPolyLine {
             id: polyline_builder.id,
@@ -516,6 +517,29 @@ impl TerrainManager {
             body_handle,
             collider_handle,
         }
+    }
+
+    fn remove_collinear_points(points: &mut Vec<Point2<Real>>) {
+        if points.len() < 3 {
+            return;
+        }
+
+        let filtered: Vec<Point2<f32>> = points
+            .windows(3)
+            .enumerate()
+            .filter(|(_, window)| !Self::is_collinear(window[0], window[1], window[2]))
+            .map(|(i, _)| points[i + 1])
+            .collect();
+
+        *points = std::iter::once(points[0])
+            .chain(filtered)
+            .chain(std::iter::once(points[points.len() - 1]))
+            .collect();
+    }
+
+    fn is_collinear(p1: Point2<Real>, p2: Point2<Real>, p3: Point2<Real>) -> bool {
+        let area = (p2.x - p1.x) * (p3.y - p1.y) - (p3.x - p1.x) * (p2.y - p1.y);
+        area.abs() < 1e-6
     }
 
     fn add_vertices(

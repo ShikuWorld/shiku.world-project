@@ -43412,7 +43412,7 @@ ${e3}`);
         return tile_effect.fade_in.all_tweens.some((t3) => t3.isPlaying()) || tile_effect.fade_out.all_tweens.some((t3) => t3.isPlaying());
       });
     }
-    add_sprite_with_effects(sprite, unique_key, gid, is_animated) {
+    add_sprite_with_effects(sprite, unique_key, gid, is_animated, fade_in_effect, fade_out_effect) {
       if (!this.sprite_by_gid_map[gid]) {
         this.sprite_by_gid_map[gid] = {
           effects: /* @__PURE__ */ new Set(),
@@ -43432,8 +43432,8 @@ ${e3}`);
           rotation: 0,
           alpha: 1
         },
-        fade_in: create_basic_fade_in_animation(300, Math.random() * 600),
-        fade_out: create_basic_fade_out_animation(300, Math.random() * 600),
+        fade_in: fade_in_effect ?? create_basic_fade_in_animation(300, Math.random() * 600),
+        fade_out: fade_out_effect ?? create_basic_fade_out_animation(300, Math.random() * 600),
         sprite,
         gid
       };

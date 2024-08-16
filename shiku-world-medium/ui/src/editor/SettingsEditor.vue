@@ -27,10 +27,10 @@ import { use_game_instances_store } from "@/editor/stores/game-instances";
 import { use_medium_api } from "@/editor/api";
 
 const { toggle_entity_colliders } = use_game_instances_store();
+const { toggle_terrain_collisions } = use_medium_api();
 const { main_door_status, back_door_status } = storeToRefs(use_config_store());
 const { set_main_door_status_server, set_back_door_status_server } =
   use_config_store();
-const { toggle_terrain_collisions } = use_medium_api();
 
 const update_main_door_status = (new_value: boolean | null) => {
   if (new_value !== null) {
