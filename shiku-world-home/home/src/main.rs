@@ -88,7 +88,7 @@ async fn main() {
     .await;
 
     let mut interval = spin_sleep_util::interval(Duration::from_secs(1) / TARGET_FPS as u32);
-    debug!("Starting main loop.");
+    debug!("Starting main loop!");
     loop {
         conductor_module.conduct().await;
 

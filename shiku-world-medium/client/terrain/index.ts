@@ -1,16 +1,10 @@
-import { AnimatedSprite, Container, Ticker } from "pixi.js";
+import { Container, Ticker } from "pixi.js";
 import { ResourceManager } from "../resources";
 import { InstanceRendering } from "../renderer";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { Chunk } from "@/editor/blueprints/Chunk";
-import {
-  create_basic_fade_in_animation,
-  create_basic_fade_out_animation,
-  SpriteEffect,
-  SpriteEffectProperties,
-} from "@/client/sprite-animations";
-import { update } from "@tweenjs/tween.js";
+import { SpriteEffectsManager } from "@/client/sprite-effects-manager";
 
 export function to_natural(num: number): number {
   if (num < 0) {
@@ -32,32 +26,13 @@ export function create_terrain_manager(
   return new TerrainManager(terrain_params);
 }
 
-type TileEffect = {
-  base_props: SpriteEffectProperties;
-  fade_in: SpriteEffect;
-  fade_out: SpriteEffect;
-  sprite: AnimatedSprite;
-  gid: number;
-};
-
-type TileEffectMap = {
-  [key: string]: TileEffect;
-};
-
 export class TerrainManager {
   private _chunk_map: Map<
     LayerKind,
     Map<number, { container: Container; data: Chunk }>
   > = new Map();
 
-  private _active_animations: TileEffect[] = [];
-  sprite_by_gid_map: {
-    [gid: string]: {
-      effects: Set<string>;
-      main_animation_sprite_key: string | null;
-    };
-  } = {};
-  tile_effects_map: TileEffectMap = {};
+  sprite_effects_manager = new SpriteEffectsManager();
 
   constructor(public terrain_params: TerrainParams) {
     Ticker.shared.add(() => {
@@ -77,95 +52,18 @@ export class TerrainManager {
     resource_manager: ResourceManager,
     gid: number,
   ) {
-    if (!this.sprite_by_gid_map[gid]) {
-      return;
-    }
-    const effects_for_gid = this.sprite_by_gid_map[gid];
-    const graphics = resource_manager.get_graphics_data_by_gid(gid);
-    const is_animated = graphics.frame_objects.length > 0;
-    for (const tile_key of effects_for_gid.effects.values()) {
-      this.tile_effects_map[tile_key].sprite.textures =
-        graphics.frame_objects.length > 0
-          ? graphics.frame_objects
-          : graphics.textures;
-    }
-    console.log("is_animated: ", is_animated, "gid: ", gid);
-    if (is_animated) {
-      if (effects_for_gid.main_animation_sprite_key == null) {
-        effects_for_gid.main_animation_sprite_key = effects_for_gid.effects
-          .values()
-          .next().value as string;
-      }
-      this.tile_effects_map[
-        effects_for_gid.main_animation_sprite_key
-      ].sprite.play();
-    }
-
-    if (!is_animated && effects_for_gid.main_animation_sprite_key != null) {
-      effects_for_gid.main_animation_sprite_key = null;
-    }
+    this.sprite_effects_manager.update_animations_for_animated_sprites(
+      resource_manager,
+      gid,
+    );
   }
 
   sync_sprite_animations() {
-    for (const sprite_map of Object.values(this.sprite_by_gid_map)) {
-      if (sprite_map.main_animation_sprite_key === null) {
-        continue;
-      }
-      let main_sprite =
-        this.tile_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
-      // give role of main sprite to a different sprite if main sprite was removed
-      if (!main_sprite) {
-        sprite_map.main_animation_sprite_key =
-          (sprite_map.effects.values().next().value as string) ?? null;
-        main_sprite =
-          this.tile_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
-        if (!main_sprite) {
-          continue;
-        }
-        main_sprite.play();
-      }
-      const current_frame = main_sprite.currentFrame;
-      for (const tile_key of sprite_map.effects.values()) {
-        if (tile_key === sprite_map.main_animation_sprite_key) {
-          continue;
-        }
-        this.tile_effects_map[tile_key].sprite.currentFrame = current_frame;
-      }
-    }
+    this.sprite_effects_manager.sync_sprite_animations();
   }
 
   update_effects() {
-    this._active_animations = this._active_animations.filter((tile_effect) => {
-      update(window.performance.now());
-      tile_effect.sprite.position.x =
-        tile_effect.base_props.pos_x +
-        tile_effect.fade_in.add_props.pos_x +
-        tile_effect.fade_out.add_props.pos_x;
-      tile_effect.sprite.position.y =
-        tile_effect.base_props.pos_y +
-        tile_effect.fade_in.add_props.pos_y +
-        tile_effect.fade_out.add_props.pos_y;
-      tile_effect.sprite.rotation =
-        tile_effect.base_props.rotation +
-        tile_effect.fade_in.add_props.rotation +
-        tile_effect.fade_out.add_props.rotation;
-      tile_effect.sprite.alpha =
-        tile_effect.base_props.alpha +
-        tile_effect.fade_in.add_props.alpha +
-        tile_effect.fade_out.add_props.alpha;
-      tile_effect.sprite.scale.x =
-        tile_effect.base_props.scale_x +
-        tile_effect.fade_in.add_props.scale_x +
-        tile_effect.fade_out.add_props.scale_x;
-      tile_effect.sprite.scale.y =
-        tile_effect.base_props.scale_y +
-        tile_effect.fade_in.add_props.scale_y +
-        tile_effect.fade_out.add_props.scale_y;
-      return (
-        tile_effect.fade_in.all_tweens.some((t) => t.isPlaying()) ||
-        tile_effect.fade_out.all_tweens.some((t) => t.isPlaying())
-      );
-    });
+    this.sprite_effects_manager.update_effects();
   }
 
   add_chunk(
@@ -225,14 +123,9 @@ export class TerrainManager {
         x,
         y,
       );
-      if (!this.sprite_by_gid_map[gid]) {
-        this.sprite_by_gid_map[gid] = {
-          effects: new Set(),
-          main_animation_sprite_key: null,
-        };
-      }
-      const tile_effect = this.tile_effects_map[tile_key];
-      if (!tile_effect) {
+      const sprite_effect =
+        this.sprite_effects_manager.get_sprite_effect_by_unique_key(tile_key);
+      if (!sprite_effect) {
         if (gid === 0) {
           continue;
         }
@@ -245,21 +138,18 @@ export class TerrainManager {
           chunk_map_entry,
         );
       } else {
-        if (gid === tile_effect.gid) {
+        if (gid === sprite_effect.gid) {
           continue;
         }
-        if (!this._active_animations.includes(tile_effect)) {
-          this._active_animations.push(tile_effect);
-        }
-
-        delete this.tile_effects_map[tile_key];
-        this.sprite_by_gid_map[tile_effect.gid].effects.delete(tile_key);
-
-        tile_effect.fade_out.tween.start(window.performance.now());
-        tile_effect.fade_out.all_tweens[
-          tile_effect.fade_out.all_tweens.length - 1
+        this.sprite_effects_manager.remove_sprite_effect(
+          tile_key,
+          sprite_effect.gid,
+        );
+        sprite_effect.fade_out.tween.start(window.performance.now());
+        sprite_effect.fade_out.all_tweens[
+          sprite_effect.fade_out.all_tweens.length - 1
         ].onComplete(() => {
-          chunk_map_entry.container.removeChild(tile_effect.sprite);
+          chunk_map_entry.container.removeChild(sprite_effect.sprite);
         });
         if (gid !== 0) {
           this._create_new_tile(
@@ -289,36 +179,17 @@ export class TerrainManager {
     const graphics = resource_manager.get_graphics_data_by_gid(gid);
     const sprite = resource_manager.get_animated_sprite_from_graphics(graphics);
     const is_animated = graphics.frame_objects.length > 0;
-
-    if (
-      is_animated &&
-      this.sprite_by_gid_map[gid].main_animation_sprite_key == null
-    ) {
-      this.sprite_by_gid_map[gid].main_animation_sprite_key = tile_key;
-      sprite.play();
-    }
-
+    sprite.x = x;
     sprite.y = y;
     sprite.rotation = 0;
-    this.tile_effects_map[tile_key] = {
-      base_props: {
-        pos_x: x,
-        pos_y: y,
-        scale_x: 0,
-        scale_y: 0,
-        rotation: 0,
-        alpha: 1,
-      },
-      fade_in: create_basic_fade_in_animation(300, Math.random() * 600),
-      fade_out: create_basic_fade_out_animation(300, Math.random() * 600),
-      sprite,
-      gid: gid,
-    };
-    const new_tile_effect = this.tile_effects_map[tile_key];
-    this.sprite_by_gid_map[gid].effects.add(tile_key);
-    new_tile_effect.fade_in.tween.start(window.performance.now());
-    this._active_animations.push(new_tile_effect);
     chunk_map_entry.container.addChild(sprite);
+
+    this.sprite_effects_manager.add_sprite_with_effects(
+      sprite,
+      tile_key,
+      gid,
+      is_animated,
+    );
   }
 }
 
