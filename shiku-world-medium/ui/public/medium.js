@@ -40596,8 +40596,6 @@ ${e3}`);
   init_textureFrom();
   init_Container();
   init_Graphics();
-  init_Sprite();
-  init_Ticker();
   init_eventemitter3();
   var import_earcut2 = __toESM(require_earcut(), 1);
   extensions.add(browserExt, webworkerExt);
@@ -41802,707 +41800,6 @@ ${e3}`);
   // shared/index.ts
   var RENDER_SCALE = 32;
 
-  // client/resources/index.ts
-  var ResourceManager = class {
-    constructor(_base_url, renderer, module_id) {
-      this._base_url = _base_url;
-      this.module_id = module_id;
-      this.dummy_texture_tileset_missing = renderer.dummy_texture_tileset_missing;
-      this.dummy_texture_loading = renderer.dummy_texture_loading;
-      this.graphic_id_map["0"] = { textures: [Texture.EMPTY], frame_objects: [] };
-    }
-    image_texture_map = {};
-    graphic_id_map = {};
-    gid_map = [];
-    character_animation_to_tileset_map = {};
-    tilesets = [];
-    tile_set_map = {};
-    dummy_texture_tileset_missing;
-    dummy_texture_loading;
-    resource_bundle_complete = new import_strongly_typed_events4.SimpleEventDispatcher();
-    resources_unload = new import_strongly_typed_events4.SimpleEventDispatcher();
-    set_tileset_map(tilesets) {
-      for (const tileset of tilesets) {
-        this.tile_set_map[`${tileset.resource_path}/${tileset.name}.tileset.json`] = tileset;
-      }
-    }
-    async add_loading_to_texture_map(path2) {
-      const loading = Texture.from(await create_dummy_pic("#FF00ff"));
-      this.image_texture_map[path2] = Texture.from(loading.source);
-      this.image_texture_map[path2].source.scaleMode = SCALE_MODES.NEAREST;
-      this.image_texture_map[path2].source.update();
-    }
-    async load_resource_bundle(module_id, instance_id, resource_bundle, dispatch_resource_bundle_complete = false) {
-      const bundle_id = `${module_id}-${resource_bundle.name}`;
-      const path_to_resource_map = resource_bundle.assets.reduce(
-        (acc, r3) => ({ ...acc, [r3.path]: r3 }),
-        {}
-      );
-      for (const asset of resource_bundle.assets) {
-        await N2(asset.kind).with("Image", async () => {
-          if (!this.image_texture_map[asset.path]) {
-            console.log("Adding", asset);
-            await this.add_loading_to_texture_map(asset.path);
-            console.log("oh oh", asset);
-          }
-          return Promise.resolve();
-        }).with("Font", async () => {
-          console.log("font", asset);
-          return Promise.resolve();
-        }).with("Audio", async () => {
-          console.log("audio", asset);
-          return Promise.resolve();
-        }).with("Unknown", async () => Promise.resolve()).exhaustive();
-      }
-      Assets.addBundle(
-        bundle_id,
-        resource_bundle.assets.map((asset) => ({
-          alias: asset.path,
-          src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`
-        }))
-      );
-      Assets.loadBundle(bundle_id).then((r3) => {
-        for (const load_resource of resource_bundle.assets) {
-          const path2 = load_resource.path;
-          const loaded_resource = r3[path2];
-          if (!loaded_resource) {
-            console.error(`${path2} did not load?!`);
-            continue;
-          }
-          N2(path_to_resource_map[path2].kind).with("Image", () => {
-            this.image_texture_map[path2].source.resource = loaded_resource.source.resource;
-            this.image_texture_map[path2].source.scaleMode = SCALE_MODES.NEAREST;
-            this.image_texture_map[path2].source.update();
-          }).with("Font", async () => {
-            console.log(loaded_resource);
-          }).with("Audio", async () => {
-            console.log(loaded_resource);
-          }).with("Unknown", () => {
-          }).exhaustive();
-        }
-        if (dispatch_resource_bundle_complete) {
-          this.resource_bundle_complete.dispatch({
-            module_id,
-            instance_id,
-            bundle_name: resource_bundle.name
-          });
-        }
-        this._update_uv_maps();
-      });
-    }
-    create_bitmap_text(text_render) {
-      const bitmap_text = new BitmapText({
-        text: text_render.text,
-        style: {
-          fontFamily: text_render.font_family,
-          fontSize: text_render.size,
-          align: text_render.align.toLowerCase(),
-          letterSpacing: text_render.letter_spacing
-        }
-      });
-      N2(text_render.align).with("Center", () => {
-        bitmap_text.pivot.set(Math.round(bitmap_text.width / 2), 0);
-      }).with("Left", () => {
-        bitmap_text.pivot.set(0, 0);
-      }).with("Right", () => {
-        bitmap_text.pivot.set(bitmap_text.width, 0);
-      }).with("Justify", () => {
-        bitmap_text.pivot.set(0, 0);
-      }).exhaustive();
-      return bitmap_text;
-    }
-    _update_uv_maps() {
-      for (const g3 of Object.values(this.graphic_id_map)) {
-        for (const t3 of g3.textures) {
-          t3.updateUvs();
-        }
-      }
-    }
-    handle_resource_event(resource_event, game_instance_map) {
-      N2(resource_event).with({ LoadResource: _.select() }, (resource_bundle) => {
-        Assets.addBundle(
-          resource_bundle.name,
-          resource_bundle.assets.map((asset) => ({
-            alias: asset.path,
-            src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`
-          }))
-        );
-        Assets.loadBundle(resource_bundle.name).then((r3) => {
-          for (const res of resource_bundle.assets.filter(
-            (a3) => a3.kind === "Image"
-          )) {
-            if (!r3[res.path] || res.path && res.path.trim() === "") {
-              console.warn("Could not load empty image");
-              continue;
-            }
-            if (!this.image_texture_map[res.path]) {
-              this.image_texture_map[res.path] = r3[res.path];
-              this.image_texture_map[res.path].source.scaleMode = SCALE_MODES.NEAREST;
-              console.log("Loaded", res.path);
-            } else {
-              try {
-                this.image_texture_map[res.path].source.resource = r3[res.path].source.resource;
-                this.image_texture_map[res.path].source.scaleMode = SCALE_MODES.NEAREST;
-                this.image_texture_map[res.path].source.update();
-              } catch (e3) {
-                console.error("Could not update texture", res, e3);
-              }
-            }
-          }
-          this._update_uv_maps();
-        });
-      }).with({ LoadTilesets: _.select() }, (tilesets) => {
-        this.set_tileset_map(tilesets);
-      }).with({ UpdateGidMap: _.select() }, (gid_map) => {
-        this.graphic_id_map = {};
-        this.gid_map = gid_map;
-      }).with(
-        { UpdateTileset: _.select() },
-        ([resource_path, tileset_update]) => {
-          N2(tileset_update).with({ ChangeTileImage: _.select() }, ([id_in_tileset, image]) => {
-            this.tile_set_map[resource_path].tiles[id_in_tileset] = {
-              id: id_in_tileset,
-              animation: [],
-              image,
-              collision_shape: null
-            };
-            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
-          }).with({ AddTile: _.select() }, ([id_in_tileset, tile]) => {
-            this.tile_set_map[resource_path].tiles[id_in_tileset] = tile;
-            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
-          }).with({ RemoveTile: _.select() }, (id_in_tileset) => {
-            delete this.tile_set_map[resource_path].tiles[id_in_tileset];
-            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
-          }).with(
-            { ChangeTileAnimation: _.select() },
-            ([id_in_tileset, simple_animation_frames]) => {
-              if (simple_animation_frames !== null) {
-                this.tile_set_map[resource_path].tiles[id_in_tileset] = {
-                  id: id_in_tileset,
-                  animation: simple_animation_frames,
-                  image: null,
-                  collision_shape: null
-                };
-              }
-              if (this.tile_set_map[resource_path] && this.tile_set_map[resource_path].tiles[id_in_tileset] && simple_animation_frames) {
-                this.tile_set_map[resource_path].tiles[id_in_tileset].animation = simple_animation_frames;
-                const gid = this.get_gid_from_local_id(
-                  id_in_tileset,
-                  resource_path
-                );
-                delete this.graphic_id_map[gid];
-                for (const worlds of Object.values(game_instance_map)) {
-                  for (const game_instance of Object.values(worlds)) {
-                    game_instance.terrain_manager.update_animations_for_animated_sprites(
-                      this,
-                      gid
-                    );
-                  }
-                }
-              }
-            }
-          ).otherwise(() => {
-          });
-        }
-      ).with("UnLoadResources", () => console.log("unload")).exhaustive();
-    }
-    get_animated_sprite_from_graphics(graphics) {
-      const sprite = new AnimatedSprite(
-        graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures
-      );
-      sprite.anchor.set(0.5, 0.5);
-      return sprite;
-    }
-    get_sprite_from_graphics(graphics) {
-      let sprite;
-      if (graphics.frame_objects.length > 0) {
-        sprite = new AnimatedSprite(graphics.frame_objects);
-      } else {
-        sprite = Sprite.from(graphics.textures[0]);
-      }
-      sprite.anchor.set(0.5, 0.5);
-      return sprite;
-    }
-    get_graphics_data_by_gid(gid) {
-      if (!this.graphic_id_map[gid]) {
-        const [tileset, start_gid] = this._get_tileset_by_gid(gid);
-        const id_in_tileset = gid - start_gid;
-        this.graphic_id_map[gid] = this._calculate_graphics(
-          id_in_tileset,
-          tileset
-        );
-      }
-      return this.graphic_id_map[gid];
-    }
-    get_gid_from_local_id(id_in_tileset, tileset_path) {
-      const tileset = this.tile_set_map[tileset_path];
-      if (!tileset) {
-        console.error("No tileset for", tileset_path, this.module_id);
-        return 0;
-      }
-      const start_gid = this.gid_map.find((g3) => g3[0] === tileset_path)?.[1] || 0;
-      return id_in_tileset + start_gid;
-    }
-    get_graphics_by_id_and_tileset_path(id_in_tileset, tileset_path) {
-      const tileset = this.tile_set_map[tileset_path];
-      if (!tileset) {
-        console.error("No tileset for", tileset_path, this.module_id);
-        return {
-          textures: [this.dummy_texture_tileset_missing],
-          frame_objects: []
-        };
-      }
-      if (tileset.image && id_in_tileset >= tileset.tile_count || !tileset.image && id_in_tileset >= Object.keys(tileset.tiles).length) {
-        return this._calculate_graphics(id_in_tileset, tileset);
-      }
-      const gid = this.get_gid_from_local_id(id_in_tileset, tileset_path);
-      if (!this.graphic_id_map[gid]) {
-        this.graphic_id_map[gid] = this._calculate_graphics(
-          id_in_tileset,
-          tileset
-        );
-      }
-      return this.graphic_id_map[gid];
-    }
-    _get_tileset_by_gid(gid) {
-      let selected_gid_index = 0;
-      for (let i3 = 0; i3 < this.gid_map.length; i3++) {
-        const start_gid2 = this.gid_map[i3][1];
-        if (gid < start_gid2) {
-          break;
-        }
-        selected_gid_index = i3;
-      }
-      if (!this.gid_map[selected_gid_index]) {
-        console.error("No tileset for gid", gid, this.gid_map, this.module_id);
-        return [void 0, 0];
-      }
-      const [path2, start_gid] = this.gid_map[selected_gid_index];
-      return [this.tile_set_map[path2], start_gid];
-    }
-    _calculate_graphics(id, tileset) {
-      const graphics = { textures: [], frame_objects: [] };
-      if (id < 0 || !tileset) {
-        graphics.textures.push(this.dummy_texture_tileset_missing);
-        return graphics;
-      }
-      if (tileset.image) {
-        const texture_source = this.image_texture_map[tileset.image.path]?.source;
-        if (!texture_source) {
-          console.log("@@@@@@@@@@", Object.keys(this.image_texture_map));
-          graphics.textures.push(this.dummy_texture_loading);
-          console.error(
-            "No base_texture even though there should be a dummy at the very least!"
-          );
-          return graphics;
-        }
-        const animation_frames = tileset.tiles[id]?.animation ?? [];
-        if (animation_frames.length === 0) {
-          const x3 = (id - 1) % tileset.columns * tileset.tile_width;
-          const y3 = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
-          const texture = new Texture({
-            source: texture_source,
-            frame: new Rectangle(x3, y3, tileset.tile_width, tileset.tile_height)
-          });
-          graphics.textures.push(texture);
-        } else {
-          for (const frame of animation_frames) {
-            const x3 = (frame.id - 1) % tileset.columns * tileset.tile_width;
-            const y3 = Math.floor((frame.id - 1) / tileset.columns) * tileset.tile_height;
-            const texture = new Texture({
-              source: texture_source,
-              frame: new Rectangle(x3, y3, tileset.tile_width, tileset.tile_height)
-            });
-            graphics.frame_objects.push({ texture, time: frame.duration });
-          }
-        }
-      } else {
-        const image_path = tileset.tiles[id]?.image?.path;
-        if (!image_path) {
-          graphics.textures.push(this.dummy_texture_loading);
-          console.error("Could not find image path for tile!?");
-          return graphics;
-        }
-        const texture_source = this.image_texture_map[image_path]?.source;
-        if (!texture_source) {
-          graphics.textures.push(this.dummy_texture_loading);
-          console.error("Could not find image source for tile!?");
-          return graphics;
-        }
-        const texture = new Texture({
-          source: texture_source
-        });
-        graphics.textures.push(texture);
-      }
-      return graphics;
-    }
-  };
-  function create_display_object(node, resource_manager, show_colliders = false) {
-    const container = new Container();
-    N2(node).with({ Node2D: _.select() }, (game_node) => {
-      container.x = game_node.data.transform.position[0] * RENDER_SCALE;
-      container.y = game_node.data.transform.position[1] * RENDER_SCALE;
-      container.rotation = game_node.data.transform.rotation;
-      N2(game_node.data.kind).with({ Node2D: _.select() }, { Instance: _.select() }, () => {
-      }).with({ Render: _.select() }, (render2) => {
-        const display_object = N2(render2.kind).with(
-          { Sprite: _.select() },
-          ([tileset_path, id_in_tileset]) => resource_manager.get_sprite_from_graphics(
-            resource_manager.get_graphics_by_id_and_tileset_path(
-              id_in_tileset,
-              tileset_path
-            )
-          )
-        ).with(
-          { AnimatedSprite: _.select() },
-          ([char_anim_resource_path, id_in_tileset]) => resource_manager.get_sprite_from_graphics(
-            resource_manager.get_graphics_by_id_and_tileset_path(
-              id_in_tileset,
-              resource_manager.character_animation_to_tileset_map[char_anim_resource_path]
-            )
-          )
-        ).with(
-          { Text: _.select() },
-          (text_render) => resource_manager.create_bitmap_text(text_render)
-        ).exhaustive();
-        container.addChild(display_object);
-      }).with({ RigidBody: _.select() }, (_2) => {
-      }).with({ Collider: _.select() }, (collider) => {
-        const [graphics, pivot_x, pivot_y] = create_collider_graphic(collider);
-        container.addChild(graphics);
-        container.pivot.x = pivot_x * RENDER_SCALE;
-        container.pivot.y = pivot_y * RENDER_SCALE;
-        container.visible = show_colliders;
-      }).exhaustive();
-    }).exhaustive();
-    return container;
-  }
-  function create_collider_graphic(collider) {
-    return N2(collider.shape).with({ Ball: _.select() }, (radius) => {
-      const graphics = new Graphics().circle(0, 0, radius * RENDER_SCALE).stroke({
-        color: "#ff0000",
-        width: 1
-      });
-      return [graphics, 0, 0];
-    }).with(
-      { CapsuleX: _.select() },
-      ([_half_y, _radius]) => {
-        const graphics = new Graphics().circle(0, 0, RENDER_SCALE).stroke({
-          color: "#ff0000",
-          width: 1
-        });
-        return [graphics, 1, 1];
-      }
-    ).with(
-      { CapsuleY: _.select() },
-      ([_half_x, _radius]) => {
-        const graphics = new Graphics().circle(0, 0, RENDER_SCALE).stroke({
-          color: "#ff0000",
-          width: 1
-        });
-        return [graphics, 1, 1];
-      }
-    ).with(
-      { Cuboid: _.select() },
-      ([a3, b3]) => {
-        const graphics = new Graphics().rect(
-          -a3 * RENDER_SCALE,
-          -b3 * RENDER_SCALE,
-          a3 * 2 * RENDER_SCALE,
-          b3 * 2 * RENDER_SCALE
-        ).stroke({
-          color: "#ff0000",
-          width: 1
-        });
-        return [graphics, 0, 0];
-      }
-    ).exhaustive();
-  }
-
-  // client/renderer/grid.ts
-  var import_strongly_typed_events5 = __toESM(require_dist8());
-  function adjust_selected_tile_size(renderer, brush) {
-    if (renderer.grid && brush.length > 0 && brush[0].length > 0) {
-      const height = brush.length;
-      const width = brush[0].length;
-      renderer.grid.grid_container.removeChild(renderer.grid.selected_tile);
-      renderer.grid.selected_tile = new Graphics().rect(
-        0,
-        0,
-        renderer.terrain_params.tile_width * width,
-        renderer.terrain_params.tile_height * height
-      ).fill({
-        color: "#9999ff",
-        alpha: 0.5
-      });
-      renderer.grid.grid_container.addChild(renderer.grid.selected_tile);
-    }
-  }
-  function init_grid(renderer_system, renderer) {
-    if (!renderer.grid) {
-      const textureSource = new TextureSource({
-        width: renderer.terrain_params.tile_width,
-        height: renderer.terrain_params.tile_height
-      });
-      const renderTexture = new RenderTexture({ source: textureSource });
-      const graphics = new Graphics().rect(0, 0, 1, renderer.terrain_params.tile_height).rect(0, 0, renderer.terrain_params.tile_width, 1).fill({
-        color: "#ffffff",
-        alpha: 0.5
-      });
-      renderer_system.renderer.render({
-        target: renderTexture,
-        container: graphics
-      });
-      const selected_tile = new Graphics().rect(
-        0,
-        0,
-        renderer.terrain_params.tile_width,
-        renderer.terrain_params.tile_height
-      ).fill({
-        color: "#9999ff",
-        alpha: 0.5
-      });
-      const grid = {
-        sprite: new TilingSprite({
-          texture: renderTexture,
-          height: 1440,
-          width: 2560
-        }),
-        mouse_wheel_event: new import_strongly_typed_events5.SimpleEventDispatcher(),
-        grid_container: new Container(),
-        p_scaling: { x: 1, y: 1 },
-        last_mouse_move_position: { x: 0, y: 0 },
-        selected_tile
-      };
-      let middle_click_start = null;
-      let left_click_down = false;
-      grid.grid_container.addChild(grid.sprite);
-      grid.grid_container.interactive = true;
-      grid.grid_container.on("pointerdown", (mouse_event) => {
-        N2(mouse_event.button).with(0, () => {
-          const [x3, y3] = [
-            -(grid.sprite.tilePosition.x - grid.selected_tile.x) / renderer.terrain_params.tile_width,
-            -(grid.sprite.tilePosition.y - grid.selected_tile.y) / renderer.terrain_params.tile_height
-          ];
-          left_click_down = true;
-          window.medium_gui.editor.select_tile_position({
-            x: x3,
-            y: y3 - 1
-          });
-        }).with(1, () => {
-          middle_click_start = {
-            click_start: { x: mouse_event.x, y: mouse_event.y },
-            camera_iso_start: { ...renderer.camera.camera_isometry }
-          };
-        }).otherwise(() => {
-        });
-      });
-      grid.grid_container.on("wheel", (wheel) => {
-        if (wheel.altKey) {
-          grid.mouse_wheel_event.dispatch(wheel.deltaY);
-        }
-      });
-      grid.grid_container.on("pointerup", (mouse_event) => {
-        N2(mouse_event.button).with(0, () => {
-          left_click_down = false;
-        }).with(1, () => {
-          middle_click_start = null;
-        }).otherwise(() => {
-        });
-      });
-      grid.grid_container.addChild(selected_tile);
-      renderer_system.global_mouse_position.sub((mouse_event) => {
-        if (middle_click_start) {
-          const diff = {
-            x: mouse_event.x - middle_click_start.click_start.x,
-            y: mouse_event.y - middle_click_start.click_start.y
-          };
-          renderer.camera.update_camera_position({
-            x: middle_click_start.camera_iso_start.x - diff.x,
-            y: middle_click_start.camera_iso_start.y - diff.y,
-            rotation: middle_click_start.camera_iso_start.rotation
-          });
-        }
-        grid.last_mouse_move_position = mouse_event;
-        const new_selected_tile_position = get_current_selected_tile_position(renderer);
-        if (new_selected_tile_position !== null) {
-          const [new_selected_tile_x, new_selected_tile_y] = new_selected_tile_position;
-          if (new_selected_tile_x != grid.selected_tile.x || new_selected_tile_y != grid.selected_tile.y) {
-            if (left_click_down) {
-              const [x3, y3] = [
-                -(grid.sprite.tilePosition.x - new_selected_tile_x) / renderer.terrain_params.tile_width,
-                -(grid.sprite.tilePosition.y - new_selected_tile_y) / renderer.terrain_params.tile_height
-              ];
-              window.medium_gui.editor.select_tile_position({
-                x: x3,
-                y: y3 - 1
-              });
-            }
-            grid.selected_tile.x = new_selected_tile_x;
-            grid.selected_tile.y = new_selected_tile_y;
-          }
-        }
-      });
-      renderer.grid = grid;
-      renderer.main_container.addChild(renderer.grid.grid_container);
-    }
-  }
-  function toggle_grid(renderer) {
-    if (renderer.grid) {
-      renderer.grid.sprite.alpha = renderer.grid.sprite.alpha === 0 ? 1 : 0;
-    }
-  }
-  function get_current_selected_tile_position(renderer) {
-    const grid = renderer.grid;
-    if (!grid) {
-      return null;
-    }
-    const localPosition = grid.grid_container.toLocal(grid.sprite.tilePosition);
-    const [local_x, local_y] = [
-      Math.round(localPosition.x * (1 / renderer.camera.zoom)),
-      Math.round(localPosition.y * (1 / renderer.camera.zoom))
-    ];
-    const diff = {
-      x: local_x - grid.last_mouse_move_position.x * renderer.camera.zoom,
-      y: local_y - grid.last_mouse_move_position.y * renderer.camera.zoom
-    };
-    const selected_new_x = local_x - Math.floor(
-      (diff.x + renderer.terrain_params.tile_width) / renderer.terrain_params.tile_width
-    ) * renderer.terrain_params.tile_width;
-    const selected_new_y = local_y - Math.floor(
-      (diff.y + renderer.terrain_params.tile_height) / renderer.terrain_params.tile_height
-    ) * renderer.terrain_params.tile_height;
-    return [selected_new_x, selected_new_y];
-  }
-  function update_grid(camera_isometry, renderer) {
-    if (renderer.grid) {
-      const new_iso = camera_iso_to_scaled_viewport(
-        camera_isometry,
-        renderer.camera.zoom,
-        {
-          y_pscaling: renderer.grid.p_scaling.y,
-          x_pscaling: renderer.grid.p_scaling.x
-        }
-      );
-      if (renderer.grid.sprite.tilePosition.x !== new_iso.x || renderer.grid.sprite.tilePosition.y !== new_iso.y) {
-        renderer.grid.sprite.tilePosition.x = new_iso.x;
-        renderer.grid.sprite.tilePosition.y = new_iso.y;
-      }
-    }
-  }
-
-  // client/api/index.ts
-  var setup_medium_api = (communication_state, instances, resource_manager_map, render_system, menu_system, loading_indicator) => {
-    console.log("Setting up medium api");
-    window.medium = {
-      twitch_login: (communication_state2) => login(communication_state2),
-      communication_state,
-      reset_instances: () => {
-        render_system.stage.removeChildren();
-        for (const game_instance_id in instances) {
-          delete instances[game_instance_id];
-        }
-      },
-      reconnect: () => {
-        return new Promise((resolve) => {
-          reset_communication_system(communication_state, menu_system, () => {
-            menu_system.deactivate(MenuSystem.static_menus.ReconnectMenu);
-            render_system.stage.removeChildren();
-            for (const game_instance_id in instances) {
-              delete instances[game_instance_id];
-            }
-            resolve();
-          });
-        });
-      },
-      toggle_terrain_collisions: () => {
-        for (const instance_id in instances) {
-          for (const world_id in instances[instance_id]) {
-            instances[instance_id][world_id].toggle_terrain_collisions();
-          }
-        }
-      },
-      hide_loading_indicator: () => {
-        loading_indicator.className = "hidden";
-      },
-      is_instance_ready: (instance_id, world_id) => {
-        return !!instances[instance_id] && !!instances[instance_id][world_id];
-      },
-      toggle_grid: (instance_id, world_id) => {
-        if (instances[instance_id] && instances[instance_id][world_id]) {
-          toggle_grid(instances[instance_id][world_id].renderer);
-        }
-      },
-      sync_grid_with_layer_p_scaling: (instance_id, world_id, layer_kind) => {
-        if (instances[instance_id] && instances[instance_id][world_id]) {
-          const renderer = instances[instance_id][world_id].renderer;
-          if (renderer.grid) {
-            renderer.grid.p_scaling = {
-              x: renderer.layer_map[layer_kind].x_pscaling,
-              y: renderer.layer_map[layer_kind].y_pscaling
-            };
-          }
-        }
-      },
-      create_display_object,
-      create_collider_graphic,
-      set_blueprint_renderer: (blueprint_render_data) => {
-        set_blueprint_render(render_system, instances, blueprint_render_data);
-      },
-      adjust_brush_hover: (instance_id, world_id, brush) => {
-        if (instances[instance_id] && instances[instance_id][world_id]) {
-          adjust_selected_tile_size(
-            instances[instance_id][world_id].renderer,
-            brush
-          );
-        }
-      },
-      create_container: () => new Container(),
-      get_resource_manager: (module_id) => {
-        return resource_manager_map[module_id];
-      },
-      set_camera_iso: (instance_id, world_id, iso) => {
-        if (instances[instance_id] && instances[instance_id][world_id]) {
-          instances[instance_id][world_id].renderer.camera.update_camera_position(
-            iso
-          );
-        }
-      },
-      set_camera_zoom: (instance_id, world_id, zoom) => {
-        if (instances[instance_id] && instances[instance_id][world_id]) {
-          instances[instance_id][world_id].renderer.camera.set_camera_zoom(zoom);
-        }
-      },
-      get_camera_iso: (instance_id, world_id) => {
-        if (instances[instance_id] && instances[instance_id][world_id]) {
-          return instances[instance_id][world_id].renderer.camera.camera_isometry;
-        }
-        return { x: 0, y: 0, rotation: 0 };
-      },
-      get_camera_zoom: (instance_id, world_id) => {
-        if (instances[instance_id] && instances[instance_id][world_id]) {
-          return instances[instance_id][world_id].renderer.camera.zoom;
-        }
-        return 0;
-      },
-      swap_main_render_instance: (instance_id, world_id) => {
-        if (instances[instance_id] && instances[instance_id][world_id]) {
-          if (render_system.current_main_instance.instance_id && render_system.current_main_instance.world_id) {
-            if (instances[render_system.current_main_instance.instance_id] && instances[render_system.current_main_instance.instance_id][render_system.current_main_instance.world_id]) {
-              render_system.stage.removeChild(
-                instances[render_system.current_main_instance.instance_id][render_system.current_main_instance.world_id].renderer.main_container_wrapper
-              );
-            }
-          }
-          render_system.stage.addChild(
-            instances[instance_id][world_id].renderer.main_container_wrapper
-          );
-          render_system.current_main_instance = { instance_id, world_id };
-        }
-      }
-    };
-  };
-
   // node_modules/@tweenjs/tween.js/dist/tween.esm.js
   var Easing = Object.freeze({
     Linear: Object.freeze({
@@ -43352,8 +42649,727 @@ ${e3}`);
     };
   }
 
-  // client/sprite-effects-manager.ts
-  var SpriteEffectsManager = class {
+  // client/resources/index.ts
+  var ResourceManager = class {
+    constructor(_base_url, renderer, module_id) {
+      this._base_url = _base_url;
+      this.module_id = module_id;
+      this.dummy_texture_tileset_missing = renderer.dummy_texture_tileset_missing;
+      this.dummy_texture_loading = renderer.dummy_texture_loading;
+      this.graphic_id_map["0"] = { textures: [Texture.EMPTY], frame_objects: [] };
+    }
+    image_texture_map = {};
+    graphic_id_map = {};
+    gid_map = [];
+    character_animation_to_tileset_map = {};
+    tilesets = [];
+    tile_set_map = {};
+    dummy_texture_tileset_missing;
+    dummy_texture_loading;
+    resource_bundle_complete = new import_strongly_typed_events4.SimpleEventDispatcher();
+    resources_unload = new import_strongly_typed_events4.SimpleEventDispatcher();
+    set_tileset_map(tilesets) {
+      for (const tileset of tilesets) {
+        this.tile_set_map[`${tileset.resource_path}/${tileset.name}.tileset.json`] = tileset;
+      }
+    }
+    async add_loading_to_texture_map(path2) {
+      const loading = Texture.from(await create_dummy_pic("#FF00ff"));
+      this.image_texture_map[path2] = Texture.from(loading.source);
+      this.image_texture_map[path2].source.scaleMode = SCALE_MODES.NEAREST;
+      this.image_texture_map[path2].source.update();
+    }
+    async load_resource_bundle(module_id, instance_id, resource_bundle, dispatch_resource_bundle_complete = false) {
+      const bundle_id = `${module_id}-${resource_bundle.name}`;
+      const path_to_resource_map = resource_bundle.assets.reduce(
+        (acc, r3) => ({ ...acc, [r3.path]: r3 }),
+        {}
+      );
+      for (const asset of resource_bundle.assets) {
+        await N2(asset.kind).with("Image", async () => {
+          if (!this.image_texture_map[asset.path]) {
+            console.log("Adding", asset);
+            await this.add_loading_to_texture_map(asset.path);
+            console.log("oh oh", asset);
+          }
+          return Promise.resolve();
+        }).with("Font", async () => {
+          console.log("font", asset);
+          return Promise.resolve();
+        }).with("Audio", async () => {
+          console.log("audio", asset);
+          return Promise.resolve();
+        }).with("Unknown", async () => Promise.resolve()).exhaustive();
+      }
+      Assets.addBundle(
+        bundle_id,
+        resource_bundle.assets.map((asset) => ({
+          alias: asset.path,
+          src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`
+        }))
+      );
+      Assets.loadBundle(bundle_id).then((r3) => {
+        for (const load_resource of resource_bundle.assets) {
+          const path2 = load_resource.path;
+          const loaded_resource = r3[path2];
+          if (!loaded_resource) {
+            console.error(`${path2} did not load?!`);
+            continue;
+          }
+          N2(path_to_resource_map[path2].kind).with("Image", () => {
+            this.image_texture_map[path2].source.resource = loaded_resource.source.resource;
+            this.image_texture_map[path2].source.scaleMode = SCALE_MODES.NEAREST;
+            this.image_texture_map[path2].source.update();
+          }).with("Font", async () => {
+            console.log(loaded_resource);
+          }).with("Audio", async () => {
+            console.log(loaded_resource);
+          }).with("Unknown", () => {
+          }).exhaustive();
+        }
+        if (dispatch_resource_bundle_complete) {
+          this.resource_bundle_complete.dispatch({
+            module_id,
+            instance_id,
+            bundle_name: resource_bundle.name
+          });
+        }
+        this._update_uv_maps();
+      });
+    }
+    create_bitmap_text(text_render) {
+      const bitmap_text = new BitmapText({
+        text: text_render.text,
+        style: {
+          fontFamily: text_render.font_family,
+          fontSize: text_render.size,
+          align: text_render.align.toLowerCase(),
+          letterSpacing: text_render.letter_spacing
+        }
+      });
+      N2(text_render.align).with("Center", () => {
+        bitmap_text.pivot.set(Math.round(bitmap_text.width / 2), 0);
+      }).with("Left", () => {
+        bitmap_text.pivot.set(0, 0);
+      }).with("Right", () => {
+        bitmap_text.pivot.set(bitmap_text.width, 0);
+      }).with("Justify", () => {
+        bitmap_text.pivot.set(0, 0);
+      }).exhaustive();
+      return bitmap_text;
+    }
+    _update_uv_maps() {
+      for (const g3 of Object.values(this.graphic_id_map)) {
+        for (const t3 of g3.textures) {
+          t3.updateUvs();
+        }
+      }
+    }
+    handle_resource_event(resource_event, game_instance_map) {
+      N2(resource_event).with({ LoadResource: _.select() }, (resource_bundle) => {
+        Assets.addBundle(
+          resource_bundle.name,
+          resource_bundle.assets.map((asset) => ({
+            alias: asset.path,
+            src: `${this._base_url}/${asset.path}?q=${asset.cache_hash}`
+          }))
+        );
+        Assets.loadBundle(resource_bundle.name).then((r3) => {
+          for (const res of resource_bundle.assets.filter(
+            (a3) => a3.kind === "Image"
+          )) {
+            if (!r3[res.path] || res.path && res.path.trim() === "") {
+              console.warn("Could not load empty image");
+              continue;
+            }
+            if (!this.image_texture_map[res.path]) {
+              this.image_texture_map[res.path] = r3[res.path];
+              this.image_texture_map[res.path].source.scaleMode = SCALE_MODES.NEAREST;
+              console.log("Loaded", res.path);
+            } else {
+              try {
+                this.image_texture_map[res.path].source.resource = r3[res.path].source.resource;
+                this.image_texture_map[res.path].source.scaleMode = SCALE_MODES.NEAREST;
+                this.image_texture_map[res.path].source.update();
+              } catch (e3) {
+                console.error("Could not update texture", res, e3);
+              }
+            }
+          }
+          this._update_uv_maps();
+        });
+      }).with({ LoadTilesets: _.select() }, (tilesets) => {
+        this.set_tileset_map(tilesets);
+      }).with({ UpdateGidMap: _.select() }, (gid_map) => {
+        this.graphic_id_map = {};
+        this.gid_map = gid_map;
+      }).with(
+        { UpdateTileset: _.select() },
+        ([resource_path, tileset_update]) => {
+          N2(tileset_update).with({ ChangeTileImage: _.select() }, ([id_in_tileset, image]) => {
+            this.tile_set_map[resource_path].tiles[id_in_tileset] = {
+              id: id_in_tileset,
+              animation: [],
+              image,
+              collision_shape: null
+            };
+            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
+          }).with({ AddTile: _.select() }, ([id_in_tileset, tile]) => {
+            this.tile_set_map[resource_path].tiles[id_in_tileset] = tile;
+            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
+          }).with({ RemoveTile: _.select() }, (id_in_tileset) => {
+            delete this.tile_set_map[resource_path].tiles[id_in_tileset];
+            delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
+          }).with(
+            { ChangeTileAnimation: _.select() },
+            ([id_in_tileset, simple_animation_frames]) => {
+              if (simple_animation_frames !== null) {
+                this.tile_set_map[resource_path].tiles[id_in_tileset] = {
+                  id: id_in_tileset,
+                  animation: simple_animation_frames,
+                  image: null,
+                  collision_shape: null
+                };
+              }
+              if (this.tile_set_map[resource_path] && this.tile_set_map[resource_path].tiles[id_in_tileset] && simple_animation_frames) {
+                this.tile_set_map[resource_path].tiles[id_in_tileset].animation = simple_animation_frames;
+                const gid = this.get_gid_from_local_id(
+                  id_in_tileset,
+                  resource_path
+                );
+                delete this.graphic_id_map[gid];
+                for (const worlds of Object.values(game_instance_map)) {
+                  for (const game_instance of Object.values(worlds)) {
+                    game_instance.update_sprite_animations(this, gid);
+                  }
+                }
+              }
+            }
+          ).otherwise(() => {
+          });
+        }
+      ).with("UnLoadResources", () => console.log("unload")).exhaustive();
+    }
+    get_animated_sprite_from_graphics(graphics) {
+      const sprite = new AnimatedSprite(
+        graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures
+      );
+      sprite.anchor.set(0.5, 0.5);
+      return sprite;
+    }
+    get_sprite_from_graphics(graphics) {
+      const sprite = new AnimatedSprite(
+        graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures
+      );
+      sprite.anchor.set(0.5, 0.5);
+      return sprite;
+    }
+    get_graphics_data_by_gid(gid) {
+      if (!this.graphic_id_map[gid]) {
+        const [tileset, start_gid] = this._get_tileset_by_gid(gid);
+        const id_in_tileset = gid - start_gid;
+        this.graphic_id_map[gid] = this._calculate_graphics(
+          id_in_tileset,
+          tileset
+        );
+      }
+      return this.graphic_id_map[gid];
+    }
+    get_gid_from_local_id(id_in_tileset, tileset_path) {
+      const tileset = this.tile_set_map[tileset_path];
+      if (!tileset) {
+        console.error("No tileset for", tileset_path, this.module_id);
+        return 0;
+      }
+      const start_gid = this.gid_map.find((g3) => g3[0] === tileset_path)?.[1] || 0;
+      return id_in_tileset + start_gid;
+    }
+    get_graphics_by_id_and_tileset_path(id_in_tileset, tileset_path) {
+      const tileset = this.tile_set_map[tileset_path];
+      if (!tileset) {
+        console.error("No tileset for", tileset_path, this.module_id);
+        return {
+          textures: [this.dummy_texture_tileset_missing],
+          frame_objects: []
+        };
+      }
+      if (tileset.image && id_in_tileset >= tileset.tile_count || !tileset.image && id_in_tileset >= Object.keys(tileset.tiles).length) {
+        return this._calculate_graphics(id_in_tileset, tileset);
+      }
+      const gid = this.get_gid_from_local_id(id_in_tileset, tileset_path);
+      if (!this.graphic_id_map[gid]) {
+        this.graphic_id_map[gid] = this._calculate_graphics(
+          id_in_tileset,
+          tileset
+        );
+      }
+      return this.graphic_id_map[gid];
+    }
+    _get_tileset_by_gid(gid) {
+      let selected_gid_index = 0;
+      for (let i3 = 0; i3 < this.gid_map.length; i3++) {
+        const start_gid2 = this.gid_map[i3][1];
+        if (gid < start_gid2) {
+          break;
+        }
+        selected_gid_index = i3;
+      }
+      if (!this.gid_map[selected_gid_index]) {
+        console.error("No tileset for gid", gid, this.gid_map, this.module_id);
+        return [void 0, 0];
+      }
+      const [path2, start_gid] = this.gid_map[selected_gid_index];
+      return [this.tile_set_map[path2], start_gid];
+    }
+    _calculate_graphics(id, tileset) {
+      const graphics = { textures: [], frame_objects: [] };
+      if (id < 0 || !tileset) {
+        graphics.textures.push(this.dummy_texture_tileset_missing);
+        return graphics;
+      }
+      if (tileset.image) {
+        const texture_source = this.image_texture_map[tileset.image.path]?.source;
+        if (!texture_source) {
+          console.log("@@@@@@@@@@", Object.keys(this.image_texture_map));
+          graphics.textures.push(this.dummy_texture_loading);
+          console.error(
+            "No base_texture even though there should be a dummy at the very least!"
+          );
+          return graphics;
+        }
+        const animation_frames = tileset.tiles[id]?.animation ?? [];
+        if (animation_frames.length === 0) {
+          const x3 = (id - 1) % tileset.columns * tileset.tile_width;
+          const y3 = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
+          const texture = new Texture({
+            source: texture_source,
+            frame: new Rectangle(x3, y3, tileset.tile_width, tileset.tile_height)
+          });
+          graphics.textures.push(texture);
+        } else {
+          for (const frame of animation_frames) {
+            const x3 = (frame.id - 1) % tileset.columns * tileset.tile_width;
+            const y3 = Math.floor((frame.id - 1) / tileset.columns) * tileset.tile_height;
+            const texture = new Texture({
+              source: texture_source,
+              frame: new Rectangle(x3, y3, tileset.tile_width, tileset.tile_height)
+            });
+            graphics.frame_objects.push({ texture, time: frame.duration });
+          }
+        }
+      } else {
+        const image_path = tileset.tiles[id]?.image?.path;
+        if (!image_path) {
+          graphics.textures.push(this.dummy_texture_loading);
+          console.error("Could not find image path for tile!?");
+          return graphics;
+        }
+        const texture_source = this.image_texture_map[image_path]?.source;
+        if (!texture_source) {
+          graphics.textures.push(this.dummy_texture_loading);
+          console.error("Could not find image source for tile!?");
+          return graphics;
+        }
+        const texture = new Texture({
+          source: texture_source
+        });
+        graphics.textures.push(texture);
+      }
+      return graphics;
+    }
+  };
+  function create_display_object(node, resource_manager, effects_manager, show_colliders = false) {
+    const container = new Container();
+    N2(node).with({ Node2D: _.select() }, (game_node) => {
+      container.x = game_node.data.transform.position[0] * RENDER_SCALE;
+      container.y = game_node.data.transform.position[1] * RENDER_SCALE;
+      container.rotation = game_node.data.transform.rotation;
+      N2(game_node.data.kind).with({ Node2D: _.select() }, { Instance: _.select() }, () => {
+      }).with({ Render: _.select() }, (render2) => {
+        const display_object = N2(render2.kind).with({ Sprite: _.select() }, ([tileset_path, id_in_tileset]) => {
+          const sprite = resource_manager.get_sprite_from_graphics(
+            resource_manager.get_graphics_by_id_and_tileset_path(
+              id_in_tileset,
+              tileset_path
+            )
+          );
+          effects_manager.add_sprite_with_effects(
+            sprite,
+            game_node.entity_id ? `${game_node.entity_id}` : game_node.id,
+            resource_manager.get_gid_from_local_id(
+              id_in_tileset,
+              tileset_path
+            ),
+            create_basic_fade_in_animation(300, 0),
+            create_basic_fade_out_animation(300, 0)
+          );
+          return sprite;
+        }).with(
+          { AnimatedSprite: _.select() },
+          ([char_anim_resource_path, id_in_tileset]) => {
+            const tileset_path = resource_manager.character_animation_to_tileset_map[char_anim_resource_path];
+            const sprite = resource_manager.get_sprite_from_graphics(
+              resource_manager.get_graphics_by_id_and_tileset_path(
+                id_in_tileset,
+                tileset_path
+              )
+            );
+            effects_manager.add_sprite_with_effects(
+              sprite,
+              game_node.entity_id ? `${game_node.entity_id}` : game_node.id,
+              resource_manager.get_gid_from_local_id(
+                id_in_tileset,
+                tileset_path
+              ),
+              create_basic_fade_in_animation(300, 0),
+              create_basic_fade_out_animation(300, 0)
+            );
+            return sprite;
+          }
+        ).with(
+          { Text: _.select() },
+          (text_render) => resource_manager.create_bitmap_text(text_render)
+        ).exhaustive();
+        container.addChild(display_object);
+      }).with({ RigidBody: _.select() }, (_2) => {
+      }).with({ Collider: _.select() }, (collider) => {
+        const [graphics, pivot_x, pivot_y] = create_collider_graphic(collider);
+        container.addChild(graphics);
+        container.pivot.x = pivot_x * RENDER_SCALE;
+        container.pivot.y = pivot_y * RENDER_SCALE;
+        container.visible = show_colliders;
+      }).exhaustive();
+    }).exhaustive();
+    return container;
+  }
+  function create_collider_graphic(collider) {
+    return N2(collider.shape).with({ Ball: _.select() }, (radius) => {
+      const graphics = new Graphics().circle(0, 0, radius * RENDER_SCALE).stroke({
+        color: "#ff0000",
+        width: 1
+      });
+      return [graphics, 0, 0];
+    }).with(
+      { CapsuleX: _.select() },
+      ([_half_y, _radius]) => {
+        const graphics = new Graphics().circle(0, 0, RENDER_SCALE).stroke({
+          color: "#ff0000",
+          width: 1
+        });
+        return [graphics, 1, 1];
+      }
+    ).with(
+      { CapsuleY: _.select() },
+      ([_half_x, _radius]) => {
+        const graphics = new Graphics().circle(0, 0, RENDER_SCALE).stroke({
+          color: "#ff0000",
+          width: 1
+        });
+        return [graphics, 1, 1];
+      }
+    ).with(
+      { Cuboid: _.select() },
+      ([a3, b3]) => {
+        const graphics = new Graphics().rect(
+          -a3 * RENDER_SCALE,
+          -b3 * RENDER_SCALE,
+          a3 * 2 * RENDER_SCALE,
+          b3 * 2 * RENDER_SCALE
+        ).stroke({
+          color: "#ff0000",
+          width: 1
+        });
+        return [graphics, 0, 0];
+      }
+    ).exhaustive();
+  }
+
+  // client/renderer/grid.ts
+  var import_strongly_typed_events5 = __toESM(require_dist8());
+  function adjust_selected_tile_size(renderer, brush) {
+    if (renderer.grid && brush.length > 0 && brush[0].length > 0) {
+      const height = brush.length;
+      const width = brush[0].length;
+      renderer.grid.grid_container.removeChild(renderer.grid.selected_tile);
+      renderer.grid.selected_tile = new Graphics().rect(
+        0,
+        0,
+        renderer.terrain_params.tile_width * width,
+        renderer.terrain_params.tile_height * height
+      ).fill({
+        color: "#9999ff",
+        alpha: 0.5
+      });
+      renderer.grid.grid_container.addChild(renderer.grid.selected_tile);
+    }
+  }
+  function init_grid(renderer_system, renderer) {
+    if (!renderer.grid) {
+      const textureSource = new TextureSource({
+        width: renderer.terrain_params.tile_width,
+        height: renderer.terrain_params.tile_height
+      });
+      const renderTexture = new RenderTexture({ source: textureSource });
+      const graphics = new Graphics().rect(0, 0, 1, renderer.terrain_params.tile_height).rect(0, 0, renderer.terrain_params.tile_width, 1).fill({
+        color: "#ffffff",
+        alpha: 0.5
+      });
+      renderer_system.renderer.render({
+        target: renderTexture,
+        container: graphics
+      });
+      const selected_tile = new Graphics().rect(
+        0,
+        0,
+        renderer.terrain_params.tile_width,
+        renderer.terrain_params.tile_height
+      ).fill({
+        color: "#9999ff",
+        alpha: 0.5
+      });
+      const grid = {
+        sprite: new TilingSprite({
+          texture: renderTexture,
+          height: 1440,
+          width: 2560
+        }),
+        mouse_wheel_event: new import_strongly_typed_events5.SimpleEventDispatcher(),
+        grid_container: new Container(),
+        p_scaling: { x: 1, y: 1 },
+        last_mouse_move_position: { x: 0, y: 0 },
+        selected_tile
+      };
+      let middle_click_start = null;
+      let left_click_down = false;
+      grid.grid_container.addChild(grid.sprite);
+      grid.grid_container.interactive = true;
+      grid.grid_container.on("pointerdown", (mouse_event) => {
+        N2(mouse_event.button).with(0, () => {
+          const [x3, y3] = [
+            -(grid.sprite.tilePosition.x - grid.selected_tile.x) / renderer.terrain_params.tile_width,
+            -(grid.sprite.tilePosition.y - grid.selected_tile.y) / renderer.terrain_params.tile_height
+          ];
+          left_click_down = true;
+          window.medium_gui.editor.select_tile_position({
+            x: x3,
+            y: y3 - 1
+          });
+        }).with(1, () => {
+          middle_click_start = {
+            click_start: { x: mouse_event.x, y: mouse_event.y },
+            camera_iso_start: { ...renderer.camera.camera_isometry }
+          };
+        }).otherwise(() => {
+        });
+      });
+      grid.grid_container.on("wheel", (wheel) => {
+        if (wheel.altKey) {
+          grid.mouse_wheel_event.dispatch(wheel.deltaY);
+        }
+      });
+      grid.grid_container.on("pointerup", (mouse_event) => {
+        N2(mouse_event.button).with(0, () => {
+          left_click_down = false;
+        }).with(1, () => {
+          middle_click_start = null;
+        }).otherwise(() => {
+        });
+      });
+      grid.grid_container.addChild(selected_tile);
+      renderer_system.global_mouse_position.sub((mouse_event) => {
+        if (middle_click_start) {
+          const diff = {
+            x: mouse_event.x - middle_click_start.click_start.x,
+            y: mouse_event.y - middle_click_start.click_start.y
+          };
+          renderer.camera.update_camera_position({
+            x: middle_click_start.camera_iso_start.x - diff.x,
+            y: middle_click_start.camera_iso_start.y - diff.y,
+            rotation: middle_click_start.camera_iso_start.rotation
+          });
+        }
+        grid.last_mouse_move_position = mouse_event;
+        const new_selected_tile_position = get_current_selected_tile_position(renderer);
+        if (new_selected_tile_position !== null) {
+          const [new_selected_tile_x, new_selected_tile_y] = new_selected_tile_position;
+          if (new_selected_tile_x != grid.selected_tile.x || new_selected_tile_y != grid.selected_tile.y) {
+            if (left_click_down) {
+              const [x3, y3] = [
+                -(grid.sprite.tilePosition.x - new_selected_tile_x) / renderer.terrain_params.tile_width,
+                -(grid.sprite.tilePosition.y - new_selected_tile_y) / renderer.terrain_params.tile_height
+              ];
+              window.medium_gui.editor.select_tile_position({
+                x: x3,
+                y: y3 - 1
+              });
+            }
+            grid.selected_tile.x = new_selected_tile_x;
+            grid.selected_tile.y = new_selected_tile_y;
+          }
+        }
+      });
+      renderer.grid = grid;
+      renderer.main_container.addChild(renderer.grid.grid_container);
+    }
+  }
+  function toggle_grid(renderer) {
+    if (renderer.grid) {
+      renderer.grid.sprite.alpha = renderer.grid.sprite.alpha === 0 ? 1 : 0;
+    }
+  }
+  function get_current_selected_tile_position(renderer) {
+    const grid = renderer.grid;
+    if (!grid) {
+      return null;
+    }
+    const localPosition = grid.grid_container.toLocal(grid.sprite.tilePosition);
+    const [local_x, local_y] = [
+      Math.round(localPosition.x * (1 / renderer.camera.zoom)),
+      Math.round(localPosition.y * (1 / renderer.camera.zoom))
+    ];
+    const diff = {
+      x: local_x - grid.last_mouse_move_position.x * renderer.camera.zoom,
+      y: local_y - grid.last_mouse_move_position.y * renderer.camera.zoom
+    };
+    const selected_new_x = local_x - Math.floor(
+      (diff.x + renderer.terrain_params.tile_width) / renderer.terrain_params.tile_width
+    ) * renderer.terrain_params.tile_width;
+    const selected_new_y = local_y - Math.floor(
+      (diff.y + renderer.terrain_params.tile_height) / renderer.terrain_params.tile_height
+    ) * renderer.terrain_params.tile_height;
+    return [selected_new_x, selected_new_y];
+  }
+  function update_grid(camera_isometry, renderer) {
+    if (renderer.grid) {
+      const new_iso = camera_iso_to_scaled_viewport(
+        camera_isometry,
+        renderer.camera.zoom,
+        {
+          y_pscaling: renderer.grid.p_scaling.y,
+          x_pscaling: renderer.grid.p_scaling.x
+        }
+      );
+      if (renderer.grid.sprite.tilePosition.x !== new_iso.x || renderer.grid.sprite.tilePosition.y !== new_iso.y) {
+        renderer.grid.sprite.tilePosition.x = new_iso.x;
+        renderer.grid.sprite.tilePosition.y = new_iso.y;
+      }
+    }
+  }
+
+  // client/api/index.ts
+  var setup_medium_api = (communication_state, instances, resource_manager_map, render_system, menu_system, loading_indicator) => {
+    console.log("Setting up medium api");
+    window.medium = {
+      twitch_login: (communication_state2) => login(communication_state2),
+      communication_state,
+      reset_instances: () => {
+        render_system.stage.removeChildren();
+        for (const game_instance_id in instances) {
+          delete instances[game_instance_id];
+        }
+      },
+      reconnect: () => {
+        return new Promise((resolve) => {
+          reset_communication_system(communication_state, menu_system, () => {
+            menu_system.deactivate(MenuSystem.static_menus.ReconnectMenu);
+            render_system.stage.removeChildren();
+            for (const game_instance_id in instances) {
+              delete instances[game_instance_id];
+            }
+            resolve();
+          });
+        });
+      },
+      toggle_terrain_collisions: () => {
+        for (const instance_id in instances) {
+          for (const world_id in instances[instance_id]) {
+            instances[instance_id][world_id].toggle_terrain_collisions();
+          }
+        }
+      },
+      hide_loading_indicator: () => {
+        loading_indicator.className = "hidden";
+      },
+      is_instance_ready: (instance_id, world_id) => {
+        return !!instances[instance_id] && !!instances[instance_id][world_id];
+      },
+      toggle_grid: (instance_id, world_id) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          toggle_grid(instances[instance_id][world_id].renderer);
+        }
+      },
+      sync_grid_with_layer_p_scaling: (instance_id, world_id, layer_kind) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          const renderer = instances[instance_id][world_id].renderer;
+          if (renderer.grid) {
+            renderer.grid.p_scaling = {
+              x: renderer.layer_map[layer_kind].x_pscaling,
+              y: renderer.layer_map[layer_kind].y_pscaling
+            };
+          }
+        }
+      },
+      create_display_object,
+      create_collider_graphic,
+      set_blueprint_renderer: (blueprint_render_data) => {
+        set_blueprint_render(render_system, instances, blueprint_render_data);
+      },
+      adjust_brush_hover: (instance_id, world_id, brush) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          adjust_selected_tile_size(
+            instances[instance_id][world_id].renderer,
+            brush
+          );
+        }
+      },
+      create_container: () => new Container(),
+      get_resource_manager: (module_id) => {
+        return resource_manager_map[module_id];
+      },
+      set_camera_iso: (instance_id, world_id, iso) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          instances[instance_id][world_id].renderer.camera.update_camera_position(
+            iso
+          );
+        }
+      },
+      set_camera_zoom: (instance_id, world_id, zoom) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          instances[instance_id][world_id].renderer.camera.set_camera_zoom(zoom);
+        }
+      },
+      get_camera_iso: (instance_id, world_id) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          return instances[instance_id][world_id].renderer.camera.camera_isometry;
+        }
+        return { x: 0, y: 0, rotation: 0 };
+      },
+      get_camera_zoom: (instance_id, world_id) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          return instances[instance_id][world_id].renderer.camera.zoom;
+        }
+        return 0;
+      },
+      swap_main_render_instance: (instance_id, world_id) => {
+        if (instances[instance_id] && instances[instance_id][world_id]) {
+          if (render_system.current_main_instance.instance_id && render_system.current_main_instance.world_id) {
+            if (instances[render_system.current_main_instance.instance_id] && instances[render_system.current_main_instance.instance_id][render_system.current_main_instance.world_id]) {
+              render_system.stage.removeChild(
+                instances[render_system.current_main_instance.instance_id][render_system.current_main_instance.world_id].renderer.main_container_wrapper
+              );
+            }
+          }
+          render_system.stage.addChild(
+            instances[instance_id][world_id].renderer.main_container_wrapper
+          );
+          render_system.current_main_instance = { instance_id, world_id };
+        }
+      }
+    };
+  };
+
+  // client/effects-manager.ts
+  var EffectsManager = class {
     _active_animations = [];
     sprite_by_gid_map = {};
     sprite_effects_map = {};
@@ -43402,7 +43418,12 @@ ${e3}`);
     }
     update_effects() {
       this._active_animations = this._active_animations.filter((tile_effect) => {
-        update(window.performance.now());
+        tile_effect.fade_in.all_tweens.forEach(
+          (t3) => t3.update(window.performance.now())
+        );
+        tile_effect.fade_out.all_tweens.forEach(
+          (t3) => t3.update(window.performance.now())
+        );
         tile_effect.sprite.position.x = tile_effect.base_props.pos_x + tile_effect.fade_in.add_props.pos_x + tile_effect.fade_out.add_props.pos_x;
         tile_effect.sprite.position.y = tile_effect.base_props.pos_y + tile_effect.fade_in.add_props.pos_y + tile_effect.fade_out.add_props.pos_y;
         tile_effect.sprite.rotation = tile_effect.base_props.rotation + tile_effect.fade_in.add_props.rotation + tile_effect.fade_out.add_props.rotation;
@@ -43412,14 +43433,16 @@ ${e3}`);
         return tile_effect.fade_in.all_tweens.some((t3) => t3.isPlaying()) || tile_effect.fade_out.all_tweens.some((t3) => t3.isPlaying());
       });
     }
-    add_sprite_with_effects(sprite, unique_key, gid, is_animated, fade_in_effect, fade_out_effect) {
+    add_sprite_with_effects(sprite, unique_key, gid, fade_in_effect, fade_out_effect) {
       if (!this.sprite_by_gid_map[gid]) {
         this.sprite_by_gid_map[gid] = {
           effects: /* @__PURE__ */ new Set(),
           main_animation_sprite_key: null
         };
       }
+      const is_animated = sprite.textures.length > 1;
       if (is_animated && this.sprite_by_gid_map[gid].main_animation_sprite_key == null) {
+        console.log(is_animated, this.sprite_by_gid_map, gid);
         this.sprite_by_gid_map[gid].main_animation_sprite_key = unique_key;
         sprite.play();
       }
@@ -43437,17 +43460,79 @@ ${e3}`);
         sprite,
         gid
       };
-      const new_tile_effect = this.sprite_effects_map[unique_key];
+      const new_sprite_effect = this.sprite_effects_map[unique_key];
       this.sprite_by_gid_map[gid].effects.add(unique_key);
-      new_tile_effect.fade_in.tween.start(window.performance.now());
-      this._active_animations.push(new_tile_effect);
+      new_sprite_effect.fade_in.tween.start(window.performance.now());
+      this._active_animations.push(new_sprite_effect);
     }
     get_sprite_effect_by_unique_key(tile_key) {
       return this.sprite_effects_map[tile_key];
     }
-    remove_sprite_effect(tile_key, gid) {
-      delete this.sprite_effects_map[tile_key];
-      this.sprite_by_gid_map[gid].effects.delete(tile_key);
+    remove_sprite_effect(unique_key) {
+      const sprite_effect = this.sprite_effects_map[unique_key];
+      if (!sprite_effect) {
+        console.error(
+          "Could not find sprite effect to remove?!",
+          unique_key,
+          this.sprite_effects_map
+        );
+      } else {
+        const gid = sprite_effect.gid;
+        if (this.sprite_by_gid_map[gid]) {
+          delete this.sprite_effects_map[unique_key];
+          this.sprite_by_gid_map[gid].effects.delete(unique_key);
+        } else {
+          console.error(
+            "Trying to remove a sprite that is not the main animation sprite"
+          );
+        }
+      }
+    }
+    update_sprite(unique_key, sprite, new_gid) {
+      const sprite_effect = this.sprite_effects_map[unique_key];
+      if (!sprite_effect) {
+        console.error(
+          "Could not find sprite effect to update?!",
+          unique_key,
+          this.sprite_effects_map
+        );
+      } else {
+        const current_gid = sprite_effect.gid;
+        if (new_gid === current_gid) {
+          return;
+        }
+        if (!this.sprite_by_gid_map[new_gid]) {
+          this.sprite_by_gid_map[new_gid] = {
+            effects: /* @__PURE__ */ new Set(),
+            main_animation_sprite_key: null
+          };
+        }
+        if (this.sprite_by_gid_map[current_gid]) {
+          this.sprite_by_gid_map[current_gid].effects.delete(unique_key);
+          if (this.sprite_by_gid_map[current_gid].effects.size === 0) {
+            delete this.sprite_by_gid_map[current_gid];
+          } else {
+            if (this.sprite_by_gid_map[current_gid].main_animation_sprite_key === unique_key) {
+              const next_unique_key = this.sprite_by_gid_map[current_gid].effects.values().next().value;
+              this.sprite_by_gid_map[current_gid].main_animation_sprite_key = next_unique_key;
+              const next_sprite = this.sprite_effects_map[next_unique_key].sprite;
+              next_sprite.play();
+            }
+          }
+          sprite_effect.gid = new_gid;
+          sprite_effect.sprite = sprite;
+          const is_animated = sprite.textures.length > 1;
+          this.sprite_by_gid_map[new_gid].effects.add(unique_key);
+          if (is_animated && this.sprite_by_gid_map[new_gid].main_animation_sprite_key == null) {
+            this.sprite_by_gid_map[new_gid].main_animation_sprite_key = unique_key;
+            sprite.play();
+          }
+        } else {
+          console.error(
+            "Trying to remove a sprite that is not the main animation sprite"
+          );
+        }
+      }
     }
   };
 
@@ -43470,12 +43555,11 @@ ${e3}`);
   var TerrainManager = class {
     constructor(terrain_params) {
       this.terrain_params = terrain_params;
-      Ticker.shared.add(() => {
-        this.sync_sprite_animations();
-      });
     }
     _chunk_map = /* @__PURE__ */ new Map();
-    sprite_effects_manager = new SpriteEffectsManager();
+    sprite_effects_manager = new EffectsManager();
+    destroy() {
+    }
     remove_all_chunks_for_module(renderer) {
       for (const [layer, layer_chunks] of this._chunk_map.entries()) {
         for (const chunk of Object.values(layer_chunks)) {
@@ -43492,7 +43576,8 @@ ${e3}`);
     sync_sprite_animations() {
       this.sprite_effects_manager.sync_sprite_animations();
     }
-    update_effects() {
+    update() {
+      this.sprite_effects_manager.sync_sprite_animations();
       this.sprite_effects_manager.update_effects();
     }
     add_chunk(resource_manager, renderer, layer_kind, chunk) {
@@ -43541,10 +43626,7 @@ ${e3}`);
           if (gid === sprite_effect.gid) {
             continue;
           }
-          this.sprite_effects_manager.remove_sprite_effect(
-            tile_key,
-            sprite_effect.gid
-          );
+          this.sprite_effects_manager.remove_sprite_effect(tile_key);
           sprite_effect.fade_out.tween.start(window.performance.now());
           sprite_effect.fade_out.all_tweens[sprite_effect.fade_out.all_tweens.length - 1].onComplete(() => {
             chunk_map_entry.container.removeChild(sprite_effect.sprite);
@@ -43565,17 +43647,11 @@ ${e3}`);
     _create_new_tile(resource_manager, gid, x3, y3, tile_key, chunk_map_entry) {
       const graphics = resource_manager.get_graphics_data_by_gid(gid);
       const sprite = resource_manager.get_animated_sprite_from_graphics(graphics);
-      const is_animated = graphics.frame_objects.length > 0;
       sprite.x = x3;
       sprite.y = y3;
       sprite.rotation = 0;
       chunk_map_entry.container.addChild(sprite);
-      this.sprite_effects_manager.add_sprite_with_effects(
-        sprite,
-        tile_key,
-        gid,
-        is_animated
-      );
+      this.sprite_effects_manager.add_sprite_with_effects(sprite, tile_key, gid);
     }
   };
   function get_tile_key(layer_kind, chunk_x, chunk_y, tile_x, tile_y) {
@@ -43643,6 +43719,8 @@ ${e3}`);
       );
       if (render_graph_data) {
         this.renderer.camera.update_camera_position_from_ref(render_graph_data);
+        render_graph_data.effects_manager.sync_sprite_animations();
+        render_graph_data.effects_manager.update_effects();
       }
       for (const layerName of this.layer_map_keys) {
         const parallax_container = this.renderer.layer_map[layerName];
@@ -43653,7 +43731,19 @@ ${e3}`);
         );
       }
       update_grid(this.renderer.camera.camera_isometry, this.renderer);
-      this.terrain_manager.update_effects();
+      this.terrain_manager.update();
+    }
+    update_sprite_animations(resource_manager, gid) {
+      window.medium_gui.game_instances.update_sprite_animations(
+        this.id,
+        this.world_id,
+        resource_manager,
+        gid
+      );
+      this.terrain_manager.update_animations_for_animated_sprites(
+        resource_manager,
+        gid
+      );
     }
     handle_game_system_event(game_system_event, menu_system, resource_manager) {
       N2(game_system_event).with({ SetCameraSettings: _.select() }, (camera_settings) => {
@@ -43758,6 +43848,7 @@ ${e3}`);
       ).exhaustive();
     }
     destroy() {
+      this.terrain_manager.destroy();
     }
     draw_terrain_collisions(lines) {
       this.collision_lines.removeChildren();

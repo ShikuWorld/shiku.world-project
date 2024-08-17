@@ -7,7 +7,6 @@ import {
   Graphics as PixijsGraphics,
   Rectangle,
   SCALE_MODES,
-  Sprite,
   Texture,
   TextureSource,
 } from "pixi.js";
@@ -27,6 +26,11 @@ import { CharAnimationToTilesetMap } from "@/editor/blueprints/CharAnimationToTi
 import { GameInstanceMap } from "@/client/game-instance";
 import { TextRender } from "@/editor/blueprints/TextRender";
 import { TextStyleAlign } from "pixi.js/lib/scene/text/TextStyle";
+import { EffectsManager } from "@/client/effects-manager";
+import {
+  create_basic_fade_in_animation,
+  create_basic_fade_out_animation,
+} from "@/client/sprite-animations";
 
 export interface Graphics {
   textures: Texture[];
@@ -295,10 +299,7 @@ export class ResourceManager {
                   delete this.graphic_id_map[gid];
                   for (const worlds of Object.values(game_instance_map)) {
                     for (const game_instance of Object.values(worlds)) {
-                      game_instance.terrain_manager.update_animations_for_animated_sprites(
-                        this,
-                        gid,
-                      );
+                      game_instance.update_sprite_animations(this, gid);
                     }
                   }
                 }
@@ -321,14 +322,12 @@ export class ResourceManager {
     return sprite;
   }
 
-  get_sprite_from_graphics(graphics: Graphics): Sprite {
-    let sprite: Sprite;
-
-    if (graphics.frame_objects.length > 0) {
-      sprite = new AnimatedSprite(graphics.frame_objects);
-    } else {
-      sprite = Sprite.from(graphics.textures[0]);
-    }
+  get_sprite_from_graphics(graphics: Graphics): AnimatedSprite {
+    const sprite = new AnimatedSprite(
+      graphics.frame_objects.length > 0
+        ? graphics.frame_objects
+        : graphics.textures,
+    );
     sprite.anchor.set(0.5, 0.5);
     return sprite;
   }
@@ -474,6 +473,7 @@ export class ResourceManager {
 export function create_display_object(
   node: GameNodeKind,
   resource_manager: ResourceManager,
+  effects_manager: EffectsManager,
   show_colliders: boolean = false,
 ): Container {
   const container = new Container();
@@ -489,25 +489,50 @@ export function create_display_object(
         })
         .with({ Render: P.select() }, (render) => {
           const display_object = match(render.kind)
-            .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) =>
-              resource_manager.get_sprite_from_graphics(
+            .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) => {
+              const sprite = resource_manager.get_sprite_from_graphics(
                 resource_manager.get_graphics_by_id_and_tileset_path(
                   id_in_tileset,
                   tileset_path,
                 ),
-              ),
-            )
+              );
+              effects_manager.add_sprite_with_effects(
+                sprite,
+                game_node.entity_id ? `${game_node.entity_id}` : game_node.id,
+                resource_manager.get_gid_from_local_id(
+                  id_in_tileset,
+                  tileset_path,
+                ),
+                create_basic_fade_in_animation(300, 0),
+                create_basic_fade_out_animation(300, 0),
+              );
+              return sprite;
+            })
             .with(
               { AnimatedSprite: P.select() },
-              ([char_anim_resource_path, id_in_tileset]) =>
-                resource_manager.get_sprite_from_graphics(
+              ([char_anim_resource_path, id_in_tileset]) => {
+                const tileset_path =
+                  resource_manager.character_animation_to_tileset_map[
+                    char_anim_resource_path
+                  ];
+                const sprite = resource_manager.get_sprite_from_graphics(
                   resource_manager.get_graphics_by_id_and_tileset_path(
                     id_in_tileset,
-                    resource_manager.character_animation_to_tileset_map[
-                      char_anim_resource_path
-                    ],
+                    tileset_path,
                   ),
-                ),
+                );
+                effects_manager.add_sprite_with_effects(
+                  sprite,
+                  game_node.entity_id ? `${game_node.entity_id}` : game_node.id,
+                  resource_manager.get_gid_from_local_id(
+                    id_in_tileset,
+                    tileset_path,
+                  ),
+                  create_basic_fade_in_animation(300, 0),
+                  create_basic_fade_out_animation(300, 0),
+                );
+                return sprite;
+              },
             )
             .with({ Text: P.select() }, (text_render) =>
               resource_manager.create_bitmap_text(text_render),

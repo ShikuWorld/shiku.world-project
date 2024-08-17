@@ -1,10 +1,10 @@
-import { Container, Ticker } from "pixi.js";
+import { Container } from "pixi.js";
 import { ResourceManager } from "../resources";
 import { InstanceRendering } from "../renderer";
 import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { Chunk } from "@/editor/blueprints/Chunk";
-import { SpriteEffectsManager } from "@/client/sprite-effects-manager";
+import { EffectsManager } from "@/client/effects-manager";
 
 export function to_natural(num: number): number {
   if (num < 0) {
@@ -31,14 +31,11 @@ export class TerrainManager {
     LayerKind,
     Map<number, { container: Container; data: Chunk }>
   > = new Map();
+  sprite_effects_manager = new EffectsManager();
 
-  sprite_effects_manager = new SpriteEffectsManager();
+  constructor(public terrain_params: TerrainParams) {}
 
-  constructor(public terrain_params: TerrainParams) {
-    Ticker.shared.add(() => {
-      this.sync_sprite_animations();
-    });
-  }
+  destroy() {}
 
   remove_all_chunks_for_module(renderer: InstanceRendering) {
     for (const [layer, layer_chunks] of this._chunk_map.entries()) {
@@ -62,7 +59,8 @@ export class TerrainManager {
     this.sprite_effects_manager.sync_sprite_animations();
   }
 
-  update_effects() {
+  update() {
+    this.sprite_effects_manager.sync_sprite_animations();
     this.sprite_effects_manager.update_effects();
   }
 
@@ -141,10 +139,7 @@ export class TerrainManager {
         if (gid === sprite_effect.gid) {
           continue;
         }
-        this.sprite_effects_manager.remove_sprite_effect(
-          tile_key,
-          sprite_effect.gid,
-        );
+        this.sprite_effects_manager.remove_sprite_effect(tile_key);
         sprite_effect.fade_out.tween.start(window.performance.now());
         sprite_effect.fade_out.all_tweens[
           sprite_effect.fade_out.all_tweens.length - 1
@@ -178,18 +173,12 @@ export class TerrainManager {
   ) {
     const graphics = resource_manager.get_graphics_data_by_gid(gid);
     const sprite = resource_manager.get_animated_sprite_from_graphics(graphics);
-    const is_animated = graphics.frame_objects.length > 0;
     sprite.x = x;
     sprite.y = y;
     sprite.rotation = 0;
     chunk_map_entry.container.addChild(sprite);
 
-    this.sprite_effects_manager.add_sprite_with_effects(
-      sprite,
-      tile_key,
-      gid,
-      is_animated,
-    );
+    this.sprite_effects_manager.add_sprite_with_effects(sprite, tile_key, gid);
   }
 }
 

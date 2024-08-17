@@ -92,6 +92,8 @@ export class GameInstance {
       );
     if (render_graph_data) {
       this.renderer.camera.update_camera_position_from_ref(render_graph_data);
+      render_graph_data.effects_manager.sync_sprite_animations();
+      render_graph_data.effects_manager.update_effects();
     }
 
     for (const layerName of this.layer_map_keys) {
@@ -104,7 +106,20 @@ export class GameInstance {
     }
     update_grid(this.renderer.camera.camera_isometry, this.renderer);
 
-    this.terrain_manager.update_effects();
+    this.terrain_manager.update();
+  }
+
+  update_sprite_animations(resource_manager: ResourceManager, gid: number) {
+    window.medium_gui.game_instances.update_sprite_animations(
+      this.id,
+      this.world_id,
+      resource_manager,
+      gid,
+    );
+    this.terrain_manager.update_animations_for_animated_sprites(
+      resource_manager,
+      gid,
+    );
   }
 
   handle_game_system_event(
@@ -254,7 +269,9 @@ export class GameInstance {
       .exhaustive();
   }
 
-  destroy() {}
+  destroy() {
+    this.terrain_manager.destroy();
+  }
 
   draw_terrain_collisions(lines: [number, number][][]) {
     this.collision_lines.removeChildren();

@@ -5,7 +5,6 @@ import {
   SpriteEffect,
   SpriteEffectProperties,
 } from "@/client/sprite-animations";
-import { update } from "@tweenjs/tween.js";
 import { ResourceManager } from "@/client/resources";
 
 type MainSpriteEffects = {
@@ -20,7 +19,7 @@ type SpriteEffectMap = {
   [key: string]: MainSpriteEffects;
 };
 
-export class SpriteEffectsManager {
+export class EffectsManager {
   private _active_animations: MainSpriteEffects[] = [];
   sprite_by_gid_map: {
     [gid: string]: {
@@ -92,7 +91,12 @@ export class SpriteEffectsManager {
 
   update_effects() {
     this._active_animations = this._active_animations.filter((tile_effect) => {
-      update(window.performance.now());
+      tile_effect.fade_in.all_tweens.forEach((t) =>
+        t.update(window.performance.now()),
+      );
+      tile_effect.fade_out.all_tweens.forEach((t) =>
+        t.update(window.performance.now()),
+      );
       tile_effect.sprite.position.x =
         tile_effect.base_props.pos_x +
         tile_effect.fade_in.add_props.pos_x +
@@ -128,7 +132,6 @@ export class SpriteEffectsManager {
     sprite: AnimatedSprite,
     unique_key: string,
     gid: number,
-    is_animated: boolean,
     fade_in_effect?: SpriteEffect,
     fade_out_effect?: SpriteEffect,
   ) {
@@ -138,10 +141,12 @@ export class SpriteEffectsManager {
         main_animation_sprite_key: null,
       };
     }
+    const is_animated = sprite.textures.length > 1;
     if (
       is_animated &&
       this.sprite_by_gid_map[gid].main_animation_sprite_key == null
     ) {
+      console.log(is_animated, this.sprite_by_gid_map, gid);
       this.sprite_by_gid_map[gid].main_animation_sprite_key = unique_key;
       sprite.play();
     }
@@ -163,10 +168,10 @@ export class SpriteEffectsManager {
       sprite,
       gid,
     };
-    const new_tile_effect = this.sprite_effects_map[unique_key];
+    const new_sprite_effect = this.sprite_effects_map[unique_key];
     this.sprite_by_gid_map[gid].effects.add(unique_key);
-    new_tile_effect.fade_in.tween.start(window.performance.now());
-    this._active_animations.push(new_tile_effect);
+    new_sprite_effect.fade_in.tween.start(window.performance.now());
+    this._active_animations.push(new_sprite_effect);
   }
 
   get_sprite_effect_by_unique_key(
@@ -175,8 +180,81 @@ export class SpriteEffectsManager {
     return this.sprite_effects_map[tile_key];
   }
 
-  remove_sprite_effect(tile_key: string, gid: number) {
-    delete this.sprite_effects_map[tile_key];
-    this.sprite_by_gid_map[gid].effects.delete(tile_key);
+  remove_sprite_effect(unique_key: string) {
+    const sprite_effect = this.sprite_effects_map[unique_key];
+    if (!sprite_effect) {
+      console.error(
+        "Could not find sprite effect to remove?!",
+        unique_key,
+        this.sprite_effects_map,
+      );
+    } else {
+      const gid = sprite_effect.gid;
+      if (this.sprite_by_gid_map[gid]) {
+        delete this.sprite_effects_map[unique_key];
+        this.sprite_by_gid_map[gid].effects.delete(unique_key);
+      } else {
+        console.error(
+          "Trying to remove a sprite that is not the main animation sprite",
+        );
+      }
+    }
+  }
+
+  update_sprite(unique_key: string, sprite: AnimatedSprite, new_gid: number) {
+    const sprite_effect = this.sprite_effects_map[unique_key];
+    if (!sprite_effect) {
+      console.error(
+        "Could not find sprite effect to update?!",
+        unique_key,
+        this.sprite_effects_map,
+      );
+    } else {
+      const current_gid = sprite_effect.gid;
+      if (new_gid === current_gid) {
+        return;
+      }
+      if (!this.sprite_by_gid_map[new_gid]) {
+        this.sprite_by_gid_map[new_gid] = {
+          effects: new Set<string>(),
+          main_animation_sprite_key: null,
+        };
+      }
+      if (this.sprite_by_gid_map[current_gid]) {
+        this.sprite_by_gid_map[current_gid].effects.delete(unique_key);
+        if (this.sprite_by_gid_map[current_gid].effects.size === 0) {
+          delete this.sprite_by_gid_map[current_gid];
+        } else {
+          if (
+            this.sprite_by_gid_map[current_gid].main_animation_sprite_key ===
+            unique_key
+          ) {
+            const next_unique_key = this.sprite_by_gid_map[current_gid].effects
+              .values()
+              .next().value;
+            this.sprite_by_gid_map[current_gid].main_animation_sprite_key =
+              next_unique_key;
+            const next_sprite = this.sprite_effects_map[next_unique_key].sprite;
+            next_sprite.play();
+          }
+        }
+        sprite_effect.gid = new_gid;
+        sprite_effect.sprite = sprite;
+        const is_animated = sprite.textures.length > 1;
+        this.sprite_by_gid_map[new_gid].effects.add(unique_key);
+        if (
+          is_animated &&
+          this.sprite_by_gid_map[new_gid].main_animation_sprite_key == null
+        ) {
+          this.sprite_by_gid_map[new_gid].main_animation_sprite_key =
+            unique_key;
+          sprite.play();
+        }
+      } else {
+        console.error(
+          "Trying to remove a sprite that is not the main animation sprite",
+        );
+      }
+    }
   }
 }

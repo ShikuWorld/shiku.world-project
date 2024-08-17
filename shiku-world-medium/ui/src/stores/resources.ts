@@ -20,6 +20,7 @@ import { EntityUpdate } from "@/editor/blueprints/EntityUpdate";
 import { SceneNodeUpdate } from "@/client/communication/api/bindings/SceneNodeUpdate";
 import { reactive, toRefs } from "vue";
 import {
+  render_key,
   RenderGraphData,
   use_game_instances_store,
 } from "@/editor/stores/game-instances";
@@ -330,8 +331,7 @@ export const use_resources_store = defineStore("resources", () => {
         )
         .with({ RemoveChild: P.select() }, ([resource_path, _, game_node]) => {
           const { blueprint_render } = toRefs(use_game_instances_store());
-          const { remove_child_from_render_graph, render_key_from_game_node } =
-            use_game_instances_store();
+          const { remove_child_from_render_graph } = use_game_instances_store();
           if (
             blueprint_render &&
             blueprint_render.value &&
@@ -346,7 +346,7 @@ export const use_resources_store = defineStore("resources", () => {
             }
             remove_child_from_render_graph(
               blueprint_render.value.render_graph_data as RenderGraphData,
-              render_key_from_game_node(game_node),
+              render_key(get_generic_game_node(game_node)),
             );
           }
         })
