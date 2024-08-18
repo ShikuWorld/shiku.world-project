@@ -107,10 +107,10 @@
           extensions2.map(normalizeExtension).forEach((ext) => {
             ext.type.forEach((type) => {
               const handlers = this._addHandlers;
-              const queue = this._queue;
+              const queue2 = this._queue;
               if (!handlers[type]) {
-                queue[type] = queue[type] || [];
-                queue[type]?.push(ext);
+                queue2[type] = queue2[type] || [];
+                queue2[type]?.push(ext);
               } else {
                 handlers[type]?.(ext);
               }
@@ -133,10 +133,10 @@
           }
           addHandlers[type] = onAdd;
           removeHandlers[type] = onRemove;
-          const queue = this._queue;
-          if (queue[type]) {
-            queue[type]?.forEach((ext) => onAdd(ext));
-            delete queue[type];
+          const queue2 = this._queue;
+          if (queue2[type]) {
+            queue2[type]?.forEach((ext) => onAdd(ext));
+            delete queue2[type];
           }
           return this;
         },
@@ -146,17 +146,17 @@
          * @param map - The object map of named extensions.
          * @returns {extensions} For chaining.
          */
-        handleByMap(type, map) {
+        handleByMap(type, map2) {
           return this.handle(
             type,
             (extension) => {
               if (extension.name) {
-                map[extension.name] = extension.ref;
+                map2[extension.name] = extension.ref;
               }
             },
             (extension) => {
               if (extension.name) {
-                delete map[extension.name];
+                delete map2[extension.name];
               }
             }
           );
@@ -168,20 +168,20 @@
          * @param defaultPriority - Fallback priority if none is defined.
          * @returns {extensions} For chaining.
          */
-        handleByNamedList(type, map, defaultPriority = -1) {
+        handleByNamedList(type, map2, defaultPriority = -1) {
           return this.handle(
             type,
             (extension) => {
-              const index = map.findIndex((item) => item.name === extension.name);
+              const index = map2.findIndex((item) => item.name === extension.name);
               if (index >= 0)
                 return;
-              map.push({ name: extension.name, value: extension.ref });
-              map.sort((a3, b3) => normalizeExtensionPriority(b3.value, defaultPriority) - normalizeExtensionPriority(a3.value, defaultPriority));
+              map2.push({ name: extension.name, value: extension.ref });
+              map2.sort((a3, b3) => normalizeExtensionPriority(b3.value, defaultPriority) - normalizeExtensionPriority(a3.value, defaultPriority));
             },
             (extension) => {
-              const index = map.findIndex((item) => item.name === extension.name);
+              const index = map2.findIndex((item) => item.name === extension.name);
               if (index !== -1) {
-                map.splice(index, 1);
+                map2.splice(index, 1);
               }
             }
           );
@@ -239,7 +239,7 @@
   var require_eventemitter3 = __commonJS({
     "node_modules/eventemitter3/index.js"(exports, module) {
       "use strict";
-      var has = Object.prototype.hasOwnProperty;
+      var has2 = Object.prototype.hasOwnProperty;
       var prefix = "~";
       function Events() {
       }
@@ -281,7 +281,7 @@
         if (this._eventsCount === 0)
           return names;
         for (name in events = this._events) {
-          if (has.call(events, name))
+          if (has2.call(events, name))
             names.push(prefix ? name.slice(1) : name);
         }
         if (Object.getOwnPropertySymbols) {
@@ -480,7 +480,7 @@
          * @param options - the options for the buffer
          */
         constructor(options) {
-          let { data, size } = options;
+          let { data, size: size2 } = options;
           const { usage, label, shrinkToFit } = options;
           super();
           this.uid = uid("buffer");
@@ -494,10 +494,10 @@
             data = new Float32Array(data);
           }
           this._data = data;
-          size = size ?? data?.byteLength;
+          size2 = size2 ?? data?.byteLength;
           const mappedAtCreation = !!data;
           this.descriptor = {
-            size,
+            size: size2,
             usage,
             mappedAtCreation,
             label
@@ -529,9 +529,9 @@
          * @param size - the size of the data in bytes
          * @param syncGPU - should the buffer be updated on the GPU immediately?
          */
-        setDataWithSize(value, size, syncGPU) {
+        setDataWithSize(value, size2, syncGPU) {
           this._updateID++;
-          this._updateSize = size * value.BYTES_PER_ELEMENT;
+          this._updateSize = size2 * value.BYTES_PER_ELEMENT;
           if (this._data === value) {
             if (syncGPU)
               this.emit("update", this);
@@ -661,33 +661,33 @@
       offset: 0,
       size: 0
     }));
-    let size = 0;
+    let size2 = 0;
     let chunkSize = 0;
     let offset = 0;
     for (let i3 = 0; i3 < uboElements.length; i3++) {
       const uboElement = uboElements[i3];
-      size = WGSL_TO_STD40_SIZE[uboElement.data.type];
-      if (!size) {
+      size2 = WGSL_TO_STD40_SIZE[uboElement.data.type];
+      if (!size2) {
         throw new Error(`Unknown type ${uboElement.data.type}`);
       }
       if (uboElement.data.size > 1) {
-        size = Math.max(size, 16) * uboElement.data.size;
+        size2 = Math.max(size2, 16) * uboElement.data.size;
       }
-      uboElement.size = size;
-      if (chunkSize % size !== 0 && chunkSize < 16) {
-        const lineUpValue = chunkSize % size % 16;
+      uboElement.size = size2;
+      if (chunkSize % size2 !== 0 && chunkSize < 16) {
+        const lineUpValue = chunkSize % size2 % 16;
         chunkSize += lineUpValue;
         offset += lineUpValue;
       }
-      if (chunkSize + size > 16) {
+      if (chunkSize + size2 > 16) {
         offset = Math.ceil(offset / 16) * 16;
         uboElement.offset = offset;
-        offset += size;
-        chunkSize = size;
+        offset += size2;
+        chunkSize = size2;
       } else {
         uboElement.offset = offset;
-        chunkSize += size;
-        offset += size;
+        chunkSize += size2;
+        offset += size2;
       }
     }
     offset = Math.ceil(offset / 16) * 16;
@@ -1204,7 +1204,7 @@
          * @param options.size - The size of the buffer this resource is using.
          * If not provided, then it will use the size of the buffer.
          */
-        constructor({ buffer, offset, size }) {
+        constructor({ buffer, offset, size: size2 }) {
           super();
           this.uid = uid("buffer");
           this._resourceType = "bufferResource";
@@ -1214,7 +1214,7 @@
           this.destroyed = false;
           this.buffer = buffer;
           this.offset = offset | 0;
-          this.size = size;
+          this.size = size2;
           this.buffer.on("change", this.onBufferChange, this);
         }
         onBufferChange() {
@@ -1287,16 +1287,16 @@
   });
 
   // node_modules/pixi.js/lib/rendering/renderers/shared/shader/utils/getDefaultUniformValue.mjs
-  function getDefaultUniformValue(type, size) {
+  function getDefaultUniformValue(type, size2) {
     switch (type) {
       case "f32":
         return 0;
       case "vec2<f32>":
-        return new Float32Array(2 * size);
+        return new Float32Array(2 * size2);
       case "vec3<f32>":
-        return new Float32Array(3 * size);
+        return new Float32Array(3 * size2);
       case "vec4<f32>":
-        return new Float32Array(4 * size);
+        return new Float32Array(4 * size2);
       case "mat2x2<f32>":
         return new Float32Array([
           1,
@@ -1444,12 +1444,12 @@
     if (warnings[message]) {
       return;
     }
-    let stack = new Error().stack;
-    if (typeof stack === "undefined") {
+    let stack2 = new Error().stack;
+    if (typeof stack2 === "undefined") {
       console.warn("PixiJS Deprecation Warning: ", `${message}
 Deprecated since v${version}`);
     } else {
-      stack = stack.split("\n").splice(ignoreDepth).join("\n");
+      stack2 = stack2.split("\n").splice(ignoreDepth).join("\n");
       if (console.groupCollapsed) {
         console.groupCollapsed(
           "%cPixiJS Deprecation Warning: %c%s",
@@ -1458,12 +1458,12 @@ Deprecated since v${version}`);
           `${message}
 Deprecated since v${version}`
         );
-        console.warn(stack);
+        console.warn(stack2);
         console.groupEnd();
       } else {
         console.warn("PixiJS Deprecation Warning: ", `${message}
 Deprecated since v${version}`);
-        console.warn(stack);
+        console.warn(stack2);
       }
     }
     warnings[message] = true;
@@ -1990,48 +1990,48 @@ Deprecated since v${version}`);
   });
 
   // node_modules/pixi.js/lib/rendering/renderers/gl/shader/program/defaultValue.mjs
-  function booleanArray(size) {
-    const array = new Array(size);
+  function booleanArray(size2) {
+    const array = new Array(size2);
     for (let i3 = 0; i3 < array.length; i3++) {
       array[i3] = false;
     }
     return array;
   }
-  function defaultValue(type, size) {
+  function defaultValue(type, size2) {
     switch (type) {
       case "float":
         return 0;
       case "vec2":
-        return new Float32Array(2 * size);
+        return new Float32Array(2 * size2);
       case "vec3":
-        return new Float32Array(3 * size);
+        return new Float32Array(3 * size2);
       case "vec4":
-        return new Float32Array(4 * size);
+        return new Float32Array(4 * size2);
       case "int":
       case "uint":
       case "sampler2D":
       case "sampler2DArray":
         return 0;
       case "ivec2":
-        return new Int32Array(2 * size);
+        return new Int32Array(2 * size2);
       case "ivec3":
-        return new Int32Array(3 * size);
+        return new Int32Array(3 * size2);
       case "ivec4":
-        return new Int32Array(4 * size);
+        return new Int32Array(4 * size2);
       case "uvec2":
-        return new Uint32Array(2 * size);
+        return new Uint32Array(2 * size2);
       case "uvec3":
-        return new Uint32Array(3 * size);
+        return new Uint32Array(3 * size2);
       case "uvec4":
-        return new Uint32Array(4 * size);
+        return new Uint32Array(4 * size2);
       case "bool":
         return false;
       case "bvec2":
-        return booleanArray(2 * size);
+        return booleanArray(2 * size2);
       case "bvec3":
-        return booleanArray(3 * size);
+        return booleanArray(3 * size2);
       case "bvec4":
-        return booleanArray(4 * size);
+        return booleanArray(4 * size2);
       case "mat2":
         return new Float32Array([
           1,
@@ -2246,11 +2246,11 @@ Deprecated since v${version}`);
     for (let i3 = 0; i3 < totalUniformsBlocks; i3++) {
       const name = gl.getActiveUniformBlockName(program, i3);
       const uniformBlockIndex = gl.getUniformBlockIndex(program, name);
-      const size = gl.getActiveUniformBlockParameter(program, i3, gl.UNIFORM_BLOCK_DATA_SIZE);
+      const size2 = gl.getActiveUniformBlockParameter(program, i3, gl.UNIFORM_BLOCK_DATA_SIZE);
       uniformBlocks[name] = {
         name,
         index: uniformBlockIndex,
-        size
+        size: size2
       };
     }
     return uniformBlocks;
@@ -2268,14 +2268,14 @@ Deprecated since v${version}`);
     for (let i3 = 0; i3 < totalUniforms; i3++) {
       const uniformData = gl.getActiveUniform(program, i3);
       const name = uniformData.name.replace(/\[.*?\]$/, "");
-      const isArray = !!uniformData.name.match(/\[.*?\]$/);
+      const isArray2 = !!uniformData.name.match(/\[.*?\]$/);
       const type = mapType(gl, uniformData.type);
       uniforms[name] = {
         name,
         index: i3,
         type,
         size: uniformData.size,
-        isArray,
+        isArray: isArray2,
         value: defaultValue(type, uniformData.size)
       };
     }
@@ -2816,18 +2816,18 @@ Deprecated since v${version}`);
     let offset = 0;
     for (let i3 = 0; i3 < uboElements.length; i3++) {
       const uboElement = uboElements[i3];
-      let size = WGSL_ALIGN_SIZE_DATA[uboElement.data.type].size;
+      let size2 = WGSL_ALIGN_SIZE_DATA[uboElement.data.type].size;
       const align = WGSL_ALIGN_SIZE_DATA[uboElement.data.type].align;
       if (!WGSL_ALIGN_SIZE_DATA[uboElement.data.type]) {
         throw new Error(`[Pixi.js] WebGPU UniformBuffer: Unknown type ${uboElement.data.type}`);
       }
       if (uboElement.data.size > 1) {
-        size = Math.max(size, align) * uboElement.data.size;
+        size2 = Math.max(size2, align) * uboElement.data.size;
       }
       offset = Math.ceil(offset / align) * align;
-      uboElement.size = size;
+      uboElement.size = size2;
       uboElement.offset = offset;
-      offset += size;
+      offset += size2;
     }
     offset = Math.ceil(offset / 16) * 16;
     return { uboElements, size: offset };
@@ -2877,8 +2877,8 @@ Deprecated since v${version}`);
 
   // node_modules/pixi.js/lib/rendering/renderers/gpu/shader/utils/generateArraySyncWGSL.mjs
   function generateArraySyncWGSL(uboElement, offsetToAdd) {
-    const { size, align } = WGSL_ALIGN_SIZE_DATA[uboElement.data.type];
-    const remainder = (align - size) / 4;
+    const { size: size2, align } = WGSL_ALIGN_SIZE_DATA[uboElement.data.type];
+    const remainder = (align - size2) / 4;
     return `
          v = uv.${uboElement.data.name};
          ${offsetToAdd !== 0 ? `offset += ${offsetToAdd};` : ""}
@@ -2887,9 +2887,9 @@ Deprecated since v${version}`);
 
          t = 0;
 
-         for(var i=0; i < ${uboElement.data.size * (size / 4)}; i++)
+         for(var i=0; i < ${uboElement.data.size * (size2 / 4)}; i++)
          {
-             for(var j = 0; j < ${size / 4}; j++)
+             for(var j = 0; j < ${size2 / 4}; j++)
              {
                  data[arrayOffset++] = v[t++];
              }
@@ -4598,8 +4598,8 @@ Deprecated since v${version}`);
           }
           return item;
         }
-        returnMaskEffect(effect) {
-          BigPool.return(effect);
+        returnMaskEffect(effect2) {
+          BigPool.return(effect2);
         }
       };
       MaskEffectManager = new MaskEffectManagerClass();
@@ -4629,11 +4629,11 @@ Deprecated since v${version}`);
          * @memberof scene.Container#
          * @ignore
          */
-        addEffect(effect) {
-          const index = this.effects.indexOf(effect);
+        addEffect(effect2) {
+          const index = this.effects.indexOf(effect2);
           if (index !== -1)
             return;
-          this.effects.push(effect);
+          this.effects.push(effect2);
           this.effects.sort((a3, b3) => a3.priority - b3.priority);
           const renderGroup = this.renderGroup || this.parentRenderGroup;
           if (renderGroup) {
@@ -4647,8 +4647,8 @@ Deprecated since v${version}`);
          * @memberof scene.Container#
          * @ignore
          */
-        removeEffect(effect) {
-          const index = this.effects.indexOf(effect);
+        removeEffect(effect2) {
+          const index = this.effects.indexOf(effect2);
           if (index === -1)
             return;
           this.effects.splice(index, 1);
@@ -4658,12 +4658,12 @@ Deprecated since v${version}`);
           this._updateIsSimple();
         },
         set mask(value) {
-          const effect = this._maskEffect;
-          if (effect?.mask === value)
+          const effect2 = this._maskEffect;
+          if (effect2?.mask === value)
             return;
-          if (effect) {
-            this.removeEffect(effect);
-            MaskEffectManager.returnMaskEffect(effect);
+          if (effect2) {
+            this.removeEffect(effect2);
+            MaskEffectManager.returnMaskEffect(effect2);
             this._maskEffect = null;
           }
           if (value === null || value === void 0)
@@ -4698,19 +4698,19 @@ Deprecated since v${version}`);
         set filters(value) {
           if (!Array.isArray(value) && value)
             value = [value];
-          const effect = this._filterEffect || (this._filterEffect = new FilterEffect());
+          const effect2 = this._filterEffect || (this._filterEffect = new FilterEffect());
           value = value;
           const hasFilters = value?.length > 0;
-          const hadFilters = effect.filters?.length > 0;
+          const hadFilters = effect2.filters?.length > 0;
           const didChange = hasFilters !== hadFilters;
           value = Array.isArray(value) ? value.slice(0) : value;
-          effect.filters = Object.freeze(value);
+          effect2.filters = Object.freeze(value);
           if (didChange) {
             if (hasFilters) {
-              this.addEffect(effect);
+              this.addEffect(effect2);
             } else {
-              this.removeEffect(effect);
-              effect.filters = value ?? null;
+              this.removeEffect(effect2);
+              effect2.filters = value ?? null;
             }
           }
         },
@@ -6539,7 +6539,7 @@ Deprecated since v${version}`);
          * @memberof scene.Container#
          */
         setSize(value, height) {
-          const size = this.getLocalBounds();
+          const size2 = this.getLocalBounds();
           let convertedWidth;
           let convertedHeight;
           if (typeof value !== "object") {
@@ -6550,10 +6550,10 @@ Deprecated since v${version}`);
             convertedHeight = value.height ?? value.width;
           }
           if (convertedWidth !== void 0) {
-            this._setWidth(convertedWidth, size.width);
+            this._setWidth(convertedWidth, size2.width);
           }
           if (convertedHeight !== void 0) {
-            this._setHeight(convertedHeight, size.height);
+            this._setHeight(convertedHeight, size2.height);
           }
         }
         /** Called when the skew or the rotation changes. */
@@ -6852,7 +6852,7 @@ Deprecated since v${version}`);
           return;
         if (!pass && invSize)
           indexCurve(ear, minX, minY, invSize);
-        var stop = ear, prev, next;
+        var stop2 = ear, prev, next;
         while (ear.prev !== ear.next) {
           prev = ear.prev;
           next = ear.next;
@@ -6862,11 +6862,11 @@ Deprecated since v${version}`);
             triangles.push(next.i / dim | 0);
             removeNode(ear);
             ear = next.next;
-            stop = next.next;
+            stop2 = next.next;
             continue;
           }
           ear = next;
-          if (ear === stop) {
+          if (ear === stop2) {
             if (!pass) {
               earcutLinked(filterPoints(ear), triangles, dim, minX, minY, invSize, 1);
             } else if (pass === 1) {
@@ -6956,18 +6956,18 @@ Deprecated since v${version}`);
         } while (a3 !== start);
       }
       function eliminateHoles(data, holeIndices, outerNode, dim) {
-        var queue = [], i3, len, start, end, list;
+        var queue2 = [], i3, len, start, end, list;
         for (i3 = 0, len = holeIndices.length; i3 < len; i3++) {
           start = holeIndices[i3] * dim;
           end = i3 < len - 1 ? holeIndices[i3 + 1] * dim : data.length;
           list = linkedList(data, start, end, dim, false);
           if (list === list.next)
             list.steiner = true;
-          queue.push(getLeftmost(list));
+          queue2.push(getLeftmost(list));
         }
-        queue.sort(compareX);
-        for (i3 = 0; i3 < queue.length; i3++) {
-          outerNode = eliminateHole(queue[i3], outerNode);
+        queue2.sort(compareX);
+        for (i3 = 0; i3 < queue2.length; i3++) {
+          outerNode = eliminateHole(queue2[i3], outerNode);
         }
         return outerNode;
       }
@@ -6999,7 +6999,7 @@ Deprecated since v${version}`);
         } while (p3 !== outerNode);
         if (!m3)
           return null;
-        var stop = m3, mx = m3.x, my = m3.y, tanMin = Infinity, tan;
+        var stop2 = m3, mx = m3.x, my = m3.y, tanMin = Infinity, tan;
         p3 = m3;
         do {
           if (hx >= p3.x && p3.x >= mx && hx !== p3.x && pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p3.x, p3.y)) {
@@ -7010,7 +7010,7 @@ Deprecated since v${version}`);
             }
           }
           p3 = p3.next;
-        } while (p3 !== stop);
+        } while (p3 !== stop2);
         return m3;
       }
       function sectorContainsSector(m3, p3) {
@@ -7469,9 +7469,9 @@ Deprecated since v${version}`);
           options.target || (options.target = renderer.renderTarget.renderTarget);
           options.clearColor || (options.clearColor = this.background.colorRgba);
           options.clear ?? (options.clear = CLEAR.ALL);
-          const { clear, clearColor, target } = options;
+          const { clear: clear2, clearColor, target } = options;
           Color.shared.setValue(clearColor ?? this.background.colorRgba);
-          renderer.renderTarget.clear(target, clear, Color.shared.toArray());
+          renderer.renderTarget.clear(target, clear2, Color.shared.toArray());
         }
         /** The resolution / device pixel ratio of the renderer. */
         get resolution() {
@@ -9457,7 +9457,7 @@ Deprecated since v${version}`);
           propagationPath.reverse();
           return propagationPath;
         }
-        hitTestMoveRecursive(currentTarget, eventMode, location, testFn, pruneFn, ignore = false) {
+        hitTestMoveRecursive(currentTarget, eventMode, location2, testFn, pruneFn, ignore = false) {
           let shouldReturn = false;
           if (this._interactivePrune(currentTarget))
             return null;
@@ -9471,10 +9471,10 @@ Deprecated since v${version}`);
               const nestedHit = this.hitTestMoveRecursive(
                 child,
                 this._isInteractive(eventMode) ? eventMode : child.eventMode,
-                location,
+                location2,
                 testFn,
                 pruneFn,
-                ignore || pruneFn(currentTarget, location)
+                ignore || pruneFn(currentTarget, location2)
               );
               if (nestedHit) {
                 if (nestedHit.length > 0 && !nestedHit[nestedHit.length - 1].parent) {
@@ -9500,7 +9500,7 @@ Deprecated since v${version}`);
             return null;
           if (shouldReturn)
             return this._hitElements;
-          if (isInteractiveMode && (!pruneFn(currentTarget, location) && testFn(currentTarget, location))) {
+          if (isInteractiveMode && (!pruneFn(currentTarget, location2) && testFn(currentTarget, location2))) {
             return isInteractiveTarget ? [currentTarget] : [];
           }
           return null;
@@ -9519,8 +9519,8 @@ Deprecated since v${version}`);
          *  is the target itself and the last is {@link EventBoundary.rootTarget rootTarget}. This is the opposite
          *  order w.r.t. the propagation path. If no hit testing target is found, null is returned.
          */
-        hitTestRecursive(currentTarget, eventMode, location, testFn, pruneFn) {
-          if (this._interactivePrune(currentTarget) || pruneFn(currentTarget, location)) {
+        hitTestRecursive(currentTarget, eventMode, location2, testFn, pruneFn) {
+          if (this._interactivePrune(currentTarget) || pruneFn(currentTarget, location2)) {
             return null;
           }
           if (currentTarget.eventMode === "dynamic" || eventMode === "dynamic") {
@@ -9528,7 +9528,7 @@ Deprecated since v${version}`);
           }
           if (currentTarget.interactiveChildren && currentTarget.children) {
             const children = currentTarget.children;
-            const relativeLocation = location;
+            const relativeLocation = location2;
             for (let i3 = children.length - 1; i3 >= 0; i3--) {
               const child = children[i3];
               const nestedHit = this.hitTestRecursive(
@@ -9551,7 +9551,7 @@ Deprecated since v${version}`);
           }
           const isInteractiveMode = this._isInteractive(eventMode);
           const isInteractiveTarget = currentTarget.isInteractive();
-          if (isInteractiveMode && testFn(currentTarget, location)) {
+          if (isInteractiveMode && testFn(currentTarget, location2)) {
             return isInteractiveTarget ? [currentTarget] : [];
           }
           return null;
@@ -9579,18 +9579,18 @@ Deprecated since v${version}`);
          * @param container - The container to prune.
          * @param location - The location to test for overlap.
          */
-        hitPruneFn(container, location) {
+        hitPruneFn(container, location2) {
           if (container.hitArea) {
-            container.worldTransform.applyInverse(location, tempLocalMapping);
+            container.worldTransform.applyInverse(location2, tempLocalMapping);
             if (!container.hitArea.contains(tempLocalMapping.x, tempLocalMapping.y)) {
               return true;
             }
           }
           if (container.effects && container.effects.length) {
             for (let i3 = 0; i3 < container.effects.length; i3++) {
-              const effect = container.effects[i3];
-              if (effect.containsPoint) {
-                const effectContainsPoint = effect.containsPoint(location, this.hitTestFn);
+              const effect2 = container.effects[i3];
+              if (effect2.containsPoint) {
+                const effectContainsPoint = effect2.containsPoint(location2, this.hitTestFn);
                 if (!effectContainsPoint) {
                   return true;
                 }
@@ -9605,12 +9605,12 @@ Deprecated since v${version}`);
          * @param location - The location to test for overlap.
          * @returns - Whether `container` passes hit testing for `location`.
          */
-        hitTestFn(container, location) {
+        hitTestFn(container, location2) {
           if (container.hitArea) {
             return true;
           }
           if (container?.containsPoint) {
-            container.worldTransform.applyInverse(location, tempLocalMapping);
+            container.worldTransform.applyInverse(location2, tempLocalMapping);
             return container.containsPoint(tempLocalMapping);
           }
           return false;
@@ -14444,22 +14444,22 @@ Deprecated since v${version}`);
   });
 
   // node_modules/pixi.js/lib/rendering/batcher/gpu/getTextureBatchBindGroup.mjs
-  function getTextureBatchBindGroup(textures, size) {
+  function getTextureBatchBindGroup(textures, size2) {
     let uid3 = 2166136261;
-    for (let i3 = 0; i3 < size; i3++) {
+    for (let i3 = 0; i3 < size2; i3++) {
       uid3 ^= textures[i3].uid;
       uid3 = Math.imul(uid3, 16777619);
       uid3 >>>= 0;
     }
-    return cachedGroups[uid3] || generateTextureBatchBindGroup(textures, size, uid3);
+    return cachedGroups[uid3] || generateTextureBatchBindGroup(textures, size2, uid3);
   }
-  function generateTextureBatchBindGroup(textures, size, key) {
+  function generateTextureBatchBindGroup(textures, size2, key) {
     const bindGroupResources = {};
     let bindIndex = 0;
     if (!maxTextures)
       maxTextures = getMaxTexturesPerBatch();
     for (let i3 = 0; i3 < maxTextures; i3++) {
-      const texture = i3 < size ? textures[i3] : Texture.EMPTY.source;
+      const texture = i3 < size2 ? textures[i3] : Texture.EMPTY.source;
       bindGroupResources[bindIndex++] = texture.source;
       bindGroupResources[bindIndex++] = texture.style;
     }
@@ -14776,7 +14776,7 @@ Deprecated since v${version}`);
           const f32 = this.attributeBuffer.float32View;
           const u32 = this.attributeBuffer.uint32View;
           const iBuffer = this.indexBuffer;
-          let size = this._batchIndexSize;
+          let size2 = this._batchIndexSize;
           let start = this._batchIndexStart;
           let action = "startBatch";
           const maxTextures2 = this.maxTextures;
@@ -14789,7 +14789,7 @@ Deprecated since v${version}`);
             const blendModeChange = blendMode !== adjustedBlendMode;
             if (source2._batchTick === BATCH_TICK && !blendModeChange) {
               element.textureId = source2._textureBindLocation;
-              size += element.indexSize;
+              size2 += element.indexSize;
               element.packAttributes(f32, u32, element.location, element.textureId);
               element.packIndex(iBuffer, element.indexStart, element.location / this._vertexSize);
               element.batch = batch;
@@ -14800,14 +14800,14 @@ Deprecated since v${version}`);
               this._finishBatch(
                 batch,
                 start,
-                size - start,
+                size2 - start,
                 textureBatch,
                 blendMode,
                 instructionSet,
                 action
               );
               action = "renderBatch";
-              start = size;
+              start = size2;
               blendMode = adjustedBlendMode;
               batch = getBatchFromPool();
               textureBatch = batch.textures;
@@ -14818,7 +14818,7 @@ Deprecated since v${version}`);
             textureBatch.ids[source2.uid] = textureBatch.count;
             textureBatch.textures[textureBatch.count++] = source2;
             element.batch = batch;
-            size += element.indexSize;
+            size2 += element.indexSize;
             element.packAttributes(f32, u32, element.location, element.textureId);
             element.packIndex(iBuffer, element.indexStart, element.location / this._vertexSize);
           }
@@ -14826,18 +14826,18 @@ Deprecated since v${version}`);
             this._finishBatch(
               batch,
               start,
-              size - start,
+              size2 - start,
               textureBatch,
               blendMode,
               instructionSet,
               action
             );
-            start = size;
+            start = size2;
             ++BATCH_TICK;
           }
           this.elementStart = this.elementSize;
           this._batchIndexStart = start;
-          this._batchIndexSize = size;
+          this._batchIndexSize = size2;
         }
         _finishBatch(batch, indexStart, indexSize, textureBatch, blendMode, instructionSet, action) {
           batch.gpuBindGroup = null;
@@ -14859,29 +14859,29 @@ Deprecated since v${version}`);
          * Resizes the attribute buffer to the given size (1 = 1 float32)
          * @param size - the size in vertices to ensure (not bytes!)
          */
-        ensureAttributeBuffer(size) {
-          if (size * 4 <= this.attributeBuffer.size)
+        ensureAttributeBuffer(size2) {
+          if (size2 * 4 <= this.attributeBuffer.size)
             return;
-          this._resizeAttributeBuffer(size * 4);
+          this._resizeAttributeBuffer(size2 * 4);
         }
         /**
          * Resizes the index buffer to the given size (1 = 1 float32)
          * @param size - the size in vertices to ensure (not bytes!)
          */
-        ensureIndexBuffer(size) {
-          if (size <= this.indexBuffer.length)
+        ensureIndexBuffer(size2) {
+          if (size2 <= this.indexBuffer.length)
             return;
-          this._resizeIndexBuffer(size);
+          this._resizeIndexBuffer(size2);
         }
-        _resizeAttributeBuffer(size) {
-          const newSize = Math.max(size, this.attributeBuffer.size * 2);
+        _resizeAttributeBuffer(size2) {
+          const newSize = Math.max(size2, this.attributeBuffer.size * 2);
           const newArrayBuffer = new ViewableBuffer(newSize);
           fastCopy(this.attributeBuffer.rawBinaryData, newArrayBuffer.rawBinaryData);
           this.attributeBuffer = newArrayBuffer;
         }
-        _resizeIndexBuffer(size) {
+        _resizeIndexBuffer(size2) {
           const indexBuffer = this.indexBuffer;
-          let newSize = Math.max(size, indexBuffer.length * 1.5);
+          let newSize = Math.max(size2, indexBuffer.length * 1.5);
           newSize += newSize % 2;
           const newIndexBuffer = newSize > 65535 ? new Uint32Array(newSize) : new Uint16Array(newSize);
           if (newIndexBuffer.BYTES_PER_ELEMENT !== indexBuffer.BYTES_PER_ELEMENT) {
@@ -15165,7 +15165,7 @@ Deprecated since v${version}`);
   });
 
   // node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/buildUvs.mjs
-  function buildUvs(vertices, verticesStride, verticesOffset, uvs, uvsOffset, uvsStride, size, matrix = null) {
+  function buildUvs(vertices, verticesStride, verticesOffset, uvs, uvsOffset, uvsStride, size2, matrix = null) {
     let index = 0;
     verticesOffset *= verticesStride;
     uvsOffset *= uvsStride;
@@ -15175,7 +15175,7 @@ Deprecated since v${version}`);
     const d3 = matrix.d;
     const tx = matrix.tx;
     const ty = matrix.ty;
-    while (index < size) {
+    while (index < size2) {
       const x3 = vertices[verticesOffset];
       const y3 = vertices[verticesOffset + 1];
       uvs[uvsOffset] = a3 * x3 + c3 * y3 + tx;
@@ -15185,10 +15185,10 @@ Deprecated since v${version}`);
       index++;
     }
   }
-  function buildSimpleUvs(uvs, uvsOffset, uvsStride, size) {
+  function buildSimpleUvs(uvs, uvsOffset, uvsStride, size2) {
     let index = 0;
     uvsOffset *= uvsStride;
-    while (index < size) {
+    while (index < size2) {
       uvs[uvsOffset] = 0;
       uvs[uvsOffset + 1] = 0;
       uvsOffset += uvsStride;
@@ -15202,7 +15202,7 @@ Deprecated since v${version}`);
   });
 
   // node_modules/pixi.js/lib/rendering/renderers/shared/geometry/utils/transformVertices.mjs
-  function transformVertices(vertices, m3, offset, stride, size) {
+  function transformVertices(vertices, m3, offset, stride, size2) {
     const a3 = m3.a;
     const b3 = m3.b;
     const c3 = m3.c;
@@ -15211,9 +15211,9 @@ Deprecated since v${version}`);
     const ty = m3.ty;
     offset = offset || 0;
     stride = stride || 2;
-    size = size || vertices.length / stride - offset;
+    size2 = size2 || vertices.length / stride - offset;
     let index = offset * stride;
-    for (let i3 = 0; i3 < size; i3++) {
+    for (let i3 = 0; i3 < size2; i3++) {
       const x3 = vertices[index];
       const y3 = vertices[index + 1];
       vertices[index] = a3 * x3 + c3 * y3 + tx;
@@ -17392,8 +17392,8 @@ Deprecated since v${version}`);
           const ctx = canvas.getContext("2d");
           const gradient = ctx.createLinearGradient(0, 0, _FillGradient2.defaultTextureSize, 1);
           for (let i3 = 0; i3 < gradientStops.length; i3++) {
-            const stop = gradientStops[i3];
-            gradient.addColorStop(stop.offset, stop.color);
+            const stop2 = gradientStops[i3];
+            gradient.addColorStop(stop2.offset, stop2.color);
           }
           ctx.fillStyle = gradient;
           ctx.fillRect(0, 0, defaultSize, defaultSize);
@@ -17421,7 +17421,7 @@ Deprecated since v${version}`);
           if (this._styleKey) {
             return this._styleKey;
           }
-          const stops = this.gradientStops.map((stop) => `${stop.offset}-${stop.color}`).join("-");
+          const stops = this.gradientStops.map((stop2) => `${stop2.offset}-${stop2.color}`).join("-");
           const texture = this.texture.uid;
           const transform2 = this.transform.toArray().join("-");
           return `fill-gradient-${this.uid}-${stops}-${texture}-${transform2}-${this.x0}-${this.y0}-${this.x1}-${this.y1}`;
@@ -19178,8 +19178,8 @@ Deprecated since v${version}`);
           const right = x3 + width;
           const bottom = y3 + height;
           const dir = inset < 0 ? -inset : 0;
-          const size = Math.abs(inset);
-          return this.moveTo(x3, y3 + size).arcTo(x3 + dir, y3 + dir, x3 + size, y3, size).lineTo(right - size, y3).arcTo(right - dir, y3 + dir, right, y3 + size, size).lineTo(right, bottom - size).arcTo(right - dir, bottom - dir, x3 + width - size, bottom, size).lineTo(x3 + size, bottom).arcTo(x3 + dir, bottom - dir, x3, bottom - size, size).closePath();
+          const size2 = Math.abs(inset);
+          return this.moveTo(x3, y3 + size2).arcTo(x3 + dir, y3 + dir, x3 + size2, y3, size2).lineTo(right - size2, y3).arcTo(right - dir, y3 + dir, right, y3 + size2, size2).lineTo(right, bottom - size2).arcTo(right - dir, bottom - dir, x3 + width - size2, bottom, size2).lineTo(x3 + size2, bottom).arcTo(x3 + dir, bottom - dir, x3, bottom - size2, size2).closePath();
         }
         /**
          * Draw Rectangle with chamfer corners. These are angled corners.
@@ -22043,8 +22043,8 @@ Deprecated since v${version}`);
           fillGradient.x1,
           fillGradient.y1
         );
-        fillGradient.gradientStops.forEach((stop) => {
-          gradient.addColorStop(stop.offset, Color.shared.setValue(stop.color).toHex());
+        fillGradient.gradientStops.forEach((stop2) => {
+          gradient.addColorStop(stop2.offset, Color.shared.setValue(stop2.color).toHex());
         });
         return gradient;
       }
@@ -26320,7 +26320,7 @@ ${parts.join("\n")}
   // node_modules/pixi.js/lib/scene/sprite-tiling/utils/applyMatrix.mjs
   function applyMatrix(array, stride, offset, matrix) {
     let index = 0;
-    const size = array.length / (stride || 2);
+    const size2 = array.length / (stride || 2);
     const a3 = matrix.a;
     const b3 = matrix.b;
     const c3 = matrix.c;
@@ -26328,7 +26328,7 @@ ${parts.join("\n")}
     const tx = matrix.tx;
     const ty = matrix.ty;
     offset *= stride;
-    while (index < size) {
+    while (index < size2) {
       const x3 = array[offset];
       const y3 = array[offset + 1];
       array[offset] = a3 * x3 + c3 * y3 + tx;
@@ -27156,7 +27156,7 @@ ${parts.join("\n")}
           );
           return backTexture;
         }
-        applyFilter(filter, input, output, clear) {
+        applyFilter(filter, input, output, clear2) {
           const renderer = this.renderer;
           const filterData = this._filterStack[this._filterStackIndex];
           const bounds = filterData.bounds;
@@ -27216,7 +27216,7 @@ ${parts.join("\n")}
           globalFrame[2] = rootTexture.source.width * resolution;
           globalFrame[3] = rootTexture.source.height * resolution;
           const renderTarget = this.renderer.renderTarget.getRenderTarget(output);
-          renderer.renderTarget.bind(output, !!clear);
+          renderer.renderTarget.bind(output, !!clear2);
           if (output instanceof Texture) {
             outputTexture[0] = output.frame.width;
             outputTexture[1] = output.frame.height;
@@ -27902,9 +27902,9 @@ ${parts.join("\n")}
       renderPipes3.renderGroup.addRenderGroup(container.renderGroup, instructionSet);
     } else {
       for (let i3 = 0; i3 < container.effects.length; i3++) {
-        const effect = container.effects[i3];
-        const pipe = renderPipes3[effect.pipe];
-        pipe.push(effect, container, instructionSet);
+        const effect2 = container.effects[i3];
+        const pipe = renderPipes3[effect2.pipe];
+        pipe.push(effect2, container, instructionSet);
       }
       const renderPipeId = container.renderPipeId;
       if (renderPipeId) {
@@ -27921,9 +27921,9 @@ ${parts.join("\n")}
         }
       }
       for (let i3 = container.effects.length - 1; i3 >= 0; i3--) {
-        const effect = container.effects[i3];
-        const pipe = renderPipes3[effect.pipe];
-        pipe.pop(effect, container, instructionSet);
+        const effect2 = container.effects[i3];
+        const pipe = renderPipes3[effect2.pipe];
+        pipe.pop(effect2, container, instructionSet);
       }
     }
   }
@@ -28754,25 +28754,25 @@ ${parts.join("\n")}
         }
         push(mask, _container, instructionSet) {
           var _a;
-          const effect = mask;
+          const effect2 = mask;
           const renderer = this._renderer;
           renderer.renderPipes.batch.break(instructionSet);
-          renderer.renderPipes.blendMode.setBlendMode(effect.mask, "none", instructionSet);
+          renderer.renderPipes.blendMode.setBlendMode(effect2.mask, "none", instructionSet);
           instructionSet.add({
             renderPipeId: "stencilMask",
             action: "pushMaskBegin",
             mask,
             canBundle: false
           });
-          const maskContainer = effect.mask;
+          const maskContainer = effect2.mask;
           maskContainer.includeInBuild = true;
-          if (!this._maskHash.has(effect)) {
-            this._maskHash.set(effect, {
+          if (!this._maskHash.has(effect2)) {
+            this._maskHash.set(effect2, {
               instructionsStart: 0,
               instructionsLength: 0
             });
           }
-          const maskData = this._maskHash.get(effect);
+          const maskData = this._maskHash.get(effect2);
           maskData.instructionsStart = instructionSet.instructionSize;
           collectAllRenderables(
             maskContainer,
@@ -28793,10 +28793,10 @@ ${parts.join("\n")}
           (_a = this._maskStackHash)[renderTargetUid] ?? (_a[renderTargetUid] = 0);
         }
         pop(mask, _container, instructionSet) {
-          const effect = mask;
+          const effect2 = mask;
           const renderer = this._renderer;
           renderer.renderPipes.batch.break(instructionSet);
-          renderer.renderPipes.blendMode.setBlendMode(effect.mask, "none", instructionSet);
+          renderer.renderPipes.blendMode.setBlendMode(effect2.mask, "none", instructionSet);
           instructionSet.add({
             renderPipeId: "stencilMask",
             action: "popMaskBegin",
@@ -29386,7 +29386,7 @@ ${parts.join("\n")}
           this.push(options);
         }
         bind({
-          size,
+          size: size2,
           projectionMatrix,
           worldTransformMatrix,
           worldColor,
@@ -29401,7 +29401,7 @@ ${parts.join("\n")}
           };
           const globalUniformData = {
             projectionMatrix: projectionMatrix || this._renderer.renderTarget.projectionMatrix,
-            resolution: size || renderTarget.size,
+            resolution: size2 || renderTarget.size,
             worldTransformMatrix: worldTransformMatrix || currentGlobalUniformData.worldTransformMatrix,
             worldColor: worldColor || currentGlobalUniformData.worldColor,
             offset: offset || currentGlobalUniformData.offset,
@@ -30540,18 +30540,18 @@ ${parts.join("\n")}
           }
         }
         draw(options) {
-          const { geometry, shader, state, topology, size, start, instanceCount, skipSync } = options;
+          const { geometry, shader, state, topology, size: size2, start, instanceCount, skipSync } = options;
           this.setPipelineFromGeometryProgramAndState(geometry, shader.gpuProgram, state, topology);
           this.setGeometry(geometry, shader.gpuProgram);
           this._setShaderBindGroups(shader, skipSync);
           if (geometry.indexBuffer) {
             this.renderPassEncoder.drawIndexed(
-              size || geometry.indexBuffer.data.length,
+              size2 || geometry.indexBuffer.data.length,
               instanceCount || geometry.instanceCount,
               start || 0
             );
           } else {
-            this.renderPassEncoder.draw(size || geometry.getSize(), instanceCount || geometry.instanceCount, start || 0);
+            this.renderPassEncoder.draw(size2 || geometry.getSize(), instanceCount || geometry.instanceCount, start || 0);
           }
         }
         finishRenderPass() {
@@ -30683,12 +30683,12 @@ ${parts.join("\n")}
         clear() {
           this.byteIndex = 0;
         }
-        addEmptyGroup(size) {
-          if (size > this._minUniformOffsetAlignment / 4) {
-            throw new Error(`UniformBufferBatch: array is too large: ${size * 4}`);
+        addEmptyGroup(size2) {
+          if (size2 > this._minUniformOffsetAlignment / 4) {
+            throw new Error(`UniformBufferBatch: array is too large: ${size2 * 4}`);
           }
           const start = this.byteIndex;
-          let newSize = start + size * 4;
+          let newSize = start + size2 * 4;
           newSize = Math.ceil(newSize / this._minUniformOffsetAlignment) * this._minUniformOffsetAlignment;
           if (newSize > this.data.length * 4) {
             throw new Error("UniformBufferBatch: ubo batch got too big");
@@ -31229,14 +31229,14 @@ ${parts.join("\n")}
          */
         renderStart({
           target,
-          clear,
+          clear: clear2,
           clearColor,
           frame
         }) {
           this._renderTargetStack.length = 0;
           this.push(
             target,
-            clear,
+            clear2,
             clearColor,
             frame
           );
@@ -31256,7 +31256,7 @@ ${parts.join("\n")}
          * @param frame - the frame to render to
          * @returns the render target that was bound
          */
-        bind(renderSurface, clear = true, clearColor, frame) {
+        bind(renderSurface, clear2 = true, clearColor, frame) {
           const renderTarget = this.getRenderTarget(renderSurface);
           const didChange = this.renderTarget !== renderTarget;
           this.renderTarget = renderTarget;
@@ -31294,21 +31294,21 @@ ${parts.join("\n")}
             viewport.height / source2.resolution,
             !renderTarget.isRoot
           );
-          this.adaptor.startRenderPass(renderTarget, clear, clearColor, viewport);
+          this.adaptor.startRenderPass(renderTarget, clear2, clearColor, viewport);
           if (didChange) {
             this.onRenderTargetChange.emit(renderTarget);
           }
           return renderTarget;
         }
-        clear(target, clear = CLEAR.ALL, clearColor) {
-          if (!clear)
+        clear(target, clear2 = CLEAR.ALL, clearColor) {
+          if (!clear2)
             return;
           if (target) {
             target = this.getRenderTarget(target);
           }
           this.adaptor.clear(
             target || this.renderTarget,
-            clear,
+            clear2,
             clearColor,
             this.viewport
           );
@@ -31323,8 +31323,8 @@ ${parts.join("\n")}
          * @param clearColor - the color to clear to
          * @param frame - the frame to use when rendering to the render surface
          */
-        push(renderSurface, clear = CLEAR.ALL, clearColor, frame) {
-          const renderTarget = this.bind(renderSurface, clear, clearColor, frame);
+        push(renderSurface, clear2 = CLEAR.ALL, clearColor, frame) {
+          const renderTarget = this.bind(renderSurface, clear2, clearColor, frame);
           this._renderTargetStack.push({
             renderTarget,
             frame
@@ -31364,25 +31364,25 @@ ${parts.join("\n")}
          * @param originDest.x - the x origin of the paste
          * @param originDest.y - the y origin of the paste
          */
-        copyToTexture(sourceRenderSurfaceTexture, destinationTexture, originSrc, size, originDest) {
+        copyToTexture(sourceRenderSurfaceTexture, destinationTexture, originSrc, size2, originDest) {
           if (originSrc.x < 0) {
-            size.width += originSrc.x;
+            size2.width += originSrc.x;
             originDest.x -= originSrc.x;
             originSrc.x = 0;
           }
           if (originSrc.y < 0) {
-            size.height += originSrc.y;
+            size2.height += originSrc.y;
             originDest.y -= originSrc.y;
             originSrc.y = 0;
           }
           const { pixelWidth, pixelHeight } = sourceRenderSurfaceTexture;
-          size.width = Math.min(size.width, pixelWidth - originSrc.x);
-          size.height = Math.min(size.height, pixelHeight - originSrc.y);
+          size2.width = Math.min(size2.width, pixelWidth - originSrc.x);
+          size2.height = Math.min(size2.height, pixelHeight - originSrc.y);
           return this.adaptor.copyToTexture(
             sourceRenderSurfaceTexture,
             destinationTexture,
             originSrc,
-            size,
+            size2,
             originDest
           );
         }
@@ -31470,7 +31470,7 @@ ${parts.join("\n")}
           this._renderer = renderer;
           this._renderTargetSystem = renderTargetSystem;
         }
-        copyToTexture(sourceRenderSurfaceTexture, destinationTexture, originSrc, size, originDest) {
+        copyToTexture(sourceRenderSurfaceTexture, destinationTexture, originSrc, size2, originDest) {
           const renderer = this._renderer;
           const baseGpuTexture = this._getGpuColorTexture(
             sourceRenderSurfaceTexture
@@ -31487,14 +31487,14 @@ ${parts.join("\n")}
               texture: backGpuTexture,
               origin: originDest
             },
-            size
+            size2
           );
           return destinationTexture;
         }
-        startRenderPass(renderTarget, clear = true, clearColor, viewport) {
+        startRenderPass(renderTarget, clear2 = true, clearColor, viewport) {
           const renderTargetSystem = this._renderTargetSystem;
           const gpuRenderTarget = renderTargetSystem.getGpuRenderTarget(renderTarget);
-          const descriptor = this.getDescriptor(renderTarget, clear, clearColor);
+          const descriptor = this.getDescriptor(renderTarget, clear2, clearColor);
           gpuRenderTarget.descriptor = descriptor;
           this._renderer.pipeline.setRenderTarget(gpuRenderTarget);
           this._renderer.encoder.beginRenderPass(gpuRenderTarget);
@@ -31518,9 +31518,9 @@ ${parts.join("\n")}
             renderTarget.colorTextures[0].source
           );
         }
-        getDescriptor(renderTarget, clear, clearValue) {
-          if (typeof clear === "boolean") {
-            clear = clear ? CLEAR.ALL : CLEAR.NONE;
+        getDescriptor(renderTarget, clear2, clearValue) {
+          if (typeof clear2 === "boolean") {
+            clear2 = clear2 ? CLEAR.ALL : CLEAR.NONE;
           }
           const renderTargetSystem = this._renderTargetSystem;
           const gpuRenderTarget = renderTargetSystem.getGpuRenderTarget(renderTarget);
@@ -31544,7 +31544,7 @@ ${parts.join("\n")}
                   gpuRenderTarget.msaaTextures[i3]
                 );
               }
-              const loadOp = clear & CLEAR.COLOR ? "clear" : "load";
+              const loadOp = clear2 & CLEAR.COLOR ? "clear" : "load";
               clearValue ?? (clearValue = renderTargetSystem.defaultClearColor);
               return {
                 view,
@@ -31561,8 +31561,8 @@ ${parts.join("\n")}
             renderTarget.depthStencilTexture.source.sampleCount = gpuRenderTarget.msaa ? 4 : 1;
           }
           if (renderTarget.depthStencilTexture) {
-            const stencilLoadOp = clear & CLEAR.STENCIL ? "clear" : "load";
-            const depthLoadOp = clear & CLEAR.DEPTH ? "clear" : "load";
+            const stencilLoadOp = clear2 & CLEAR.STENCIL ? "clear" : "load";
+            const depthLoadOp = clear2 & CLEAR.DEPTH ? "clear" : "load";
             depthStencilAttachment = {
               view: this._renderer.texture.getGpuSource(renderTarget.depthStencilTexture.source).createView(),
               stencilStoreOp: "store",
@@ -31578,22 +31578,22 @@ ${parts.join("\n")}
           };
           return descriptor;
         }
-        clear(renderTarget, clear = true, clearColor, viewport) {
-          if (!clear)
+        clear(renderTarget, clear2 = true, clearColor, viewport) {
+          if (!clear2)
             return;
           const { gpu, encoder } = this._renderer;
           const device = gpu.device;
           const standAlone = encoder.commandEncoder === null;
           if (standAlone) {
             const commandEncoder = device.createCommandEncoder();
-            const renderPassDescriptor = this.getDescriptor(renderTarget, clear, clearColor);
+            const renderPassDescriptor = this.getDescriptor(renderTarget, clear2, clearColor);
             const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
             passEncoder.setViewport(viewport.x, viewport.y, viewport.width, viewport.height, 0, 1);
             passEncoder.end();
             const gpuCommands = commandEncoder.finish();
             device.queue.submit([gpuCommands]);
           } else {
-            this.startRenderPass(renderTarget, clear, clearColor, viewport);
+            this.startRenderPass(renderTarget, clear2, clearColor, viewport);
           }
         }
         initGpuRenderTarget(renderTarget) {
@@ -33449,13 +33449,13 @@ ${parts.join("\n")}
                 bufferSystem.bind(buffer);
                 lastBuffer = glBuffer;
               }
-              const location = programAttrib.location;
-              gl.enableVertexAttribArray(location);
+              const location2 = programAttrib.location;
+              gl.enableVertexAttribArray(location2);
               const attributeInfo = getAttributeInfoFromFormat(attribute.format);
               const type = getGlTypeFromFormat(attribute.format);
               if (programAttrib.format?.substring(1, 4) === "int") {
                 gl.vertexAttribIPointer(
-                  location,
+                  location2,
                   attributeInfo.size,
                   type,
                   attribute.stride,
@@ -33463,7 +33463,7 @@ ${parts.join("\n")}
                 );
               } else {
                 gl.vertexAttribPointer(
-                  location,
+                  location2,
                   attributeInfo.size,
                   type,
                   attributeInfo.normalised,
@@ -33474,7 +33474,7 @@ ${parts.join("\n")}
               if (attribute.instance) {
                 if (this.hasInstance) {
                   const divisor = attribute.divisor ?? 1;
-                  gl.vertexAttribDivisor(location, divisor);
+                  gl.vertexAttribDivisor(location2, divisor);
                 } else {
                   throw new Error("geometry error, GPU Instancing is not supported on this device");
                 }
@@ -33492,7 +33492,7 @@ ${parts.join("\n")}
          * @param instanceCount - The number of instances of the set of elements to execute. If not specified,
          *  all instances will be drawn.
          */
-        draw(topology, size, start, instanceCount) {
+        draw(topology, size2, start, instanceCount) {
           const { gl } = this._renderer;
           const geometry = this._activeGeometry;
           const glTopology = topologyToGlMap[geometry.topology || topology];
@@ -33501,14 +33501,14 @@ ${parts.join("\n")}
             const byteSize = geometry.indexBuffer.data.BYTES_PER_ELEMENT;
             const glType = byteSize === 2 ? gl.UNSIGNED_SHORT : gl.UNSIGNED_INT;
             if (instanceCount > 1) {
-              gl.drawElementsInstanced(glTopology, size || geometry.indexBuffer.data.length, glType, (start || 0) * byteSize, instanceCount);
+              gl.drawElementsInstanced(glTopology, size2 || geometry.indexBuffer.data.length, glType, (start || 0) * byteSize, instanceCount);
             } else {
-              gl.drawElements(glTopology, size || geometry.indexBuffer.data.length, glType, (start || 0) * byteSize);
+              gl.drawElements(glTopology, size2 || geometry.indexBuffer.data.length, glType, (start || 0) * byteSize);
             }
           } else if (instanceCount > 1) {
-            gl.drawArraysInstanced(glTopology, start || 0, size || geometry.getSize(), instanceCount);
+            gl.drawArraysInstanced(glTopology, start || 0, size2 || geometry.getSize(), instanceCount);
           } else {
-            gl.drawArrays(glTopology, start || 0, size || geometry.getSize());
+            gl.drawArrays(glTopology, start || 0, size2 || geometry.getSize());
           }
           return this;
         }
@@ -33727,13 +33727,13 @@ ${parts.join("\n")}
         }
         draw(options) {
           const renderer = this._renderer;
-          const { geometry, shader, state, skipSync, topology: type, size, start, instanceCount } = options;
+          const { geometry, shader, state, skipSync, topology: type, size: size2, start, instanceCount } = options;
           renderer.shader.bind(shader, skipSync);
           renderer.geometry.bind(geometry, renderer.shader._activeProgram);
           if (state) {
             renderer.state.set(state);
           }
-          renderer.geometry.draw(type, size, start, instanceCount ?? geometry.instanceCount);
+          renderer.geometry.draw(type, size2, start, instanceCount ?? geometry.instanceCount);
         }
         destroy() {
           this._renderer = null;
@@ -33879,7 +33879,7 @@ ${parts.join("\n")}
           this._clearColorCache = [0, 0, 0, 0];
           this._viewPortCache = new Rectangle();
         }
-        copyToTexture(sourceRenderSurfaceTexture, destinationTexture, originSrc, size, originDest) {
+        copyToTexture(sourceRenderSurfaceTexture, destinationTexture, originSrc, size2, originDest) {
           const renderTargetSystem = this._renderTargetSystem;
           const renderer = this._renderer;
           const glRenderTarget = renderTargetSystem.getGpuRenderTarget(sourceRenderSurfaceTexture);
@@ -33894,12 +33894,12 @@ ${parts.join("\n")}
             originDest.y,
             originSrc.x,
             originSrc.y,
-            size.width,
-            size.height
+            size2.width,
+            size2.height
           );
           return destinationTexture;
         }
-        startRenderPass(renderTarget, clear = true, clearColor, viewport) {
+        startRenderPass(renderTarget, clear2 = true, clearColor, viewport) {
           const renderTargetSystem = this._renderTargetSystem;
           const source2 = renderTarget.colorTexture;
           const gpuRenderTarget = renderTargetSystem.getGpuRenderTarget(renderTarget);
@@ -33928,7 +33928,7 @@ ${parts.join("\n")}
           if (!gpuRenderTarget.depthStencilRenderBuffer && (renderTarget.stencil || renderTarget.depth)) {
             this._initStencil(gpuRenderTarget);
           }
-          this.clear(renderTarget, clear, clearColor);
+          this.clear(renderTarget, clear2, clearColor);
         }
         finishRenderPass(renderTarget) {
           const renderTargetSystem = this._renderTargetSystem;
@@ -33983,15 +33983,15 @@ ${parts.join("\n")}
           });
           gpuRenderTarget.msaaRenderBuffer = null;
         }
-        clear(_renderTarget, clear, clearColor) {
-          if (!clear)
+        clear(_renderTarget, clear2, clearColor) {
+          if (!clear2)
             return;
           const renderTargetSystem = this._renderTargetSystem;
-          if (typeof clear === "boolean") {
-            clear = clear ? CLEAR.ALL : CLEAR.NONE;
+          if (typeof clear2 === "boolean") {
+            clear2 = clear2 ? CLEAR.ALL : CLEAR.NONE;
           }
           const gl = this._renderer.gl;
-          if (clear & CLEAR.COLOR) {
+          if (clear2 & CLEAR.COLOR) {
             clearColor ?? (clearColor = renderTargetSystem.defaultClearColor);
             const clearColorCache = this._clearColorCache;
             const clearColorArray = clearColor;
@@ -34003,7 +34003,7 @@ ${parts.join("\n")}
               gl.clearColor(clearColorArray[0], clearColorArray[1], clearColorArray[2], clearColorArray[3]);
             }
           }
-          gl.clear(clear);
+          gl.clear(clear2);
         }
         resizeGpuRenderTarget(renderTarget) {
           if (renderTarget.isRoot)
@@ -35078,42 +35078,42 @@ ${parts.join("\n")}
         initSource(source2) {
           this.bind(source2);
         }
-        bind(texture, location = 0) {
+        bind(texture, location2 = 0) {
           const source2 = texture.source;
           if (texture) {
-            this.bindSource(source2, location);
+            this.bindSource(source2, location2);
             if (this._useSeparateSamplers) {
-              this._bindSampler(source2.style, location);
+              this._bindSampler(source2.style, location2);
             }
           } else {
-            this.bindSource(null, location);
+            this.bindSource(null, location2);
             if (this._useSeparateSamplers) {
-              this._bindSampler(null, location);
+              this._bindSampler(null, location2);
             }
           }
         }
-        bindSource(source2, location = 0) {
+        bindSource(source2, location2 = 0) {
           const gl = this._gl;
           source2._touched = this._renderer.textureGC.count;
-          if (this._boundTextures[location] !== source2) {
-            this._boundTextures[location] = source2;
-            this._activateLocation(location);
+          if (this._boundTextures[location2] !== source2) {
+            this._boundTextures[location2] = source2;
+            this._activateLocation(location2);
             source2 = source2 || Texture.EMPTY.source;
             const glTexture = this.getGlSource(source2);
             gl.bindTexture(glTexture.target, glTexture.texture);
           }
         }
-        _bindSampler(style, location = 0) {
+        _bindSampler(style, location2 = 0) {
           const gl = this._gl;
           if (!style) {
-            this._boundSamplers[location] = null;
-            gl.bindSampler(location, null);
+            this._boundSamplers[location2] = null;
+            gl.bindSampler(location2, null);
             return;
           }
           const sampler = this._getGlSampler(style);
-          if (this._boundSamplers[location] !== sampler) {
-            this._boundSamplers[location] = sampler;
-            gl.bindSampler(location, sampler);
+          if (this._boundSamplers[location2] !== sampler) {
+            this._boundSamplers[location2] = sampler;
+            gl.bindSampler(location2, sampler);
           }
         }
         unbind(texture) {
@@ -35129,10 +35129,10 @@ ${parts.join("\n")}
             }
           }
         }
-        _activateLocation(location) {
-          if (this._activeTextureLocation !== location) {
-            this._activeTextureLocation = location;
-            this._gl.activeTexture(this._gl.TEXTURE0 + location);
+        _activateLocation(location2) {
+          if (this._activeTextureLocation !== location2) {
+            this._activeTextureLocation = location2;
+            this._gl.activeTexture(this._gl.TEXTURE0 + location2);
           }
         }
         _initSource(source2) {
@@ -37375,12 +37375,12 @@ ${parts.join("\n")}
       uboElements,
       uboSingleFunctionsWGSL,
       (uboElement) => {
-        const { size, align } = WGSL_ALIGN_SIZE_DATA[uboElement.data.type];
-        const remainder = (size - align) / 4;
+        const { size: size2, align } = WGSL_ALIGN_SIZE_DATA[uboElement.data.type];
+        const remainder = (size2 - align) / 4;
         return (_name, data, offset, _uv, v3) => {
           let t3 = 0;
-          for (let i3 = 0; i3 < uboElement.data.size * (size / 4); i3++) {
-            for (let j3 = 0; j3 < size / 4; j3++) {
+          for (let i3 = 0; i3 < uboElement.data.size * (size2 / 4); i3++) {
+            for (let j3 = 0; j3 < size2 / 4; j3++) {
               data[offset++] = v3[t3++];
             }
             offset += remainder;
@@ -38026,7 +38026,7 @@ ${parts.join("\n")}
           file: page[i3].file
         });
       }
-      const map = {};
+      const map2 = {};
       font.baseLineOffset = font.lineHeight - parseInt(common.base, 10);
       const char = rawData.char;
       for (let i3 = 0; i3 < char.length; i3++) {
@@ -38035,7 +38035,7 @@ ${parts.join("\n")}
         let letter = charNode.letter ?? charNode.char ?? String.fromCharCode(id);
         if (letter === "space")
           letter = " ";
-        map[id] = letter;
+        map2[id] = letter;
         font.chars[letter] = {
           id,
           // texture deets..
@@ -38055,7 +38055,7 @@ ${parts.join("\n")}
         const first = parseInt(kerning[i3].first, 10);
         const second = parseInt(kerning[i3].second, 10);
         const amount = parseInt(kerning[i3].amount, 10);
-        font.chars[map[second]].kerning[map[first]] = amount;
+        font.chars[map2[second]].kerning[map2[first]] = amount;
       }
       return font;
     }
@@ -38101,7 +38101,7 @@ ${parts.join("\n")}
           file: page[i3].getAttribute("file")
         });
       }
-      const map = {};
+      const map2 = {};
       data.baseLineOffset = data.lineHeight - parseInt(common.getAttribute("base"), 10);
       for (let i3 = 0; i3 < char.length; i3++) {
         const charNode = char[i3];
@@ -38109,7 +38109,7 @@ ${parts.join("\n")}
         let letter = charNode.getAttribute("letter") ?? charNode.getAttribute("char") ?? String.fromCharCode(id);
         if (letter === "space")
           letter = " ";
-        map[id] = letter;
+        map2[id] = letter;
         data.chars[letter] = {
           id,
           // texture deets..
@@ -38130,7 +38130,7 @@ ${parts.join("\n")}
         const first = parseInt(kerning[i3].getAttribute("first"), 10);
         const second = parseInt(kerning[i3].getAttribute("second"), 10);
         const amount = parseInt(kerning[i3].getAttribute("amount"), 10);
-        data.chars[map[second]].kerning[map[first]] = amount;
+        data.chars[map2[second]].kerning[map2[first]] = amount;
       }
       return data;
     }
@@ -39678,16 +39678,16 @@ ${e3}`);
     detection: ExtensionType.DetectionParser
   };
   extensions.handle(ExtensionType.Asset, (extension) => {
-    const ref = extension.ref;
-    Object.entries(assetKeyMap).filter(([key]) => !!ref[key]).forEach(([key, type]) => extensions.add(Object.assign(
-      ref[key],
+    const ref2 = extension.ref;
+    Object.entries(assetKeyMap).filter(([key]) => !!ref2[key]).forEach(([key, type]) => extensions.add(Object.assign(
+      ref2[key],
       // Allow the function to optionally define it's own
       // ExtensionMetadata, the use cases here is priority for LoaderParsers
-      { extension: ref[key].extension ?? type }
+      { extension: ref2[key].extension ?? type }
     )));
   }, (extension) => {
-    const ref = extension.ref;
-    Object.keys(assetKeyMap).filter((key) => !!ref[key]).forEach((key) => extensions.remove(ref[key]));
+    const ref2 = extension.ref;
+    Object.keys(assetKeyMap).filter((key) => !!ref2[key]).forEach((key) => extensions.remove(ref2[key]));
   });
 
   // node_modules/pixi.js/lib/scene/sprite-animated/AnimatedSprite.mjs
@@ -40601,39 +40601,41 @@ ${e3}`);
   extensions.add(browserExt, webworkerExt);
 
   // client/renderer/index.ts
+  var PossibleLayers = [
+    "BG00",
+    "BG01",
+    "BG02",
+    "BG03",
+    "BG04",
+    "BG05",
+    "BG06",
+    "BG07",
+    "BG08",
+    "BG09",
+    "BG10",
+    "ObjectsBelow",
+    "Terrain",
+    "ObjectsFront",
+    "FG00",
+    "FG01",
+    "FG02",
+    "FG03",
+    "FG04",
+    "FG05",
+    "FG06",
+    "FG07",
+    "FG08",
+    "FG09",
+    "FG10"
+  ];
   var createLayerMap = () => {
-    const map = {
-      BG00: new Container(),
-      BG01: new Container(),
-      BG02: new Container(),
-      BG03: new Container(),
-      BG04: new Container(),
-      BG05: new Container(),
-      BG06: new Container(),
-      BG07: new Container(),
-      BG08: new Container(),
-      BG09: new Container(),
-      BG10: new Container(),
-      ObjectsBelow: new Container(),
-      Terrain: new Container(),
-      ObjectsFront: new Container(),
-      FG00: new Container(),
-      FG01: new Container(),
-      FG02: new Container(),
-      FG03: new Container(),
-      FG04: new Container(),
-      FG05: new Container(),
-      FG06: new Container(),
-      FG07: new Container(),
-      FG08: new Container(),
-      FG09: new Container(),
-      FG10: new Container()
-    };
-    for (const key of Object.keys(map)) {
-      map[key].x_pscaling = 1;
-      map[key].y_pscaling = 1;
-    }
-    return map;
+    const map2 = PossibleLayers.reduce((acc, key) => {
+      acc[key] = new Container();
+      acc[key].x_pscaling = 1;
+      acc[key].y_pscaling = 1;
+      return acc;
+    }, {});
+    return map2;
   };
   var addLayerMapToContainer = (container, layerMap) => {
     container.addChild(
@@ -42649,6 +42651,4802 @@ ${e3}`);
     };
   }
 
+  // node_modules/@vue/shared/dist/shared.esm-bundler.js
+  // @__NO_SIDE_EFFECTS__
+  function makeMap(str, expectsLowerCase) {
+    const set3 = new Set(str.split(","));
+    return expectsLowerCase ? (val) => set3.has(val.toLowerCase()) : (val) => set3.has(val);
+  }
+  var EMPTY_OBJ = true ? Object.freeze({}) : {};
+  var EMPTY_ARR = true ? Object.freeze([]) : [];
+  var NOOP2 = () => {
+  };
+  var NO = () => false;
+  var extend = Object.assign;
+  var remove2 = (arr, el) => {
+    const i3 = arr.indexOf(el);
+    if (i3 > -1) {
+      arr.splice(i3, 1);
+    }
+  };
+  var hasOwnProperty = Object.prototype.hasOwnProperty;
+  var hasOwn = (val, key) => hasOwnProperty.call(val, key);
+  var isArray = Array.isArray;
+  var isMap = (val) => toTypeString(val) === "[object Map]";
+  var isSet = (val) => toTypeString(val) === "[object Set]";
+  var isFunction = (val) => typeof val === "function";
+  var isString = (val) => typeof val === "string";
+  var isSymbol = (val) => typeof val === "symbol";
+  var isObject = (val) => val !== null && typeof val === "object";
+  var isPromise = (val) => {
+    return (isObject(val) || isFunction(val)) && isFunction(val.then) && isFunction(val.catch);
+  };
+  var objectToString = Object.prototype.toString;
+  var toTypeString = (value) => objectToString.call(value);
+  var toRawType = (value) => {
+    return toTypeString(value).slice(8, -1);
+  };
+  var isPlainObject = (val) => toTypeString(val) === "[object Object]";
+  var isIntegerKey = (key) => isString(key) && key !== "NaN" && key[0] !== "-" && "" + parseInt(key, 10) === key;
+  var cacheStringFunction = (fn) => {
+    const cache = /* @__PURE__ */ Object.create(null);
+    return (str) => {
+      const hit = cache[str];
+      return hit || (cache[str] = fn(str));
+    };
+  };
+  var camelizeRE = /-(\w)/g;
+  var camelize = cacheStringFunction((str) => {
+    return str.replace(camelizeRE, (_2, c3) => c3 ? c3.toUpperCase() : "");
+  });
+  var hyphenateRE = /\B([A-Z])/g;
+  var hyphenate = cacheStringFunction(
+    (str) => str.replace(hyphenateRE, "-$1").toLowerCase()
+  );
+  var capitalize = cacheStringFunction((str) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  });
+  var toHandlerKey = cacheStringFunction((str) => {
+    const s3 = str ? `on${capitalize(str)}` : ``;
+    return s3;
+  });
+  var hasChanged = (value, oldValue) => !Object.is(value, oldValue);
+  var def = (obj, key, value, writable = false) => {
+    Object.defineProperty(obj, key, {
+      configurable: true,
+      enumerable: false,
+      writable,
+      value
+    });
+  };
+  var _globalThis;
+  var getGlobalThis = () => {
+    return _globalThis || (_globalThis = typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : {});
+  };
+  var specialBooleanAttrs = `itemscope,allowfullscreen,formnovalidate,ismap,nomodule,novalidate,readonly`;
+  var isBooleanAttr = /* @__PURE__ */ makeMap(
+    specialBooleanAttrs + `,async,autofocus,autoplay,controls,default,defer,disabled,hidden,inert,loop,open,required,reversed,scoped,seamless,checked,muted,multiple,selected`
+  );
+
+  // node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js
+  function warn2(msg, ...args) {
+    console.warn(`[Vue warn] ${msg}`, ...args);
+  }
+  var activeEffectScope;
+  var EffectScope = class {
+    constructor(detached = false) {
+      this.detached = detached;
+      this._active = true;
+      this.effects = [];
+      this.cleanups = [];
+      this.parent = activeEffectScope;
+      if (!detached && activeEffectScope) {
+        this.index = (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(
+          this
+        ) - 1;
+      }
+    }
+    get active() {
+      return this._active;
+    }
+    run(fn) {
+      if (this._active) {
+        const currentEffectScope = activeEffectScope;
+        try {
+          activeEffectScope = this;
+          return fn();
+        } finally {
+          activeEffectScope = currentEffectScope;
+        }
+      } else if (true) {
+        warn2(`cannot run an inactive effect scope.`);
+      }
+    }
+    /**
+     * This should only be called on non-detached scopes
+     * @internal
+     */
+    on() {
+      activeEffectScope = this;
+    }
+    /**
+     * This should only be called on non-detached scopes
+     * @internal
+     */
+    off() {
+      activeEffectScope = this.parent;
+    }
+    stop(fromParent) {
+      if (this._active) {
+        let i3, l3;
+        for (i3 = 0, l3 = this.effects.length; i3 < l3; i3++) {
+          this.effects[i3].stop();
+        }
+        for (i3 = 0, l3 = this.cleanups.length; i3 < l3; i3++) {
+          this.cleanups[i3]();
+        }
+        if (this.scopes) {
+          for (i3 = 0, l3 = this.scopes.length; i3 < l3; i3++) {
+            this.scopes[i3].stop(true);
+          }
+        }
+        if (!this.detached && this.parent && !fromParent) {
+          const last = this.parent.scopes.pop();
+          if (last && last !== this) {
+            this.parent.scopes[this.index] = last;
+            last.index = this.index;
+          }
+        }
+        this.parent = void 0;
+        this._active = false;
+      }
+    }
+  };
+  function effectScope(detached) {
+    return new EffectScope(detached);
+  }
+  function recordEffectScope(effect2, scope = activeEffectScope) {
+    if (scope && scope.active) {
+      scope.effects.push(effect2);
+    }
+  }
+  function getCurrentScope() {
+    return activeEffectScope;
+  }
+  function onScopeDispose(fn) {
+    if (activeEffectScope) {
+      activeEffectScope.cleanups.push(fn);
+    } else if (true) {
+      warn2(
+        `onScopeDispose() is called when there is no active effect scope to be associated with.`
+      );
+    }
+  }
+  var activeEffect;
+  var ReactiveEffect = class {
+    constructor(fn, trigger2, scheduler, scope) {
+      this.fn = fn;
+      this.trigger = trigger2;
+      this.scheduler = scheduler;
+      this.active = true;
+      this.deps = [];
+      this._dirtyLevel = 4;
+      this._trackId = 0;
+      this._runnings = 0;
+      this._shouldSchedule = false;
+      this._depsLength = 0;
+      recordEffectScope(this, scope);
+    }
+    get dirty() {
+      if (this._dirtyLevel === 2 || this._dirtyLevel === 3) {
+        this._dirtyLevel = 1;
+        pauseTracking();
+        for (let i3 = 0; i3 < this._depsLength; i3++) {
+          const dep = this.deps[i3];
+          if (dep.computed) {
+            triggerComputed(dep.computed);
+            if (this._dirtyLevel >= 4) {
+              break;
+            }
+          }
+        }
+        if (this._dirtyLevel === 1) {
+          this._dirtyLevel = 0;
+        }
+        resetTracking();
+      }
+      return this._dirtyLevel >= 4;
+    }
+    set dirty(v3) {
+      this._dirtyLevel = v3 ? 4 : 0;
+    }
+    run() {
+      this._dirtyLevel = 0;
+      if (!this.active) {
+        return this.fn();
+      }
+      let lastShouldTrack = shouldTrack;
+      let lastEffect = activeEffect;
+      try {
+        shouldTrack = true;
+        activeEffect = this;
+        this._runnings++;
+        preCleanupEffect(this);
+        return this.fn();
+      } finally {
+        postCleanupEffect(this);
+        this._runnings--;
+        activeEffect = lastEffect;
+        shouldTrack = lastShouldTrack;
+      }
+    }
+    stop() {
+      if (this.active) {
+        preCleanupEffect(this);
+        postCleanupEffect(this);
+        this.onStop && this.onStop();
+        this.active = false;
+      }
+    }
+  };
+  function triggerComputed(computed3) {
+    return computed3.value;
+  }
+  function preCleanupEffect(effect2) {
+    effect2._trackId++;
+    effect2._depsLength = 0;
+  }
+  function postCleanupEffect(effect2) {
+    if (effect2.deps.length > effect2._depsLength) {
+      for (let i3 = effect2._depsLength; i3 < effect2.deps.length; i3++) {
+        cleanupDepEffect(effect2.deps[i3], effect2);
+      }
+      effect2.deps.length = effect2._depsLength;
+    }
+  }
+  function cleanupDepEffect(dep, effect2) {
+    const trackId = dep.get(effect2);
+    if (trackId !== void 0 && effect2._trackId !== trackId) {
+      dep.delete(effect2);
+      if (dep.size === 0) {
+        dep.cleanup();
+      }
+    }
+  }
+  var shouldTrack = true;
+  var pauseScheduleStack = 0;
+  var trackStack = [];
+  function pauseTracking() {
+    trackStack.push(shouldTrack);
+    shouldTrack = false;
+  }
+  function resetTracking() {
+    const last = trackStack.pop();
+    shouldTrack = last === void 0 ? true : last;
+  }
+  function pauseScheduling() {
+    pauseScheduleStack++;
+  }
+  function resetScheduling() {
+    pauseScheduleStack--;
+    while (!pauseScheduleStack && queueEffectSchedulers.length) {
+      queueEffectSchedulers.shift()();
+    }
+  }
+  function trackEffect(effect2, dep, debuggerEventExtraInfo) {
+    var _a;
+    if (dep.get(effect2) !== effect2._trackId) {
+      dep.set(effect2, effect2._trackId);
+      const oldDep = effect2.deps[effect2._depsLength];
+      if (oldDep !== dep) {
+        if (oldDep) {
+          cleanupDepEffect(oldDep, effect2);
+        }
+        effect2.deps[effect2._depsLength++] = dep;
+      } else {
+        effect2._depsLength++;
+      }
+      if (true) {
+        (_a = effect2.onTrack) == null ? void 0 : _a.call(effect2, extend({ effect: effect2 }, debuggerEventExtraInfo));
+      }
+    }
+  }
+  var queueEffectSchedulers = [];
+  function triggerEffects(dep, dirtyLevel, debuggerEventExtraInfo) {
+    var _a;
+    pauseScheduling();
+    for (const effect2 of dep.keys()) {
+      let tracking;
+      if (effect2._dirtyLevel < dirtyLevel && (tracking != null ? tracking : tracking = dep.get(effect2) === effect2._trackId)) {
+        effect2._shouldSchedule || (effect2._shouldSchedule = effect2._dirtyLevel === 0);
+        effect2._dirtyLevel = dirtyLevel;
+      }
+      if (effect2._shouldSchedule && (tracking != null ? tracking : tracking = dep.get(effect2) === effect2._trackId)) {
+        if (true) {
+          (_a = effect2.onTrigger) == null ? void 0 : _a.call(effect2, extend({ effect: effect2 }, debuggerEventExtraInfo));
+        }
+        effect2.trigger();
+        if ((!effect2._runnings || effect2.allowRecurse) && effect2._dirtyLevel !== 2) {
+          effect2._shouldSchedule = false;
+          if (effect2.scheduler) {
+            queueEffectSchedulers.push(effect2.scheduler);
+          }
+        }
+      }
+    }
+    resetScheduling();
+  }
+  var createDep = (cleanup, computed3) => {
+    const dep = /* @__PURE__ */ new Map();
+    dep.cleanup = cleanup;
+    dep.computed = computed3;
+    return dep;
+  };
+  var targetMap = /* @__PURE__ */ new WeakMap();
+  var ITERATE_KEY = Symbol(true ? "iterate" : "");
+  var MAP_KEY_ITERATE_KEY = Symbol(true ? "Map key iterate" : "");
+  function track(target, type, key) {
+    if (shouldTrack && activeEffect) {
+      let depsMap = targetMap.get(target);
+      if (!depsMap) {
+        targetMap.set(target, depsMap = /* @__PURE__ */ new Map());
+      }
+      let dep = depsMap.get(key);
+      if (!dep) {
+        depsMap.set(key, dep = createDep(() => depsMap.delete(key)));
+      }
+      trackEffect(
+        activeEffect,
+        dep,
+        true ? {
+          target,
+          type,
+          key
+        } : void 0
+      );
+    }
+  }
+  function trigger(target, type, key, newValue, oldValue, oldTarget) {
+    const depsMap = targetMap.get(target);
+    if (!depsMap) {
+      return;
+    }
+    let deps = [];
+    if (type === "clear") {
+      deps = [...depsMap.values()];
+    } else if (key === "length" && isArray(target)) {
+      const newLength = Number(newValue);
+      depsMap.forEach((dep, key2) => {
+        if (key2 === "length" || !isSymbol(key2) && key2 >= newLength) {
+          deps.push(dep);
+        }
+      });
+    } else {
+      if (key !== void 0) {
+        deps.push(depsMap.get(key));
+      }
+      switch (type) {
+        case "add":
+          if (!isArray(target)) {
+            deps.push(depsMap.get(ITERATE_KEY));
+            if (isMap(target)) {
+              deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
+            }
+          } else if (isIntegerKey(key)) {
+            deps.push(depsMap.get("length"));
+          }
+          break;
+        case "delete":
+          if (!isArray(target)) {
+            deps.push(depsMap.get(ITERATE_KEY));
+            if (isMap(target)) {
+              deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
+            }
+          }
+          break;
+        case "set":
+          if (isMap(target)) {
+            deps.push(depsMap.get(ITERATE_KEY));
+          }
+          break;
+      }
+    }
+    pauseScheduling();
+    for (const dep of deps) {
+      if (dep) {
+        triggerEffects(
+          dep,
+          4,
+          true ? {
+            target,
+            type,
+            key,
+            newValue,
+            oldValue,
+            oldTarget
+          } : void 0
+        );
+      }
+    }
+    resetScheduling();
+  }
+  function getDepFromReactive(object, key) {
+    const depsMap = targetMap.get(object);
+    return depsMap && depsMap.get(key);
+  }
+  var isNonTrackableKeys = /* @__PURE__ */ makeMap(`__proto__,__v_isRef,__isVue`);
+  var builtInSymbols = new Set(
+    /* @__PURE__ */ Object.getOwnPropertyNames(Symbol).filter((key) => key !== "arguments" && key !== "caller").map((key) => Symbol[key]).filter(isSymbol)
+  );
+  var arrayInstrumentations = /* @__PURE__ */ createArrayInstrumentations();
+  function createArrayInstrumentations() {
+    const instrumentations = {};
+    ["includes", "indexOf", "lastIndexOf"].forEach((key) => {
+      instrumentations[key] = function(...args) {
+        const arr = toRaw(this);
+        for (let i3 = 0, l3 = this.length; i3 < l3; i3++) {
+          track(arr, "get", i3 + "");
+        }
+        const res = arr[key](...args);
+        if (res === -1 || res === false) {
+          return arr[key](...args.map(toRaw));
+        } else {
+          return res;
+        }
+      };
+    });
+    ["push", "pop", "shift", "unshift", "splice"].forEach((key) => {
+      instrumentations[key] = function(...args) {
+        pauseTracking();
+        pauseScheduling();
+        const res = toRaw(this)[key].apply(this, args);
+        resetScheduling();
+        resetTracking();
+        return res;
+      };
+    });
+    return instrumentations;
+  }
+  function hasOwnProperty2(key) {
+    if (!isSymbol(key))
+      key = String(key);
+    const obj = toRaw(this);
+    track(obj, "has", key);
+    return obj.hasOwnProperty(key);
+  }
+  var BaseReactiveHandler = class {
+    constructor(_isReadonly = false, _isShallow = false) {
+      this._isReadonly = _isReadonly;
+      this._isShallow = _isShallow;
+    }
+    get(target, key, receiver) {
+      const isReadonly2 = this._isReadonly, isShallow2 = this._isShallow;
+      if (key === "__v_isReactive") {
+        return !isReadonly2;
+      } else if (key === "__v_isReadonly") {
+        return isReadonly2;
+      } else if (key === "__v_isShallow") {
+        return isShallow2;
+      } else if (key === "__v_raw") {
+        if (receiver === (isReadonly2 ? isShallow2 ? shallowReadonlyMap : readonlyMap : isShallow2 ? shallowReactiveMap : reactiveMap).get(target) || // receiver is not the reactive proxy, but has the same prototype
+        // this means the reciever is a user proxy of the reactive proxy
+        Object.getPrototypeOf(target) === Object.getPrototypeOf(receiver)) {
+          return target;
+        }
+        return;
+      }
+      const targetIsArray = isArray(target);
+      if (!isReadonly2) {
+        if (targetIsArray && hasOwn(arrayInstrumentations, key)) {
+          return Reflect.get(arrayInstrumentations, key, receiver);
+        }
+        if (key === "hasOwnProperty") {
+          return hasOwnProperty2;
+        }
+      }
+      const res = Reflect.get(target, key, receiver);
+      if (isSymbol(key) ? builtInSymbols.has(key) : isNonTrackableKeys(key)) {
+        return res;
+      }
+      if (!isReadonly2) {
+        track(target, "get", key);
+      }
+      if (isShallow2) {
+        return res;
+      }
+      if (isRef(res)) {
+        return targetIsArray && isIntegerKey(key) ? res : res.value;
+      }
+      if (isObject(res)) {
+        return isReadonly2 ? readonly(res) : reactive(res);
+      }
+      return res;
+    }
+  };
+  var MutableReactiveHandler = class extends BaseReactiveHandler {
+    constructor(isShallow2 = false) {
+      super(false, isShallow2);
+    }
+    set(target, key, value, receiver) {
+      let oldValue = target[key];
+      if (!this._isShallow) {
+        const isOldValueReadonly = isReadonly(oldValue);
+        if (!isShallow(value) && !isReadonly(value)) {
+          oldValue = toRaw(oldValue);
+          value = toRaw(value);
+        }
+        if (!isArray(target) && isRef(oldValue) && !isRef(value)) {
+          if (isOldValueReadonly) {
+            return false;
+          } else {
+            oldValue.value = value;
+            return true;
+          }
+        }
+      }
+      const hadKey = isArray(target) && isIntegerKey(key) ? Number(key) < target.length : hasOwn(target, key);
+      const result = Reflect.set(target, key, value, receiver);
+      if (target === toRaw(receiver)) {
+        if (!hadKey) {
+          trigger(target, "add", key, value);
+        } else if (hasChanged(value, oldValue)) {
+          trigger(target, "set", key, value, oldValue);
+        }
+      }
+      return result;
+    }
+    deleteProperty(target, key) {
+      const hadKey = hasOwn(target, key);
+      const oldValue = target[key];
+      const result = Reflect.deleteProperty(target, key);
+      if (result && hadKey) {
+        trigger(target, "delete", key, void 0, oldValue);
+      }
+      return result;
+    }
+    has(target, key) {
+      const result = Reflect.has(target, key);
+      if (!isSymbol(key) || !builtInSymbols.has(key)) {
+        track(target, "has", key);
+      }
+      return result;
+    }
+    ownKeys(target) {
+      track(
+        target,
+        "iterate",
+        isArray(target) ? "length" : ITERATE_KEY
+      );
+      return Reflect.ownKeys(target);
+    }
+  };
+  var ReadonlyReactiveHandler = class extends BaseReactiveHandler {
+    constructor(isShallow2 = false) {
+      super(true, isShallow2);
+    }
+    set(target, key) {
+      if (true) {
+        warn2(
+          `Set operation on key "${String(key)}" failed: target is readonly.`,
+          target
+        );
+      }
+      return true;
+    }
+    deleteProperty(target, key) {
+      if (true) {
+        warn2(
+          `Delete operation on key "${String(key)}" failed: target is readonly.`,
+          target
+        );
+      }
+      return true;
+    }
+  };
+  var mutableHandlers = /* @__PURE__ */ new MutableReactiveHandler();
+  var readonlyHandlers = /* @__PURE__ */ new ReadonlyReactiveHandler();
+  var shallowReadonlyHandlers = /* @__PURE__ */ new ReadonlyReactiveHandler(true);
+  var toShallow = (value) => value;
+  var getProto = (v3) => Reflect.getPrototypeOf(v3);
+  function get(target, key, isReadonly2 = false, isShallow2 = false) {
+    target = target["__v_raw"];
+    const rawTarget = toRaw(target);
+    const rawKey = toRaw(key);
+    if (!isReadonly2) {
+      if (hasChanged(key, rawKey)) {
+        track(rawTarget, "get", key);
+      }
+      track(rawTarget, "get", rawKey);
+    }
+    const { has: has2 } = getProto(rawTarget);
+    const wrap = isShallow2 ? toShallow : isReadonly2 ? toReadonly : toReactive;
+    if (has2.call(rawTarget, key)) {
+      return wrap(target.get(key));
+    } else if (has2.call(rawTarget, rawKey)) {
+      return wrap(target.get(rawKey));
+    } else if (target !== rawTarget) {
+      target.get(key);
+    }
+  }
+  function has(key, isReadonly2 = false) {
+    const target = this["__v_raw"];
+    const rawTarget = toRaw(target);
+    const rawKey = toRaw(key);
+    if (!isReadonly2) {
+      if (hasChanged(key, rawKey)) {
+        track(rawTarget, "has", key);
+      }
+      track(rawTarget, "has", rawKey);
+    }
+    return key === rawKey ? target.has(key) : target.has(key) || target.has(rawKey);
+  }
+  function size(target, isReadonly2 = false) {
+    target = target["__v_raw"];
+    !isReadonly2 && track(toRaw(target), "iterate", ITERATE_KEY);
+    return Reflect.get(target, "size", target);
+  }
+  function add2(value) {
+    value = toRaw(value);
+    const target = toRaw(this);
+    const proto = getProto(target);
+    const hadKey = proto.has.call(target, value);
+    if (!hadKey) {
+      target.add(value);
+      trigger(target, "add", value, value);
+    }
+    return this;
+  }
+  function set(key, value) {
+    value = toRaw(value);
+    const target = toRaw(this);
+    const { has: has2, get: get2 } = getProto(target);
+    let hadKey = has2.call(target, key);
+    if (!hadKey) {
+      key = toRaw(key);
+      hadKey = has2.call(target, key);
+    } else if (true) {
+      checkIdentityKeys(target, has2, key);
+    }
+    const oldValue = get2.call(target, key);
+    target.set(key, value);
+    if (!hadKey) {
+      trigger(target, "add", key, value);
+    } else if (hasChanged(value, oldValue)) {
+      trigger(target, "set", key, value, oldValue);
+    }
+    return this;
+  }
+  function deleteEntry(key) {
+    const target = toRaw(this);
+    const { has: has2, get: get2 } = getProto(target);
+    let hadKey = has2.call(target, key);
+    if (!hadKey) {
+      key = toRaw(key);
+      hadKey = has2.call(target, key);
+    } else if (true) {
+      checkIdentityKeys(target, has2, key);
+    }
+    const oldValue = get2 ? get2.call(target, key) : void 0;
+    const result = target.delete(key);
+    if (hadKey) {
+      trigger(target, "delete", key, void 0, oldValue);
+    }
+    return result;
+  }
+  function clear() {
+    const target = toRaw(this);
+    const hadItems = target.size !== 0;
+    const oldTarget = true ? isMap(target) ? new Map(target) : new Set(target) : void 0;
+    const result = target.clear();
+    if (hadItems) {
+      trigger(target, "clear", void 0, void 0, oldTarget);
+    }
+    return result;
+  }
+  function createForEach(isReadonly2, isShallow2) {
+    return function forEach(callback, thisArg) {
+      const observed = this;
+      const target = observed["__v_raw"];
+      const rawTarget = toRaw(target);
+      const wrap = isShallow2 ? toShallow : isReadonly2 ? toReadonly : toReactive;
+      !isReadonly2 && track(rawTarget, "iterate", ITERATE_KEY);
+      return target.forEach((value, key) => {
+        return callback.call(thisArg, wrap(value), wrap(key), observed);
+      });
+    };
+  }
+  function createIterableMethod(method, isReadonly2, isShallow2) {
+    return function(...args) {
+      const target = this["__v_raw"];
+      const rawTarget = toRaw(target);
+      const targetIsMap = isMap(rawTarget);
+      const isPair = method === "entries" || method === Symbol.iterator && targetIsMap;
+      const isKeyOnly = method === "keys" && targetIsMap;
+      const innerIterator = target[method](...args);
+      const wrap = isShallow2 ? toShallow : isReadonly2 ? toReadonly : toReactive;
+      !isReadonly2 && track(
+        rawTarget,
+        "iterate",
+        isKeyOnly ? MAP_KEY_ITERATE_KEY : ITERATE_KEY
+      );
+      return {
+        // iterator protocol
+        next() {
+          const { value, done } = innerIterator.next();
+          return done ? { value, done } : {
+            value: isPair ? [wrap(value[0]), wrap(value[1])] : wrap(value),
+            done
+          };
+        },
+        // iterable protocol
+        [Symbol.iterator]() {
+          return this;
+        }
+      };
+    };
+  }
+  function createReadonlyMethod(type) {
+    return function(...args) {
+      if (true) {
+        const key = args[0] ? `on key "${args[0]}" ` : ``;
+        warn2(
+          `${capitalize(type)} operation ${key}failed: target is readonly.`,
+          toRaw(this)
+        );
+      }
+      return type === "delete" ? false : type === "clear" ? void 0 : this;
+    };
+  }
+  function createInstrumentations() {
+    const mutableInstrumentations2 = {
+      get(key) {
+        return get(this, key);
+      },
+      get size() {
+        return size(this);
+      },
+      has,
+      add: add2,
+      set,
+      delete: deleteEntry,
+      clear,
+      forEach: createForEach(false, false)
+    };
+    const shallowInstrumentations2 = {
+      get(key) {
+        return get(this, key, false, true);
+      },
+      get size() {
+        return size(this);
+      },
+      has,
+      add: add2,
+      set,
+      delete: deleteEntry,
+      clear,
+      forEach: createForEach(false, true)
+    };
+    const readonlyInstrumentations2 = {
+      get(key) {
+        return get(this, key, true);
+      },
+      get size() {
+        return size(this, true);
+      },
+      has(key) {
+        return has.call(this, key, true);
+      },
+      add: createReadonlyMethod("add"),
+      set: createReadonlyMethod("set"),
+      delete: createReadonlyMethod("delete"),
+      clear: createReadonlyMethod("clear"),
+      forEach: createForEach(true, false)
+    };
+    const shallowReadonlyInstrumentations2 = {
+      get(key) {
+        return get(this, key, true, true);
+      },
+      get size() {
+        return size(this, true);
+      },
+      has(key) {
+        return has.call(this, key, true);
+      },
+      add: createReadonlyMethod("add"),
+      set: createReadonlyMethod("set"),
+      delete: createReadonlyMethod("delete"),
+      clear: createReadonlyMethod("clear"),
+      forEach: createForEach(true, true)
+    };
+    const iteratorMethods = [
+      "keys",
+      "values",
+      "entries",
+      Symbol.iterator
+    ];
+    iteratorMethods.forEach((method) => {
+      mutableInstrumentations2[method] = createIterableMethod(method, false, false);
+      readonlyInstrumentations2[method] = createIterableMethod(method, true, false);
+      shallowInstrumentations2[method] = createIterableMethod(method, false, true);
+      shallowReadonlyInstrumentations2[method] = createIterableMethod(
+        method,
+        true,
+        true
+      );
+    });
+    return [
+      mutableInstrumentations2,
+      readonlyInstrumentations2,
+      shallowInstrumentations2,
+      shallowReadonlyInstrumentations2
+    ];
+  }
+  var [
+    mutableInstrumentations,
+    readonlyInstrumentations,
+    shallowInstrumentations,
+    shallowReadonlyInstrumentations
+  ] = /* @__PURE__ */ createInstrumentations();
+  function createInstrumentationGetter(isReadonly2, shallow) {
+    const instrumentations = shallow ? isReadonly2 ? shallowReadonlyInstrumentations : shallowInstrumentations : isReadonly2 ? readonlyInstrumentations : mutableInstrumentations;
+    return (target, key, receiver) => {
+      if (key === "__v_isReactive") {
+        return !isReadonly2;
+      } else if (key === "__v_isReadonly") {
+        return isReadonly2;
+      } else if (key === "__v_raw") {
+        return target;
+      }
+      return Reflect.get(
+        hasOwn(instrumentations, key) && key in target ? instrumentations : target,
+        key,
+        receiver
+      );
+    };
+  }
+  var mutableCollectionHandlers = {
+    get: /* @__PURE__ */ createInstrumentationGetter(false, false)
+  };
+  var readonlyCollectionHandlers = {
+    get: /* @__PURE__ */ createInstrumentationGetter(true, false)
+  };
+  var shallowReadonlyCollectionHandlers = {
+    get: /* @__PURE__ */ createInstrumentationGetter(true, true)
+  };
+  function checkIdentityKeys(target, has2, key) {
+    const rawKey = toRaw(key);
+    if (rawKey !== key && has2.call(target, rawKey)) {
+      const type = toRawType(target);
+      warn2(
+        `Reactive ${type} contains both the raw and reactive versions of the same object${type === `Map` ? ` as keys` : ``}, which can lead to inconsistencies. Avoid differentiating between the raw and reactive versions of an object and only use the reactive version if possible.`
+      );
+    }
+  }
+  var reactiveMap = /* @__PURE__ */ new WeakMap();
+  var shallowReactiveMap = /* @__PURE__ */ new WeakMap();
+  var readonlyMap = /* @__PURE__ */ new WeakMap();
+  var shallowReadonlyMap = /* @__PURE__ */ new WeakMap();
+  function targetTypeMap(rawType) {
+    switch (rawType) {
+      case "Object":
+      case "Array":
+        return 1;
+      case "Map":
+      case "Set":
+      case "WeakMap":
+      case "WeakSet":
+        return 2;
+      default:
+        return 0;
+    }
+  }
+  function getTargetType(value) {
+    return value["__v_skip"] || !Object.isExtensible(value) ? 0 : targetTypeMap(toRawType(value));
+  }
+  function reactive(target) {
+    if (isReadonly(target)) {
+      return target;
+    }
+    return createReactiveObject(
+      target,
+      false,
+      mutableHandlers,
+      mutableCollectionHandlers,
+      reactiveMap
+    );
+  }
+  function readonly(target) {
+    return createReactiveObject(
+      target,
+      true,
+      readonlyHandlers,
+      readonlyCollectionHandlers,
+      readonlyMap
+    );
+  }
+  function shallowReadonly(target) {
+    return createReactiveObject(
+      target,
+      true,
+      shallowReadonlyHandlers,
+      shallowReadonlyCollectionHandlers,
+      shallowReadonlyMap
+    );
+  }
+  function createReactiveObject(target, isReadonly2, baseHandlers, collectionHandlers, proxyMap) {
+    if (!isObject(target)) {
+      if (true) {
+        warn2(`value cannot be made reactive: ${String(target)}`);
+      }
+      return target;
+    }
+    if (target["__v_raw"] && !(isReadonly2 && target["__v_isReactive"])) {
+      return target;
+    }
+    const existingProxy = proxyMap.get(target);
+    if (existingProxy) {
+      return existingProxy;
+    }
+    const targetType = getTargetType(target);
+    if (targetType === 0) {
+      return target;
+    }
+    const proxy = new Proxy(
+      target,
+      targetType === 2 ? collectionHandlers : baseHandlers
+    );
+    proxyMap.set(target, proxy);
+    return proxy;
+  }
+  function isReactive(value) {
+    if (isReadonly(value)) {
+      return isReactive(value["__v_raw"]);
+    }
+    return !!(value && value["__v_isReactive"]);
+  }
+  function isReadonly(value) {
+    return !!(value && value["__v_isReadonly"]);
+  }
+  function isShallow(value) {
+    return !!(value && value["__v_isShallow"]);
+  }
+  function isProxy(value) {
+    return value ? !!value["__v_raw"] : false;
+  }
+  function toRaw(observed) {
+    const raw = observed && observed["__v_raw"];
+    return raw ? toRaw(raw) : observed;
+  }
+  function markRaw(value) {
+    if (Object.isExtensible(value)) {
+      def(value, "__v_skip", true);
+    }
+    return value;
+  }
+  var toReactive = (value) => isObject(value) ? reactive(value) : value;
+  var toReadonly = (value) => isObject(value) ? readonly(value) : value;
+  var COMPUTED_SIDE_EFFECT_WARN = `Computed is still dirty after getter evaluation, likely because a computed is mutating its own dependency in its getter. State mutations in computed getters should be avoided.  Check the docs for more details: https://vuejs.org/guide/essentials/computed.html#getters-should-be-side-effect-free`;
+  var ComputedRefImpl = class {
+    constructor(getter, _setter, isReadonly2, isSSR) {
+      this.getter = getter;
+      this._setter = _setter;
+      this.dep = void 0;
+      this.__v_isRef = true;
+      this["__v_isReadonly"] = false;
+      this.effect = new ReactiveEffect(
+        () => getter(this._value),
+        () => triggerRefValue(
+          this,
+          this.effect._dirtyLevel === 2 ? 2 : 3
+        )
+      );
+      this.effect.computed = this;
+      this.effect.active = this._cacheable = !isSSR;
+      this["__v_isReadonly"] = isReadonly2;
+    }
+    get value() {
+      const self2 = toRaw(this);
+      if ((!self2._cacheable || self2.effect.dirty) && hasChanged(self2._value, self2._value = self2.effect.run())) {
+        triggerRefValue(self2, 4);
+      }
+      trackRefValue(self2);
+      if (self2.effect._dirtyLevel >= 2) {
+        if (this._warnRecursive) {
+          warn2(COMPUTED_SIDE_EFFECT_WARN, `
+
+getter: `, this.getter);
+        }
+        triggerRefValue(self2, 2);
+      }
+      return self2._value;
+    }
+    set value(newValue) {
+      this._setter(newValue);
+    }
+    // #region polyfill _dirty for backward compatibility third party code for Vue <= 3.3.x
+    get _dirty() {
+      return this.effect.dirty;
+    }
+    set _dirty(v3) {
+      this.effect.dirty = v3;
+    }
+    // #endregion
+  };
+  function computed(getterOrOptions, debugOptions, isSSR = false) {
+    let getter;
+    let setter;
+    const onlyGetter = isFunction(getterOrOptions);
+    if (onlyGetter) {
+      getter = getterOrOptions;
+      setter = true ? () => {
+        warn2("Write operation failed: computed value is readonly");
+      } : NOOP2;
+    } else {
+      getter = getterOrOptions.get;
+      setter = getterOrOptions.set;
+    }
+    const cRef = new ComputedRefImpl(getter, setter, onlyGetter || !setter, isSSR);
+    if (debugOptions && !isSSR) {
+      cRef.effect.onTrack = debugOptions.onTrack;
+      cRef.effect.onTrigger = debugOptions.onTrigger;
+    }
+    return cRef;
+  }
+  function trackRefValue(ref2) {
+    var _a;
+    if (shouldTrack && activeEffect) {
+      ref2 = toRaw(ref2);
+      trackEffect(
+        activeEffect,
+        (_a = ref2.dep) != null ? _a : ref2.dep = createDep(
+          () => ref2.dep = void 0,
+          ref2 instanceof ComputedRefImpl ? ref2 : void 0
+        ),
+        true ? {
+          target: ref2,
+          type: "get",
+          key: "value"
+        } : void 0
+      );
+    }
+  }
+  function triggerRefValue(ref2, dirtyLevel = 4, newVal) {
+    ref2 = toRaw(ref2);
+    const dep = ref2.dep;
+    if (dep) {
+      triggerEffects(
+        dep,
+        dirtyLevel,
+        true ? {
+          target: ref2,
+          type: "set",
+          key: "value",
+          newValue: newVal
+        } : void 0
+      );
+    }
+  }
+  function isRef(r3) {
+    return !!(r3 && r3.__v_isRef === true);
+  }
+  function ref(value) {
+    return createRef(value, false);
+  }
+  function createRef(rawValue, shallow) {
+    if (isRef(rawValue)) {
+      return rawValue;
+    }
+    return new RefImpl(rawValue, shallow);
+  }
+  var RefImpl = class {
+    constructor(value, __v_isShallow) {
+      this.__v_isShallow = __v_isShallow;
+      this.dep = void 0;
+      this.__v_isRef = true;
+      this._rawValue = __v_isShallow ? value : toRaw(value);
+      this._value = __v_isShallow ? value : toReactive(value);
+    }
+    get value() {
+      trackRefValue(this);
+      return this._value;
+    }
+    set value(newVal) {
+      const useDirectValue = this.__v_isShallow || isShallow(newVal) || isReadonly(newVal);
+      newVal = useDirectValue ? newVal : toRaw(newVal);
+      if (hasChanged(newVal, this._rawValue)) {
+        this._rawValue = newVal;
+        this._value = useDirectValue ? newVal : toReactive(newVal);
+        triggerRefValue(this, 4, newVal);
+      }
+    }
+  };
+  function unref(ref2) {
+    return isRef(ref2) ? ref2.value : ref2;
+  }
+  var shallowUnwrapHandlers = {
+    get: (target, key, receiver) => unref(Reflect.get(target, key, receiver)),
+    set: (target, key, value, receiver) => {
+      const oldValue = target[key];
+      if (isRef(oldValue) && !isRef(value)) {
+        oldValue.value = value;
+        return true;
+      } else {
+        return Reflect.set(target, key, value, receiver);
+      }
+    }
+  };
+  function proxyRefs(objectWithRefs) {
+    return isReactive(objectWithRefs) ? objectWithRefs : new Proxy(objectWithRefs, shallowUnwrapHandlers);
+  }
+  function toRefs(object) {
+    if (!isProxy(object)) {
+      warn2(`toRefs() expects a reactive object but received a plain one.`);
+    }
+    const ret = isArray(object) ? new Array(object.length) : {};
+    for (const key in object) {
+      ret[key] = propertyToRef(object, key);
+    }
+    return ret;
+  }
+  var ObjectRefImpl = class {
+    constructor(_object, _key, _defaultValue) {
+      this._object = _object;
+      this._key = _key;
+      this._defaultValue = _defaultValue;
+      this.__v_isRef = true;
+    }
+    get value() {
+      const val = this._object[this._key];
+      return val === void 0 ? this._defaultValue : val;
+    }
+    set value(newVal) {
+      this._object[this._key] = newVal;
+    }
+    get dep() {
+      return getDepFromReactive(toRaw(this._object), this._key);
+    }
+  };
+  var GetterRefImpl = class {
+    constructor(_getter) {
+      this._getter = _getter;
+      this.__v_isRef = true;
+      this.__v_isReadonly = true;
+    }
+    get value() {
+      return this._getter();
+    }
+  };
+  function toRef(source2, key, defaultValue2) {
+    if (isRef(source2)) {
+      return source2;
+    } else if (isFunction(source2)) {
+      return new GetterRefImpl(source2);
+    } else if (isObject(source2) && arguments.length > 1) {
+      return propertyToRef(source2, key, defaultValue2);
+    } else {
+      return ref(source2);
+    }
+  }
+  function propertyToRef(source2, key, defaultValue2) {
+    const val = source2[key];
+    return isRef(val) ? val : new ObjectRefImpl(source2, key, defaultValue2);
+  }
+
+  // node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js
+  var stack = [];
+  function pushWarningContext(vnode) {
+    stack.push(vnode);
+  }
+  function popWarningContext() {
+    stack.pop();
+  }
+  function warn$1(msg, ...args) {
+    pauseTracking();
+    const instance = stack.length ? stack[stack.length - 1].component : null;
+    const appWarnHandler = instance && instance.appContext.config.warnHandler;
+    const trace = getComponentTrace();
+    if (appWarnHandler) {
+      callWithErrorHandling(
+        appWarnHandler,
+        instance,
+        11,
+        [
+          msg + args.map((a3) => {
+            var _a, _b;
+            return (_b = (_a = a3.toString) == null ? void 0 : _a.call(a3)) != null ? _b : JSON.stringify(a3);
+          }).join(""),
+          instance && instance.proxy,
+          trace.map(
+            ({ vnode }) => `at <${formatComponentName(instance, vnode.type)}>`
+          ).join("\n"),
+          trace
+        ]
+      );
+    } else {
+      const warnArgs = [`[Vue warn]: ${msg}`, ...args];
+      if (trace.length && // avoid spamming console during tests
+      true) {
+        warnArgs.push(`
+`, ...formatTrace(trace));
+      }
+      console.warn(...warnArgs);
+    }
+    resetTracking();
+  }
+  function getComponentTrace() {
+    let currentVNode = stack[stack.length - 1];
+    if (!currentVNode) {
+      return [];
+    }
+    const normalizedStack = [];
+    while (currentVNode) {
+      const last = normalizedStack[0];
+      if (last && last.vnode === currentVNode) {
+        last.recurseCount++;
+      } else {
+        normalizedStack.push({
+          vnode: currentVNode,
+          recurseCount: 0
+        });
+      }
+      const parentInstance = currentVNode.component && currentVNode.component.parent;
+      currentVNode = parentInstance && parentInstance.vnode;
+    }
+    return normalizedStack;
+  }
+  function formatTrace(trace) {
+    const logs = [];
+    trace.forEach((entry, i3) => {
+      logs.push(...i3 === 0 ? [] : [`
+`], ...formatTraceEntry(entry));
+    });
+    return logs;
+  }
+  function formatTraceEntry({ vnode, recurseCount }) {
+    const postfix = recurseCount > 0 ? `... (${recurseCount} recursive calls)` : ``;
+    const isRoot = vnode.component ? vnode.component.parent == null : false;
+    const open2 = ` at <${formatComponentName(
+      vnode.component,
+      vnode.type,
+      isRoot
+    )}`;
+    const close = `>` + postfix;
+    return vnode.props ? [open2, ...formatProps(vnode.props), close] : [open2 + close];
+  }
+  function formatProps(props) {
+    const res = [];
+    const keys = Object.keys(props);
+    keys.slice(0, 3).forEach((key) => {
+      res.push(...formatProp(key, props[key]));
+    });
+    if (keys.length > 3) {
+      res.push(` ...`);
+    }
+    return res;
+  }
+  function formatProp(key, value, raw) {
+    if (isString(value)) {
+      value = JSON.stringify(value);
+      return raw ? value : [`${key}=${value}`];
+    } else if (typeof value === "number" || typeof value === "boolean" || value == null) {
+      return raw ? value : [`${key}=${value}`];
+    } else if (isRef(value)) {
+      value = formatProp(key, toRaw(value.value), true);
+      return raw ? value : [`${key}=Ref<`, value, `>`];
+    } else if (isFunction(value)) {
+      return [`${key}=fn${value.name ? `<${value.name}>` : ``}`];
+    } else {
+      value = toRaw(value);
+      return raw ? value : [`${key}=`, value];
+    }
+  }
+  var ErrorTypeStrings$1 = {
+    ["sp"]: "serverPrefetch hook",
+    ["bc"]: "beforeCreate hook",
+    ["c"]: "created hook",
+    ["bm"]: "beforeMount hook",
+    ["m"]: "mounted hook",
+    ["bu"]: "beforeUpdate hook",
+    ["u"]: "updated",
+    ["bum"]: "beforeUnmount hook",
+    ["um"]: "unmounted hook",
+    ["a"]: "activated hook",
+    ["da"]: "deactivated hook",
+    ["ec"]: "errorCaptured hook",
+    ["rtc"]: "renderTracked hook",
+    ["rtg"]: "renderTriggered hook",
+    [0]: "setup function",
+    [1]: "render function",
+    [2]: "watcher getter",
+    [3]: "watcher callback",
+    [4]: "watcher cleanup function",
+    [5]: "native event handler",
+    [6]: "component event handler",
+    [7]: "vnode hook",
+    [8]: "directive hook",
+    [9]: "transition hook",
+    [10]: "app errorHandler",
+    [11]: "app warnHandler",
+    [12]: "ref function",
+    [13]: "async component loader",
+    [14]: "scheduler flush. This is likely a Vue internals bug. Please open an issue at https://github.com/vuejs/core ."
+  };
+  function callWithErrorHandling(fn, instance, type, args) {
+    try {
+      return args ? fn(...args) : fn();
+    } catch (err) {
+      handleError(err, instance, type);
+    }
+  }
+  function callWithAsyncErrorHandling(fn, instance, type, args) {
+    if (isFunction(fn)) {
+      const res = callWithErrorHandling(fn, instance, type, args);
+      if (res && isPromise(res)) {
+        res.catch((err) => {
+          handleError(err, instance, type);
+        });
+      }
+      return res;
+    }
+    if (isArray(fn)) {
+      const values = [];
+      for (let i3 = 0; i3 < fn.length; i3++) {
+        values.push(callWithAsyncErrorHandling(fn[i3], instance, type, args));
+      }
+      return values;
+    } else if (true) {
+      warn$1(
+        `Invalid value type passed to callWithAsyncErrorHandling(): ${typeof fn}`
+      );
+    }
+  }
+  function handleError(err, instance, type, throwInDev = true) {
+    const contextVNode = instance ? instance.vnode : null;
+    if (instance) {
+      let cur = instance.parent;
+      const exposedInstance = instance.proxy;
+      const errorInfo = true ? ErrorTypeStrings$1[type] : `https://vuejs.org/error-reference/#runtime-${type}`;
+      while (cur) {
+        const errorCapturedHooks = cur.ec;
+        if (errorCapturedHooks) {
+          for (let i3 = 0; i3 < errorCapturedHooks.length; i3++) {
+            if (errorCapturedHooks[i3](err, exposedInstance, errorInfo) === false) {
+              return;
+            }
+          }
+        }
+        cur = cur.parent;
+      }
+      const appErrorHandler = instance.appContext.config.errorHandler;
+      if (appErrorHandler) {
+        pauseTracking();
+        callWithErrorHandling(
+          appErrorHandler,
+          null,
+          10,
+          [err, exposedInstance, errorInfo]
+        );
+        resetTracking();
+        return;
+      }
+    }
+    logError(err, type, contextVNode, throwInDev);
+  }
+  function logError(err, type, contextVNode, throwInDev = true) {
+    if (true) {
+      const info = ErrorTypeStrings$1[type];
+      if (contextVNode) {
+        pushWarningContext(contextVNode);
+      }
+      warn$1(`Unhandled error${info ? ` during execution of ${info}` : ``}`);
+      if (contextVNode) {
+        popWarningContext();
+      }
+      if (throwInDev) {
+        throw err;
+      } else {
+        console.error(err);
+      }
+    } else {
+      console.error(err);
+    }
+  }
+  var isFlushing = false;
+  var isFlushPending = false;
+  var queue = [];
+  var flushIndex = 0;
+  var pendingPostFlushCbs = [];
+  var activePostFlushCbs = null;
+  var postFlushIndex = 0;
+  var resolvedPromise = /* @__PURE__ */ Promise.resolve();
+  var currentFlushPromise = null;
+  var RECURSION_LIMIT3 = 100;
+  function nextTick(fn) {
+    const p3 = currentFlushPromise || resolvedPromise;
+    return fn ? p3.then(this ? fn.bind(this) : fn) : p3;
+  }
+  function findInsertionIndex(id) {
+    let start = flushIndex + 1;
+    let end = queue.length;
+    while (start < end) {
+      const middle = start + end >>> 1;
+      const middleJob = queue[middle];
+      const middleJobId = getId(middleJob);
+      if (middleJobId < id || middleJobId === id && middleJob.pre) {
+        start = middle + 1;
+      } else {
+        end = middle;
+      }
+    }
+    return start;
+  }
+  function queueJob(job) {
+    if (!queue.length || !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex
+    )) {
+      if (job.id == null) {
+        queue.push(job);
+      } else {
+        queue.splice(findInsertionIndex(job.id), 0, job);
+      }
+      queueFlush();
+    }
+  }
+  function queueFlush() {
+    if (!isFlushing && !isFlushPending) {
+      isFlushPending = true;
+      currentFlushPromise = resolvedPromise.then(flushJobs);
+    }
+  }
+  function queuePostFlushCb(cb) {
+    if (!isArray(cb)) {
+      if (!activePostFlushCbs || !activePostFlushCbs.includes(
+        cb,
+        cb.allowRecurse ? postFlushIndex + 1 : postFlushIndex
+      )) {
+        pendingPostFlushCbs.push(cb);
+      }
+    } else {
+      pendingPostFlushCbs.push(...cb);
+    }
+    queueFlush();
+  }
+  function flushPostFlushCbs(seen) {
+    if (pendingPostFlushCbs.length) {
+      const deduped = [...new Set(pendingPostFlushCbs)].sort(
+        (a3, b3) => getId(a3) - getId(b3)
+      );
+      pendingPostFlushCbs.length = 0;
+      if (activePostFlushCbs) {
+        activePostFlushCbs.push(...deduped);
+        return;
+      }
+      activePostFlushCbs = deduped;
+      if (true) {
+        seen = seen || /* @__PURE__ */ new Map();
+      }
+      for (postFlushIndex = 0; postFlushIndex < activePostFlushCbs.length; postFlushIndex++) {
+        if (checkRecursiveUpdates(seen, activePostFlushCbs[postFlushIndex])) {
+          continue;
+        }
+        activePostFlushCbs[postFlushIndex]();
+      }
+      activePostFlushCbs = null;
+      postFlushIndex = 0;
+    }
+  }
+  var getId = (job) => job.id == null ? Infinity : job.id;
+  var comparator = (a3, b3) => {
+    const diff = getId(a3) - getId(b3);
+    if (diff === 0) {
+      if (a3.pre && !b3.pre)
+        return -1;
+      if (b3.pre && !a3.pre)
+        return 1;
+    }
+    return diff;
+  };
+  function flushJobs(seen) {
+    isFlushPending = false;
+    isFlushing = true;
+    if (true) {
+      seen = seen || /* @__PURE__ */ new Map();
+    }
+    queue.sort(comparator);
+    const check = true ? (job) => checkRecursiveUpdates(seen, job) : NOOP2;
+    try {
+      for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
+        const job = queue[flushIndex];
+        if (job && job.active !== false) {
+          if (check(job)) {
+            continue;
+          }
+          callWithErrorHandling(job, null, 14);
+        }
+      }
+    } finally {
+      flushIndex = 0;
+      queue.length = 0;
+      flushPostFlushCbs(seen);
+      isFlushing = false;
+      currentFlushPromise = null;
+      if (queue.length || pendingPostFlushCbs.length) {
+        flushJobs(seen);
+      }
+    }
+  }
+  function checkRecursiveUpdates(seen, fn) {
+    if (!seen.has(fn)) {
+      seen.set(fn, 1);
+    } else {
+      const count2 = seen.get(fn);
+      if (count2 > RECURSION_LIMIT3) {
+        const instance = fn.ownerInstance;
+        const componentName = instance && getComponentName(instance.type);
+        handleError(
+          `Maximum recursive updates exceeded${componentName ? ` in component <${componentName}>` : ``}. This means you have a reactive effect that is mutating its own dependencies and thus recursively triggering itself. Possible sources include component template, render function, updated hook or watcher source function.`,
+          null,
+          10
+        );
+        return true;
+      } else {
+        seen.set(fn, count2 + 1);
+      }
+    }
+  }
+  var isHmrUpdating = false;
+  var hmrDirtyComponents = /* @__PURE__ */ new Set();
+  if (true) {
+    getGlobalThis().__VUE_HMR_RUNTIME__ = {
+      createRecord: tryWrap(createRecord),
+      rerender: tryWrap(rerender),
+      reload: tryWrap(reload)
+    };
+  }
+  var map = /* @__PURE__ */ new Map();
+  function createRecord(id, initialDef) {
+    if (map.has(id)) {
+      return false;
+    }
+    map.set(id, {
+      initialDef: normalizeClassComponent(initialDef),
+      instances: /* @__PURE__ */ new Set()
+    });
+    return true;
+  }
+  function normalizeClassComponent(component) {
+    return isClassComponent(component) ? component.__vccOpts : component;
+  }
+  function rerender(id, newRender) {
+    const record = map.get(id);
+    if (!record) {
+      return;
+    }
+    record.initialDef.render = newRender;
+    [...record.instances].forEach((instance) => {
+      if (newRender) {
+        instance.render = newRender;
+        normalizeClassComponent(instance.type).render = newRender;
+      }
+      instance.renderCache = [];
+      isHmrUpdating = true;
+      instance.effect.dirty = true;
+      instance.update();
+      isHmrUpdating = false;
+    });
+  }
+  function reload(id, newComp) {
+    const record = map.get(id);
+    if (!record)
+      return;
+    newComp = normalizeClassComponent(newComp);
+    updateComponentDef(record.initialDef, newComp);
+    const instances = [...record.instances];
+    for (const instance of instances) {
+      const oldComp = normalizeClassComponent(instance.type);
+      if (!hmrDirtyComponents.has(oldComp)) {
+        if (oldComp !== record.initialDef) {
+          updateComponentDef(oldComp, newComp);
+        }
+        hmrDirtyComponents.add(oldComp);
+      }
+      instance.appContext.propsCache.delete(instance.type);
+      instance.appContext.emitsCache.delete(instance.type);
+      instance.appContext.optionsCache.delete(instance.type);
+      if (instance.ceReload) {
+        hmrDirtyComponents.add(oldComp);
+        instance.ceReload(newComp.styles);
+        hmrDirtyComponents.delete(oldComp);
+      } else if (instance.parent) {
+        instance.parent.effect.dirty = true;
+        queueJob(instance.parent.update);
+      } else if (instance.appContext.reload) {
+        instance.appContext.reload();
+      } else if (typeof window !== "undefined") {
+        window.location.reload();
+      } else {
+        console.warn(
+          "[HMR] Root or manually mounted instance modified. Full reload required."
+        );
+      }
+    }
+    queuePostFlushCb(() => {
+      for (const instance of instances) {
+        hmrDirtyComponents.delete(
+          normalizeClassComponent(instance.type)
+        );
+      }
+    });
+  }
+  function updateComponentDef(oldComp, newComp) {
+    extend(oldComp, newComp);
+    for (const key in oldComp) {
+      if (key !== "__file" && !(key in newComp)) {
+        delete oldComp[key];
+      }
+    }
+  }
+  function tryWrap(fn) {
+    return (id, arg) => {
+      try {
+        return fn(id, arg);
+      } catch (e3) {
+        console.error(e3);
+        console.warn(
+          `[HMR] Something went wrong during Vue component hot-reload. Full reload required.`
+        );
+      }
+    };
+  }
+  var currentRenderingInstance = null;
+  var accessedAttrs = false;
+  function markAttrsAccessed() {
+    accessedAttrs = true;
+  }
+  var NULL_DYNAMIC_COMPONENT = Symbol.for("v-ndc");
+  function queueEffectWithSuspense(fn, suspense) {
+    if (suspense && suspense.pendingBranch) {
+      if (isArray(fn)) {
+        suspense.effects.push(...fn);
+      } else {
+        suspense.effects.push(fn);
+      }
+    } else {
+      queuePostFlushCb(fn);
+    }
+  }
+  var ssrContextKey = Symbol.for("v-scx");
+  var useSSRContext = () => {
+    {
+      const ctx = inject(ssrContextKey);
+      if (!ctx) {
+        warn$1(
+          `Server rendering context not provided. Make sure to only call useSSRContext() conditionally in the server build.`
+        );
+      }
+      return ctx;
+    }
+  };
+  var INITIAL_WATCHER_VALUE = {};
+  function watch(source2, cb, options) {
+    if (!isFunction(cb)) {
+      warn$1(
+        `\`watch(fn, options?)\` signature has been moved to a separate API. Use \`watchEffect(fn, options?)\` instead. \`watch\` now only supports \`watch(source, cb, options?) signature.`
+      );
+    }
+    return doWatch(source2, cb, options);
+  }
+  function doWatch(source2, cb, {
+    immediate,
+    deep,
+    flush,
+    once,
+    onTrack,
+    onTrigger
+  } = EMPTY_OBJ) {
+    if (cb && once) {
+      const _cb = cb;
+      cb = (...args) => {
+        _cb(...args);
+        unwatch();
+      };
+    }
+    if (deep !== void 0 && typeof deep === "number") {
+      warn$1(
+        `watch() "deep" option with number value will be used as watch depth in future versions. Please use a boolean instead to avoid potential breakage.`
+      );
+    }
+    if (!cb) {
+      if (immediate !== void 0) {
+        warn$1(
+          `watch() "immediate" option is only respected when using the watch(source, callback, options?) signature.`
+        );
+      }
+      if (deep !== void 0) {
+        warn$1(
+          `watch() "deep" option is only respected when using the watch(source, callback, options?) signature.`
+        );
+      }
+      if (once !== void 0) {
+        warn$1(
+          `watch() "once" option is only respected when using the watch(source, callback, options?) signature.`
+        );
+      }
+    }
+    const warnInvalidSource = (s3) => {
+      warn$1(
+        `Invalid watch source: `,
+        s3,
+        `A watch source can only be a getter/effect function, a ref, a reactive object, or an array of these types.`
+      );
+    };
+    const instance = currentInstance;
+    const reactiveGetter = (source22) => deep === true ? source22 : (
+      // for deep: false, only traverse root-level properties
+      traverse(source22, deep === false ? 1 : void 0)
+    );
+    let getter;
+    let forceTrigger = false;
+    let isMultiSource = false;
+    if (isRef(source2)) {
+      getter = () => source2.value;
+      forceTrigger = isShallow(source2);
+    } else if (isReactive(source2)) {
+      getter = () => reactiveGetter(source2);
+      forceTrigger = true;
+    } else if (isArray(source2)) {
+      isMultiSource = true;
+      forceTrigger = source2.some((s3) => isReactive(s3) || isShallow(s3));
+      getter = () => source2.map((s3) => {
+        if (isRef(s3)) {
+          return s3.value;
+        } else if (isReactive(s3)) {
+          return reactiveGetter(s3);
+        } else if (isFunction(s3)) {
+          return callWithErrorHandling(s3, instance, 2);
+        } else {
+          warnInvalidSource(s3);
+        }
+      });
+    } else if (isFunction(source2)) {
+      if (cb) {
+        getter = () => callWithErrorHandling(source2, instance, 2);
+      } else {
+        getter = () => {
+          if (cleanup) {
+            cleanup();
+          }
+          return callWithAsyncErrorHandling(
+            source2,
+            instance,
+            3,
+            [onCleanup]
+          );
+        };
+      }
+    } else {
+      getter = NOOP2;
+      warnInvalidSource(source2);
+    }
+    if (cb && deep) {
+      const baseGetter = getter;
+      getter = () => traverse(baseGetter());
+    }
+    let cleanup;
+    let onCleanup = (fn) => {
+      cleanup = effect2.onStop = () => {
+        callWithErrorHandling(fn, instance, 4);
+        cleanup = effect2.onStop = void 0;
+      };
+    };
+    let ssrCleanup;
+    if (isInSSRComponentSetup) {
+      onCleanup = NOOP2;
+      if (!cb) {
+        getter();
+      } else if (immediate) {
+        callWithAsyncErrorHandling(cb, instance, 3, [
+          getter(),
+          isMultiSource ? [] : void 0,
+          onCleanup
+        ]);
+      }
+      if (flush === "sync") {
+        const ctx = useSSRContext();
+        ssrCleanup = ctx.__watcherHandles || (ctx.__watcherHandles = []);
+      } else {
+        return NOOP2;
+      }
+    }
+    let oldValue = isMultiSource ? new Array(source2.length).fill(INITIAL_WATCHER_VALUE) : INITIAL_WATCHER_VALUE;
+    const job = () => {
+      if (!effect2.active || !effect2.dirty) {
+        return;
+      }
+      if (cb) {
+        const newValue = effect2.run();
+        if (deep || forceTrigger || (isMultiSource ? newValue.some((v3, i3) => hasChanged(v3, oldValue[i3])) : hasChanged(newValue, oldValue)) || false) {
+          if (cleanup) {
+            cleanup();
+          }
+          callWithAsyncErrorHandling(cb, instance, 3, [
+            newValue,
+            // pass undefined as the old value when it's changed for the first time
+            oldValue === INITIAL_WATCHER_VALUE ? void 0 : isMultiSource && oldValue[0] === INITIAL_WATCHER_VALUE ? [] : oldValue,
+            onCleanup
+          ]);
+          oldValue = newValue;
+        }
+      } else {
+        effect2.run();
+      }
+    };
+    job.allowRecurse = !!cb;
+    let scheduler;
+    if (flush === "sync") {
+      scheduler = job;
+    } else if (flush === "post") {
+      scheduler = () => queuePostRenderEffect(job, instance && instance.suspense);
+    } else {
+      job.pre = true;
+      if (instance)
+        job.id = instance.uid;
+      scheduler = () => queueJob(job);
+    }
+    const effect2 = new ReactiveEffect(getter, NOOP2, scheduler);
+    const scope = getCurrentScope();
+    const unwatch = () => {
+      effect2.stop();
+      if (scope) {
+        remove2(scope.effects, effect2);
+      }
+    };
+    if (true) {
+      effect2.onTrack = onTrack;
+      effect2.onTrigger = onTrigger;
+    }
+    if (cb) {
+      if (immediate) {
+        job();
+      } else {
+        oldValue = effect2.run();
+      }
+    } else if (flush === "post") {
+      queuePostRenderEffect(
+        effect2.run.bind(effect2),
+        instance && instance.suspense
+      );
+    } else {
+      effect2.run();
+    }
+    if (ssrCleanup)
+      ssrCleanup.push(unwatch);
+    return unwatch;
+  }
+  function instanceWatch(source2, value, options) {
+    const publicThis = this.proxy;
+    const getter = isString(source2) ? source2.includes(".") ? createPathGetter(publicThis, source2) : () => publicThis[source2] : source2.bind(publicThis, publicThis);
+    let cb;
+    if (isFunction(value)) {
+      cb = value;
+    } else {
+      cb = value.handler;
+      options = value;
+    }
+    const reset = setCurrentInstance(this);
+    const res = doWatch(getter, cb.bind(publicThis), options);
+    reset();
+    return res;
+  }
+  function createPathGetter(ctx, path2) {
+    const segments = path2.split(".");
+    return () => {
+      let cur = ctx;
+      for (let i3 = 0; i3 < segments.length && cur; i3++) {
+        cur = cur[segments[i3]];
+      }
+      return cur;
+    };
+  }
+  function traverse(value, depth = Infinity, seen) {
+    if (depth <= 0 || !isObject(value) || value["__v_skip"]) {
+      return value;
+    }
+    seen = seen || /* @__PURE__ */ new Set();
+    if (seen.has(value)) {
+      return value;
+    }
+    seen.add(value);
+    depth--;
+    if (isRef(value)) {
+      traverse(value.value, depth, seen);
+    } else if (isArray(value)) {
+      for (let i3 = 0; i3 < value.length; i3++) {
+        traverse(value[i3], depth, seen);
+      }
+    } else if (isSet(value) || isMap(value)) {
+      value.forEach((v3) => {
+        traverse(v3, depth, seen);
+      });
+    } else if (isPlainObject(value)) {
+      for (const key in value) {
+        traverse(value[key], depth, seen);
+      }
+    }
+    return value;
+  }
+  var leaveCbKey = Symbol("_leaveCb");
+  var enterCbKey = Symbol("_enterCb");
+  function injectHook(type, hook, target = currentInstance, prepend = false) {
+    if (target) {
+      const hooks = target[type] || (target[type] = []);
+      const wrappedHook = hook.__weh || (hook.__weh = (...args) => {
+        if (target.isUnmounted) {
+          return;
+        }
+        pauseTracking();
+        const reset = setCurrentInstance(target);
+        const res = callWithAsyncErrorHandling(hook, target, type, args);
+        reset();
+        resetTracking();
+        return res;
+      });
+      if (prepend) {
+        hooks.unshift(wrappedHook);
+      } else {
+        hooks.push(wrappedHook);
+      }
+      return wrappedHook;
+    } else if (true) {
+      const apiName = toHandlerKey(ErrorTypeStrings$1[type].replace(/ hook$/, ""));
+      warn$1(
+        `${apiName} is called when there is no active component instance to be associated with. Lifecycle injection APIs can only be used during execution of setup(). If you are using async setup(), make sure to register lifecycle hooks before the first await statement.`
+      );
+    }
+  }
+  var createHook = (lifecycle) => (hook, target = currentInstance) => (
+    // post-create lifecycle registrations are noops during SSR (except for serverPrefetch)
+    (!isInSSRComponentSetup || lifecycle === "sp") && injectHook(lifecycle, (...args) => hook(...args), target)
+  );
+  var onBeforeMount = createHook("bm");
+  var onMounted = createHook("m");
+  var onBeforeUpdate = createHook("bu");
+  var onUpdated = createHook("u");
+  var onBeforeUnmount = createHook("bum");
+  var onUnmounted = createHook("um");
+  var onServerPrefetch = createHook("sp");
+  var onRenderTriggered = createHook(
+    "rtg"
+  );
+  var onRenderTracked = createHook(
+    "rtc"
+  );
+  var getPublicInstance = (i3) => {
+    if (!i3)
+      return null;
+    if (isStatefulComponent(i3))
+      return getExposeProxy(i3) || i3.proxy;
+    return getPublicInstance(i3.parent);
+  };
+  var publicPropertiesMap = (
+    // Move PURE marker to new line to workaround compiler discarding it
+    // due to type annotation
+    /* @__PURE__ */ extend(/* @__PURE__ */ Object.create(null), {
+      $: (i3) => i3,
+      $el: (i3) => i3.vnode.el,
+      $data: (i3) => i3.data,
+      $props: (i3) => true ? shallowReadonly(i3.props) : i3.props,
+      $attrs: (i3) => true ? shallowReadonly(i3.attrs) : i3.attrs,
+      $slots: (i3) => true ? shallowReadonly(i3.slots) : i3.slots,
+      $refs: (i3) => true ? shallowReadonly(i3.refs) : i3.refs,
+      $parent: (i3) => getPublicInstance(i3.parent),
+      $root: (i3) => getPublicInstance(i3.root),
+      $emit: (i3) => i3.emit,
+      $options: (i3) => __VUE_OPTIONS_API__ ? resolveMergedOptions(i3) : i3.type,
+      $forceUpdate: (i3) => i3.f || (i3.f = () => {
+        i3.effect.dirty = true;
+        queueJob(i3.update);
+      }),
+      $nextTick: (i3) => i3.n || (i3.n = nextTick.bind(i3.proxy)),
+      $watch: (i3) => __VUE_OPTIONS_API__ ? instanceWatch.bind(i3) : NOOP2
+    })
+  );
+  var isReservedPrefix = (key) => key === "_" || key === "$";
+  var hasSetupBinding = (state, key) => state !== EMPTY_OBJ && !state.__isScriptSetup && hasOwn(state, key);
+  var PublicInstanceProxyHandlers = {
+    get({ _: instance }, key) {
+      if (key === "__v_skip") {
+        return true;
+      }
+      const { ctx, setupState, data, props, accessCache, type, appContext } = instance;
+      if (key === "__isVue") {
+        return true;
+      }
+      let normalizedProps;
+      if (key[0] !== "$") {
+        const n3 = accessCache[key];
+        if (n3 !== void 0) {
+          switch (n3) {
+            case 1:
+              return setupState[key];
+            case 2:
+              return data[key];
+            case 4:
+              return ctx[key];
+            case 3:
+              return props[key];
+          }
+        } else if (hasSetupBinding(setupState, key)) {
+          accessCache[key] = 1;
+          return setupState[key];
+        } else if (data !== EMPTY_OBJ && hasOwn(data, key)) {
+          accessCache[key] = 2;
+          return data[key];
+        } else if (
+          // only cache other properties when instance has declared (thus stable)
+          // props
+          (normalizedProps = instance.propsOptions[0]) && hasOwn(normalizedProps, key)
+        ) {
+          accessCache[key] = 3;
+          return props[key];
+        } else if (ctx !== EMPTY_OBJ && hasOwn(ctx, key)) {
+          accessCache[key] = 4;
+          return ctx[key];
+        } else if (!__VUE_OPTIONS_API__ || shouldCacheAccess) {
+          accessCache[key] = 0;
+        }
+      }
+      const publicGetter = publicPropertiesMap[key];
+      let cssModule, globalProperties;
+      if (publicGetter) {
+        if (key === "$attrs") {
+          track(instance.attrs, "get", "");
+          markAttrsAccessed();
+        } else if (key === "$slots") {
+          track(instance, "get", key);
+        }
+        return publicGetter(instance);
+      } else if (
+        // css module (injected by vue-loader)
+        (cssModule = type.__cssModules) && (cssModule = cssModule[key])
+      ) {
+        return cssModule;
+      } else if (ctx !== EMPTY_OBJ && hasOwn(ctx, key)) {
+        accessCache[key] = 4;
+        return ctx[key];
+      } else if (
+        // global properties
+        globalProperties = appContext.config.globalProperties, hasOwn(globalProperties, key)
+      ) {
+        {
+          return globalProperties[key];
+        }
+      } else if (currentRenderingInstance && (!isString(key) || // #1091 avoid internal isRef/isVNode checks on component instance leading
+      // to infinite warning loop
+      key.indexOf("__v") !== 0)) {
+        if (data !== EMPTY_OBJ && isReservedPrefix(key[0]) && hasOwn(data, key)) {
+          warn$1(
+            `Property ${JSON.stringify(
+              key
+            )} must be accessed via $data because it starts with a reserved character ("$" or "_") and is not proxied on the render context.`
+          );
+        } else if (instance === currentRenderingInstance) {
+          warn$1(
+            `Property ${JSON.stringify(key)} was accessed during render but is not defined on instance.`
+          );
+        }
+      }
+    },
+    set({ _: instance }, key, value) {
+      const { data, setupState, ctx } = instance;
+      if (hasSetupBinding(setupState, key)) {
+        setupState[key] = value;
+        return true;
+      } else if (setupState.__isScriptSetup && hasOwn(setupState, key)) {
+        warn$1(`Cannot mutate <script setup> binding "${key}" from Options API.`);
+        return false;
+      } else if (data !== EMPTY_OBJ && hasOwn(data, key)) {
+        data[key] = value;
+        return true;
+      } else if (hasOwn(instance.props, key)) {
+        warn$1(`Attempting to mutate prop "${key}". Props are readonly.`);
+        return false;
+      }
+      if (key[0] === "$" && key.slice(1) in instance) {
+        warn$1(
+          `Attempting to mutate public property "${key}". Properties starting with $ are reserved and readonly.`
+        );
+        return false;
+      } else {
+        if (key in instance.appContext.config.globalProperties) {
+          Object.defineProperty(ctx, key, {
+            enumerable: true,
+            configurable: true,
+            value
+          });
+        } else {
+          ctx[key] = value;
+        }
+      }
+      return true;
+    },
+    has({
+      _: { data, setupState, accessCache, ctx, appContext, propsOptions }
+    }, key) {
+      let normalizedProps;
+      return !!accessCache[key] || data !== EMPTY_OBJ && hasOwn(data, key) || hasSetupBinding(setupState, key) || (normalizedProps = propsOptions[0]) && hasOwn(normalizedProps, key) || hasOwn(ctx, key) || hasOwn(publicPropertiesMap, key) || hasOwn(appContext.config.globalProperties, key);
+    },
+    defineProperty(target, key, descriptor) {
+      if (descriptor.get != null) {
+        target._.accessCache[key] = 0;
+      } else if (hasOwn(descriptor, "value")) {
+        this.set(target, key, descriptor.value, null);
+      }
+      return Reflect.defineProperty(target, key, descriptor);
+    }
+  };
+  if (true) {
+    PublicInstanceProxyHandlers.ownKeys = (target) => {
+      warn$1(
+        `Avoid app logic that relies on enumerating keys on a component instance. The keys will be empty in production mode to avoid performance overhead.`
+      );
+      return Reflect.ownKeys(target);
+    };
+  }
+  function normalizePropsOrEmits(props) {
+    return isArray(props) ? props.reduce(
+      (normalized, p3) => (normalized[p3] = null, normalized),
+      {}
+    ) : props;
+  }
+  var shouldCacheAccess = true;
+  function resolveMergedOptions(instance) {
+    const base = instance.type;
+    const { mixins, extends: extendsOptions } = base;
+    const {
+      mixins: globalMixins,
+      optionsCache: cache,
+      config: { optionMergeStrategies }
+    } = instance.appContext;
+    const cached = cache.get(base);
+    let resolved;
+    if (cached) {
+      resolved = cached;
+    } else if (!globalMixins.length && !mixins && !extendsOptions) {
+      {
+        resolved = base;
+      }
+    } else {
+      resolved = {};
+      if (globalMixins.length) {
+        globalMixins.forEach(
+          (m3) => mergeOptions(resolved, m3, optionMergeStrategies, true)
+        );
+      }
+      mergeOptions(resolved, base, optionMergeStrategies);
+    }
+    if (isObject(base)) {
+      cache.set(base, resolved);
+    }
+    return resolved;
+  }
+  function mergeOptions(to, from, strats, asMixin = false) {
+    const { mixins, extends: extendsOptions } = from;
+    if (extendsOptions) {
+      mergeOptions(to, extendsOptions, strats, true);
+    }
+    if (mixins) {
+      mixins.forEach(
+        (m3) => mergeOptions(to, m3, strats, true)
+      );
+    }
+    for (const key in from) {
+      if (asMixin && key === "expose") {
+        warn$1(
+          `"expose" option is ignored when declared in mixins or extends. It should only be declared in the base component itself.`
+        );
+      } else {
+        const strat = internalOptionMergeStrats[key] || strats && strats[key];
+        to[key] = strat ? strat(to[key], from[key]) : from[key];
+      }
+    }
+    return to;
+  }
+  var internalOptionMergeStrats = {
+    data: mergeDataFn,
+    props: mergeEmitsOrPropsOptions,
+    emits: mergeEmitsOrPropsOptions,
+    // objects
+    methods: mergeObjectOptions,
+    computed: mergeObjectOptions,
+    // lifecycle
+    beforeCreate: mergeAsArray,
+    created: mergeAsArray,
+    beforeMount: mergeAsArray,
+    mounted: mergeAsArray,
+    beforeUpdate: mergeAsArray,
+    updated: mergeAsArray,
+    beforeDestroy: mergeAsArray,
+    beforeUnmount: mergeAsArray,
+    destroyed: mergeAsArray,
+    unmounted: mergeAsArray,
+    activated: mergeAsArray,
+    deactivated: mergeAsArray,
+    errorCaptured: mergeAsArray,
+    serverPrefetch: mergeAsArray,
+    // assets
+    components: mergeObjectOptions,
+    directives: mergeObjectOptions,
+    // watch
+    watch: mergeWatchOptions,
+    // provide / inject
+    provide: mergeDataFn,
+    inject: mergeInject
+  };
+  function mergeDataFn(to, from) {
+    if (!from) {
+      return to;
+    }
+    if (!to) {
+      return from;
+    }
+    return function mergedDataFn() {
+      return extend(
+        isFunction(to) ? to.call(this, this) : to,
+        isFunction(from) ? from.call(this, this) : from
+      );
+    };
+  }
+  function mergeInject(to, from) {
+    return mergeObjectOptions(normalizeInject(to), normalizeInject(from));
+  }
+  function normalizeInject(raw) {
+    if (isArray(raw)) {
+      const res = {};
+      for (let i3 = 0; i3 < raw.length; i3++) {
+        res[raw[i3]] = raw[i3];
+      }
+      return res;
+    }
+    return raw;
+  }
+  function mergeAsArray(to, from) {
+    return to ? [...new Set([].concat(to, from))] : from;
+  }
+  function mergeObjectOptions(to, from) {
+    return to ? extend(/* @__PURE__ */ Object.create(null), to, from) : from;
+  }
+  function mergeEmitsOrPropsOptions(to, from) {
+    if (to) {
+      if (isArray(to) && isArray(from)) {
+        return [.../* @__PURE__ */ new Set([...to, ...from])];
+      }
+      return extend(
+        /* @__PURE__ */ Object.create(null),
+        normalizePropsOrEmits(to),
+        normalizePropsOrEmits(from != null ? from : {})
+      );
+    } else {
+      return from;
+    }
+  }
+  function mergeWatchOptions(to, from) {
+    if (!to)
+      return from;
+    if (!from)
+      return to;
+    const merged = extend(/* @__PURE__ */ Object.create(null), to);
+    for (const key in from) {
+      merged[key] = mergeAsArray(to[key], from[key]);
+    }
+    return merged;
+  }
+  function createAppContext() {
+    return {
+      app: null,
+      config: {
+        isNativeTag: NO,
+        performance: false,
+        globalProperties: {},
+        optionMergeStrategies: {},
+        errorHandler: void 0,
+        warnHandler: void 0,
+        compilerOptions: {}
+      },
+      mixins: [],
+      components: {},
+      directives: {},
+      provides: /* @__PURE__ */ Object.create(null),
+      optionsCache: /* @__PURE__ */ new WeakMap(),
+      propsCache: /* @__PURE__ */ new WeakMap(),
+      emitsCache: /* @__PURE__ */ new WeakMap()
+    };
+  }
+  var currentApp = null;
+  function inject(key, defaultValue2, treatDefaultAsFactory = false) {
+    const instance = currentInstance || currentRenderingInstance;
+    if (instance || currentApp) {
+      const provides = instance ? instance.parent == null ? instance.vnode.appContext && instance.vnode.appContext.provides : instance.parent.provides : currentApp._context.provides;
+      if (provides && key in provides) {
+        return provides[key];
+      } else if (arguments.length > 1) {
+        return treatDefaultAsFactory && isFunction(defaultValue2) ? defaultValue2.call(instance && instance.proxy) : defaultValue2;
+      } else if (true) {
+        warn$1(`injection "${String(key)}" not found.`);
+      }
+    } else if (true) {
+      warn$1(`inject() can only be used inside setup() or functional components.`);
+    }
+  }
+  function hasInjectionContext() {
+    return !!(currentInstance || currentRenderingInstance || currentApp);
+  }
+  var queuePostRenderEffect = queueEffectWithSuspense;
+  var Fragment = Symbol.for("v-fgt");
+  var Text = Symbol.for("v-txt");
+  var Comment = Symbol.for("v-cmt");
+  var Static = Symbol.for("v-stc");
+  var emptyAppContext = createAppContext();
+  var currentInstance = null;
+  var getCurrentInstance = () => currentInstance || currentRenderingInstance;
+  var internalSetCurrentInstance;
+  var setInSSRSetupState;
+  {
+    const g3 = getGlobalThis();
+    const registerGlobalSetter = (key, setter) => {
+      let setters;
+      if (!(setters = g3[key]))
+        setters = g3[key] = [];
+      setters.push(setter);
+      return (v3) => {
+        if (setters.length > 1)
+          setters.forEach((set3) => set3(v3));
+        else
+          setters[0](v3);
+      };
+    };
+    internalSetCurrentInstance = registerGlobalSetter(
+      `__VUE_INSTANCE_SETTERS__`,
+      (v3) => currentInstance = v3
+    );
+    setInSSRSetupState = registerGlobalSetter(
+      `__VUE_SSR_SETTERS__`,
+      (v3) => isInSSRComponentSetup = v3
+    );
+  }
+  var setCurrentInstance = (instance) => {
+    const prev = currentInstance;
+    internalSetCurrentInstance(instance);
+    instance.scope.on();
+    return () => {
+      instance.scope.off();
+      internalSetCurrentInstance(prev);
+    };
+  };
+  function isStatefulComponent(instance) {
+    return instance.vnode.shapeFlag & 4;
+  }
+  var isInSSRComponentSetup = false;
+  function getExposeProxy(instance) {
+    if (instance.exposed) {
+      return instance.exposeProxy || (instance.exposeProxy = new Proxy(proxyRefs(markRaw(instance.exposed)), {
+        get(target, key) {
+          if (key in target) {
+            return target[key];
+          } else if (key in publicPropertiesMap) {
+            return publicPropertiesMap[key](instance);
+          }
+        },
+        has(target, key) {
+          return key in target || key in publicPropertiesMap;
+        }
+      }));
+    }
+  }
+  var classifyRE = /(?:^|[-_])(\w)/g;
+  var classify = (str) => str.replace(classifyRE, (c3) => c3.toUpperCase()).replace(/[-_]/g, "");
+  function getComponentName(Component, includeInferred = true) {
+    return isFunction(Component) ? Component.displayName || Component.name : Component.name || includeInferred && Component.__name;
+  }
+  function formatComponentName(instance, Component, isRoot = false) {
+    let name = getComponentName(Component);
+    if (!name && Component.__file) {
+      const match = Component.__file.match(/([^/\\]+)\.\w+$/);
+      if (match) {
+        name = match[1];
+      }
+    }
+    if (!name && instance && instance.parent) {
+      const inferFromRegistry = (registry) => {
+        for (const key in registry) {
+          if (registry[key] === Component) {
+            return key;
+          }
+        }
+      };
+      name = inferFromRegistry(
+        instance.components || instance.parent.type.components
+      ) || inferFromRegistry(instance.appContext.components);
+    }
+    return name ? classify(name) : isRoot ? `App` : `Anonymous`;
+  }
+  function isClassComponent(value) {
+    return isFunction(value) && "__vccOpts" in value;
+  }
+  var computed2 = (getterOrOptions, debugOptions) => {
+    const c3 = computed(getterOrOptions, debugOptions, isInSSRComponentSetup);
+    if (true) {
+      const i3 = getCurrentInstance();
+      if (i3 && i3.appContext.config.warnRecursiveComputed) {
+        c3._warnRecursive = true;
+      }
+    }
+    return c3;
+  };
+  function initCustomFormatter() {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const vueStyle = { style: "color:#3ba776" };
+    const numberStyle = { style: "color:#1677ff" };
+    const stringStyle = { style: "color:#f5222d" };
+    const keywordStyle = { style: "color:#eb2f96" };
+    const formatter = {
+      header(obj) {
+        if (!isObject(obj)) {
+          return null;
+        }
+        if (obj.__isVue) {
+          return ["div", vueStyle, `VueInstance`];
+        } else if (isRef(obj)) {
+          return [
+            "div",
+            {},
+            ["span", vueStyle, genRefFlag(obj)],
+            "<",
+            formatValue(obj.value),
+            `>`
+          ];
+        } else if (isReactive(obj)) {
+          return [
+            "div",
+            {},
+            ["span", vueStyle, isShallow(obj) ? "ShallowReactive" : "Reactive"],
+            "<",
+            formatValue(obj),
+            `>${isReadonly(obj) ? ` (readonly)` : ``}`
+          ];
+        } else if (isReadonly(obj)) {
+          return [
+            "div",
+            {},
+            ["span", vueStyle, isShallow(obj) ? "ShallowReadonly" : "Readonly"],
+            "<",
+            formatValue(obj),
+            ">"
+          ];
+        }
+        return null;
+      },
+      hasBody(obj) {
+        return obj && obj.__isVue;
+      },
+      body(obj) {
+        if (obj && obj.__isVue) {
+          return [
+            "div",
+            {},
+            ...formatInstance(obj.$)
+          ];
+        }
+      }
+    };
+    function formatInstance(instance) {
+      const blocks = [];
+      if (instance.type.props && instance.props) {
+        blocks.push(createInstanceBlock("props", toRaw(instance.props)));
+      }
+      if (instance.setupState !== EMPTY_OBJ) {
+        blocks.push(createInstanceBlock("setup", instance.setupState));
+      }
+      if (instance.data !== EMPTY_OBJ) {
+        blocks.push(createInstanceBlock("data", toRaw(instance.data)));
+      }
+      const computed3 = extractKeys(instance, "computed");
+      if (computed3) {
+        blocks.push(createInstanceBlock("computed", computed3));
+      }
+      const injected = extractKeys(instance, "inject");
+      if (injected) {
+        blocks.push(createInstanceBlock("injected", injected));
+      }
+      blocks.push([
+        "div",
+        {},
+        [
+          "span",
+          {
+            style: keywordStyle.style + ";opacity:0.66"
+          },
+          "$ (internal): "
+        ],
+        ["object", { object: instance }]
+      ]);
+      return blocks;
+    }
+    function createInstanceBlock(type, target) {
+      target = extend({}, target);
+      if (!Object.keys(target).length) {
+        return ["span", {}];
+      }
+      return [
+        "div",
+        { style: "line-height:1.25em;margin-bottom:0.6em" },
+        [
+          "div",
+          {
+            style: "color:#476582"
+          },
+          type
+        ],
+        [
+          "div",
+          {
+            style: "padding-left:1.25em"
+          },
+          ...Object.keys(target).map((key) => {
+            return [
+              "div",
+              {},
+              ["span", keywordStyle, key + ": "],
+              formatValue(target[key], false)
+            ];
+          })
+        ]
+      ];
+    }
+    function formatValue(v3, asRaw = true) {
+      if (typeof v3 === "number") {
+        return ["span", numberStyle, v3];
+      } else if (typeof v3 === "string") {
+        return ["span", stringStyle, JSON.stringify(v3)];
+      } else if (typeof v3 === "boolean") {
+        return ["span", keywordStyle, v3];
+      } else if (isObject(v3)) {
+        return ["object", { object: asRaw ? toRaw(v3) : v3 }];
+      } else {
+        return ["span", stringStyle, String(v3)];
+      }
+    }
+    function extractKeys(instance, type) {
+      const Comp = instance.type;
+      if (isFunction(Comp)) {
+        return;
+      }
+      const extracted = {};
+      for (const key in instance.ctx) {
+        if (isKeyOfType(Comp, key, type)) {
+          extracted[key] = instance.ctx[key];
+        }
+      }
+      return extracted;
+    }
+    function isKeyOfType(Comp, key, type) {
+      const opts = Comp[type];
+      if (isArray(opts) && opts.includes(key) || isObject(opts) && key in opts) {
+        return true;
+      }
+      if (Comp.extends && isKeyOfType(Comp.extends, key, type)) {
+        return true;
+      }
+      if (Comp.mixins && Comp.mixins.some((m3) => isKeyOfType(m3, key, type))) {
+        return true;
+      }
+    }
+    function genRefFlag(v3) {
+      if (isShallow(v3)) {
+        return `ShallowRef`;
+      }
+      if (v3.effect) {
+        return `ComputedRef`;
+      }
+      return `Ref`;
+    }
+    if (window.devtoolsFormatters) {
+      window.devtoolsFormatters.push(formatter);
+    } else {
+      window.devtoolsFormatters = [formatter];
+    }
+  }
+
+  // node_modules/vue/dist/vue.runtime.esm-bundler.js
+  function initDev() {
+    {
+      initCustomFormatter();
+    }
+  }
+  if (true) {
+    initDev();
+  }
+
+  // node_modules/pinia/node_modules/vue-demi/lib/index.mjs
+  var isVue2 = false;
+  function set2(target, key, val) {
+    if (Array.isArray(target)) {
+      target.length = Math.max(target.length, key);
+      target.splice(key, 1, val);
+      return val;
+    }
+    target[key] = val;
+    return val;
+  }
+  function del(target, key) {
+    if (Array.isArray(target)) {
+      target.splice(key, 1);
+      return;
+    }
+    delete target[key];
+  }
+
+  // node_modules/pinia/dist/pinia.mjs
+  var activePinia;
+  var setActivePinia = (pinia) => activePinia = pinia;
+  var piniaSymbol = true ? Symbol("pinia") : (
+    /* istanbul ignore next */
+    Symbol()
+  );
+  function isPlainObject2(o3) {
+    return o3 && typeof o3 === "object" && Object.prototype.toString.call(o3) === "[object Object]" && typeof o3.toJSON !== "function";
+  }
+  var MutationType;
+  (function(MutationType2) {
+    MutationType2["direct"] = "direct";
+    MutationType2["patchObject"] = "patch object";
+    MutationType2["patchFunction"] = "patch function";
+  })(MutationType || (MutationType = {}));
+  var IS_CLIENT = typeof window !== "undefined";
+  var USE_DEVTOOLS = IS_CLIENT;
+  var _global = /* @__PURE__ */ (() => typeof window === "object" && window.window === window ? window : typeof self === "object" && self.self === self ? self : typeof global === "object" && global.global === global ? global : typeof globalThis === "object" ? globalThis : { HTMLElement: null })();
+  function bom(blob, { autoBom = false } = {}) {
+    if (autoBom && /^\s*(?:text\/\S*|application\/xml|\S*\/\S*\+xml)\s*;.*charset\s*=\s*utf-8/i.test(blob.type)) {
+      return new Blob([String.fromCharCode(65279), blob], { type: blob.type });
+    }
+    return blob;
+  }
+  function download(url, name, opts) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url);
+    xhr.responseType = "blob";
+    xhr.onload = function() {
+      saveAs(xhr.response, name, opts);
+    };
+    xhr.onerror = function() {
+      console.error("could not download file");
+    };
+    xhr.send();
+  }
+  function corsEnabled(url) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("HEAD", url, false);
+    try {
+      xhr.send();
+    } catch (e3) {
+    }
+    return xhr.status >= 200 && xhr.status <= 299;
+  }
+  function click(node) {
+    try {
+      node.dispatchEvent(new MouseEvent("click"));
+    } catch (e3) {
+      const evt = document.createEvent("MouseEvents");
+      evt.initMouseEvent("click", true, true, window, 0, 0, 0, 80, 20, false, false, false, false, 0, null);
+      node.dispatchEvent(evt);
+    }
+  }
+  var _navigator = typeof navigator === "object" ? navigator : { userAgent: "" };
+  var isMacOSWebView = /* @__PURE__ */ (() => /Macintosh/.test(_navigator.userAgent) && /AppleWebKit/.test(_navigator.userAgent) && !/Safari/.test(_navigator.userAgent))();
+  var saveAs = !IS_CLIENT ? () => {
+  } : (
+    // Use download attribute first if possible (#193 Lumia mobile) unless this is a macOS WebView or mini program
+    typeof HTMLAnchorElement !== "undefined" && "download" in HTMLAnchorElement.prototype && !isMacOSWebView ? downloadSaveAs : (
+      // Use msSaveOrOpenBlob as a second approach
+      "msSaveOrOpenBlob" in _navigator ? msSaveAs : (
+        // Fallback to using FileReader and a popup
+        fileSaverSaveAs
+      )
+    )
+  );
+  function downloadSaveAs(blob, name = "download", opts) {
+    const a3 = document.createElement("a");
+    a3.download = name;
+    a3.rel = "noopener";
+    if (typeof blob === "string") {
+      a3.href = blob;
+      if (a3.origin !== location.origin) {
+        if (corsEnabled(a3.href)) {
+          download(blob, name, opts);
+        } else {
+          a3.target = "_blank";
+          click(a3);
+        }
+      } else {
+        click(a3);
+      }
+    } else {
+      a3.href = URL.createObjectURL(blob);
+      setTimeout(function() {
+        URL.revokeObjectURL(a3.href);
+      }, 4e4);
+      setTimeout(function() {
+        click(a3);
+      }, 0);
+    }
+  }
+  function msSaveAs(blob, name = "download", opts) {
+    if (typeof blob === "string") {
+      if (corsEnabled(blob)) {
+        download(blob, name, opts);
+      } else {
+        const a3 = document.createElement("a");
+        a3.href = blob;
+        a3.target = "_blank";
+        setTimeout(function() {
+          click(a3);
+        });
+      }
+    } else {
+      navigator.msSaveOrOpenBlob(bom(blob, opts), name);
+    }
+  }
+  function fileSaverSaveAs(blob, name, opts, popup) {
+    popup = popup || open("", "_blank");
+    if (popup) {
+      popup.document.title = popup.document.body.innerText = "downloading...";
+    }
+    if (typeof blob === "string")
+      return download(blob, name, opts);
+    const force = blob.type === "application/octet-stream";
+    const isSafari2 = /constructor/i.test(String(_global.HTMLElement)) || "safari" in _global;
+    const isChromeIOS = /CriOS\/[\d]+/.test(navigator.userAgent);
+    if ((isChromeIOS || force && isSafari2 || isMacOSWebView) && typeof FileReader !== "undefined") {
+      const reader = new FileReader();
+      reader.onloadend = function() {
+        let url = reader.result;
+        if (typeof url !== "string") {
+          popup = null;
+          throw new Error("Wrong reader.result type");
+        }
+        url = isChromeIOS ? url : url.replace(/^data:[^;]*;/, "data:attachment/file;");
+        if (popup) {
+          popup.location.href = url;
+        } else {
+          location.assign(url);
+        }
+        popup = null;
+      };
+      reader.readAsDataURL(blob);
+    } else {
+      const url = URL.createObjectURL(blob);
+      if (popup)
+        popup.location.assign(url);
+      else
+        location.href = url;
+      popup = null;
+      setTimeout(function() {
+        URL.revokeObjectURL(url);
+      }, 4e4);
+    }
+  }
+  var { assign: assign$1 } = Object;
+  function patchObject(newState, oldState) {
+    for (const key in oldState) {
+      const subPatch = oldState[key];
+      if (!(key in newState)) {
+        continue;
+      }
+      const targetValue = newState[key];
+      if (isPlainObject2(targetValue) && isPlainObject2(subPatch) && !isRef(subPatch) && !isReactive(subPatch)) {
+        newState[key] = patchObject(targetValue, subPatch);
+      } else {
+        if (isVue2) {
+          set2(newState, key, subPatch);
+        } else {
+          newState[key] = subPatch;
+        }
+      }
+    }
+    return newState;
+  }
+  var noop = () => {
+  };
+  function addSubscription(subscriptions, callback, detached, onCleanup = noop) {
+    subscriptions.push(callback);
+    const removeSubscription = () => {
+      const idx = subscriptions.indexOf(callback);
+      if (idx > -1) {
+        subscriptions.splice(idx, 1);
+        onCleanup();
+      }
+    };
+    if (!detached && getCurrentScope()) {
+      onScopeDispose(removeSubscription);
+    }
+    return removeSubscription;
+  }
+  function triggerSubscriptions(subscriptions, ...args) {
+    subscriptions.slice().forEach((callback) => {
+      callback(...args);
+    });
+  }
+  var fallbackRunWithContext = (fn) => fn();
+  function mergeReactiveObjects(target, patchToApply) {
+    if (target instanceof Map && patchToApply instanceof Map) {
+      patchToApply.forEach((value, key) => target.set(key, value));
+    }
+    if (target instanceof Set && patchToApply instanceof Set) {
+      patchToApply.forEach(target.add, target);
+    }
+    for (const key in patchToApply) {
+      if (!patchToApply.hasOwnProperty(key))
+        continue;
+      const subPatch = patchToApply[key];
+      const targetValue = target[key];
+      if (isPlainObject2(targetValue) && isPlainObject2(subPatch) && target.hasOwnProperty(key) && !isRef(subPatch) && !isReactive(subPatch)) {
+        target[key] = mergeReactiveObjects(targetValue, subPatch);
+      } else {
+        target[key] = subPatch;
+      }
+    }
+    return target;
+  }
+  var skipHydrateSymbol = true ? Symbol("pinia:skipHydration") : (
+    /* istanbul ignore next */
+    Symbol()
+  );
+  var skipHydrateMap = /* @__PURE__ */ new WeakMap();
+  function shouldHydrate(obj) {
+    return isVue2 ? (
+      /* istanbul ignore next */
+      !skipHydrateMap.has(obj)
+    ) : !isPlainObject2(obj) || !obj.hasOwnProperty(skipHydrateSymbol);
+  }
+  var { assign } = Object;
+  function isComputed(o3) {
+    return !!(isRef(o3) && o3.effect);
+  }
+  function createOptionsStore(id, options, pinia, hot) {
+    const { state, actions, getters } = options;
+    const initialState = pinia.state.value[id];
+    let store;
+    function setup() {
+      if (!initialState && !hot) {
+        if (isVue2) {
+          set2(pinia.state.value, id, state ? state() : {});
+        } else {
+          pinia.state.value[id] = state ? state() : {};
+        }
+      }
+      const localState = hot ? (
+        // use ref() to unwrap refs inside state TODO: check if this is still necessary
+        toRefs(ref(state ? state() : {}).value)
+      ) : toRefs(pinia.state.value[id]);
+      return assign(localState, actions, Object.keys(getters || {}).reduce((computedGetters, name) => {
+        if (name in localState) {
+          console.warn(`[\u{1F34D}]: A getter cannot have the same name as another state property. Rename one of them. Found with "${name}" in store "${id}".`);
+        }
+        computedGetters[name] = markRaw(computed2(() => {
+          setActivePinia(pinia);
+          const store2 = pinia._s.get(id);
+          if (isVue2 && !store2._r)
+            return;
+          return getters[name].call(store2, store2);
+        }));
+        return computedGetters;
+      }, {}));
+    }
+    store = createSetupStore(id, setup, options, pinia, hot, true);
+    return store;
+  }
+  function createSetupStore($id, setup, options = {}, pinia, hot, isOptionsStore) {
+    let scope;
+    const optionsForPlugin = assign({ actions: {} }, options);
+    if (!pinia._e.active) {
+      throw new Error("Pinia destroyed");
+    }
+    const $subscribeOptions = {
+      deep: true
+      // flush: 'post',
+    };
+    if (!isVue2) {
+      $subscribeOptions.onTrigger = (event) => {
+        if (isListening) {
+          debuggerEvents = event;
+        } else if (isListening == false && !store._hotUpdating) {
+          if (Array.isArray(debuggerEvents)) {
+            debuggerEvents.push(event);
+          } else {
+            console.error("\u{1F34D} debuggerEvents should be an array. This is most likely an internal Pinia bug.");
+          }
+        }
+      };
+    }
+    let isListening;
+    let isSyncListening;
+    let subscriptions = [];
+    let actionSubscriptions = [];
+    let debuggerEvents;
+    const initialState = pinia.state.value[$id];
+    if (!isOptionsStore && !initialState && !hot) {
+      if (isVue2) {
+        set2(pinia.state.value, $id, {});
+      } else {
+        pinia.state.value[$id] = {};
+      }
+    }
+    const hotState = ref({});
+    let activeListener;
+    function $patch(partialStateOrMutator) {
+      let subscriptionMutation;
+      isListening = isSyncListening = false;
+      if (true) {
+        debuggerEvents = [];
+      }
+      if (typeof partialStateOrMutator === "function") {
+        partialStateOrMutator(pinia.state.value[$id]);
+        subscriptionMutation = {
+          type: MutationType.patchFunction,
+          storeId: $id,
+          events: debuggerEvents
+        };
+      } else {
+        mergeReactiveObjects(pinia.state.value[$id], partialStateOrMutator);
+        subscriptionMutation = {
+          type: MutationType.patchObject,
+          payload: partialStateOrMutator,
+          storeId: $id,
+          events: debuggerEvents
+        };
+      }
+      const myListenerId = activeListener = Symbol();
+      nextTick().then(() => {
+        if (activeListener === myListenerId) {
+          isListening = true;
+        }
+      });
+      isSyncListening = true;
+      triggerSubscriptions(subscriptions, subscriptionMutation, pinia.state.value[$id]);
+    }
+    const $reset = isOptionsStore ? function $reset2() {
+      const { state } = options;
+      const newState = state ? state() : {};
+      this.$patch(($state) => {
+        assign($state, newState);
+      });
+    } : (
+      /* istanbul ignore next */
+      true ? () => {
+        throw new Error(`\u{1F34D}: Store "${$id}" is built using the setup syntax and does not implement $reset().`);
+      } : noop
+    );
+    function $dispose() {
+      scope.stop();
+      subscriptions = [];
+      actionSubscriptions = [];
+      pinia._s.delete($id);
+    }
+    function wrapAction(name, action) {
+      return function() {
+        setActivePinia(pinia);
+        const args = Array.from(arguments);
+        const afterCallbackList = [];
+        const onErrorCallbackList = [];
+        function after(callback) {
+          afterCallbackList.push(callback);
+        }
+        function onError(callback) {
+          onErrorCallbackList.push(callback);
+        }
+        triggerSubscriptions(actionSubscriptions, {
+          args,
+          name,
+          store,
+          after,
+          onError
+        });
+        let ret;
+        try {
+          ret = action.apply(this && this.$id === $id ? this : store, args);
+        } catch (error) {
+          triggerSubscriptions(onErrorCallbackList, error);
+          throw error;
+        }
+        if (ret instanceof Promise) {
+          return ret.then((value) => {
+            triggerSubscriptions(afterCallbackList, value);
+            return value;
+          }).catch((error) => {
+            triggerSubscriptions(onErrorCallbackList, error);
+            return Promise.reject(error);
+          });
+        }
+        triggerSubscriptions(afterCallbackList, ret);
+        return ret;
+      };
+    }
+    const _hmrPayload = /* @__PURE__ */ markRaw({
+      actions: {},
+      getters: {},
+      state: [],
+      hotState
+    });
+    const partialStore = {
+      _p: pinia,
+      // _s: scope,
+      $id,
+      $onAction: addSubscription.bind(null, actionSubscriptions),
+      $patch,
+      $reset,
+      $subscribe(callback, options2 = {}) {
+        const removeSubscription = addSubscription(subscriptions, callback, options2.detached, () => stopWatcher());
+        const stopWatcher = scope.run(() => watch(() => pinia.state.value[$id], (state) => {
+          if (options2.flush === "sync" ? isSyncListening : isListening) {
+            callback({
+              storeId: $id,
+              type: MutationType.direct,
+              events: debuggerEvents
+            }, state);
+          }
+        }, assign({}, $subscribeOptions, options2)));
+        return removeSubscription;
+      },
+      $dispose
+    };
+    if (isVue2) {
+      partialStore._r = false;
+    }
+    const store = reactive(true ? assign(
+      {
+        _hmrPayload,
+        _customProperties: markRaw(/* @__PURE__ */ new Set())
+        // devtools custom properties
+      },
+      partialStore
+      // must be added later
+      // setupStore
+    ) : partialStore);
+    pinia._s.set($id, store);
+    const runWithContext = pinia._a && pinia._a.runWithContext || fallbackRunWithContext;
+    const setupStore = runWithContext(() => pinia._e.run(() => (scope = effectScope()).run(setup)));
+    for (const key in setupStore) {
+      const prop = setupStore[key];
+      if (isRef(prop) && !isComputed(prop) || isReactive(prop)) {
+        if (hot) {
+          set2(hotState.value, key, toRef(setupStore, key));
+        } else if (!isOptionsStore) {
+          if (initialState && shouldHydrate(prop)) {
+            if (isRef(prop)) {
+              prop.value = initialState[key];
+            } else {
+              mergeReactiveObjects(prop, initialState[key]);
+            }
+          }
+          if (isVue2) {
+            set2(pinia.state.value[$id], key, prop);
+          } else {
+            pinia.state.value[$id][key] = prop;
+          }
+        }
+        if (true) {
+          _hmrPayload.state.push(key);
+        }
+      } else if (typeof prop === "function") {
+        const actionValue = hot ? prop : wrapAction(key, prop);
+        if (isVue2) {
+          set2(setupStore, key, actionValue);
+        } else {
+          setupStore[key] = actionValue;
+        }
+        if (true) {
+          _hmrPayload.actions[key] = prop;
+        }
+        optionsForPlugin.actions[key] = prop;
+      } else if (true) {
+        if (isComputed(prop)) {
+          _hmrPayload.getters[key] = isOptionsStore ? (
+            // @ts-expect-error
+            options.getters[key]
+          ) : prop;
+          if (IS_CLIENT) {
+            const getters = setupStore._getters || // @ts-expect-error: same
+            (setupStore._getters = markRaw([]));
+            getters.push(key);
+          }
+        }
+      }
+    }
+    if (isVue2) {
+      Object.keys(setupStore).forEach((key) => {
+        set2(store, key, setupStore[key]);
+      });
+    } else {
+      assign(store, setupStore);
+      assign(toRaw(store), setupStore);
+    }
+    Object.defineProperty(store, "$state", {
+      get: () => hot ? hotState.value : pinia.state.value[$id],
+      set: (state) => {
+        if (hot) {
+          throw new Error("cannot set hotState");
+        }
+        $patch(($state) => {
+          assign($state, state);
+        });
+      }
+    });
+    if (true) {
+      store._hotUpdate = markRaw((newStore) => {
+        store._hotUpdating = true;
+        newStore._hmrPayload.state.forEach((stateKey) => {
+          if (stateKey in store.$state) {
+            const newStateTarget = newStore.$state[stateKey];
+            const oldStateSource = store.$state[stateKey];
+            if (typeof newStateTarget === "object" && isPlainObject2(newStateTarget) && isPlainObject2(oldStateSource)) {
+              patchObject(newStateTarget, oldStateSource);
+            } else {
+              newStore.$state[stateKey] = oldStateSource;
+            }
+          }
+          set2(store, stateKey, toRef(newStore.$state, stateKey));
+        });
+        Object.keys(store.$state).forEach((stateKey) => {
+          if (!(stateKey in newStore.$state)) {
+            del(store, stateKey);
+          }
+        });
+        isListening = false;
+        isSyncListening = false;
+        pinia.state.value[$id] = toRef(newStore._hmrPayload, "hotState");
+        isSyncListening = true;
+        nextTick().then(() => {
+          isListening = true;
+        });
+        for (const actionName in newStore._hmrPayload.actions) {
+          const action = newStore[actionName];
+          set2(store, actionName, wrapAction(actionName, action));
+        }
+        for (const getterName in newStore._hmrPayload.getters) {
+          const getter = newStore._hmrPayload.getters[getterName];
+          const getterValue = isOptionsStore ? (
+            // special handling of options api
+            computed2(() => {
+              setActivePinia(pinia);
+              return getter.call(store, store);
+            })
+          ) : getter;
+          set2(store, getterName, getterValue);
+        }
+        Object.keys(store._hmrPayload.getters).forEach((key) => {
+          if (!(key in newStore._hmrPayload.getters)) {
+            del(store, key);
+          }
+        });
+        Object.keys(store._hmrPayload.actions).forEach((key) => {
+          if (!(key in newStore._hmrPayload.actions)) {
+            del(store, key);
+          }
+        });
+        store._hmrPayload = newStore._hmrPayload;
+        store._getters = newStore._getters;
+        store._hotUpdating = false;
+      });
+    }
+    if (USE_DEVTOOLS) {
+      const nonEnumerable = {
+        writable: true,
+        configurable: true,
+        // avoid warning on devtools trying to display this property
+        enumerable: false
+      };
+      ["_p", "_hmrPayload", "_getters", "_customProperties"].forEach((p3) => {
+        Object.defineProperty(store, p3, assign({ value: store[p3] }, nonEnumerable));
+      });
+    }
+    if (isVue2) {
+      store._r = true;
+    }
+    pinia._p.forEach((extender) => {
+      if (USE_DEVTOOLS) {
+        const extensions2 = scope.run(() => extender({
+          store,
+          app: pinia._a,
+          pinia,
+          options: optionsForPlugin
+        }));
+        Object.keys(extensions2 || {}).forEach((key) => store._customProperties.add(key));
+        assign(store, extensions2);
+      } else {
+        assign(store, scope.run(() => extender({
+          store,
+          app: pinia._a,
+          pinia,
+          options: optionsForPlugin
+        })));
+      }
+    });
+    if (store.$state && typeof store.$state === "object" && typeof store.$state.constructor === "function" && !store.$state.constructor.toString().includes("[native code]")) {
+      console.warn(`[\u{1F34D}]: The "state" must be a plain object. It cannot be
+	state: () => new MyClass()
+Found in store "${store.$id}".`);
+    }
+    if (initialState && isOptionsStore && options.hydrate) {
+      options.hydrate(store.$state, initialState);
+    }
+    isListening = true;
+    isSyncListening = true;
+    return store;
+  }
+  function defineStore(idOrOptions, setup, setupOptions) {
+    let id;
+    let options;
+    const isSetupStore = typeof setup === "function";
+    if (typeof idOrOptions === "string") {
+      id = idOrOptions;
+      options = isSetupStore ? setupOptions : setup;
+    } else {
+      options = idOrOptions;
+      id = idOrOptions.id;
+      if (typeof id !== "string") {
+        throw new Error(`[\u{1F34D}]: "defineStore()" must be passed a store id as its first argument.`);
+      }
+    }
+    function useStore(pinia, hot) {
+      const hasContext = hasInjectionContext();
+      pinia = // in test mode, ignore the argument provided as we can always retrieve a
+      // pinia instance with getActivePinia()
+      (false ? null : pinia) || (hasContext ? inject(piniaSymbol, null) : null);
+      if (pinia)
+        setActivePinia(pinia);
+      if (!activePinia) {
+        throw new Error(`[\u{1F34D}]: "getActivePinia()" was called but there was no active Pinia. Are you trying to use a store before calling "app.use(pinia)"?
+See https://pinia.vuejs.org/core-concepts/outside-component-usage.html for help.
+This will fail in production.`);
+      }
+      pinia = activePinia;
+      if (!pinia._s.has(id)) {
+        if (isSetupStore) {
+          createSetupStore(id, setup, options, pinia);
+        } else {
+          createOptionsStore(id, options, pinia);
+        }
+        if (true) {
+          useStore._pinia = pinia;
+        }
+      }
+      const store = pinia._s.get(id);
+      if (hot) {
+        const hotId = "__hot:" + id;
+        const newStore = isSetupStore ? createSetupStore(hotId, setup, options, pinia, true) : createOptionsStore(hotId, assign({}, options), pinia, true);
+        hot._hotUpdate(newStore);
+        delete pinia.state.value[hotId];
+        pinia._s.delete(hotId);
+      }
+      if (IS_CLIENT) {
+        const currentInstance2 = getCurrentInstance();
+        if (currentInstance2 && currentInstance2.proxy && // avoid adding stores that are just built for hot module replacement
+        !hot) {
+          const vm = currentInstance2.proxy;
+          const cache = "_pStores" in vm ? vm._pStores : vm._pStores = {};
+          cache[id] = store;
+        }
+      }
+      return store;
+    }
+    useStore.$id = id;
+    return useStore;
+  }
+
+  // client/effects-manager.ts
+  var EffectsManager = class {
+    _active_animations = [];
+    sprite_by_gid_map = {};
+    sprite_effects_map = {};
+    update_animations_for_animated_sprites(resource_manager, gid) {
+      if (!this.sprite_by_gid_map[gid]) {
+        return;
+      }
+      const effects_for_gid = this.sprite_by_gid_map[gid];
+      const graphics = resource_manager.get_graphics_data_by_gid(gid);
+      const is_animated = graphics.frame_objects.length > 0;
+      for (const tile_key of effects_for_gid.effects.values()) {
+        this.sprite_effects_map[tile_key].sprite.textures = graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures;
+      }
+      if (is_animated) {
+        if (effects_for_gid.main_animation_sprite_key == null) {
+          effects_for_gid.main_animation_sprite_key = effects_for_gid.effects.values().next().value;
+        }
+        this.sprite_effects_map[effects_for_gid.main_animation_sprite_key].sprite.play();
+      }
+      if (!is_animated && effects_for_gid.main_animation_sprite_key != null) {
+        effects_for_gid.main_animation_sprite_key = null;
+      }
+    }
+    sync_sprite_animations() {
+      for (const sprite_map of Object.values(this.sprite_by_gid_map)) {
+        if (sprite_map.main_animation_sprite_key === null) {
+          continue;
+        }
+        let main_sprite = this.sprite_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
+        if (!main_sprite) {
+          sprite_map.main_animation_sprite_key = sprite_map.effects.values().next().value ?? null;
+          main_sprite = this.sprite_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
+          if (!main_sprite) {
+            continue;
+          }
+          main_sprite.play();
+        }
+        const current_frame = main_sprite.currentFrame;
+        for (const tile_key of sprite_map.effects.values()) {
+          if (tile_key === sprite_map.main_animation_sprite_key) {
+            continue;
+          }
+          this.sprite_effects_map[tile_key].sprite.currentFrame = current_frame;
+        }
+      }
+    }
+    update_effects() {
+      this._active_animations = this._active_animations.filter((tile_effect) => {
+        tile_effect.fade_in.all_tweens.forEach(
+          (t3) => t3.update(window.performance.now())
+        );
+        tile_effect.fade_out.all_tweens.forEach(
+          (t3) => t3.update(window.performance.now())
+        );
+        tile_effect.sprite.position.x = tile_effect.base_props.pos_x + tile_effect.fade_in.add_props.pos_x + tile_effect.fade_out.add_props.pos_x;
+        tile_effect.sprite.position.y = tile_effect.base_props.pos_y + tile_effect.fade_in.add_props.pos_y + tile_effect.fade_out.add_props.pos_y;
+        tile_effect.sprite.rotation = tile_effect.base_props.rotation + tile_effect.fade_in.add_props.rotation + tile_effect.fade_out.add_props.rotation;
+        tile_effect.sprite.alpha = tile_effect.base_props.alpha + tile_effect.fade_in.add_props.alpha + tile_effect.fade_out.add_props.alpha;
+        tile_effect.sprite.scale.x = tile_effect.base_props.scale_x + tile_effect.fade_in.add_props.scale_x + tile_effect.fade_out.add_props.scale_x;
+        tile_effect.sprite.scale.y = tile_effect.base_props.scale_y + tile_effect.fade_in.add_props.scale_y + tile_effect.fade_out.add_props.scale_y;
+        return tile_effect.fade_in.all_tweens.some((t3) => t3.isPlaying()) || tile_effect.fade_out.all_tweens.some((t3) => t3.isPlaying());
+      });
+    }
+    add_sprite_with_effects(sprite, unique_key, gid, fade_in_effect, fade_out_effect) {
+      if (!this.sprite_by_gid_map[gid]) {
+        this.sprite_by_gid_map[gid] = {
+          effects: /* @__PURE__ */ new Set(),
+          main_animation_sprite_key: null
+        };
+      }
+      const is_animated = sprite.textures.length > 1;
+      if (is_animated && this.sprite_by_gid_map[gid].main_animation_sprite_key == null) {
+        console.log(is_animated, this.sprite_by_gid_map, gid);
+        this.sprite_by_gid_map[gid].main_animation_sprite_key = unique_key;
+        sprite.play();
+      }
+      this.sprite_effects_map[unique_key] = {
+        base_props: {
+          pos_x: sprite.x,
+          pos_y: sprite.y,
+          scale_x: 0,
+          scale_y: 0,
+          rotation: 0,
+          alpha: 1
+        },
+        fade_in: fade_in_effect ?? create_basic_fade_in_animation(300, Math.random() * 600),
+        fade_out: fade_out_effect ?? create_basic_fade_out_animation(300, Math.random() * 600),
+        sprite,
+        gid
+      };
+      const new_sprite_effect = this.sprite_effects_map[unique_key];
+      this.sprite_by_gid_map[gid].effects.add(unique_key);
+      new_sprite_effect.fade_in.tween.start(window.performance.now());
+      this._active_animations.push(new_sprite_effect);
+    }
+    get_sprite_effect_by_unique_key(tile_key) {
+      return this.sprite_effects_map[tile_key];
+    }
+    remove_sprite_effect(unique_key) {
+      const sprite_effect = this.sprite_effects_map[unique_key];
+      if (!sprite_effect) {
+        console.error(
+          "Could not find sprite effect to remove?!",
+          unique_key,
+          this.sprite_effects_map
+        );
+      } else {
+        const gid = sprite_effect.gid;
+        if (this.sprite_by_gid_map[gid]) {
+          delete this.sprite_effects_map[unique_key];
+          this.sprite_by_gid_map[gid].effects.delete(unique_key);
+        } else {
+          console.error(
+            "Trying to remove a sprite that is not the main animation sprite"
+          );
+        }
+      }
+    }
+    update_sprite(unique_key, sprite, new_gid) {
+      const sprite_effect = this.sprite_effects_map[unique_key];
+      if (!sprite_effect) {
+        console.error(
+          "Could not find sprite effect to update?!",
+          unique_key,
+          this.sprite_effects_map
+        );
+      } else {
+        const current_gid = sprite_effect.gid;
+        if (new_gid === current_gid) {
+          return;
+        }
+        if (!this.sprite_by_gid_map[new_gid]) {
+          this.sprite_by_gid_map[new_gid] = {
+            effects: /* @__PURE__ */ new Set(),
+            main_animation_sprite_key: null
+          };
+        }
+        if (this.sprite_by_gid_map[current_gid]) {
+          this.sprite_by_gid_map[current_gid].effects.delete(unique_key);
+          if (this.sprite_by_gid_map[current_gid].effects.size === 0) {
+            delete this.sprite_by_gid_map[current_gid];
+          } else {
+            if (this.sprite_by_gid_map[current_gid].main_animation_sprite_key === unique_key) {
+              const next_unique_key = this.sprite_by_gid_map[current_gid].effects.values().next().value;
+              this.sprite_by_gid_map[current_gid].main_animation_sprite_key = next_unique_key;
+              const next_sprite = this.sprite_effects_map[next_unique_key].sprite;
+              next_sprite.play();
+            }
+          }
+          sprite_effect.gid = new_gid;
+          sprite_effect.sprite = sprite;
+          const is_animated = sprite.textures.length > 1;
+          this.sprite_by_gid_map[new_gid].effects.add(unique_key);
+          if (is_animated && this.sprite_by_gid_map[new_gid].main_animation_sprite_key == null) {
+            this.sprite_by_gid_map[new_gid].main_animation_sprite_key = unique_key;
+            sprite.play();
+          }
+        } else {
+          console.error(
+            "Trying to remove a sprite that is not the main animation sprite"
+          );
+        }
+      }
+    }
+  };
+
+  // client/terrain/index.ts
+  function to_natural(num) {
+    if (num < 0) {
+      return -2 * num - 1;
+    } else {
+      return 2 * num;
+    }
+  }
+  function cantor_pair(x3, y3) {
+    const xx = to_natural(x3);
+    const yy = to_natural(y3);
+    return (xx + yy) * (xx + yy + 1) / 2 + yy;
+  }
+  function create_terrain_manager(terrain_params) {
+    return new TerrainManager(terrain_params);
+  }
+  var TerrainManager = class {
+    constructor(terrain_params) {
+      this.terrain_params = terrain_params;
+    }
+    _chunk_map = /* @__PURE__ */ new Map();
+    sprite_effects_manager = new EffectsManager();
+    destroy() {
+    }
+    remove_all_chunks_for_module(renderer) {
+      for (const [layer, layer_chunks] of this._chunk_map.entries()) {
+        for (const chunk of Object.values(layer_chunks)) {
+          renderer.layer_map[layer].removeChild(chunk.container);
+        }
+      }
+    }
+    update_animations_for_animated_sprites(resource_manager, gid) {
+      this.sprite_effects_manager.update_animations_for_animated_sprites(
+        resource_manager,
+        gid
+      );
+    }
+    sync_sprite_animations() {
+      this.sprite_effects_manager.sync_sprite_animations();
+    }
+    update() {
+      this.sprite_effects_manager.sync_sprite_animations();
+      this.sprite_effects_manager.update_effects();
+    }
+    add_chunk(resource_manager, renderer, layer_kind, chunk) {
+      if (!this._chunk_map.has(layer_kind)) {
+        this._chunk_map.set(layer_kind, /* @__PURE__ */ new Map());
+      }
+      const chunk_map = this._chunk_map.get(layer_kind);
+      const chunk_key = cantor_pair(chunk.position[0], chunk.position[1]);
+      if (!chunk_map.has(chunk_key)) {
+        const chunk_map_entry2 = {
+          container: new Container(),
+          data: chunk,
+          animations: {}
+        };
+        chunk_map_entry2.container.x = chunk.position[0] * this.terrain_params.chunk_size * this.terrain_params.tile_width;
+        chunk_map_entry2.container.y = chunk.position[1] * this.terrain_params.chunk_size * this.terrain_params.tile_height;
+        chunk_map.set(chunk_key, chunk_map_entry2);
+        renderer.layer_map[layer_kind].addChild(chunk_map_entry2.container);
+      }
+      const chunk_map_entry = chunk_map.get(chunk_key);
+      chunk_map_entry.data = chunk;
+      for (const [i3, gid] of chunk.data.entries()) {
+        const x3 = i3 % this.terrain_params.chunk_size * this.terrain_params.tile_width;
+        const y3 = Math.floor(i3 / this.terrain_params.chunk_size) * this.terrain_params.tile_height + this.terrain_params.tile_height;
+        const tile_key = get_tile_key(
+          layer_kind,
+          chunk.position[0],
+          chunk.position[1],
+          x3,
+          y3
+        );
+        const sprite_effect = this.sprite_effects_manager.get_sprite_effect_by_unique_key(tile_key);
+        if (!sprite_effect) {
+          if (gid === 0) {
+            continue;
+          }
+          this._create_new_tile(
+            resource_manager,
+            gid,
+            x3 + this.terrain_params.tile_width / 2,
+            y3 - this.terrain_params.tile_height / 2,
+            tile_key,
+            chunk_map_entry
+          );
+        } else {
+          if (gid === sprite_effect.gid) {
+            continue;
+          }
+          this.sprite_effects_manager.remove_sprite_effect(tile_key);
+          sprite_effect.fade_out.tween.start(window.performance.now());
+          sprite_effect.fade_out.all_tweens[sprite_effect.fade_out.all_tweens.length - 1].onComplete(() => {
+            chunk_map_entry.container.removeChild(sprite_effect.sprite);
+          });
+          if (gid !== 0) {
+            this._create_new_tile(
+              resource_manager,
+              gid,
+              x3 + this.terrain_params.tile_width / 2,
+              y3 - this.terrain_params.tile_height / 2,
+              tile_key,
+              chunk_map_entry
+            );
+          }
+        }
+      }
+    }
+    _create_new_tile(resource_manager, gid, x3, y3, tile_key, chunk_map_entry) {
+      const graphics = resource_manager.get_graphics_data_by_gid(gid);
+      const sprite = resource_manager.get_animated_sprite_from_graphics(graphics);
+      sprite.x = x3;
+      sprite.y = y3;
+      sprite.rotation = 0;
+      chunk_map_entry.container.addChild(sprite);
+      this.sprite_effects_manager.add_sprite_with_effects(sprite, tile_key, gid);
+    }
+  };
+  function get_tile_key(layer_kind, chunk_x, chunk_y, tile_x, tile_y) {
+    return `${layer_kind}_${chunk_x}_${chunk_y}_${tile_x}_${tile_y}`;
+  }
+
+  // ui/src/stores/resources.ts
+  var use_resources_store = defineStore("resources", () => {
+    const state = reactive({
+      modules: {},
+      conductor: { module_connection_map: {}, resources: [], gid_map: [] },
+      tileset_map: {},
+      game_map_map: {},
+      scene_map: {},
+      script_map: {},
+      font_map: {},
+      audio_map: {},
+      character_animation_map: {},
+      logs: [],
+      current_file_browser_result: {
+        resources: [],
+        dirs: [],
+        dir: "",
+        path: ""
+      }
+    });
+    const actions = {
+      update_module(module) {
+        if (module.id) {
+          state.modules = {
+            ...state.modules,
+            [module.id]: { ...state.modules[module.id], ...module }
+          };
+        }
+      },
+      add_logs(logs) {
+        state.logs = [...state.logs, ...logs];
+      },
+      get_or_load_script(script_map, path2) {
+        if (!script_map[path2]) {
+          this.get_resource_server(path2);
+          return void 0;
+        }
+        return script_map[path2];
+      },
+      get_or_load_scene(scene_map, path2) {
+        if (!scene_map[path2]) {
+          this.get_resource_server(path2);
+          return void 0;
+        }
+        return scene_map[path2];
+      },
+      get_or_load_map(map_map, path2) {
+        if (!map_map[path2]) {
+          this.get_resource_server(path2);
+          return void 0;
+        }
+        return map_map[path2];
+      },
+      get_or_load_character_animation(character_animation_map, path2) {
+        if (!character_animation_map[path2]) {
+          this.get_resource_server(path2);
+          return void 0;
+        }
+        return character_animation_map[path2];
+      },
+      get_or_load_tileset(tileset_map, path2) {
+        if (!tileset_map[path2]) {
+          this.get_resource_server(path2);
+          return void 0;
+        }
+        return tileset_map[path2];
+      },
+      delete_module(module_id) {
+        const modules = {
+          ...state.modules
+        };
+        delete modules[module_id];
+        state.modules = modules;
+      },
+      create_module(module) {
+        state.modules = {
+          ...state.modules,
+          [module.id]: module
+        };
+      },
+      set_map(game_map) {
+        state.game_map_map = {
+          ...state.game_map_map,
+          [map_key(game_map)]: game_map
+        };
+      },
+      update_map(map_update, chunk_size) {
+        const key = map_key(map_update);
+        const game_map = state.game_map_map[key];
+        if (game_map) {
+          const update2 = {
+            name: map_update.name,
+            resource_path: map_update.resource_path,
+            main_scene: map_update.scene ?? void 0
+          };
+          Object.keys(update2).forEach(
+            (key2) => update2[key2] === void 0 && delete update2[key2]
+          );
+          state.game_map_map = {
+            ...state.game_map_map,
+            [key]: {
+              ...game_map,
+              ...update2
+            }
+          };
+          if (map_update.chunk) {
+            const [layer_kind, chunk_update] = map_update.chunk;
+            const chunk_id = cantor_pair(
+              chunk_update.position[0],
+              chunk_update.position[1]
+            );
+            if (!state.game_map_map[key].terrain[layer_kind][chunk_id]) {
+              state.game_map_map[key].terrain[layer_kind][chunk_id] = {
+                position: chunk_update.position,
+                data: new Array(chunk_size * chunk_size).fill(0)
+              };
+            }
+            const chunk = state.game_map_map[key].terrain[layer_kind][chunk_id];
+            for (const [y3, tile] of Object.entries(chunk_update.tile_updates)) {
+              for (const [x3, gid] of Object.entries(tile)) {
+                const i3 = Number(y3) * chunk_size + Number(x3);
+                chunk.data[i3] = gid;
+              }
+            }
+          }
+          if (map_update.layer_parallax) {
+            const [layer_kind, [x3, y3]] = map_update.layer_parallax;
+            state.game_map_map[key].layer_parallax[layer_kind] = [x3, y3];
+          }
+        }
+      },
+      delete_map(game_map) {
+        const maps = {
+          ...state.game_map_map
+        };
+        delete maps[map_key(game_map)];
+        state.game_map_map = maps;
+      },
+      set_script(script) {
+        state.script_map = {
+          ...state.script_map,
+          [script_key(script)]: script
+        };
+      },
+      delete_script(script) {
+        const scripts = {
+          ...state.script_map
+        };
+        delete scripts[script_key(script)];
+        state.script_map = scripts;
+      },
+      get_module(id) {
+        return state.modules[id];
+      },
+      set_modules(modules) {
+        state.modules = modules.reduce(
+          (current, module) => ({ ...current, [module.id]: module }),
+          {}
+        );
+      },
+      set_character_animation(character_animation) {
+        state.character_animation_map = {
+          ...state.character_animation_map,
+          [character_animation_key(character_animation)]: character_animation
+        };
+      },
+      delete_character_animation(character_animation) {
+        const scripts = {
+          ...state.character_animation_map
+        };
+        delete scripts[character_animation_key(character_animation)];
+        state.character_animation_map = scripts;
+      },
+      set_font(font) {
+        state.font_map = {
+          ...state.font_map,
+          [font_key(font)]: font
+        };
+      },
+      delete_font(font) {
+        const fonts = {
+          ...state.font_map
+        };
+        delete fonts[font_key(font)];
+        state.font_map = fonts;
+      },
+      set_tileset(tileset) {
+        state.tileset_map = {
+          ...state.tileset_map,
+          [tileset_key(tileset)]: tileset
+        };
+      },
+      delete_tileset(tileset) {
+        const tileset_map = { ...state.tileset_map };
+        delete tileset_map[tileset_key(tileset)];
+        state.tileset_map = tileset_map;
+      },
+      set_scene(scene) {
+        state.scene_map = {
+          ...state.scene_map,
+          [scene_key(scene)]: scene
+        };
+      },
+      update_scene(scene_update) {
+        N2(scene_update).with(
+          { UpdateData: _.select() },
+          ([resource_path, _2, node_id, update2]) => {
+            const { blueprint_render } = toRefs(use_game_instances_store());
+            const { apply_entity_update } = use_game_instances_store();
+            if (blueprint_render && blueprint_render.value && blueprint_render.value.scene_resource_path === resource_path && blueprint_render.value.render_graph_data) {
+              const resource_manager = window.medium.get_resource_manager(
+                blueprint_render.value.module_id
+              );
+              if (!resource_manager) {
+                return;
+              }
+              apply_entity_update(
+                blueprint_render.value.render_graph_data,
+                {
+                  id: node_id,
+                  kind: update2
+                },
+                resource_manager
+              );
+            }
+          }
+        ).with(
+          { AddChild: _.select() },
+          ([resource_path, _2, parent_node_id, game_node]) => {
+            const { add_child_to_render_graph } = use_game_instances_store();
+            const { blueprint_render } = toRefs(use_game_instances_store());
+            if (blueprint_render && blueprint_render.value && blueprint_render.value.scene_resource_path === resource_path && blueprint_render.value.render_graph_data) {
+              const resource_manager = window.medium.get_resource_manager(
+                blueprint_render.value.module_id
+              );
+              if (!resource_manager) {
+                return;
+              }
+              add_child_to_render_graph(
+                blueprint_render.value.render_graph_data,
+                parent_node_id,
+                game_node,
+                resource_manager
+              );
+            }
+          }
+        ).with({ RemoveChild: _.select() }, ([resource_path, _2, game_node]) => {
+          const { blueprint_render } = toRefs(use_game_instances_store());
+          const { remove_child_from_render_graph } = use_game_instances_store();
+          if (blueprint_render && blueprint_render.value && blueprint_render.value.scene_resource_path === resource_path && blueprint_render.value.render_graph_data) {
+            const resource_manager = window.medium.get_resource_manager(
+              blueprint_render.value.module_id
+            );
+            if (!resource_manager) {
+              return;
+            }
+            remove_child_from_render_graph(
+              blueprint_render.value.render_graph_data,
+              render_key(get_generic_game_node(game_node))
+            );
+          }
+        }).exhaustive();
+      },
+      delete_scene(scene) {
+        const scene_map = { ...state.scene_map };
+        delete scene_map[scene_key(scene)];
+        state.scene_map = scene_map;
+      },
+      load_editor_data() {
+        window.medium.reset_instances();
+        send_admin_event2("LoadEditorData");
+      },
+      save_module_server(module_id, module_update) {
+        send_admin_event2({
+          UpdateModule: [
+            module_id,
+            {
+              name: null,
+              exit_points: null,
+              max_guests: null,
+              min_guests: null,
+              resources: null,
+              insert_points: null,
+              main_map: null,
+              ...module_update
+            }
+          ]
+        });
+      },
+      toggle_resource_on_module(module_id, resource) {
+        const module = this.get_module(module_id);
+        const resource_in_module = module.resources.find(
+          (r3) => r3.path === resource.path
+        );
+        if (resource_in_module) {
+          this.save_module_server(module.id, {
+            resources: module.resources.filter((r3) => r3.path !== resource.path)
+          });
+        } else {
+          this.save_module_server(module.id, {
+            resources: [...module.resources, resource]
+          });
+        }
+      },
+      save_conductor_server(conductor) {
+        send_admin_event2({ UpdateConductor: conductor });
+      },
+      save_character_animation_server(character_animation) {
+        send_admin_event2({ UpdateCharacterAnimation: character_animation });
+      },
+      set_conductor(conductor) {
+        state.conductor = conductor;
+      },
+      browse_folder(path2) {
+        send_admin_event2({ BrowseFolder: path2 });
+      },
+      set_current_file_browser_result(result) {
+        state.current_file_browser_result = result;
+      },
+      get_resource_server(path2) {
+        send_admin_event2({ GetResource: path2 });
+      },
+      create_map_server(map2) {
+        send_admin_event2({ CreateMap: [map2.module_id, map2] });
+      },
+      create_scene_server(module_id, scene) {
+        send_admin_event2({ CreateScene: [module_id, scene] });
+      },
+      create_script_server(module_id, script) {
+        send_admin_event2({ CreateScript: [module_id, script] });
+      },
+      update_script_server(script) {
+        send_admin_event2({ UpdateScript: script });
+      },
+      create_character_animation_server(module_id, character_animation) {
+        send_admin_event2({
+          CreateCharacterAnimation: [module_id, character_animation]
+        });
+      },
+      update_instance_node(module_id, game_instance_id, world_id, entity_update) {
+        send_admin_event2({
+          UpdateInstancedNode: [
+            module_id,
+            game_instance_id,
+            world_id,
+            entity_update
+          ]
+        });
+      },
+      update_data_in_scene_node_on_server(resource_path, path2, game_node_id, entity_update) {
+        send_admin_event2({
+          UpdateSceneNode: {
+            UpdateData: [resource_path, path2, game_node_id, entity_update]
+          }
+        });
+      },
+      update_scene_root_with_node(resource_path, node) {
+        send_admin_event2({
+          OverwriteSceneRoot: [resource_path, node]
+        });
+      },
+      add_child_to_scene_on_server(resource_path, path2, game_node_id, data) {
+        send_admin_event2({
+          UpdateSceneNode: {
+            AddChild: [resource_path, path2, game_node_id, data]
+          }
+        });
+      },
+      remove_child_from_scene_on_server(resource_path, path2, data) {
+        send_admin_event2({
+          UpdateSceneNode: {
+            RemoveChild: [resource_path, path2, data]
+          }
+        });
+      },
+      delete_scene_server(scene) {
+        send_admin_event2({ DeleteScene: scene });
+      },
+      update_map_server(map_update) {
+        send_admin_event2({
+          UpdateMap: {
+            chunk: null,
+            ...map_update
+          }
+        });
+      },
+      delete_map_server(map2) {
+        send_admin_event2({ DeleteMap: [map2.module_id, map2] });
+      },
+      create_tileset_server(module_id, tileset) {
+        send_admin_event2({ CreateTileset: [module_id, tileset] });
+      },
+      update_tileset_server(resource_path, tile_update) {
+        send_admin_event2({ UpdateTileset: [resource_path, tile_update] });
+      },
+      update_character_animation_server(character_animation) {
+        send_admin_event2({ UpdateCharacterAnimation: character_animation });
+      },
+      delete_tileset_server(tileset) {
+        send_admin_event2({ DeleteTileset: tileset });
+      },
+      create_module_server(name) {
+        send_admin_event2({ CreateModule: name });
+      },
+      delete_module_server(id) {
+        send_admin_event2({ DeleteModule: id });
+      },
+      create_font_server(module_id, font) {
+        send_admin_event2({
+          CudResource: { Font: [module_id, { Create: font }] }
+        });
+      },
+      save_font_server(module_id, font) {
+        send_admin_event2({
+          CudResource: { Font: [module_id, { Update: font }] }
+        });
+      },
+      delete_font_server(module_id, font) {
+        send_admin_event2({
+          CudResource: { Font: [module_id, { Delete: font }] }
+        });
+      }
+    };
+    return {
+      ...toRefs(state),
+      ...actions
+    };
+  });
+  function send_admin_event2(event) {
+    if (window?.medium?.communication_state?.is_connection_open) {
+      window.medium.communication_state.ws_connection.send(JSON.stringify(event));
+    } else {
+      console.error("Could not send", event);
+    }
+  }
+  function tileset_key(tileset) {
+    return `${tileset.resource_path}/${tileset.name}.tileset.json`;
+  }
+  function scene_key(scene) {
+    return `${scene.resource_path}/${scene.name}.scene.json`;
+  }
+  function map_key(game_map) {
+    return `${game_map.resource_path}/${game_map.name}.map.json`;
+  }
+  function script_key(script) {
+    return `${script.resource_path}/${script.name}.script.json`;
+  }
+  function character_animation_key(character_animation) {
+    return `${character_animation.resource_path}/${character_animation.name}.char_anim.json`;
+  }
+  function font_key(font) {
+    return `${font.resource_path}/${font.name}.font.json`;
+  }
+  function get_generic_game_node(node) {
+    return Object.values(node)[0];
+  }
+
+  // client/entity-layer-manager.ts
+  var EntityLayerManager = class {
+    _entity_layer_map;
+    _container_map = {};
+    constructor(create_container) {
+      this._entity_layer_map = PossibleLayers.reduce((acc, key) => {
+        acc[key] = create_container();
+        return acc;
+      }, {});
+    }
+    attach_to_layer_map(layer_map) {
+      for (const key of Object.keys(layer_map)) {
+        layer_map[key].addChild(
+          this._entity_layer_map[key]
+        );
+      }
+    }
+    add_display_object(entity_id, layer, display_object, create_container) {
+      this._container_map[entity_id] = {
+        layer,
+        container: create_container(),
+        display_object
+      };
+      this._container_map[entity_id].container.addChild(display_object);
+      this._entity_layer_map[layer].addChild(
+        this._container_map[entity_id].container
+      );
+    }
+    remove_display_object(entity_id) {
+      if (this._container_map[entity_id]) {
+        const { layer, container } = this._container_map[entity_id];
+        this._entity_layer_map[layer].removeChild(container);
+        delete this._container_map[entity_id];
+        container.destroy();
+      }
+    }
+    move_display_object_between_layers(entity_id, from_layer, to_layer) {
+      if (!this._container_map[entity_id]) {
+        return;
+      }
+      const { container } = this._container_map[entity_id];
+      this._entity_layer_map[from_layer].removeChild(container);
+      this._entity_layer_map[to_layer].addChild(container);
+    }
+    clear(layer_map) {
+      for (const key of Object.keys(layer_map)) {
+        layer_map[key].removeChild(
+          this._entity_layer_map[key]
+        );
+      }
+      this._container_map = {};
+    }
+    update_container_display_object(entity_id, display_object) {
+      this._container_map[entity_id].display_object = display_object;
+      this._container_map[entity_id].container.removeChildren();
+      this._container_map[entity_id].container.addChild(display_object);
+    }
+    update_container_position(renderKey, container) {
+      if (this._container_map[renderKey]) {
+        this._container_map[renderKey].container.position.copyFrom(
+          container.toGlobal({ x: 0, y: 0 })
+        );
+      }
+    }
+  };
+
+  // ui/src/stores/game-instances.ts
+  var use_game_instances_store = defineStore("game-instances", () => {
+    const { get_or_load_scene } = use_resources_store();
+    const { scene_map } = toRefs(use_resources_store());
+    const state = reactive({
+      game_instance_data_map: {},
+      blueprint_render: null,
+      show_entity_colliders: false
+    });
+    const actions = {
+      set_and_render_blueprint_render(module_id, scene_resource_path, scene, is_pinned) {
+        const resource_module = window.medium.get_resource_manager(module_id);
+        if (!resource_module) {
+          return;
+        }
+        const render_graph_data = this.render_graph_from_scene(
+          scene,
+          resource_module
+        );
+        state.blueprint_render = {
+          scene_resource_path,
+          render_graph_data,
+          is_pinned,
+          module_id
+        };
+        if (!state.blueprint_render.render_graph_data?.render_root.container) {
+          return;
+        }
+        window.medium.set_blueprint_renderer(
+          state.blueprint_render
+        );
+      },
+      add_game_instance_data(instance_id, world_id, create_container) {
+        if (!state.game_instance_data_map[instance_id]) {
+          state.game_instance_data_map[instance_id] = {};
+        }
+        state.game_instance_data_map[instance_id][world_id] = {
+          render_graph_data: {
+            render_root: {
+              node_id: 0,
+              children: [],
+              container: markRaw(create_container()),
+              parent: null
+            },
+            entity_node_map: {},
+            entity_node_to_render_node_map: {},
+            effects_manager: markRaw(new EffectsManager()),
+            entity_layer_manager: markRaw(
+              new EntityLayerManager(create_container)
+            )
+          },
+          scope_cache: {},
+          instance_scene: null
+        };
+      },
+      remove_game_instance(instance_id, world_id) {
+        if (!state.game_instance_data_map[instance_id]) {
+          return;
+        }
+        delete state.game_instance_data_map[instance_id][world_id];
+      },
+      attach_layers(instance_id, world_id, instance_rendering) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data?.render_graph_data) {
+          return null;
+        }
+        game_instance_data.render_graph_data.entity_layer_manager.attach_to_layer_map(
+          instance_rendering.layer_map
+        );
+      },
+      get_root_container(instance_id, world_id) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data?.render_graph_data) {
+          return null;
+        }
+        return game_instance_data.render_graph_data.render_root.container;
+      },
+      get_game_instance_data(instance_id, world_id) {
+        if (!state.game_instance_data_map[instance_id] || !state.game_instance_data_map[instance_id][world_id]) {
+          console.error(
+            `Could not get render graph of ${instance_id} ${world_id}`
+          );
+          return null;
+        }
+        return state.game_instance_data_map[instance_id][world_id];
+      },
+      get_render_graph_data(instance_id, world_id) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        return game_instance_data?.render_graph_data;
+      },
+      game_instance_exists(instance_id, world_id) {
+        return !!state.game_instance_data_map[instance_id] && !!state.game_instance_data_map[instance_id][world_id];
+      },
+      clear_layer_entity_manager(instance_id, world_id, renderer) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data?.render_graph_data) {
+          return;
+        }
+        game_instance_data.render_graph_data.entity_layer_manager.clear(
+          renderer.layer_map
+        );
+      },
+      render_graph_from_scene_for_instance(instance_id, world_id, instance_scene, resource_manager) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data?.render_graph_data) {
+          return;
+        }
+        game_instance_data.instance_scene = instance_scene;
+        game_instance_data.render_graph_data = this.render_graph_from_scene(
+          instance_scene,
+          resource_manager
+        );
+      },
+      update_sprite_animations(instance_id, world_id, resource_manager, gid) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data?.render_graph_data) {
+          return;
+        }
+        game_instance_data.render_graph_data.effects_manager.update_animations_for_animated_sprites(
+          resource_manager,
+          gid
+        );
+      },
+      render_graph_from_scene(scene, resource_manager) {
+        const game_node_root = get_generic_game_node(scene.root_node);
+        const effects_manager = new EffectsManager();
+        const entity_layer_manager = new EntityLayerManager(
+          window.medium.create_container
+        );
+        const render_graph_data = {
+          render_root: {
+            node_id: render_key(game_node_root),
+            children: [],
+            container: markRaw(
+              window.medium.create_display_object(
+                scene.root_node,
+                resource_manager,
+                effects_manager,
+                entity_layer_manager
+              )
+            ),
+            parent: null
+          },
+          entity_node_map: {},
+          entity_node_to_render_node_map: {},
+          effects_manager: markRaw(effects_manager),
+          entity_layer_manager: markRaw(entity_layer_manager)
+        };
+        render_graph_data.entity_node_to_render_node_map[render_key(game_node_root)] = render_graph_data.render_root;
+        render_graph_data.entity_node_map[render_key(game_node_root)] = scene.root_node;
+        this.generate_render_graph(
+          render_graph_data.entity_node_to_render_node_map,
+          render_graph_data.entity_node_map,
+          render_graph_data.effects_manager,
+          render_graph_data.entity_layer_manager,
+          render_graph_data.render_root,
+          scene.root_node,
+          resource_manager
+        );
+        return render_graph_data;
+      },
+      remove_entity_from_instance(instance_id, world_id, entity) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data) {
+          return;
+        }
+        const render_graph_data = game_instance_data.render_graph_data;
+        this.remove_child_from_render_graph(render_graph_data, entity);
+      },
+      add_entity_to_instance(instance_id, world_id, parent_id, node_to_insert, resource_manager) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data) {
+          return;
+        }
+        const render_graph_data = game_instance_data.render_graph_data;
+        this.add_child_to_render_graph(
+          render_graph_data,
+          parent_id,
+          node_to_insert,
+          resource_manager
+        );
+      },
+      apply_entity_update_for_instance(instance_id, world_id, update2, resource_manager) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data) {
+          return;
+        }
+        const render_graph_data = game_instance_data.render_graph_data;
+        const update_applied = N2(update2.kind).with({ UpdateScriptScope: _.select() }, ([scope_key, scope_value]) => {
+          if (!game_instance_data.scope_cache[update2.id]) {
+            game_instance_data.scope_cache[update2.id] = {};
+          }
+          game_instance_data.scope_cache[update2.id][scope_key] = scope_value;
+          return true;
+        }).with({ SetScriptScope: _.select() }, (scope_cache_update) => {
+          game_instance_data.scope_cache[update2.id] = scope_cache_update;
+          return true;
+        }).otherwise(() => false);
+        if (!update_applied) {
+          this.apply_entity_update(render_graph_data, update2, resource_manager);
+        }
+      },
+      update_render_positions(instance_id, world_id) {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id
+        );
+        if (!game_instance_data) {
+          return;
+        }
+        const render_graph_data = game_instance_data.render_graph_data;
+        for (const [id, render_node] of Object.entries(
+          render_graph_data.entity_node_to_render_node_map
+        )) {
+          const node = render_graph_data.entity_node_map[id];
+          if (node) {
+            this.update_render_position(render_node, node);
+            render_graph_data.entity_layer_manager.update_container_position(
+              render_key(get_generic_game_node(node)),
+              render_node.container
+            );
+          }
+        }
+      },
+      update_render_position(render_node, game_node) {
+        const node_2d = get_generic_game_node(game_node).data;
+        if (node_2d.transform) {
+          render_node.container.position.x = Math.round(
+            node_2d.transform.position[0] * RENDER_SCALE
+          );
+          render_node.container.position.y = Math.round(
+            node_2d.transform.position[1] * RENDER_SCALE
+          );
+          render_node.container.rotation = node_2d.transform.rotation;
+        }
+      },
+      toggle_entity_colliders() {
+        state.show_entity_colliders = !state.show_entity_colliders;
+        for (const game_instance_data of Object.values(
+          state.game_instance_data_map
+        )) {
+          for (const render_graph_data of Object.values(game_instance_data)) {
+            for (const node_id in render_graph_data.render_graph_data.entity_node_map) {
+              const render_node = render_graph_data.render_graph_data.entity_node_to_render_node_map[node_id];
+              const game_node = render_graph_data.render_graph_data.entity_node_map[node_id];
+              if ("Collider" in game_node.Node2D.data.kind) {
+                render_node.container.visible = state.show_entity_colliders;
+              }
+            }
+          }
+        }
+      },
+      apply_entity_update(render_graph_data, update2, resource_manager) {
+        const node = render_graph_data.entity_node_map[update2.id];
+        const render_node = render_graph_data.entity_node_to_render_node_map[update2.id];
+        if (!node || !render_node) {
+          console.error(
+            "Could not update game node!",
+            node,
+            render_node,
+            update2,
+            render_graph_data
+          );
+          return;
+        }
+        const game_node = Object.values(node)[0];
+        N2(update2.kind).with({ Tags: _.select() }, (tags) => {
+          game_node.tags = tags;
+        }).with({ Transform: _.select() }, (transform2) => {
+          if (!game_node.data.transform) {
+            console.error("Tried to update Node without transform, wtf?");
+            return;
+          }
+          game_node.data.transform = transform2;
+          render_node.container.position.x = transform2.position[0] * RENDER_SCALE;
+          render_node.container.position.y = transform2.position[1] * RENDER_SCALE;
+          render_node.container.rotation = transform2.rotation;
+        }).with({ ScriptPath: _.select() }, (script) => {
+          game_node.script = script;
+        }).with({ Name: _.select() }, (name) => {
+          game_node.name = name;
+        }).with({ RigidBodyType: _.select() }, (rigid_body_type) => {
+          if (!game_node.data.transform) {
+            console.error(
+              "Tried to update rigid body without a transform, wtf?"
+            );
+            return;
+          }
+          const node_2d = game_node.data;
+          const rigid_body = "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
+          if (!rigid_body) {
+            console.error("Could not upate rigid body type");
+            return;
+          }
+          rigid_body.body = rigid_body_type;
+          rigid_body.kinematic_character_controller_props = N2(
+            rigid_body_type
+          ).with("Dynamic", "Fixed", () => null).with(
+            "KinematicPositionBased",
+            "KinematicVelocityBased",
+            () => ({
+              normal_nudge_factor: 0,
+              slide: false,
+              max_slope_climb_angle: 45,
+              min_slope_slide_angle: 45,
+              offset: 0,
+              snap_to_ground: null,
+              up: [0, -1],
+              autostep: null
+            })
+          ).exhaustive();
+        }).with({ PositionRotation: _.select() }, ([x3, y3, r3]) => {
+          if (!game_node.data.transform) {
+            console.error("Tried to update Node without transform, wtf?");
+            return;
+          }
+          const node_2d = game_node.data;
+          node_2d.transform.position = [x3, y3];
+          node_2d.transform.rotation = r3;
+        }).with({ Gid: _.select() }, (local_id) => {
+          if (get_local_id(game_node) === local_id) {
+            return;
+          }
+          const sprite = N2(game_node.data.kind).with(
+            { Render: { kind: _.select() } },
+            (render_kind) => N2(render_kind).with({ Text: _.select() }, () => {
+              return resource_manager.get_sprite_from_graphics(
+                resource_manager.get_graphics_by_id_and_tileset_path(
+                  0,
+                  "TRIED_TO_SET_GID_ON_TEXT_WTF?"
+                )
+              );
+            }).with({ Sprite: _.select() }, () => {
+              const sprite_render = render_kind;
+              sprite_render.Sprite[1] = local_id;
+              const gid = resource_manager.get_gid_from_local_id(
+                local_id,
+                sprite_render.Sprite[0]
+              );
+              const sprite2 = resource_manager.get_sprite_from_graphics(
+                resource_manager.get_graphics_data_by_gid(gid)
+              );
+              render_graph_data.effects_manager.update_sprite(
+                `${render_key(game_node)}`,
+                sprite2,
+                gid
+              );
+              return sprite2;
+            }).with({ AnimatedSprite: _.select() }, () => {
+              const animated_sprite_node = render_kind;
+              animated_sprite_node.AnimatedSprite[1] = local_id;
+              const gid = resource_manager.get_gid_from_local_id(
+                local_id,
+                resource_manager.character_animation_to_tileset_map[animated_sprite_node.AnimatedSprite[0]]
+              );
+              const sprite2 = resource_manager.get_sprite_from_graphics(
+                resource_manager.get_graphics_data_by_gid(gid)
+              );
+              render_graph_data.effects_manager.update_sprite(
+                `${render_key(game_node)}`,
+                sprite2,
+                gid
+              );
+              return sprite2;
+            }).exhaustive()
+          ).run();
+          render_graph_data.entity_layer_manager.update_container_display_object(
+            render_key(game_node),
+            sprite
+          );
+        }).with({ SpriteTilesetResource: _.select() }, (resource) => {
+          const graphics = N2(game_node.data.kind).with(
+            { Render: { kind: _.select() } },
+            (render_kind) => N2(render_kind).with({ Sprite: _.select() }, () => {
+              const sprite_render = render_kind;
+              sprite_render.Sprite[0] = resource;
+              return resource_manager.get_graphics_by_id_and_tileset_path(
+                sprite_render.Sprite[1],
+                sprite_render.Sprite[0]
+              );
+            }).with({ AnimatedSprite: _.select() }, () => {
+              return resource_manager.get_graphics_by_id_and_tileset_path(
+                0,
+                "TRIED_TO_SET_SPRITE_TILESET_ON_ANIMATED_SPRITE_WTF?"
+              );
+            }).with({ Text: _.select() }, () => {
+              return resource_manager.get_graphics_by_id_and_tileset_path(
+                0,
+                "TRIED_TO_SET_SPRITE_TILESET_ON_TEXT_WTF?"
+              );
+            }).exhaustive()
+          ).run();
+          render_graph_data.entity_layer_manager.update_container_display_object(
+            render_key(game_node),
+            resource_manager.get_sprite_from_graphics(graphics)
+          );
+        }).with({ AnimatedSpriteResource: _.select() }, (resource_path) => {
+          N2(game_node.data.kind).with({ Render: { kind: _.select() } }, (render_kind) => {
+            N2(render_kind).with({ Sprite: _.select() }, () => {
+            }).with({ Text: _.select() }, () => {
+            }).with({ AnimatedSprite: _.select() }, () => {
+              render_kind.AnimatedSprite[0] = resource_path;
+            }).exhaustive();
+          }).run();
+        }).with({ RenderKind: _.select() }, (render_kind) => {
+          const node2D = game_node.data;
+          if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+            node2D.kind.Render.kind = render_kind;
+            const container = N2(render_kind).with(
+              { Sprite: _.select() },
+              ([tileset_path, id_in_tileset]) => resource_manager.get_sprite_from_graphics(
+                resource_manager.get_graphics_by_id_and_tileset_path(
+                  id_in_tileset,
+                  tileset_path
+                )
+              )
+            ).with(
+              { AnimatedSprite: _.select() },
+              ([char_anim_resource_path, id_in_tileset]) => resource_manager.get_sprite_from_graphics(
+                resource_manager.get_graphics_by_id_and_tileset_path(
+                  id_in_tileset,
+                  resource_manager.character_animation_to_tileset_map[char_anim_resource_path]
+                )
+              )
+            ).with(
+              { Text: _.select() },
+              (text) => resource_manager.create_bitmap_text(text)
+            ).exhaustive();
+            render_node.container.removeChildAt(0);
+            render_node.container.addChildAt(container, 0);
+          }
+        }).with({ InstancePath: _.select() }, (_2) => {
+          console.error(
+            "There should ve no InstancePath updates from the backend at this point"
+          );
+        }).with({ Collider: _.select() }, (collider) => {
+          if (!game_node.data.transform) {
+            console.error(
+              "Tried to update rigid body without a transform, wtf?"
+            );
+            return;
+          }
+          const node_2d = game_node.data;
+          if (!("Collider" in node_2d.kind)) {
+            console.error("Could not upate collider");
+            return;
+          }
+          node_2d.kind.Collider = collider;
+          const [graphics, pivot_x, pivot_y] = window.medium.create_collider_graphic(collider);
+          render_node.container.removeChildAt(0);
+          render_node.container.addChildAt(graphics, 0);
+          render_node.container.x = pivot_x;
+          render_node.container.y = pivot_y;
+          render_node.container.visible = state.show_entity_colliders;
+        }).with(
+          { UpdateScriptScope: _.select() },
+          ([_scope_key, _scope_value]) => {
+          }
+        ).with({ KinematicCharacterControllerProps: _.select() }, (props) => {
+          const node_2d = game_node.data;
+          const rigid_body = "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
+          if (!rigid_body) {
+            console.error("Could not upate rigid body type");
+            return;
+          }
+          rigid_body.kinematic_character_controller_props = props;
+        }).with({ SetScriptScope: _.select() }, (_scope_cache_update) => {
+        }).with({ TextRender: _.select() }, (text_render) => {
+          const node2D = game_node.data;
+          if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+            if ("Text" in node2D.kind.Render.kind) {
+              node2D.kind.Render.kind.Text = text_render;
+              const container = resource_manager.create_bitmap_text(text_render);
+              render_node.container.removeChildAt(0);
+              render_node.container.addChildAt(container, 0);
+            }
+          }
+        }).with({ Layer: _.select() }, (layer) => {
+          const node2D = game_node.data;
+          if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+            render_graph_data.entity_layer_manager.move_display_object_between_layers(
+              render_key(game_node),
+              node2D.kind.Render.layer,
+              layer
+            );
+            node2D.kind.Render.layer = layer;
+          }
+        }).exhaustive();
+      },
+      add_child_to_render_graph(render_graph_data, parent_node_id, node_to_insert, resource_manager) {
+        const parent_node_render_node = render_graph_data.entity_node_to_render_node_map[parent_node_id];
+        const parent_node_game_node = render_graph_data.entity_node_map[parent_node_id];
+        if (!parent_node_render_node || !parent_node_game_node) {
+          console.error("Could not add child to node!");
+          return;
+        }
+        const node_to_insert_generic = get_generic_game_node(node_to_insert);
+        if (node_to_insert_generic.entity_id && render_graph_data.entity_node_map[node_to_insert_generic.entity_id]) {
+          console.warn("Node already exists in render graph!");
+          return;
+        }
+        const new_node = this.add_node_to_graph(
+          render_graph_data.entity_node_to_render_node_map,
+          render_graph_data.entity_node_map,
+          render_graph_data.effects_manager,
+          render_graph_data.entity_layer_manager,
+          parent_node_render_node,
+          node_to_insert,
+          resource_manager
+        );
+        get_generic_game_node(parent_node_game_node).children.push(
+          node_to_insert
+        );
+        this.generate_render_graph(
+          render_graph_data.entity_node_to_render_node_map,
+          render_graph_data.entity_node_map,
+          render_graph_data.effects_manager,
+          render_graph_data.entity_layer_manager,
+          new_node,
+          node_to_insert,
+          resource_manager
+        );
+      },
+      remove_from_render(render_node, game_node_to_remove, render_graph_data) {
+        this.remove_node_from_render(
+          get_generic_game_node(game_node_to_remove),
+          render_graph_data
+        );
+        for (const child of render_node.children) {
+          this.remove_from_render(
+            child,
+            render_graph_data.entity_node_map[child.node_id],
+            render_graph_data
+          );
+        }
+      },
+      remove_node_from_render(generic_game_node_to_remove, render_graph_data) {
+        if (get_local_id(generic_game_node_to_remove) !== void 0) {
+          console.log(
+            "Removing sprite effect",
+            generic_game_node_to_remove,
+            `${render_key(generic_game_node_to_remove)}`
+          );
+          render_graph_data.effects_manager.remove_sprite_effect(
+            `${render_key(generic_game_node_to_remove)}`
+          );
+        }
+        render_graph_data.entity_layer_manager.remove_display_object(
+          render_key(generic_game_node_to_remove)
+        );
+      },
+      remove_child_from_render_graph(render_graph_data, node_to_remove_id) {
+        const node_to_remove = render_graph_data.entity_node_to_render_node_map[node_to_remove_id];
+        const game_node_to_remove = render_graph_data.entity_node_map[node_to_remove_id];
+        const parent_node_render_node = node_to_remove?.parent;
+        if (!parent_node_render_node || !node_to_remove || !game_node_to_remove) {
+          console.error("Could not remove child from node!");
+          return;
+        }
+        const parent_node_game_node = render_graph_data.entity_node_map[parent_node_render_node.node_id];
+        if (!parent_node_game_node) {
+          console.error("Could not fine parent node to remove from!");
+          return;
+        }
+        const generic_parent_game_node = get_generic_game_node(
+          parent_node_game_node
+        );
+        if (!node_to_remove) {
+          console.error("Could not remove node!");
+          return;
+        }
+        parent_node_render_node.children = parent_node_render_node.children.filter(
+          (n3) => n3.node_id === node_to_remove_id
+        );
+        generic_parent_game_node.children = generic_parent_game_node.children.filter(
+          (c3) => render_key(get_generic_game_node(c3)) !== node_to_remove_id
+        );
+        this.remove_from_render(
+          node_to_remove,
+          game_node_to_remove,
+          render_graph_data
+        );
+        parent_node_render_node.container.removeChild(node_to_remove.container);
+        delete render_graph_data.entity_node_map[node_to_remove_id];
+        delete render_graph_data.entity_node_to_render_node_map[node_to_remove_id];
+      },
+      add_node_to_graph(entity_node_to_render_node_map, entity_node_map, effects_manager, entity_layer_manager, parent, game_node_to_add, resource_manager) {
+        const generic_game_node = get_generic_game_node(game_node_to_add);
+        const new_node_container = window.medium.create_display_object(
+          game_node_to_add,
+          resource_manager,
+          effects_manager,
+          entity_layer_manager,
+          state.show_entity_colliders
+        );
+        const parent_container = parent.container;
+        const new_node = {
+          children: [],
+          parent,
+          container: markRaw(new_node_container),
+          node_id: render_key(generic_game_node)
+        };
+        parent.children.push(new_node);
+        parent_container.addChild(new_node_container);
+        entity_node_to_render_node_map[new_node.node_id] = new_node;
+        entity_node_map[new_node.node_id] = game_node_to_add;
+        return new_node;
+      },
+      render_key_from_game_node(game_node) {
+        return render_key(get_generic_game_node(game_node));
+      },
+      generate_render_graph(entity_node_to_render_node_map, entity_node_map, effects_manager, entity_layer_manager, parent, game_node, resource_manager) {
+        const generic_game_node = get_generic_game_node(game_node);
+        let game_node_children = generic_game_node.children;
+        if ("Node2D" in game_node && "Instance" in game_node.Node2D.data.kind) {
+          const scene = get_or_load_scene(
+            scene_map.value,
+            game_node.Node2D.data.kind.Instance
+          );
+          if (!scene) {
+            return;
+          }
+          game_node_children = [scene.root_node];
+        }
+        for (const game_node_child of game_node_children) {
+          const new_node = this.add_node_to_graph(
+            entity_node_to_render_node_map,
+            entity_node_map,
+            effects_manager,
+            entity_layer_manager,
+            parent,
+            game_node_child,
+            resource_manager
+          );
+          this.generate_render_graph(
+            entity_node_to_render_node_map,
+            entity_node_map,
+            effects_manager,
+            entity_layer_manager,
+            new_node,
+            game_node_child,
+            resource_manager
+          );
+        }
+      }
+    };
+    return {
+      ...toRefs(state),
+      ...actions
+    };
+  });
+  function get_local_id(node_2d) {
+    if ("Render" in node_2d.data.kind) {
+      return N2(node_2d.data.kind.Render.kind).with({ Sprite: _.select() }, ([_2, gid]) => gid).with({ Text: _.select() }, () => void 0).with({ AnimatedSprite: _.select() }, ([_2, gid]) => gid).exhaustive();
+    }
+    return void 0;
+  }
+  function render_key(game_node) {
+    return typeof game_node.entity_id === "number" ? game_node.entity_id : game_node.id;
+  }
+
   // client/resources/index.ts
   var ResourceManager = class {
     constructor(_base_url, renderer, module_id) {
@@ -42978,7 +47776,7 @@ ${e3}`);
       return graphics;
     }
   };
-  function create_display_object(node, resource_manager, effects_manager, show_colliders = false) {
+  function create_display_object(node, resource_manager, effects_manager, entity_layer_manager, show_colliders = false) {
     const container = new Container();
     N2(node).with({ Node2D: _.select() }, (game_node) => {
       container.x = game_node.data.transform.position[0] * RENDER_SCALE;
@@ -43031,6 +47829,12 @@ ${e3}`);
           (text_render) => resource_manager.create_bitmap_text(text_render)
         ).exhaustive();
         container.addChild(display_object);
+        entity_layer_manager.add_display_object(
+          render_key(game_node),
+          render2.layer,
+          display_object,
+          window.medium.create_container
+        );
       }).with({ RigidBody: _.select() }, (_2) => {
       }).with({ Collider: _.select() }, (collider) => {
         const [graphics, pivot_x, pivot_y] = create_collider_graphic(collider);
@@ -43368,296 +48172,6 @@ ${e3}`);
     };
   };
 
-  // client/effects-manager.ts
-  var EffectsManager = class {
-    _active_animations = [];
-    sprite_by_gid_map = {};
-    sprite_effects_map = {};
-    update_animations_for_animated_sprites(resource_manager, gid) {
-      if (!this.sprite_by_gid_map[gid]) {
-        return;
-      }
-      const effects_for_gid = this.sprite_by_gid_map[gid];
-      const graphics = resource_manager.get_graphics_data_by_gid(gid);
-      const is_animated = graphics.frame_objects.length > 0;
-      for (const tile_key of effects_for_gid.effects.values()) {
-        this.sprite_effects_map[tile_key].sprite.textures = graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures;
-      }
-      if (is_animated) {
-        if (effects_for_gid.main_animation_sprite_key == null) {
-          effects_for_gid.main_animation_sprite_key = effects_for_gid.effects.values().next().value;
-        }
-        this.sprite_effects_map[effects_for_gid.main_animation_sprite_key].sprite.play();
-      }
-      if (!is_animated && effects_for_gid.main_animation_sprite_key != null) {
-        effects_for_gid.main_animation_sprite_key = null;
-      }
-    }
-    sync_sprite_animations() {
-      for (const sprite_map of Object.values(this.sprite_by_gid_map)) {
-        if (sprite_map.main_animation_sprite_key === null) {
-          continue;
-        }
-        let main_sprite = this.sprite_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
-        if (!main_sprite) {
-          sprite_map.main_animation_sprite_key = sprite_map.effects.values().next().value ?? null;
-          main_sprite = this.sprite_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
-          if (!main_sprite) {
-            continue;
-          }
-          main_sprite.play();
-        }
-        const current_frame = main_sprite.currentFrame;
-        for (const tile_key of sprite_map.effects.values()) {
-          if (tile_key === sprite_map.main_animation_sprite_key) {
-            continue;
-          }
-          this.sprite_effects_map[tile_key].sprite.currentFrame = current_frame;
-        }
-      }
-    }
-    update_effects() {
-      this._active_animations = this._active_animations.filter((tile_effect) => {
-        tile_effect.fade_in.all_tweens.forEach(
-          (t3) => t3.update(window.performance.now())
-        );
-        tile_effect.fade_out.all_tweens.forEach(
-          (t3) => t3.update(window.performance.now())
-        );
-        tile_effect.sprite.position.x = tile_effect.base_props.pos_x + tile_effect.fade_in.add_props.pos_x + tile_effect.fade_out.add_props.pos_x;
-        tile_effect.sprite.position.y = tile_effect.base_props.pos_y + tile_effect.fade_in.add_props.pos_y + tile_effect.fade_out.add_props.pos_y;
-        tile_effect.sprite.rotation = tile_effect.base_props.rotation + tile_effect.fade_in.add_props.rotation + tile_effect.fade_out.add_props.rotation;
-        tile_effect.sprite.alpha = tile_effect.base_props.alpha + tile_effect.fade_in.add_props.alpha + tile_effect.fade_out.add_props.alpha;
-        tile_effect.sprite.scale.x = tile_effect.base_props.scale_x + tile_effect.fade_in.add_props.scale_x + tile_effect.fade_out.add_props.scale_x;
-        tile_effect.sprite.scale.y = tile_effect.base_props.scale_y + tile_effect.fade_in.add_props.scale_y + tile_effect.fade_out.add_props.scale_y;
-        return tile_effect.fade_in.all_tweens.some((t3) => t3.isPlaying()) || tile_effect.fade_out.all_tweens.some((t3) => t3.isPlaying());
-      });
-    }
-    add_sprite_with_effects(sprite, unique_key, gid, fade_in_effect, fade_out_effect) {
-      if (!this.sprite_by_gid_map[gid]) {
-        this.sprite_by_gid_map[gid] = {
-          effects: /* @__PURE__ */ new Set(),
-          main_animation_sprite_key: null
-        };
-      }
-      const is_animated = sprite.textures.length > 1;
-      if (is_animated && this.sprite_by_gid_map[gid].main_animation_sprite_key == null) {
-        console.log(is_animated, this.sprite_by_gid_map, gid);
-        this.sprite_by_gid_map[gid].main_animation_sprite_key = unique_key;
-        sprite.play();
-      }
-      this.sprite_effects_map[unique_key] = {
-        base_props: {
-          pos_x: sprite.x,
-          pos_y: sprite.y,
-          scale_x: 0,
-          scale_y: 0,
-          rotation: 0,
-          alpha: 1
-        },
-        fade_in: fade_in_effect ?? create_basic_fade_in_animation(300, Math.random() * 600),
-        fade_out: fade_out_effect ?? create_basic_fade_out_animation(300, Math.random() * 600),
-        sprite,
-        gid
-      };
-      const new_sprite_effect = this.sprite_effects_map[unique_key];
-      this.sprite_by_gid_map[gid].effects.add(unique_key);
-      new_sprite_effect.fade_in.tween.start(window.performance.now());
-      this._active_animations.push(new_sprite_effect);
-    }
-    get_sprite_effect_by_unique_key(tile_key) {
-      return this.sprite_effects_map[tile_key];
-    }
-    remove_sprite_effect(unique_key) {
-      const sprite_effect = this.sprite_effects_map[unique_key];
-      if (!sprite_effect) {
-        console.error(
-          "Could not find sprite effect to remove?!",
-          unique_key,
-          this.sprite_effects_map
-        );
-      } else {
-        const gid = sprite_effect.gid;
-        if (this.sprite_by_gid_map[gid]) {
-          delete this.sprite_effects_map[unique_key];
-          this.sprite_by_gid_map[gid].effects.delete(unique_key);
-        } else {
-          console.error(
-            "Trying to remove a sprite that is not the main animation sprite"
-          );
-        }
-      }
-    }
-    update_sprite(unique_key, sprite, new_gid) {
-      const sprite_effect = this.sprite_effects_map[unique_key];
-      if (!sprite_effect) {
-        console.error(
-          "Could not find sprite effect to update?!",
-          unique_key,
-          this.sprite_effects_map
-        );
-      } else {
-        const current_gid = sprite_effect.gid;
-        if (new_gid === current_gid) {
-          return;
-        }
-        if (!this.sprite_by_gid_map[new_gid]) {
-          this.sprite_by_gid_map[new_gid] = {
-            effects: /* @__PURE__ */ new Set(),
-            main_animation_sprite_key: null
-          };
-        }
-        if (this.sprite_by_gid_map[current_gid]) {
-          this.sprite_by_gid_map[current_gid].effects.delete(unique_key);
-          if (this.sprite_by_gid_map[current_gid].effects.size === 0) {
-            delete this.sprite_by_gid_map[current_gid];
-          } else {
-            if (this.sprite_by_gid_map[current_gid].main_animation_sprite_key === unique_key) {
-              const next_unique_key = this.sprite_by_gid_map[current_gid].effects.values().next().value;
-              this.sprite_by_gid_map[current_gid].main_animation_sprite_key = next_unique_key;
-              const next_sprite = this.sprite_effects_map[next_unique_key].sprite;
-              next_sprite.play();
-            }
-          }
-          sprite_effect.gid = new_gid;
-          sprite_effect.sprite = sprite;
-          const is_animated = sprite.textures.length > 1;
-          this.sprite_by_gid_map[new_gid].effects.add(unique_key);
-          if (is_animated && this.sprite_by_gid_map[new_gid].main_animation_sprite_key == null) {
-            this.sprite_by_gid_map[new_gid].main_animation_sprite_key = unique_key;
-            sprite.play();
-          }
-        } else {
-          console.error(
-            "Trying to remove a sprite that is not the main animation sprite"
-          );
-        }
-      }
-    }
-  };
-
-  // client/terrain/index.ts
-  function to_natural(num) {
-    if (num < 0) {
-      return -2 * num - 1;
-    } else {
-      return 2 * num;
-    }
-  }
-  function cantor_pair(x3, y3) {
-    const xx = to_natural(x3);
-    const yy = to_natural(y3);
-    return (xx + yy) * (xx + yy + 1) / 2 + yy;
-  }
-  function create_terrain_manager(terrain_params) {
-    return new TerrainManager(terrain_params);
-  }
-  var TerrainManager = class {
-    constructor(terrain_params) {
-      this.terrain_params = terrain_params;
-    }
-    _chunk_map = /* @__PURE__ */ new Map();
-    sprite_effects_manager = new EffectsManager();
-    destroy() {
-    }
-    remove_all_chunks_for_module(renderer) {
-      for (const [layer, layer_chunks] of this._chunk_map.entries()) {
-        for (const chunk of Object.values(layer_chunks)) {
-          renderer.layer_map[layer].removeChild(chunk.container);
-        }
-      }
-    }
-    update_animations_for_animated_sprites(resource_manager, gid) {
-      this.sprite_effects_manager.update_animations_for_animated_sprites(
-        resource_manager,
-        gid
-      );
-    }
-    sync_sprite_animations() {
-      this.sprite_effects_manager.sync_sprite_animations();
-    }
-    update() {
-      this.sprite_effects_manager.sync_sprite_animations();
-      this.sprite_effects_manager.update_effects();
-    }
-    add_chunk(resource_manager, renderer, layer_kind, chunk) {
-      if (!this._chunk_map.has(layer_kind)) {
-        this._chunk_map.set(layer_kind, /* @__PURE__ */ new Map());
-      }
-      const chunk_map = this._chunk_map.get(layer_kind);
-      const chunk_key = cantor_pair(chunk.position[0], chunk.position[1]);
-      if (!chunk_map.has(chunk_key)) {
-        const chunk_map_entry2 = {
-          container: new Container(),
-          data: chunk,
-          animations: {}
-        };
-        chunk_map_entry2.container.x = chunk.position[0] * this.terrain_params.chunk_size * this.terrain_params.tile_width;
-        chunk_map_entry2.container.y = chunk.position[1] * this.terrain_params.chunk_size * this.terrain_params.tile_height;
-        chunk_map.set(chunk_key, chunk_map_entry2);
-        renderer.layer_map[layer_kind].addChild(chunk_map_entry2.container);
-      }
-      const chunk_map_entry = chunk_map.get(chunk_key);
-      chunk_map_entry.data = chunk;
-      for (const [i3, gid] of chunk.data.entries()) {
-        const x3 = i3 % this.terrain_params.chunk_size * this.terrain_params.tile_width;
-        const y3 = Math.floor(i3 / this.terrain_params.chunk_size) * this.terrain_params.tile_height + this.terrain_params.tile_height;
-        const tile_key = get_tile_key(
-          layer_kind,
-          chunk.position[0],
-          chunk.position[1],
-          x3,
-          y3
-        );
-        const sprite_effect = this.sprite_effects_manager.get_sprite_effect_by_unique_key(tile_key);
-        if (!sprite_effect) {
-          if (gid === 0) {
-            continue;
-          }
-          this._create_new_tile(
-            resource_manager,
-            gid,
-            x3 + this.terrain_params.tile_width / 2,
-            y3 - this.terrain_params.tile_height / 2,
-            tile_key,
-            chunk_map_entry
-          );
-        } else {
-          if (gid === sprite_effect.gid) {
-            continue;
-          }
-          this.sprite_effects_manager.remove_sprite_effect(tile_key);
-          sprite_effect.fade_out.tween.start(window.performance.now());
-          sprite_effect.fade_out.all_tweens[sprite_effect.fade_out.all_tweens.length - 1].onComplete(() => {
-            chunk_map_entry.container.removeChild(sprite_effect.sprite);
-          });
-          if (gid !== 0) {
-            this._create_new_tile(
-              resource_manager,
-              gid,
-              x3 + this.terrain_params.tile_width / 2,
-              y3 - this.terrain_params.tile_height / 2,
-              tile_key,
-              chunk_map_entry
-            );
-          }
-        }
-      }
-    }
-    _create_new_tile(resource_manager, gid, x3, y3, tile_key, chunk_map_entry) {
-      const graphics = resource_manager.get_graphics_data_by_gid(gid);
-      const sprite = resource_manager.get_animated_sprite_from_graphics(graphics);
-      sprite.x = x3;
-      sprite.y = y3;
-      sprite.rotation = 0;
-      chunk_map_entry.container.addChild(sprite);
-      this.sprite_effects_manager.add_sprite_with_effects(sprite, tile_key, gid);
-    }
-  };
-  function get_tile_key(layer_kind, chunk_x, chunk_y, tile_x, tile_y) {
-    return `${layer_kind}_${chunk_x}_${chunk_y}_${tile_x}_${tile_y}`;
-  }
-
   // client/game-instance.ts
   var collision_graphic_colors = [
     "#FFD400",
@@ -43755,24 +48269,22 @@ ${e3}`);
       }).with({ CloseMenu: _.select() }, (menuName) => {
         menu_system.deactivate(menuName);
       }).with({ ShowScene: _.select() }, (scene) => {
+        window.medium_gui.game_instances.clear_layer_entity_manager(
+          this.id,
+          this.world_id,
+          this.renderer
+        );
         window.medium_gui.game_instances.render_graph_from_scene_for_instance(
           this.id,
           this.world_id,
           scene,
           resource_manager
         );
-        const root_container = window.medium_gui.game_instances.get_root_container(
+        window.medium_gui.game_instances.attach_layers(
           this.id,
-          this.world_id
+          this.world_id,
+          this.renderer
         );
-        if (!root_container) {
-          console.error(
-            "Could not get render graph root node, not instantiating game instance!"
-          );
-          return;
-        }
-        this.renderer.layer_map.ObjectsBelow.removeChildren();
-        this.renderer.layer_map.ObjectsBelow.addChild(root_container);
       }).with({ UpdateEntity: _.select() }, (entity_update) => {
         window.medium_gui.game_instances.apply_entity_update_for_instance(
           this.id,
@@ -44366,6 +48878,51 @@ strongly-typed-events/dist/index.js:
    *
    * Copyright Kees C. Bakker / KeesTalksTech
    * Released under the MIT license
+   *)
+
+@vue/shared/dist/shared.esm-bundler.js:
+  (**
+  * @vue/shared v3.4.27
+  * (c) 2018-present Yuxi (Evan) You and Vue contributors
+  * @license MIT
+  **)
+  (*! #__NO_SIDE_EFFECTS__ *)
+
+@vue/reactivity/dist/reactivity.esm-bundler.js:
+  (**
+  * @vue/reactivity v3.4.27
+  * (c) 2018-present Yuxi (Evan) You and Vue contributors
+  * @license MIT
+  **)
+
+@vue/runtime-core/dist/runtime-core.esm-bundler.js:
+  (**
+  * @vue/runtime-core v3.4.27
+  * (c) 2018-present Yuxi (Evan) You and Vue contributors
+  * @license MIT
+  **)
+
+@vue/runtime-core/dist/runtime-core.esm-bundler.js:
+  (*! #__NO_SIDE_EFFECTS__ *)
+
+@vue/runtime-core/dist/runtime-core.esm-bundler.js:
+  (*! #__NO_SIDE_EFFECTS__ *)
+
+@vue/runtime-core/dist/runtime-core.esm-bundler.js:
+  (*! #__NO_SIDE_EFFECTS__ *)
+
+vue/dist/vue.runtime.esm-bundler.js:
+  (**
+  * vue v3.4.27
+  * (c) 2018-present Yuxi (Evan) You and Vue contributors
+  * @license MIT
+  **)
+
+pinia/dist/pinia.mjs:
+  (*!
+   * pinia v2.1.7
+   * (c) 2023 Eduardo San Martin Morote
+   * @license MIT
    *)
 */
 //# sourceMappingURL=medium.js.map

@@ -18,6 +18,8 @@ import { RENDER_SCALE } from "@/shared/index";
 import { ScopeCacheValue } from "@/editor/blueprints/ScopeCacheValue";
 import { KinematicCharacterControllerProps } from "@/editor/blueprints/KinematicCharacterControllerProps";
 import { EffectsManager } from "@/client/effects-manager";
+import { EntityLayerManager } from "@/client/entity-layer-manager";
+import { InstanceRendering } from "@/client/renderer";
 
 export interface Node {
   node_id: ReturnType<typeof render_key>;
@@ -31,6 +33,7 @@ export interface RenderGraphData {
   entity_node_to_render_node_map: { [key: string | Entity]: Node };
   entity_node_map: { [key: string | Entity]: GameNodeKind };
   effects_manager: EffectsManager;
+  entity_layer_manager: EntityLayerManager;
 }
 export interface GameInstancesStore {
   game_instance_data_map: {
@@ -111,6 +114,9 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           entity_node_map: {},
           entity_node_to_render_node_map: {},
           effects_manager: markRaw(new EffectsManager()),
+          entity_layer_manager: markRaw(
+            new EntityLayerManager(create_container),
+          ),
         },
         scope_cache: {},
         instance_scene: null,
@@ -121,6 +127,22 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         return;
       }
       delete state.game_instance_data_map[instance_id][world_id];
+    },
+    attach_layers(
+      instance_id: string,
+      world_id: string,
+      instance_rendering: InstanceRendering,
+    ) {
+      const game_instance_data = this.get_game_instance_data(
+        instance_id,
+        world_id,
+      );
+      if (!game_instance_data?.render_graph_data) {
+        return null;
+      }
+      game_instance_data.render_graph_data.entity_layer_manager.attach_to_layer_map(
+        instance_rendering.layer_map,
+      );
     },
     get_root_container(instance_id: string, world_id: string) {
       const game_instance_data = this.get_game_instance_data(
@@ -155,6 +177,22 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       return (
         !!state.game_instance_data_map[instance_id] &&
         !!state.game_instance_data_map[instance_id][world_id]
+      );
+    },
+    clear_layer_entity_manager(
+      instance_id: string,
+      world_id: string,
+      renderer: InstanceRendering,
+    ) {
+      const game_instance_data = this.get_game_instance_data(
+        instance_id,
+        world_id,
+      );
+      if (!game_instance_data?.render_graph_data) {
+        return;
+      }
+      game_instance_data.render_graph_data.entity_layer_manager.clear(
+        renderer.layer_map,
       );
     },
     render_graph_from_scene_for_instance(
@@ -200,6 +238,9 @@ export const use_game_instances_store = defineStore("game-instances", () => {
     ): RenderGraphData {
       const game_node_root = get_generic_game_node(scene.root_node);
       const effects_manager = new EffectsManager();
+      const entity_layer_manager = new EntityLayerManager(
+        window.medium.create_container,
+      );
       const render_graph_data: RenderGraphData = {
         render_root: {
           node_id: render_key(game_node_root),
@@ -209,6 +250,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
               scene.root_node,
               resource_manager,
               effects_manager,
+              entity_layer_manager,
             ),
           ),
           parent: null,
@@ -216,6 +258,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         entity_node_map: {},
         entity_node_to_render_node_map: {},
         effects_manager: markRaw(effects_manager),
+        entity_layer_manager: markRaw(entity_layer_manager),
       };
       render_graph_data.entity_node_to_render_node_map[
         render_key(game_node_root)
@@ -226,6 +269,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         render_graph_data.entity_node_to_render_node_map,
         render_graph_data.entity_node_map,
         render_graph_data.effects_manager,
+        render_graph_data.entity_layer_manager,
         render_graph_data.render_root,
         scene.root_node,
         resource_manager,
@@ -318,6 +362,10 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         const node = render_graph_data.entity_node_map[id];
         if (node) {
           this.update_render_position(render_node, node);
+          render_graph_data.entity_layer_manager.update_container_position(
+            render_key(get_generic_game_node(node)),
+            render_node.container,
+          );
         }
       }
     },
@@ -497,8 +545,10 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                 .exhaustive(),
             )
             .run();
-          render_node.container.removeChildAt(0);
-          render_node.container.addChildAt(sprite, 0);
+          render_graph_data.entity_layer_manager.update_container_display_object(
+            render_key(game_node),
+            sprite,
+          );
         })
         .with({ SpriteTilesetResource: P.select() }, (resource) => {
           const graphics = match((game_node.data as Node2D).kind)
@@ -529,10 +579,9 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                 .exhaustive(),
             )
             .run();
-          render_node.container.removeChildAt(0);
-          render_node.container.addChildAt(
+          render_graph_data.entity_layer_manager.update_container_display_object(
+            render_key(game_node),
             resource_manager.get_sprite_from_graphics(graphics),
-            0,
           );
         })
         .with({ AnimatedSpriteResource: P.select() }, (resource_path) => {
@@ -642,6 +691,17 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             }
           }
         })
+        .with({ Layer: P.select() }, (layer) => {
+          const node2D = game_node.data as Node2D;
+          if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+            render_graph_data.entity_layer_manager.move_display_object_between_layers(
+              render_key(game_node),
+              node2D.kind.Render.layer,
+              layer,
+            );
+            node2D.kind.Render.layer = layer;
+          }
+        })
         .exhaustive();
     },
     add_child_to_render_graph(
@@ -670,6 +730,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         render_graph_data.entity_node_to_render_node_map,
         render_graph_data.entity_node_map,
         render_graph_data.effects_manager,
+        render_graph_data.entity_layer_manager,
         parent_node_render_node,
         node_to_insert,
         resource_manager,
@@ -681,9 +742,48 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         render_graph_data.entity_node_to_render_node_map,
         render_graph_data.entity_node_map,
         render_graph_data.effects_manager,
+        render_graph_data.entity_layer_manager,
         new_node,
         node_to_insert,
         resource_manager,
+      );
+    },
+    remove_from_render(
+      render_node: Node,
+      game_node_to_remove: GameNodeKind,
+      render_graph_data: RenderGraphData,
+    ) {
+      this.remove_node_from_render(
+        get_generic_game_node(game_node_to_remove),
+        render_graph_data,
+      );
+      for (const child of render_node.children) {
+        this.remove_from_render(
+          child,
+          render_graph_data.entity_node_map[child.node_id],
+          render_graph_data,
+        );
+      }
+    },
+    remove_node_from_render(
+      generic_game_node_to_remove: GameNode<unknown>,
+      render_graph_data: RenderGraphData,
+    ) {
+      if (
+        get_local_id(generic_game_node_to_remove as GameNode<Node2D>) !==
+        undefined
+      ) {
+        console.log(
+          "Removing sprite effect",
+          generic_game_node_to_remove,
+          `${render_key(generic_game_node_to_remove)}`,
+        );
+        render_graph_data.effects_manager.remove_sprite_effect(
+          `${render_key(generic_game_node_to_remove)}`,
+        );
+      }
+      render_graph_data.entity_layer_manager.remove_display_object(
+        render_key(generic_game_node_to_remove),
       );
     },
     remove_child_from_render_graph(
@@ -720,18 +820,12 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         generic_parent_game_node.children.filter(
           (c) => render_key(get_generic_game_node(c)) !== node_to_remove_id,
         );
+      this.remove_from_render(
+        node_to_remove,
+        game_node_to_remove,
+        render_graph_data,
+      );
       parent_node_render_node.container.removeChild(node_to_remove.container);
-      const generic_game_node_to_remove =
-        get_generic_game_node(game_node_to_remove);
-      if (
-        get_local_id(generic_game_node_to_remove as GameNode<Node2D>) !==
-        undefined
-      ) {
-        render_graph_data.effects_manager.remove_sprite_effect(
-          `${render_key(generic_game_node_to_remove)}`,
-        );
-      }
-
       delete render_graph_data.entity_node_map[node_to_remove_id];
       delete render_graph_data.entity_node_to_render_node_map[
         node_to_remove_id
@@ -741,6 +835,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       entity_node_to_render_node_map: RenderGraphData["entity_node_to_render_node_map"],
       entity_node_map: RenderGraphData["entity_node_map"],
       effects_manager: RenderGraphData["effects_manager"],
+      entity_layer_manager: RenderGraphData["entity_layer_manager"],
       parent: Node,
       game_node_to_add: GameNodeKind,
       resource_manager: ResourceManager,
@@ -750,6 +845,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         game_node_to_add,
         resource_manager,
         effects_manager,
+        entity_layer_manager,
         state.show_entity_colliders,
       );
       const parent_container = parent.container;
@@ -772,6 +868,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       entity_node_to_render_node_map: RenderGraphData["entity_node_to_render_node_map"],
       entity_node_map: RenderGraphData["entity_node_map"],
       effects_manager: RenderGraphData["effects_manager"],
+      entity_layer_manager: RenderGraphData["entity_layer_manager"],
       parent: Node,
       game_node: GameNodeKind,
       resource_manager: ResourceManager,
@@ -793,6 +890,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           entity_node_to_render_node_map,
           entity_node_map,
           effects_manager,
+          entity_layer_manager,
           parent,
           game_node_child,
           resource_manager,
@@ -801,6 +899,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
           entity_node_to_render_node_map,
           entity_node_map,
           effects_manager,
+          entity_layer_manager,
           new_node,
           game_node_child,
           resource_manager,
@@ -819,7 +918,7 @@ function get_local_id(node_2d: GameNode<Node2D>): number | undefined {
   if ("Render" in node_2d.data.kind) {
     return match(node_2d.data.kind.Render.kind)
       .with({ Sprite: P.select() }, ([_, gid]) => gid)
-      .with({ Text: P.select() }, () => 0)
+      .with({ Text: P.select() }, () => undefined)
       .with({ AnimatedSprite: P.select() }, ([_, gid]) => gid)
       .exhaustive();
   }

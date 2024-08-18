@@ -7,6 +7,13 @@
     :model-value="render_kind"
     @update:model-value="(new_value) => update_render_type(new_value)"
   ></v-select>
+  <v-select
+    label="Layer"
+    :hide-details="true"
+    :items="layer_options"
+    :model-value="layer"
+    @update:model-value="(new_value) => update_render_layer(new_value)"
+  ></v-select>
   <v-label class="form-label" v-if="render_kind == 'Sprite'">GID</v-label>
   <v-select
     v-if="render_kind == 'Sprite'"
@@ -60,12 +67,18 @@ import { use_resources_store } from "@/editor/stores/resources";
 import { storeToRefs } from "pinia";
 import { use_editor_store } from "@/editor/stores/editor";
 import TextRender from "@/editor/editor/game_nodes/TextRender.vue";
+import { PossibleLayers } from "@/client/renderer";
+import { LayerKind } from "@/editor/blueprints/LayerKind";
 
 const { get_module } = use_resources_store();
 const { selected_module_id } = storeToRefs(use_editor_store());
 
 const props = defineProps<{ data: Render; is_instance: boolean }>();
 const { data } = toRefs(props);
+const layer_options = PossibleLayers;
+const layer = computed(() => {
+  return data.value.layer;
+});
 const render_options: Array<KeysOfUnion<RenderKind>> = [
   "AnimatedSprite",
   "Sprite",
@@ -152,6 +165,10 @@ function update_render_type(kind: KeysOfUnion<RenderKind>) {
       }
     })
     .exhaustive();
+}
+
+function update_render_layer(layer: LayerKind) {
+  emit("entityUpdate", { Layer: layer });
 }
 
 function update_gid(gid: string) {

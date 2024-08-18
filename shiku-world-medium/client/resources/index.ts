@@ -31,6 +31,8 @@ import {
   create_basic_fade_in_animation,
   create_basic_fade_out_animation,
 } from "@/client/sprite-animations";
+import { EntityLayerManager } from "@/client/entity-layer-manager";
+import { render_key } from "@/editor/stores/game-instances";
 
 export interface Graphics {
   textures: Texture[];
@@ -474,6 +476,7 @@ export function create_display_object(
   node: GameNodeKind,
   resource_manager: ResourceManager,
   effects_manager: EffectsManager,
+  entity_layer_manager: EntityLayerManager,
   show_colliders: boolean = false,
 ): Container {
   const container = new Container();
@@ -539,6 +542,12 @@ export function create_display_object(
             )
             .exhaustive();
           container.addChild(display_object);
+          entity_layer_manager.add_display_object(
+            render_key(game_node),
+            render.layer,
+            display_object,
+            window.medium.create_container,
+          );
         })
         .with({ RigidBody: P.select() }, (_) => {})
         .with({ Collider: P.select() }, (collider) => {

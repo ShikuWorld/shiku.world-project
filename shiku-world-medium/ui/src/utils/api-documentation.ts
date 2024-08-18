@@ -45,7 +45,7 @@ export const options = [
     label: "shiku::physics::get_position",
     type: "function",
     info: "TODO: Add description",
-    detail: "(entity: Entity) -> Dynamic",
+    detail: "(entity: Entity) -> Vec<Dynamic>",
 },
 {
     label: "shiku::physics::apply_entity_friction_x",

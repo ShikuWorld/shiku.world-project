@@ -20,38 +20,41 @@ export interface Point {
 
 export type LayerMap = { [keys in LayerKind]: ParallaxContainer };
 
+export const PossibleLayers = [
+  "BG00",
+  "BG01",
+  "BG02",
+  "BG03",
+  "BG04",
+  "BG05",
+  "BG06",
+  "BG07",
+  "BG08",
+  "BG09",
+  "BG10",
+  "ObjectsBelow",
+  "Terrain",
+  "ObjectsFront",
+  "FG00",
+  "FG01",
+  "FG02",
+  "FG03",
+  "FG04",
+  "FG05",
+  "FG06",
+  "FG07",
+  "FG08",
+  "FG09",
+  "FG10",
+] as const;
+
 export const createLayerMap: () => LayerMap = () => {
-  const map: LayerMap = {
-    BG00: new Container() as ParallaxContainer,
-    BG01: new Container() as ParallaxContainer,
-    BG02: new Container() as ParallaxContainer,
-    BG03: new Container() as ParallaxContainer,
-    BG04: new Container() as ParallaxContainer,
-    BG05: new Container() as ParallaxContainer,
-    BG06: new Container() as ParallaxContainer,
-    BG07: new Container() as ParallaxContainer,
-    BG08: new Container() as ParallaxContainer,
-    BG09: new Container() as ParallaxContainer,
-    BG10: new Container() as ParallaxContainer,
-    ObjectsBelow: new Container() as ParallaxContainer,
-    Terrain: new Container() as ParallaxContainer,
-    ObjectsFront: new Container() as ParallaxContainer,
-    FG00: new Container() as ParallaxContainer,
-    FG01: new Container() as ParallaxContainer,
-    FG02: new Container() as ParallaxContainer,
-    FG03: new Container() as ParallaxContainer,
-    FG04: new Container() as ParallaxContainer,
-    FG05: new Container() as ParallaxContainer,
-    FG06: new Container() as ParallaxContainer,
-    FG07: new Container() as ParallaxContainer,
-    FG08: new Container() as ParallaxContainer,
-    FG09: new Container() as ParallaxContainer,
-    FG10: new Container() as ParallaxContainer,
-  };
-  for (const key of Object.keys(map)) {
-    map[key as LayerKind].x_pscaling = 1;
-    map[key as LayerKind].y_pscaling = 1;
-  }
+  const map: LayerMap = PossibleLayers.reduce((acc, key) => {
+    acc[key] = new Container() as ParallaxContainer;
+    acc[key].x_pscaling = 1;
+    acc[key].y_pscaling = 1;
+    return acc;
+  }, {} as LayerMap);
   return map;
 };
 

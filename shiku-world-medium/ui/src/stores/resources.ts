@@ -676,7 +676,11 @@ export function create_2d_game_node(
     .with(
       "Node2D-Render",
       (): Node2DKind => ({
-        Render: { offset: [0, 0], layer: "BG00", kind: { Sprite: ["", 0] } },
+        Render: {
+          offset: [0, 0],
+          layer: "ObjectsBelow",
+          kind: { Sprite: ["", 0] },
+        },
       }),
     )
     .exhaustive();

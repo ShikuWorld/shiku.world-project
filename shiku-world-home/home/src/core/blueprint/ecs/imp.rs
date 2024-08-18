@@ -511,6 +511,9 @@ impl ECS {
         let entity = entity_update.id;
 
         match entity_update.kind {
+            EntityUpdateKind::Layer(layer) => {
+                shared.entities.render_layer.insert(entity, layer);
+            }
             EntityUpdateKind::InstancePath(_) => {
                 error!("Instances should not exist on themselves inside ECS for now!");
             }

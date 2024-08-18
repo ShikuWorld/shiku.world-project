@@ -145,6 +145,11 @@ impl GameNodeKind {
     pub fn update_with_entity_update(&mut self, update: EntityUpdateKind) {
         let GameNodeKind::Node2D(n) = self;
         match update {
+            EntityUpdateKind::Layer(layer) => {
+                if let Node2DKind::Render(render) = &mut n.data.kind {
+                    render.layer = layer;
+                }
+            }
             EntityUpdateKind::Tags(tags) => {
                 n.tags = tags;
             }

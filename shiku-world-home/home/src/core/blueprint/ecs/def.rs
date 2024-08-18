@@ -130,6 +130,7 @@ pub enum EntityUpdateKind {
     Transform(Transform),
     Name(String),
     Tags(Vec<String>),
+    Layer(LayerKind),
     InstancePath(ResourcePath),
     ScriptPath(Option<ResourcePath>),
     UpdateScriptScope(String, ScopeCacheValue),

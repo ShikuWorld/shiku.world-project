@@ -141,25 +141,22 @@ export class GameInstance {
         menu_system.deactivate(menuName);
       })
       .with({ ShowScene: P.select() }, (scene) => {
+        window.medium_gui.game_instances.clear_layer_entity_manager(
+          this.id,
+          this.world_id,
+          this.renderer,
+        );
         window.medium_gui.game_instances.render_graph_from_scene_for_instance(
           this.id,
           this.world_id,
           scene,
           resource_manager,
         );
-        const root_container =
-          window.medium_gui.game_instances.get_root_container(
-            this.id,
-            this.world_id,
-          );
-        if (!root_container) {
-          console.error(
-            "Could not get render graph root node, not instantiating game instance!",
-          );
-          return;
-        }
-        this.renderer.layer_map.ObjectsBelow.removeChildren();
-        this.renderer.layer_map.ObjectsBelow.addChild(root_container);
+        window.medium_gui.game_instances.attach_layers(
+          this.id,
+          this.world_id,
+          this.renderer,
+        );
       })
       .with({ UpdateEntity: P.select() }, (entity_update) => {
         window.medium_gui.game_instances.apply_entity_update_for_instance(
