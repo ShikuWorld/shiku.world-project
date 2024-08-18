@@ -32,7 +32,10 @@ declare global {
       is_instance_ready: (instance_id: string, world_id: string) => boolean;
       get_resource_manager: (module_id: string) => ResourceManager | undefined;
       set_blueprint_renderer: (
-        blueprint_render_data: GameInstancesStore["blueprint_render"],
+        blueprint_render_data_old:
+          | GameInstancesStore["blueprint_render"]
+          | undefined,
+        blueprint_render_data_new: GameInstancesStore["blueprint_render"],
       ) => void;
       sync_grid_with_layer_p_scaling: (
         instance_id: string,

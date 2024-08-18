@@ -14,7 +14,7 @@ import {
 import { Config } from "../config";
 import { create_camera } from "@/client/camera";
 import { SimpleEventDispatcher } from "strongly-typed-events";
-import { GameInstancesStore } from "@/editor/stores/game-instances";
+import { GameInstancesStore, render_key } from "@/editor/stores/game-instances";
 import { GameInstanceMap } from "@/client/game-instance";
 import { WorldParams } from "@/editor/blueprints/WorldParams";
 import {
@@ -23,6 +23,7 @@ import {
   set_stage_height,
   set_stage_width,
 } from "@/client/config/config";
+import { get_generic_game_node } from "@/editor/stores/resources";
 
 export interface ParallaxContainer extends Container {
   x_pscaling: number;
@@ -32,7 +33,8 @@ export interface ParallaxContainer extends Container {
 export function set_blueprint_render(
   render_system: RenderSystem,
   game_instances: GameInstanceMap,
-  blueprint_render_data: GameInstancesStore["blueprint_render"],
+  blueprint_render_data_old: GameInstancesStore["blueprint_render"] | undefined,
+  blueprint_render_data_new: GameInstancesStore["blueprint_render"],
 ) {
   if (
     render_system.current_main_instance.instance_id &&
@@ -41,16 +43,39 @@ export function set_blueprint_render(
     const worlds =
       game_instances[render_system.current_main_instance.instance_id];
     const game_instance = worlds[render_system.current_main_instance.world_id];
-    if (
-      game_instance.renderer.main_container &&
-      blueprint_render_data &&
-      blueprint_render_data.render_graph_data
-    ) {
-      blueprint_render_data.render_graph_data.render_root.container.alpha = 0.5;
-      game_instance.renderer.blueprint_container.removeChildren();
-      game_instance.renderer.blueprint_container.addChild(
-        blueprint_render_data.render_graph_data.render_root.container,
-      );
+    if (game_instance) {
+      if (
+        blueprint_render_data_old &&
+        blueprint_render_data_old.render_graph_data
+      ) {
+        blueprint_render_data_old.render_graph_data.entity_layer_manager.clear(
+          game_instance.renderer.layer_map,
+        );
+      }
+      if (
+        blueprint_render_data_new &&
+        blueprint_render_data_new.render_graph_data
+      ) {
+        blueprint_render_data_new.render_graph_data.entity_layer_manager.change_layer_transparency(
+          0.5,
+        );
+        blueprint_render_data_new.render_graph_data.entity_layer_manager.attach_to_layer_map(
+          game_instance.renderer.layer_map,
+        );
+        for (const [id, render_node] of Object.entries(
+          blueprint_render_data_new.render_graph_data
+            .entity_node_to_render_node_map,
+        )) {
+          const node =
+            blueprint_render_data_new.render_graph_data.entity_node_map[id];
+          if (node) {
+            blueprint_render_data_new.render_graph_data.entity_layer_manager.update_container_position(
+              render_key(get_generic_game_node(node)),
+              render_node.container,
+            );
+          }
+        }
+      }
     }
   }
 }

@@ -77,23 +77,28 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       if (!resource_module) {
         return;
       }
-
       const render_graph_data = this.render_graph_from_scene(
         scene,
         resource_module,
       );
+      const new_blueprint_render = {
+        scene_resource_path,
+        render_graph_data,
+        is_pinned,
+        module_id,
+      } as GameInstancesStore["blueprint_render"];
+
+      window.medium.set_blueprint_renderer(
+        state.blueprint_render as GameInstancesStore["blueprint_render"],
+        new_blueprint_render,
+      );
+
       state.blueprint_render = {
         scene_resource_path,
         render_graph_data,
         is_pinned,
         module_id,
       };
-      if (!state.blueprint_render.render_graph_data?.render_root.container) {
-        return;
-      }
-      window.medium.set_blueprint_renderer(
-        state.blueprint_render as GameInstancesStore["blueprint_render"],
-      );
     },
     add_game_instance_data(
       instance_id: string,

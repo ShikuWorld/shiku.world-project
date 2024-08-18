@@ -40920,1736 +40920,6 @@ ${e3}`);
 
   // client/renderer/create_game_renderer.ts
   var import_strongly_typed_events2 = __toESM(require_dist8());
-  function set_blueprint_render(render_system, game_instances, blueprint_render_data) {
-    if (render_system.current_main_instance.instance_id && render_system.current_main_instance.world_id) {
-      const worlds = game_instances[render_system.current_main_instance.instance_id];
-      const game_instance = worlds[render_system.current_main_instance.world_id];
-      if (game_instance.renderer.main_container && blueprint_render_data && blueprint_render_data.render_graph_data) {
-        blueprint_render_data.render_graph_data.render_root.container.alpha = 0.5;
-        game_instance.renderer.blueprint_container.removeChildren();
-        game_instance.renderer.blueprint_container.addChild(
-          blueprint_render_data.render_graph_data.render_root.container
-        );
-      }
-    }
-  }
-  async function create_game_renderer() {
-    const canvas_wrapper = document.getElementById("canvas");
-    if (!canvas_wrapper) {
-      throw new Error("Could not find canvas!");
-    }
-    const width = canvas_wrapper.offsetWidth;
-    const height = canvas_wrapper.offsetHeight;
-    const renderer = await autoDetectRenderer({
-      backgroundColor: config_exports.get_bg_color(),
-      width,
-      height
-    });
-    const mainContainer = new Container();
-    const global_mouse_position = new import_strongly_typed_events2.SimpleEventDispatcher();
-    mainContainer.interactive = true;
-    mainContainer.on("mousemove", (event) => {
-      global_mouse_position.dispatch(event);
-    });
-    canvas_wrapper.appendChild(renderer.view.canvas);
-    const dummy_texture_tileset_missing = Texture.from(
-      await create_dummy_pic("#ff00ff")
-    );
-    const dummy_texture_loading = Texture.from(await create_dummy_pic("#ffff00"));
-    return {
-      renderer,
-      isDirty: true,
-      dummy_texture_tileset_missing,
-      dummy_texture_loading,
-      blueprint_render_data: null,
-      current_main_instance: {},
-      global_mouse_position,
-      stage: mainContainer
-    };
-  }
-  var create_dummy_pic = async (color) => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      console.error("Could not get 2d context...?", canvas);
-      return new ImageBitmap();
-    }
-    canvas.width = 100;
-    canvas.height = 100;
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    try {
-      return await createImageBitmap(canvas);
-    } catch (e3) {
-      return new ImageBitmap();
-    }
-  };
-  var create_instance_rendering = (world_params) => {
-    const main_container = new Container();
-    const main_container_wrapper = new Container();
-    const layer_map = createLayerMap();
-    const blueprint_container = new Container();
-    addLayerMapToContainer(main_container, layer_map);
-    layer_map.ObjectsFront.addChild(blueprint_container);
-    main_container_wrapper.addChild(main_container);
-    const camera = create_camera();
-    if (world_params.camera_ref) {
-      console.log("Setting camera ref", world_params.camera_ref);
-      camera.set_camera_ref(world_params.camera_ref);
-    }
-    return {
-      camera,
-      layer_map,
-      main_container,
-      blueprint_container,
-      main_container_wrapper,
-      terrain_params: world_params.terrain_params
-    };
-  };
-  var setup_resizing = (renderer) => {
-    const canvas_wrapper = document.getElementById("canvas");
-    if (!canvas_wrapper) {
-      console.error("Could not find canvas wrapper!");
-      return;
-    }
-    window.addEventListener("resize", () => {
-      viewPortResize(
-        canvas_wrapper.offsetWidth,
-        canvas_wrapper.offsetHeight,
-        renderer.renderer
-      );
-    });
-    viewPortResize(
-      canvas_wrapper.offsetWidth,
-      canvas_wrapper.offsetHeight,
-      renderer.renderer
-    );
-    const twitch_chat = document.getElementById("twitch-chat") || {
-      className: "",
-      clientWidth: 0,
-      style: { width: "" }
-    };
-    const toggle_chat_element = document.getElementById("toggle-chat");
-    if (toggle_chat_element && twitch_chat) {
-      twitch_chat.className = "";
-      toggle_chat_element.addEventListener("click", (e3) => {
-        const toggle = e3.target;
-        if (toggle.innerHTML === "\xBB") {
-          twitch_chat.style.width = "0px";
-          toggle.innerHTML = "\xAB";
-        } else {
-          twitch_chat.style.width = "";
-          toggle.innerHTML = "\xBB";
-        }
-        viewPortResize(
-          canvas_wrapper.offsetWidth,
-          canvas_wrapper.offsetHeight,
-          renderer.renderer
-        );
-      });
-    }
-  };
-  var viewPortResize = (width, height, renderer) => {
-    renderer.canvas.style.width = `${width}px`;
-    renderer.canvas.style.height = `${height}px`;
-    set_stage_width(width);
-    set_stage_height(height);
-    renderer.resize(get_stage_width(), get_stage_height());
-  };
-
-  // client/is_admin.ts
-  var is_admin = !!new URLSearchParams(window.location.search).get("admin");
-
-  // client/login-menu.ts
-  var loginMenuConfig = {
-    name: "HLayout",
-    config: {
-      columns: [
-        {
-          cols: { xs: 12, sm: 10, md: 8, lg: 6, xl: 5 },
-          component: { name: "LoginMenu" }
-        }
-      ]
-    }
-  };
-
-  // client/reconnect-menu.ts
-  var reconnectMenuConfig = {
-    name: "HLayout",
-    config: {
-      columns: [
-        {
-          cols: { xs: 12, sm: 10, md: 8, lg: 6, xl: 5 },
-          component: { name: "ReconnectMenu" }
-        }
-      ]
-    }
-  };
-
-  // client/menu/index.ts
-  var MenuSystem = class _MenuSystem {
-    _menus;
-    static static_menus = {
-      LoginMenu: "login-menu",
-      ReconnectMenu: "reconnect-menu"
-    };
-    constructor() {
-      this._menus = {};
-      this.create_menu_from_config(
-        loginMenuConfig,
-        _MenuSystem.static_menus.LoginMenu
-      );
-      this.create_menu_from_config(
-        reconnectMenuConfig,
-        _MenuSystem.static_menus.ReconnectMenu
-      );
-    }
-    create_menu_from_config(config, menu_name) {
-      if (!this._menus[menu_name]) {
-        this._menus[menu_name] = config;
-      } else {
-        throw Error("Menu already existed");
-      }
-    }
-    get(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error(`Tried to get menu that did not exist. ${menu_name}`);
-      }
-      return menu;
-    }
-    activate(menu_name, context2) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error(`Tried to activate menu that did not exist. ${menu_name}`);
-      }
-      if (context2) {
-        window.medium_gui.ui.set_menu_context(context2);
-      }
-      window.medium_gui.ui.set_menu(menu);
-      window.medium_gui.ui.open_menu();
-    }
-    toggle(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error("Tried to deactivate menu that did not exist.");
-      }
-      window.medium_gui.ui.set_menu(menu);
-      window.medium_gui.ui.toggle_menu();
-    }
-    deactivate(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error("Tried to deactivate menu that did not exist.");
-      }
-      window.medium_gui.ui.close_menu();
-    }
-    remove(menu_name) {
-      const menu = this._menus[menu_name];
-      if (!menu) {
-        throw Error("Tried to deactivate menu that did not exist.");
-      }
-      window.medium_gui.ui.close_menu();
-      delete this._menus[menu_name];
-    }
-  };
-
-  // client/communication/setup_communication_system.ts
-  function setup_communication_system(menu_system) {
-    const ws_connection = new WebSocket(config_exports.getWsSocketUrl());
-    const communication_state = {
-      is_connection_open: false,
-      is_connection_ready: false,
-      inbox: [],
-      ws_connection
-    };
-    reset_communication_system(
-      communication_state,
-      menu_system,
-      void 0,
-      ws_connection
-    );
-    return communication_state;
-  }
-  function reset_communication_system(communication_state, menu_system, on_open_callback, websocket) {
-    const ws_connection = websocket ? websocket : new WebSocket(config_exports.getWsSocketUrl());
-    const mainDoorStatusUrl = config_exports.getMainDoorStatusUrl();
-    ws_connection.onopen = () => {
-      communication_state.is_connection_open = true;
-      if (on_open_callback) {
-        on_open_callback();
-      }
-    };
-    ws_connection.onclose = (close_event) => {
-      window.medium.hide_loading_indicator();
-      if (close_event.reason === "Logged in elsewhere") {
-        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-          connection_error: {
-            type: "logged_in_elsewhere",
-            message: "You seem to have logged in somewhere else, please login again if you want to use this device.",
-            mainDoorStatusUrl
-          }
-        });
-      } else {
-        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-          connection_error: {
-            type: "connection_closed",
-            message: "Seems like the connection to the server was closed, please try to reconnect.",
-            mainDoorStatusUrl
-          }
-        });
-      }
-      communication_state.is_connection_open = false;
-    };
-    ws_connection.onmessage = (message) => {
-      try {
-        communication_state.inbox.push(
-          JSON.parse(message.data)
-        );
-      } catch (e3) {
-        console.error(e3);
-      }
-    };
-    ws_connection.onerror = (event) => {
-      communication_state.is_connection_open = false;
-      window.medium.hide_loading_indicator();
-      menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-        connection_error: {
-          type: "connection_error",
-          message: "Connection to server encountered an error, please try to reconnect.",
-          mainDoorStatusUrl
-        }
-      });
-      console.error(event);
-    };
-    communication_state.is_connection_open = false;
-    communication_state.is_connection_ready = false;
-    communication_state.inbox = [];
-    communication_state.ws_connection = ws_connection;
-  }
-  var last_message_send = Date.now();
-  function check_for_connection_ready(menu_system, communication_state) {
-    for (const communication of communication_state.inbox) {
-      if (communication == "AlreadyConnected") {
-        communication_state.ws_connection.close(1e3);
-        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
-          connection_error: {
-            type: "already_connected",
-            message: "You are already connected somewhere. Maybe check your browser tabs?"
-          }
-        });
-        continue;
-      }
-      if ("ConnectionReady" in communication) {
-        communication_state.is_connection_ready = true;
-        try {
-          sessionStorage.setItem("session_id", communication.ConnectionReady[0]);
-        } catch (e3) {
-          console.error(
-            "Seems like you block local storage or something, you'll have to login on every reload."
-          );
-        }
-        setInterval(() => {
-          if (Date.now() - last_message_send > 1e4) {
-            is_admin ? send_admin_event("Ping", communication_state) : send_system_event("Ping", communication_state);
-          }
-        }, 1e4);
-      }
-    }
-  }
-  function send_system_event(input, communication_state) {
-    send_event({ GuestToSystemEvent: input }, communication_state);
-  }
-  function send_admin_event(input, communication_state) {
-    send_event(input, communication_state);
-  }
-  function send_module_event(input, communication_state) {
-    send_event({ GuestToModuleEvent: input }, communication_state);
-  }
-  function send_event(input, communication_state) {
-    if (communication_state.is_connection_open) {
-      communication_state.ws_connection.send(JSON.stringify(input));
-      last_message_send = Date.now();
-    }
-  }
-  function send_ticket(ticket, communication_state) {
-    communication_state.ws_connection.send(JSON.stringify(ticket));
-  }
-
-  // client/input/create_guest_input.ts
-  function create_guest_input() {
-    const guest_input = {
-      key_bindings: {},
-      button_pressed_map: {},
-      key_pressed_map: {},
-      x_axis_callback: () => 0,
-      y_axis_callback: () => 0,
-      is_button_pressed: () => true,
-      is_dirty: true
-    };
-    window.addEventListener("blur", () => {
-      for (const key of Object.keys(guest_input.key_bindings)) {
-        guest_input.button_pressed_map[guest_input.key_bindings[key]] = false;
-        guest_input.key_pressed_map[key] = false;
-      }
-      guest_input.is_dirty = true;
-    });
-    window.addEventListener("contextmenu", () => {
-      for (const key of Object.keys(guest_input.key_bindings)) {
-        guest_input.button_pressed_map[guest_input.key_bindings[key]] = false;
-        guest_input.key_pressed_map[key] = false;
-      }
-      guest_input.is_dirty = true;
-    });
-    return guest_input;
-  }
-
-  // client/renderer/render.ts
-  function render(render_system) {
-    render_system.renderer.render(render_system.stage);
-  }
-
-  // node_modules/ts-pattern/dist/index.js
-  var t2 = Symbol.for("@ts-pattern/matcher");
-  var e2 = Symbol.for("@ts-pattern/isVariadic");
-  var n2 = "@ts-pattern/anonymous-select-key";
-  var r2 = (t3) => Boolean(t3 && "object" == typeof t3);
-  var i2 = (e3) => e3 && !!e3[t2];
-  var s2 = (n3, o3, c3) => {
-    if (i2(n3)) {
-      const e3 = n3[t2](), { matched: r3, selections: i3 } = e3.match(o3);
-      return r3 && i3 && Object.keys(i3).forEach((t3) => c3(t3, i3[t3])), r3;
-    }
-    if (r2(n3)) {
-      if (!r2(o3))
-        return false;
-      if (Array.isArray(n3)) {
-        if (!Array.isArray(o3))
-          return false;
-        let t3 = [], r3 = [], a3 = [];
-        for (const s3 of n3.keys()) {
-          const o4 = n3[s3];
-          i2(o4) && o4[e2] ? a3.push(o4) : a3.length ? r3.push(o4) : t3.push(o4);
-        }
-        if (a3.length) {
-          if (a3.length > 1)
-            throw new Error("Pattern error: Using `...P.array(...)` several times in a single pattern is not allowed.");
-          if (o3.length < t3.length + r3.length)
-            return false;
-          const e3 = o3.slice(0, t3.length), n4 = 0 === r3.length ? [] : o3.slice(-r3.length), i3 = o3.slice(t3.length, 0 === r3.length ? Infinity : -r3.length);
-          return t3.every((t4, n5) => s2(t4, e3[n5], c3)) && r3.every((t4, e4) => s2(t4, n4[e4], c3)) && (0 === a3.length || s2(a3[0], i3, c3));
-        }
-        return n3.length === o3.length && n3.every((t4, e3) => s2(t4, o3[e3], c3));
-      }
-      return Object.keys(n3).every((e3) => {
-        const r3 = n3[e3];
-        return (e3 in o3 || i2(a3 = r3) && "optional" === a3[t2]().matcherType) && s2(r3, o3[e3], c3);
-        var a3;
-      });
-    }
-    return Object.is(o3, n3);
-  };
-  var o2 = (e3) => {
-    var n3, s3, a3;
-    return r2(e3) ? i2(e3) ? null != (n3 = null == (s3 = (a3 = e3[t2]()).getSelectionKeys) ? void 0 : s3.call(a3)) ? n3 : [] : Array.isArray(e3) ? c2(e3, o2) : c2(Object.values(e3), o2) : [];
-  };
-  var c2 = (t3, e3) => t3.reduce((t4, n3) => t4.concat(e3(n3)), []);
-  function a2(...t3) {
-    if (1 === t3.length) {
-      const [e3] = t3;
-      return (t4) => s2(e3, t4, () => {
-      });
-    }
-    if (2 === t3.length) {
-      const [e3, n3] = t3;
-      return s2(e3, n3, () => {
-      });
-    }
-    throw new Error(`isMatching wasn't given the right number of arguments: expected 1 or 2, received ${t3.length}.`);
-  }
-  function u2(t3) {
-    return Object.assign(t3, { optional: () => l2(t3), and: (e3) => m2(t3, e3), or: (e3) => y2(t3, e3), select: (e3) => void 0 === e3 ? p2(t3) : p2(e3, t3) });
-  }
-  function h2(t3) {
-    return Object.assign(((t4) => Object.assign(t4, { *[Symbol.iterator]() {
-      yield Object.assign(t4, { [e2]: true });
-    } }))(t3), { optional: () => h2(l2(t3)), select: (e3) => h2(void 0 === e3 ? p2(t3) : p2(e3, t3)) });
-  }
-  function l2(e3) {
-    return u2({ [t2]: () => ({ match: (t3) => {
-      let n3 = {};
-      const r3 = (t4, e4) => {
-        n3[t4] = e4;
-      };
-      return void 0 === t3 ? (o2(e3).forEach((t4) => r3(t4, void 0)), { matched: true, selections: n3 }) : { matched: s2(e3, t3, r3), selections: n3 };
-    }, getSelectionKeys: () => o2(e3), matcherType: "optional" }) });
-  }
-  var f2 = (t3, e3) => {
-    for (const n3 of t3)
-      if (!e3(n3))
-        return false;
-    return true;
-  };
-  var g2 = (t3, e3) => {
-    for (const [n3, r3] of t3.entries())
-      if (!e3(r3, n3))
-        return false;
-    return true;
-  };
-  function m2(...e3) {
-    return u2({ [t2]: () => ({ match: (t3) => {
-      let n3 = {};
-      const r3 = (t4, e4) => {
-        n3[t4] = e4;
-      };
-      return { matched: e3.every((e4) => s2(e4, t3, r3)), selections: n3 };
-    }, getSelectionKeys: () => c2(e3, o2), matcherType: "and" }) });
-  }
-  function y2(...e3) {
-    return u2({ [t2]: () => ({ match: (t3) => {
-      let n3 = {};
-      const r3 = (t4, e4) => {
-        n3[t4] = e4;
-      };
-      return c2(e3, o2).forEach((t4) => r3(t4, void 0)), { matched: e3.some((e4) => s2(e4, t3, r3)), selections: n3 };
-    }, getSelectionKeys: () => c2(e3, o2), matcherType: "or" }) });
-  }
-  function d2(e3) {
-    return { [t2]: () => ({ match: (t3) => ({ matched: Boolean(e3(t3)) }) }) };
-  }
-  function p2(...e3) {
-    const r3 = "string" == typeof e3[0] ? e3[0] : void 0, i3 = 2 === e3.length ? e3[1] : "string" == typeof e3[0] ? void 0 : e3[0];
-    return u2({ [t2]: () => ({ match: (t3) => {
-      let e4 = { [null != r3 ? r3 : n2]: t3 };
-      return { matched: void 0 === i3 || s2(i3, t3, (t4, n3) => {
-        e4[t4] = n3;
-      }), selections: e4 };
-    }, getSelectionKeys: () => [null != r3 ? r3 : n2].concat(void 0 === i3 ? [] : o2(i3)) }) });
-  }
-  function v2(t3) {
-    return "number" == typeof t3;
-  }
-  function b2(t3) {
-    return "string" == typeof t3;
-  }
-  function w2(t3) {
-    return "bigint" == typeof t3;
-  }
-  var S2 = u2(d2(function(t3) {
-    return true;
-  }));
-  var O = S2;
-  var j2 = (t3) => Object.assign(u2(t3), { startsWith: (e3) => {
-    return j2(m2(t3, (n3 = e3, d2((t4) => b2(t4) && t4.startsWith(n3)))));
-    var n3;
-  }, endsWith: (e3) => {
-    return j2(m2(t3, (n3 = e3, d2((t4) => b2(t4) && t4.endsWith(n3)))));
-    var n3;
-  }, minLength: (e3) => j2(m2(t3, ((t4) => d2((e4) => b2(e4) && e4.length >= t4))(e3))), maxLength: (e3) => j2(m2(t3, ((t4) => d2((e4) => b2(e4) && e4.length <= t4))(e3))), includes: (e3) => {
-    return j2(m2(t3, (n3 = e3, d2((t4) => b2(t4) && t4.includes(n3)))));
-    var n3;
-  }, regex: (e3) => {
-    return j2(m2(t3, (n3 = e3, d2((t4) => b2(t4) && Boolean(t4.match(n3))))));
-    var n3;
-  } });
-  var E = j2(d2(b2));
-  var K = (t3) => Object.assign(u2(t3), { between: (e3, n3) => K(m2(t3, ((t4, e4) => d2((n4) => v2(n4) && t4 <= n4 && e4 >= n4))(e3, n3))), lt: (e3) => K(m2(t3, ((t4) => d2((e4) => v2(e4) && e4 < t4))(e3))), gt: (e3) => K(m2(t3, ((t4) => d2((e4) => v2(e4) && e4 > t4))(e3))), lte: (e3) => K(m2(t3, ((t4) => d2((e4) => v2(e4) && e4 <= t4))(e3))), gte: (e3) => K(m2(t3, ((t4) => d2((e4) => v2(e4) && e4 >= t4))(e3))), int: () => K(m2(t3, d2((t4) => v2(t4) && Number.isInteger(t4)))), finite: () => K(m2(t3, d2((t4) => v2(t4) && Number.isFinite(t4)))), positive: () => K(m2(t3, d2((t4) => v2(t4) && t4 > 0))), negative: () => K(m2(t3, d2((t4) => v2(t4) && t4 < 0))) });
-  var A = K(d2(v2));
-  var x2 = (t3) => Object.assign(u2(t3), { between: (e3, n3) => x2(m2(t3, ((t4, e4) => d2((n4) => w2(n4) && t4 <= n4 && e4 >= n4))(e3, n3))), lt: (e3) => x2(m2(t3, ((t4) => d2((e4) => w2(e4) && e4 < t4))(e3))), gt: (e3) => x2(m2(t3, ((t4) => d2((e4) => w2(e4) && e4 > t4))(e3))), lte: (e3) => x2(m2(t3, ((t4) => d2((e4) => w2(e4) && e4 <= t4))(e3))), gte: (e3) => x2(m2(t3, ((t4) => d2((e4) => w2(e4) && e4 >= t4))(e3))), positive: () => x2(m2(t3, d2((t4) => w2(t4) && t4 > 0))), negative: () => x2(m2(t3, d2((t4) => w2(t4) && t4 < 0))) });
-  var P = x2(d2(w2));
-  var T = u2(d2(function(t3) {
-    return "boolean" == typeof t3;
-  }));
-  var k2 = u2(d2(function(t3) {
-    return "symbol" == typeof t3;
-  }));
-  var B = u2(d2(function(t3) {
-    return null == t3;
-  }));
-  var _ = { __proto__: null, matcher: t2, optional: l2, array: function(...e3) {
-    return h2({ [t2]: () => ({ match: (t3) => {
-      if (!Array.isArray(t3))
-        return { matched: false };
-      if (0 === e3.length)
-        return { matched: true };
-      const n3 = e3[0];
-      let r3 = {};
-      if (0 === t3.length)
-        return o2(n3).forEach((t4) => {
-          r3[t4] = [];
-        }), { matched: true, selections: r3 };
-      const i3 = (t4, e4) => {
-        r3[t4] = (r3[t4] || []).concat([e4]);
-      };
-      return { matched: t3.every((t4) => s2(n3, t4, i3)), selections: r3 };
-    }, getSelectionKeys: () => 0 === e3.length ? [] : o2(e3[0]) }) });
-  }, set: function(...e3) {
-    return u2({ [t2]: () => ({ match: (t3) => {
-      if (!(t3 instanceof Set))
-        return { matched: false };
-      let n3 = {};
-      if (0 === t3.size)
-        return { matched: true, selections: n3 };
-      if (0 === e3.length)
-        return { matched: true };
-      const r3 = (t4, e4) => {
-        n3[t4] = (n3[t4] || []).concat([e4]);
-      }, i3 = e3[0];
-      return { matched: f2(t3, (t4) => s2(i3, t4, r3)), selections: n3 };
-    }, getSelectionKeys: () => 0 === e3.length ? [] : o2(e3[0]) }) });
-  }, map: function(...e3) {
-    return u2({ [t2]: () => ({ match: (t3) => {
-      if (!(t3 instanceof Map))
-        return { matched: false };
-      let n3 = {};
-      if (0 === t3.size)
-        return { matched: true, selections: n3 };
-      const r3 = (t4, e4) => {
-        n3[t4] = (n3[t4] || []).concat([e4]);
-      };
-      if (0 === e3.length)
-        return { matched: true };
-      var i3;
-      if (1 === e3.length)
-        throw new Error(`\`P.map\` wasn't given enough arguments. Expected (key, value), received ${null == (i3 = e3[0]) ? void 0 : i3.toString()}`);
-      const [o3, c3] = e3;
-      return { matched: g2(t3, (t4, e4) => {
-        const n4 = s2(o3, e4, r3), i4 = s2(c3, t4, r3);
-        return n4 && i4;
-      }), selections: n3 };
-    }, getSelectionKeys: () => 0 === e3.length ? [] : [...o2(e3[0]), ...o2(e3[1])] }) });
-  }, intersection: m2, union: y2, not: function(e3) {
-    return u2({ [t2]: () => ({ match: (t3) => ({ matched: !s2(e3, t3, () => {
-    }) }), getSelectionKeys: () => [], matcherType: "not" }) });
-  }, when: d2, select: p2, any: S2, _: O, string: E, number: A, bigint: P, boolean: T, symbol: k2, nullish: B, instanceOf: function(t3) {
-    return u2(d2(/* @__PURE__ */ function(t4) {
-      return (e3) => e3 instanceof t4;
-    }(t3)));
-  }, shape: function(t3) {
-    return u2(d2(a2(t3)));
-  } };
-  var W = { matched: false, value: void 0 };
-  function N2(t3) {
-    return new $2(t3, W);
-  }
-  var $2 = class _$ {
-    constructor(t3, e3) {
-      this.input = void 0, this.state = void 0, this.input = t3, this.state = e3;
-    }
-    with(...t3) {
-      if (this.state.matched)
-        return this;
-      const e3 = t3[t3.length - 1], r3 = [t3[0]];
-      let i3;
-      3 === t3.length && "function" == typeof t3[1] ? i3 = t3[1] : t3.length > 2 && r3.push(...t3.slice(1, t3.length - 1));
-      let o3 = false, c3 = {};
-      const a3 = (t4, e4) => {
-        o3 = true, c3[t4] = e4;
-      }, u3 = !r3.some((t4) => s2(t4, this.input, a3)) || i3 && !Boolean(i3(this.input)) ? W : { matched: true, value: e3(o3 ? n2 in c3 ? c3[n2] : c3 : this.input, this.input) };
-      return new _$(this.input, u3);
-    }
-    when(t3, e3) {
-      if (this.state.matched)
-        return this;
-      const n3 = Boolean(t3(this.input));
-      return new _$(this.input, n3 ? { matched: true, value: e3(this.input, this.input) } : W);
-    }
-    otherwise(t3) {
-      return this.state.matched ? this.state.value : t3(this.input);
-    }
-    exhaustive() {
-      if (this.state.matched)
-        return this.state.value;
-      let t3;
-      try {
-        t3 = JSON.stringify(this.input);
-      } catch (e3) {
-        t3 = this.input;
-      }
-      throw new Error(`Pattern matching error: no pattern matches value ${t3}`);
-    }
-    run() {
-      return this.exhaustive();
-    }
-    returnType() {
-      return this;
-    }
-  };
-
-  // client/renderer/toast.ts
-  function createToast(alertLevel, text) {
-    window.medium_gui.toast.add_toast(text, alertLevel);
-  }
-
-  // client/input/index.ts
-  var Button = /* @__PURE__ */ ((Button2) => {
-    Button2["Jump"] = "Jump";
-    Button2["Left"] = "Left";
-    Button2["Right"] = "Right";
-    Button2["Up"] = "Up";
-    Button2["Down"] = "Down";
-    Button2["Start"] = "Start";
-    Button2["Action1"] = "Action1";
-    Button2["Action2"] = "Action2";
-    Button2["Exit"] = "Exit";
-    return Button2;
-  })(Button || {});
-  function create_guest_input_event(guest_input_state) {
-    return {
-      x_axis: guest_input_state.x_axis_callback(),
-      y_axis: guest_input_state.y_axis_callback(),
-      start: guest_input_state.button_pressed_map["Start" /* Start */] ? guest_input_state.button_pressed_map["Start" /* Start */] : false,
-      jump: guest_input_state.button_pressed_map["Jump" /* Jump */] ? guest_input_state.button_pressed_map["Jump" /* Jump */] : false,
-      up: guest_input_state.button_pressed_map["Up" /* Up */] ? guest_input_state.button_pressed_map["Up" /* Up */] : false,
-      down: guest_input_state.button_pressed_map["Down" /* Down */] ? guest_input_state.button_pressed_map["Down" /* Down */] : false,
-      left: guest_input_state.button_pressed_map["Left" /* Left */] ? guest_input_state.button_pressed_map["Left" /* Left */] : false,
-      right: guest_input_state.button_pressed_map["Right" /* Right */] ? guest_input_state.button_pressed_map["Right" /* Right */] : false,
-      action_1: guest_input_state.button_pressed_map["Action1" /* Action1 */] ? guest_input_state.button_pressed_map["Action1" /* Action1 */] : false,
-      action_2: guest_input_state.button_pressed_map["Action2" /* Action2 */] ? guest_input_state.button_pressed_map["Action2" /* Action2 */] : false
-    };
-  }
-
-  // client/plugins.ts
-  var import_strongly_typed_events3 = __toESM(require_dist8());
-  var input_plugins = [];
-  var activate_plugin = new import_strongly_typed_events3.SimpleEventDispatcher();
-  var active_plugin;
-  activate_plugin.subscribe((plugin_id) => {
-    active_plugin = plugin_id;
-  });
-  function get_plugin(id) {
-    return input_plugins.find((i3) => i3.id === id);
-  }
-  function set_active_plugin(name, input_toggle_icon) {
-    switch (name) {
-      case "CONTROLLER":
-        input_toggle_icon.textContent = "videogame_asset";
-        break;
-      case "KEYBOARD":
-        input_toggle_icon.textContent = "keyboard";
-        break;
-      case "MOUSE":
-        input_toggle_icon.textContent = "mouse";
-        break;
-      default:
-        return;
-    }
-    try {
-      localStorage.setItem("preferred_input", name);
-    } catch (e3) {
-      console.error(
-        "Seems like you block local storage or something, you'll have to choose your input method on every reload."
-      );
-    }
-    activate_plugin.dispatch(name);
-  }
-  function setup_plugin_system() {
-    window.register_input_plugin = (plugin) => {
-      input_plugins.push(plugin);
-    };
-    document.addEventListener("DOMContentLoaded", () => {
-      const input_toggle = document.getElementById("toggle-input-method");
-      const input_toggle_icon = document.querySelector(
-        "#toggle-input-method span"
-      );
-      if (!input_toggle || !input_toggle_icon) {
-        console.error("No input toggle?!");
-        return;
-      }
-      input_toggle.addEventListener("click", () => {
-        if (active_plugin === "MOUSE") {
-          set_active_plugin("CONTROLLER", input_toggle_icon);
-          return;
-        }
-        if (active_plugin === "CONTROLLER") {
-          if (input_plugins.find((i3) => i3.id === "KEYBOARD")) {
-            set_active_plugin("KEYBOARD", input_toggle_icon);
-          } else {
-            set_active_plugin("MOUSE", input_toggle_icon);
-          }
-          return;
-        }
-        if (active_plugin === "KEYBOARD") {
-          set_active_plugin("MOUSE", input_toggle_icon);
-          return;
-        }
-      });
-    });
-  }
-  var initialize_input_plugins = (guest_input) => {
-    for (const plugin of input_plugins) {
-      plugin.initialize(guest_input, activate_plugin);
-      plugin.update = plugin.update ? plugin.update : () => {
-      };
-    }
-    const input_toggle_icon = document.querySelector("#toggle-input-method span");
-    if (!input_toggle_icon) {
-      console.error("No input toggle?!");
-      return;
-    }
-    try {
-      const preferred_input = localStorage.getItem("preferred_input");
-      if (preferred_input) {
-        set_active_plugin(preferred_input, input_toggle_icon);
-      } else {
-        set_active_plugin("MOUSE", input_toggle_icon);
-      }
-    } catch (e3) {
-      set_active_plugin("MOUSE", input_toggle_icon);
-      console.error(
-        "Seems like you block local storage or something, you'll have to choose your input method on every reload."
-      );
-    }
-  };
-  var update_input_plugins = () => {
-    for (const plugin of input_plugins) {
-      plugin.update && plugin.update(plugin.id === active_plugin);
-    }
-  };
-
-  // client/button-feedback.ts
-  var setup_button_feedback = () => {
-    const button_element_map = {};
-    const input_feedback = document.getElementById("input-feedback");
-    const input_toggle = document.getElementById("toggle-input-feedback");
-    const input_toggle_icon = document.querySelector(
-      "#toggle-input-feedback span"
-    );
-    if (!input_toggle || !input_feedback || !input_toggle_icon) {
-      console.error("Button feedback elements are missing!");
-      return (_2) => {
-      };
-    }
-    input_toggle.addEventListener("click", () => {
-      if (input_toggle_icon.textContent === "visibility") {
-        input_toggle_icon.textContent = "visibility_off";
-        input_feedback.className = "feedback-disabled";
-      } else {
-        input_toggle_icon.textContent = "visibility";
-        input_feedback.className = "";
-      }
-    });
-    for (const button in Button) {
-      button_element_map[button] = document.getElementById(`input-feedback-${button}`) || { className: "" };
-    }
-    return (guest_input) => {
-      for (const button in Button) {
-        if (guest_input.button_pressed_map[button]) {
-          button_element_map[button].className = "button-active";
-        } else {
-          button_element_map[button].className = "button-inactive";
-        }
-      }
-    };
-  };
-
-  // client/menu/twitch.ts
-  function send_twitch_login(communication_state, message) {
-    const event = {
-      ProviderLoggedIn: {
-        login_provider: "Twitch",
-        auth_code: message.data.auth_code ? message.data.auth_code : null,
-        access_token: message.data.access_token ? message.data.access_token : null
-      }
-    };
-    is_admin ? send_admin_event(event, communication_state) : send_system_event(event, communication_state);
-  }
-  function login(communication_state) {
-    const twitch_login_channel = new BroadcastChannel(twitch_login_channel_name);
-    const signal_channel = new BroadcastChannel(signal_channel_name);
-    return new Promise((resolve, reject) => {
-      try {
-        twitch_login_channel.onmessage = async (message) => {
-          try {
-            send_twitch_login(communication_state, message);
-          } catch (e3) {
-            console.error(e3);
-            reject(e3);
-          }
-        };
-        signal_channel.onmessage = async (message) => {
-          const signal = message.data;
-          if (signal === "LoginSuccess") {
-            resolve();
-          }
-          if (signal === "LoginFailed") {
-            reject();
-          }
-          twitch_login_channel.close();
-          signal_channel.close();
-        };
-        if (twitch_service.authToken) {
-          send_twitch_login(communication_state, {
-            data: { access_token: twitch_service.authToken }
-          });
-        } else {
-          window.open(
-            `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=uchpfk924k24ozzra8f6i7bpthn33r&redirect_uri=${config_exports.getTwitchAuthRedirect()}`,
-            "",
-            "width=500,height=500"
-          );
-        }
-      } catch (e3) {
-        console.error(e3);
-        reject(e3);
-      }
-    });
-  }
-
-  // client/resources/index.ts
-  var import_strongly_typed_events4 = __toESM(require_dist8());
-
-  // shared/index.ts
-  var RENDER_SCALE = 32;
-
-  // node_modules/@tweenjs/tween.js/dist/tween.esm.js
-  var Easing = Object.freeze({
-    Linear: Object.freeze({
-      None: function(amount) {
-        return amount;
-      },
-      In: function(amount) {
-        return amount;
-      },
-      Out: function(amount) {
-        return amount;
-      },
-      InOut: function(amount) {
-        return amount;
-      }
-    }),
-    Quadratic: Object.freeze({
-      In: function(amount) {
-        return amount * amount;
-      },
-      Out: function(amount) {
-        return amount * (2 - amount);
-      },
-      InOut: function(amount) {
-        if ((amount *= 2) < 1) {
-          return 0.5 * amount * amount;
-        }
-        return -0.5 * (--amount * (amount - 2) - 1);
-      }
-    }),
-    Cubic: Object.freeze({
-      In: function(amount) {
-        return amount * amount * amount;
-      },
-      Out: function(amount) {
-        return --amount * amount * amount + 1;
-      },
-      InOut: function(amount) {
-        if ((amount *= 2) < 1) {
-          return 0.5 * amount * amount * amount;
-        }
-        return 0.5 * ((amount -= 2) * amount * amount + 2);
-      }
-    }),
-    Quartic: Object.freeze({
-      In: function(amount) {
-        return amount * amount * amount * amount;
-      },
-      Out: function(amount) {
-        return 1 - --amount * amount * amount * amount;
-      },
-      InOut: function(amount) {
-        if ((amount *= 2) < 1) {
-          return 0.5 * amount * amount * amount * amount;
-        }
-        return -0.5 * ((amount -= 2) * amount * amount * amount - 2);
-      }
-    }),
-    Quintic: Object.freeze({
-      In: function(amount) {
-        return amount * amount * amount * amount * amount;
-      },
-      Out: function(amount) {
-        return --amount * amount * amount * amount * amount + 1;
-      },
-      InOut: function(amount) {
-        if ((amount *= 2) < 1) {
-          return 0.5 * amount * amount * amount * amount * amount;
-        }
-        return 0.5 * ((amount -= 2) * amount * amount * amount * amount + 2);
-      }
-    }),
-    Sinusoidal: Object.freeze({
-      In: function(amount) {
-        return 1 - Math.sin((1 - amount) * Math.PI / 2);
-      },
-      Out: function(amount) {
-        return Math.sin(amount * Math.PI / 2);
-      },
-      InOut: function(amount) {
-        return 0.5 * (1 - Math.sin(Math.PI * (0.5 - amount)));
-      }
-    }),
-    Exponential: Object.freeze({
-      In: function(amount) {
-        return amount === 0 ? 0 : Math.pow(1024, amount - 1);
-      },
-      Out: function(amount) {
-        return amount === 1 ? 1 : 1 - Math.pow(2, -10 * amount);
-      },
-      InOut: function(amount) {
-        if (amount === 0) {
-          return 0;
-        }
-        if (amount === 1) {
-          return 1;
-        }
-        if ((amount *= 2) < 1) {
-          return 0.5 * Math.pow(1024, amount - 1);
-        }
-        return 0.5 * (-Math.pow(2, -10 * (amount - 1)) + 2);
-      }
-    }),
-    Circular: Object.freeze({
-      In: function(amount) {
-        return 1 - Math.sqrt(1 - amount * amount);
-      },
-      Out: function(amount) {
-        return Math.sqrt(1 - --amount * amount);
-      },
-      InOut: function(amount) {
-        if ((amount *= 2) < 1) {
-          return -0.5 * (Math.sqrt(1 - amount * amount) - 1);
-        }
-        return 0.5 * (Math.sqrt(1 - (amount -= 2) * amount) + 1);
-      }
-    }),
-    Elastic: Object.freeze({
-      In: function(amount) {
-        if (amount === 0) {
-          return 0;
-        }
-        if (amount === 1) {
-          return 1;
-        }
-        return -Math.pow(2, 10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI);
-      },
-      Out: function(amount) {
-        if (amount === 0) {
-          return 0;
-        }
-        if (amount === 1) {
-          return 1;
-        }
-        return Math.pow(2, -10 * amount) * Math.sin((amount - 0.1) * 5 * Math.PI) + 1;
-      },
-      InOut: function(amount) {
-        if (amount === 0) {
-          return 0;
-        }
-        if (amount === 1) {
-          return 1;
-        }
-        amount *= 2;
-        if (amount < 1) {
-          return -0.5 * Math.pow(2, 10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI);
-        }
-        return 0.5 * Math.pow(2, -10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI) + 1;
-      }
-    }),
-    Back: Object.freeze({
-      In: function(amount) {
-        var s3 = 1.70158;
-        return amount === 1 ? 1 : amount * amount * ((s3 + 1) * amount - s3);
-      },
-      Out: function(amount) {
-        var s3 = 1.70158;
-        return amount === 0 ? 0 : --amount * amount * ((s3 + 1) * amount + s3) + 1;
-      },
-      InOut: function(amount) {
-        var s3 = 1.70158 * 1.525;
-        if ((amount *= 2) < 1) {
-          return 0.5 * (amount * amount * ((s3 + 1) * amount - s3));
-        }
-        return 0.5 * ((amount -= 2) * amount * ((s3 + 1) * amount + s3) + 2);
-      }
-    }),
-    Bounce: Object.freeze({
-      In: function(amount) {
-        return 1 - Easing.Bounce.Out(1 - amount);
-      },
-      Out: function(amount) {
-        if (amount < 1 / 2.75) {
-          return 7.5625 * amount * amount;
-        } else if (amount < 2 / 2.75) {
-          return 7.5625 * (amount -= 1.5 / 2.75) * amount + 0.75;
-        } else if (amount < 2.5 / 2.75) {
-          return 7.5625 * (amount -= 2.25 / 2.75) * amount + 0.9375;
-        } else {
-          return 7.5625 * (amount -= 2.625 / 2.75) * amount + 0.984375;
-        }
-      },
-      InOut: function(amount) {
-        if (amount < 0.5) {
-          return Easing.Bounce.In(amount * 2) * 0.5;
-        }
-        return Easing.Bounce.Out(amount * 2 - 1) * 0.5 + 0.5;
-      }
-    }),
-    generatePow: function(power) {
-      if (power === void 0) {
-        power = 4;
-      }
-      power = power < Number.EPSILON ? Number.EPSILON : power;
-      power = power > 1e4 ? 1e4 : power;
-      return {
-        In: function(amount) {
-          return Math.pow(amount, power);
-        },
-        Out: function(amount) {
-          return 1 - Math.pow(1 - amount, power);
-        },
-        InOut: function(amount) {
-          if (amount < 0.5) {
-            return Math.pow(amount * 2, power) / 2;
-          }
-          return (1 - Math.pow(2 - amount * 2, power)) / 2 + 0.5;
-        }
-      };
-    }
-  });
-  var now = function() {
-    return performance.now();
-  };
-  var Group = (
-    /** @class */
-    function() {
-      function Group2() {
-        this._tweens = {};
-        this._tweensAddedDuringUpdate = {};
-      }
-      Group2.prototype.getAll = function() {
-        var _this = this;
-        return Object.keys(this._tweens).map(function(tweenId) {
-          return _this._tweens[tweenId];
-        });
-      };
-      Group2.prototype.removeAll = function() {
-        this._tweens = {};
-      };
-      Group2.prototype.add = function(tween) {
-        this._tweens[tween.getId()] = tween;
-        this._tweensAddedDuringUpdate[tween.getId()] = tween;
-      };
-      Group2.prototype.remove = function(tween) {
-        delete this._tweens[tween.getId()];
-        delete this._tweensAddedDuringUpdate[tween.getId()];
-      };
-      Group2.prototype.update = function(time, preserve) {
-        if (time === void 0) {
-          time = now();
-        }
-        if (preserve === void 0) {
-          preserve = false;
-        }
-        var tweenIds = Object.keys(this._tweens);
-        if (tweenIds.length === 0) {
-          return false;
-        }
-        while (tweenIds.length > 0) {
-          this._tweensAddedDuringUpdate = {};
-          for (var i3 = 0; i3 < tweenIds.length; i3++) {
-            var tween = this._tweens[tweenIds[i3]];
-            var autoStart = !preserve;
-            if (tween && tween.update(time, autoStart) === false && !preserve) {
-              delete this._tweens[tweenIds[i3]];
-            }
-          }
-          tweenIds = Object.keys(this._tweensAddedDuringUpdate);
-        }
-        return true;
-      };
-      return Group2;
-    }()
-  );
-  var Interpolation = {
-    Linear: function(v3, k3) {
-      var m3 = v3.length - 1;
-      var f3 = m3 * k3;
-      var i3 = Math.floor(f3);
-      var fn = Interpolation.Utils.Linear;
-      if (k3 < 0) {
-        return fn(v3[0], v3[1], f3);
-      }
-      if (k3 > 1) {
-        return fn(v3[m3], v3[m3 - 1], m3 - f3);
-      }
-      return fn(v3[i3], v3[i3 + 1 > m3 ? m3 : i3 + 1], f3 - i3);
-    },
-    Bezier: function(v3, k3) {
-      var b3 = 0;
-      var n3 = v3.length - 1;
-      var pw = Math.pow;
-      var bn = Interpolation.Utils.Bernstein;
-      for (var i3 = 0; i3 <= n3; i3++) {
-        b3 += pw(1 - k3, n3 - i3) * pw(k3, i3) * v3[i3] * bn(n3, i3);
-      }
-      return b3;
-    },
-    CatmullRom: function(v3, k3) {
-      var m3 = v3.length - 1;
-      var f3 = m3 * k3;
-      var i3 = Math.floor(f3);
-      var fn = Interpolation.Utils.CatmullRom;
-      if (v3[0] === v3[m3]) {
-        if (k3 < 0) {
-          i3 = Math.floor(f3 = m3 * (1 + k3));
-        }
-        return fn(v3[(i3 - 1 + m3) % m3], v3[i3], v3[(i3 + 1) % m3], v3[(i3 + 2) % m3], f3 - i3);
-      } else {
-        if (k3 < 0) {
-          return v3[0] - (fn(v3[0], v3[0], v3[1], v3[1], -f3) - v3[0]);
-        }
-        if (k3 > 1) {
-          return v3[m3] - (fn(v3[m3], v3[m3], v3[m3 - 1], v3[m3 - 1], f3 - m3) - v3[m3]);
-        }
-        return fn(v3[i3 ? i3 - 1 : 0], v3[i3], v3[m3 < i3 + 1 ? m3 : i3 + 1], v3[m3 < i3 + 2 ? m3 : i3 + 2], f3 - i3);
-      }
-    },
-    Utils: {
-      Linear: function(p0, p1, t3) {
-        return (p1 - p0) * t3 + p0;
-      },
-      Bernstein: function(n3, i3) {
-        var fc = Interpolation.Utils.Factorial;
-        return fc(n3) / fc(i3) / fc(n3 - i3);
-      },
-      Factorial: /* @__PURE__ */ function() {
-        var a3 = [1];
-        return function(n3) {
-          var s3 = 1;
-          if (a3[n3]) {
-            return a3[n3];
-          }
-          for (var i3 = n3; i3 > 1; i3--) {
-            s3 *= i3;
-          }
-          a3[n3] = s3;
-          return s3;
-        };
-      }(),
-      CatmullRom: function(p0, p1, p22, p3, t3) {
-        var v0 = (p22 - p0) * 0.5;
-        var v1 = (p3 - p1) * 0.5;
-        var t22 = t3 * t3;
-        var t32 = t3 * t22;
-        return (2 * p1 - 2 * p22 + v0 + v1) * t32 + (-3 * p1 + 3 * p22 - 2 * v0 - v1) * t22 + v0 * t3 + p1;
-      }
-    }
-  };
-  var Sequence = (
-    /** @class */
-    function() {
-      function Sequence2() {
-      }
-      Sequence2.nextId = function() {
-        return Sequence2._nextId++;
-      };
-      Sequence2._nextId = 0;
-      return Sequence2;
-    }()
-  );
-  var mainGroup = new Group();
-  var Tween = (
-    /** @class */
-    function() {
-      function Tween2(_object, _group) {
-        if (_group === void 0) {
-          _group = mainGroup;
-        }
-        this._object = _object;
-        this._group = _group;
-        this._isPaused = false;
-        this._pauseStart = 0;
-        this._valuesStart = {};
-        this._valuesEnd = {};
-        this._valuesStartRepeat = {};
-        this._duration = 1e3;
-        this._isDynamic = false;
-        this._initialRepeat = 0;
-        this._repeat = 0;
-        this._yoyo = false;
-        this._isPlaying = false;
-        this._reversed = false;
-        this._delayTime = 0;
-        this._startTime = 0;
-        this._easingFunction = Easing.Linear.None;
-        this._interpolationFunction = Interpolation.Linear;
-        this._chainedTweens = [];
-        this._onStartCallbackFired = false;
-        this._onEveryStartCallbackFired = false;
-        this._id = Sequence.nextId();
-        this._isChainStopped = false;
-        this._propertiesAreSetUp = false;
-        this._goToEnd = false;
-      }
-      Tween2.prototype.getId = function() {
-        return this._id;
-      };
-      Tween2.prototype.isPlaying = function() {
-        return this._isPlaying;
-      };
-      Tween2.prototype.isPaused = function() {
-        return this._isPaused;
-      };
-      Tween2.prototype.getDuration = function() {
-        return this._duration;
-      };
-      Tween2.prototype.to = function(target, duration) {
-        if (duration === void 0) {
-          duration = 1e3;
-        }
-        if (this._isPlaying)
-          throw new Error("Can not call Tween.to() while Tween is already started or paused. Stop the Tween first.");
-        this._valuesEnd = target;
-        this._propertiesAreSetUp = false;
-        this._duration = duration < 0 ? 0 : duration;
-        return this;
-      };
-      Tween2.prototype.duration = function(duration) {
-        if (duration === void 0) {
-          duration = 1e3;
-        }
-        this._duration = duration < 0 ? 0 : duration;
-        return this;
-      };
-      Tween2.prototype.dynamic = function(dynamic) {
-        if (dynamic === void 0) {
-          dynamic = false;
-        }
-        this._isDynamic = dynamic;
-        return this;
-      };
-      Tween2.prototype.start = function(time, overrideStartingValues) {
-        if (time === void 0) {
-          time = now();
-        }
-        if (overrideStartingValues === void 0) {
-          overrideStartingValues = false;
-        }
-        if (this._isPlaying) {
-          return this;
-        }
-        this._group && this._group.add(this);
-        this._repeat = this._initialRepeat;
-        if (this._reversed) {
-          this._reversed = false;
-          for (var property in this._valuesStartRepeat) {
-            this._swapEndStartRepeatValues(property);
-            this._valuesStart[property] = this._valuesStartRepeat[property];
-          }
-        }
-        this._isPlaying = true;
-        this._isPaused = false;
-        this._onStartCallbackFired = false;
-        this._onEveryStartCallbackFired = false;
-        this._isChainStopped = false;
-        this._startTime = time;
-        this._startTime += this._delayTime;
-        if (!this._propertiesAreSetUp || overrideStartingValues) {
-          this._propertiesAreSetUp = true;
-          if (!this._isDynamic) {
-            var tmp = {};
-            for (var prop in this._valuesEnd)
-              tmp[prop] = this._valuesEnd[prop];
-            this._valuesEnd = tmp;
-          }
-          this._setupProperties(this._object, this._valuesStart, this._valuesEnd, this._valuesStartRepeat, overrideStartingValues);
-        }
-        return this;
-      };
-      Tween2.prototype.startFromCurrentValues = function(time) {
-        return this.start(time, true);
-      };
-      Tween2.prototype._setupProperties = function(_object, _valuesStart, _valuesEnd, _valuesStartRepeat, overrideStartingValues) {
-        for (var property in _valuesEnd) {
-          var startValue = _object[property];
-          var startValueIsArray = Array.isArray(startValue);
-          var propType = startValueIsArray ? "array" : typeof startValue;
-          var isInterpolationList = !startValueIsArray && Array.isArray(_valuesEnd[property]);
-          if (propType === "undefined" || propType === "function") {
-            continue;
-          }
-          if (isInterpolationList) {
-            var endValues = _valuesEnd[property];
-            if (endValues.length === 0) {
-              continue;
-            }
-            var temp = [startValue];
-            for (var i3 = 0, l3 = endValues.length; i3 < l3; i3 += 1) {
-              var value = this._handleRelativeValue(startValue, endValues[i3]);
-              if (isNaN(value)) {
-                isInterpolationList = false;
-                console.warn("Found invalid interpolation list. Skipping.");
-                break;
-              }
-              temp.push(value);
-            }
-            if (isInterpolationList) {
-              _valuesEnd[property] = temp;
-            }
-          }
-          if ((propType === "object" || startValueIsArray) && startValue && !isInterpolationList) {
-            _valuesStart[property] = startValueIsArray ? [] : {};
-            var nestedObject = startValue;
-            for (var prop in nestedObject) {
-              _valuesStart[property][prop] = nestedObject[prop];
-            }
-            _valuesStartRepeat[property] = startValueIsArray ? [] : {};
-            var endValues = _valuesEnd[property];
-            if (!this._isDynamic) {
-              var tmp = {};
-              for (var prop in endValues)
-                tmp[prop] = endValues[prop];
-              _valuesEnd[property] = endValues = tmp;
-            }
-            this._setupProperties(nestedObject, _valuesStart[property], endValues, _valuesStartRepeat[property], overrideStartingValues);
-          } else {
-            if (typeof _valuesStart[property] === "undefined" || overrideStartingValues) {
-              _valuesStart[property] = startValue;
-            }
-            if (!startValueIsArray) {
-              _valuesStart[property] *= 1;
-            }
-            if (isInterpolationList) {
-              _valuesStartRepeat[property] = _valuesEnd[property].slice().reverse();
-            } else {
-              _valuesStartRepeat[property] = _valuesStart[property] || 0;
-            }
-          }
-        }
-      };
-      Tween2.prototype.stop = function() {
-        if (!this._isChainStopped) {
-          this._isChainStopped = true;
-          this.stopChainedTweens();
-        }
-        if (!this._isPlaying) {
-          return this;
-        }
-        this._group && this._group.remove(this);
-        this._isPlaying = false;
-        this._isPaused = false;
-        if (this._onStopCallback) {
-          this._onStopCallback(this._object);
-        }
-        return this;
-      };
-      Tween2.prototype.end = function() {
-        this._goToEnd = true;
-        this.update(Infinity);
-        return this;
-      };
-      Tween2.prototype.pause = function(time) {
-        if (time === void 0) {
-          time = now();
-        }
-        if (this._isPaused || !this._isPlaying) {
-          return this;
-        }
-        this._isPaused = true;
-        this._pauseStart = time;
-        this._group && this._group.remove(this);
-        return this;
-      };
-      Tween2.prototype.resume = function(time) {
-        if (time === void 0) {
-          time = now();
-        }
-        if (!this._isPaused || !this._isPlaying) {
-          return this;
-        }
-        this._isPaused = false;
-        this._startTime += time - this._pauseStart;
-        this._pauseStart = 0;
-        this._group && this._group.add(this);
-        return this;
-      };
-      Tween2.prototype.stopChainedTweens = function() {
-        for (var i3 = 0, numChainedTweens = this._chainedTweens.length; i3 < numChainedTweens; i3++) {
-          this._chainedTweens[i3].stop();
-        }
-        return this;
-      };
-      Tween2.prototype.group = function(group) {
-        if (group === void 0) {
-          group = mainGroup;
-        }
-        this._group = group;
-        return this;
-      };
-      Tween2.prototype.delay = function(amount) {
-        if (amount === void 0) {
-          amount = 0;
-        }
-        this._delayTime = amount;
-        return this;
-      };
-      Tween2.prototype.repeat = function(times) {
-        if (times === void 0) {
-          times = 0;
-        }
-        this._initialRepeat = times;
-        this._repeat = times;
-        return this;
-      };
-      Tween2.prototype.repeatDelay = function(amount) {
-        this._repeatDelayTime = amount;
-        return this;
-      };
-      Tween2.prototype.yoyo = function(yoyo) {
-        if (yoyo === void 0) {
-          yoyo = false;
-        }
-        this._yoyo = yoyo;
-        return this;
-      };
-      Tween2.prototype.easing = function(easingFunction) {
-        if (easingFunction === void 0) {
-          easingFunction = Easing.Linear.None;
-        }
-        this._easingFunction = easingFunction;
-        return this;
-      };
-      Tween2.prototype.interpolation = function(interpolationFunction) {
-        if (interpolationFunction === void 0) {
-          interpolationFunction = Interpolation.Linear;
-        }
-        this._interpolationFunction = interpolationFunction;
-        return this;
-      };
-      Tween2.prototype.chain = function() {
-        var tweens = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-          tweens[_i] = arguments[_i];
-        }
-        this._chainedTweens = tweens;
-        return this;
-      };
-      Tween2.prototype.onStart = function(callback) {
-        this._onStartCallback = callback;
-        return this;
-      };
-      Tween2.prototype.onEveryStart = function(callback) {
-        this._onEveryStartCallback = callback;
-        return this;
-      };
-      Tween2.prototype.onUpdate = function(callback) {
-        this._onUpdateCallback = callback;
-        return this;
-      };
-      Tween2.prototype.onRepeat = function(callback) {
-        this._onRepeatCallback = callback;
-        return this;
-      };
-      Tween2.prototype.onComplete = function(callback) {
-        this._onCompleteCallback = callback;
-        return this;
-      };
-      Tween2.prototype.onStop = function(callback) {
-        this._onStopCallback = callback;
-        return this;
-      };
-      Tween2.prototype.update = function(time, autoStart) {
-        var _a;
-        if (time === void 0) {
-          time = now();
-        }
-        if (autoStart === void 0) {
-          autoStart = true;
-        }
-        if (this._isPaused)
-          return true;
-        var endTime = this._startTime + this._duration;
-        if (!this._goToEnd && !this._isPlaying) {
-          if (time > endTime)
-            return false;
-          if (autoStart)
-            this.start(time, true);
-        }
-        this._goToEnd = false;
-        if (time < this._startTime) {
-          return true;
-        }
-        if (this._onStartCallbackFired === false) {
-          if (this._onStartCallback) {
-            this._onStartCallback(this._object);
-          }
-          this._onStartCallbackFired = true;
-        }
-        if (this._onEveryStartCallbackFired === false) {
-          if (this._onEveryStartCallback) {
-            this._onEveryStartCallback(this._object);
-          }
-          this._onEveryStartCallbackFired = true;
-        }
-        var elapsedTime = time - this._startTime;
-        var durationAndDelay = this._duration + ((_a = this._repeatDelayTime) !== null && _a !== void 0 ? _a : this._delayTime);
-        var totalTime = this._duration + this._repeat * durationAndDelay;
-        var elapsed = this._calculateElapsedPortion(elapsedTime, durationAndDelay, totalTime);
-        var value = this._easingFunction(elapsed);
-        var status = this._calculateCompletionStatus(elapsedTime, durationAndDelay);
-        if (status === "repeat") {
-          this._processRepetition(elapsedTime, durationAndDelay);
-        }
-        this._updateProperties(this._object, this._valuesStart, this._valuesEnd, value);
-        if (status === "about-to-repeat") {
-          this._processRepetition(elapsedTime, durationAndDelay);
-        }
-        if (this._onUpdateCallback) {
-          this._onUpdateCallback(this._object, elapsed);
-        }
-        if (status === "repeat" || status === "about-to-repeat") {
-          if (this._onRepeatCallback) {
-            this._onRepeatCallback(this._object);
-          }
-          this._onEveryStartCallbackFired = false;
-        } else if (status === "completed") {
-          this._isPlaying = false;
-          if (this._onCompleteCallback) {
-            this._onCompleteCallback(this._object);
-          }
-          for (var i3 = 0, numChainedTweens = this._chainedTweens.length; i3 < numChainedTweens; i3++) {
-            this._chainedTweens[i3].start(this._startTime + this._duration, false);
-          }
-        }
-        return status !== "completed";
-      };
-      Tween2.prototype._calculateElapsedPortion = function(elapsedTime, durationAndDelay, totalTime) {
-        if (this._duration === 0 || elapsedTime > totalTime) {
-          return 1;
-        }
-        var timeIntoCurrentRepeat = elapsedTime % durationAndDelay;
-        var portion = Math.min(timeIntoCurrentRepeat / this._duration, 1);
-        if (portion === 0 && elapsedTime !== 0 && elapsedTime % this._duration === 0) {
-          return 1;
-        }
-        return portion;
-      };
-      Tween2.prototype._calculateCompletionStatus = function(elapsedTime, durationAndDelay) {
-        if (this._duration !== 0 && elapsedTime < this._duration) {
-          return "playing";
-        }
-        if (this._repeat <= 0) {
-          return "completed";
-        }
-        if (elapsedTime === this._duration) {
-          return "about-to-repeat";
-        }
-        return "repeat";
-      };
-      Tween2.prototype._processRepetition = function(elapsedTime, durationAndDelay) {
-        var completeCount = Math.min(Math.trunc((elapsedTime - this._duration) / durationAndDelay) + 1, this._repeat);
-        if (isFinite(this._repeat)) {
-          this._repeat -= completeCount;
-        }
-        for (var property in this._valuesStartRepeat) {
-          var valueEnd = this._valuesEnd[property];
-          if (!this._yoyo && typeof valueEnd === "string") {
-            this._valuesStartRepeat[property] = this._valuesStartRepeat[property] + parseFloat(valueEnd);
-          }
-          if (this._yoyo) {
-            this._swapEndStartRepeatValues(property);
-          }
-          this._valuesStart[property] = this._valuesStartRepeat[property];
-        }
-        if (this._yoyo) {
-          this._reversed = !this._reversed;
-        }
-        this._startTime += durationAndDelay * completeCount;
-      };
-      Tween2.prototype._updateProperties = function(_object, _valuesStart, _valuesEnd, value) {
-        for (var property in _valuesEnd) {
-          if (_valuesStart[property] === void 0) {
-            continue;
-          }
-          var start = _valuesStart[property] || 0;
-          var end = _valuesEnd[property];
-          var startIsArray = Array.isArray(_object[property]);
-          var endIsArray = Array.isArray(end);
-          var isInterpolationList = !startIsArray && endIsArray;
-          if (isInterpolationList) {
-            _object[property] = this._interpolationFunction(end, value);
-          } else if (typeof end === "object" && end) {
-            this._updateProperties(_object[property], start, end, value);
-          } else {
-            end = this._handleRelativeValue(start, end);
-            if (typeof end === "number") {
-              _object[property] = start + (end - start) * value;
-            }
-          }
-        }
-      };
-      Tween2.prototype._handleRelativeValue = function(start, end) {
-        if (typeof end !== "string") {
-          return end;
-        }
-        if (end.charAt(0) === "+" || end.charAt(0) === "-") {
-          return start + parseFloat(end);
-        }
-        return parseFloat(end);
-      };
-      Tween2.prototype._swapEndStartRepeatValues = function(property) {
-        var tmp = this._valuesStartRepeat[property];
-        var endValue = this._valuesEnd[property];
-        if (typeof endValue === "string") {
-          this._valuesStartRepeat[property] = this._valuesStartRepeat[property] + parseFloat(endValue);
-        } else {
-          this._valuesStartRepeat[property] = this._valuesEnd[property];
-        }
-        this._valuesEnd[property] = tmp;
-      };
-      return Tween2;
-    }()
-  );
-  var nextId = Sequence.nextId;
-  var TWEEN = mainGroup;
-  var getAll = TWEEN.getAll.bind(TWEEN);
-  var removeAll = TWEEN.removeAll.bind(TWEEN);
-  var add = TWEEN.add.bind(TWEEN);
-  var remove = TWEEN.remove.bind(TWEEN);
-  var update = TWEEN.update.bind(TWEEN);
-
-  // client/sprite-animations.ts
-  function create_basic_fade_in_animation(duration, delay) {
-    const add_props = {
-      pos_x: 0,
-      pos_y: 0,
-      scale_x: 0,
-      scale_y: 0,
-      rotation: 0,
-      alpha: 0
-    };
-    const tween_1 = new Tween(add_props).to({ scale_x: 1.5, scale_y: 1.5 }, duration * (1 / 2)).easing(Easing.Quadratic.Out).delay(delay);
-    const tween_2 = new Tween(add_props).to({ scale_x: 1, scale_y: 1 }, duration * (1 / 2)).easing(Easing.Quadratic.In);
-    return {
-      add_props,
-      tween: tween_1.chain(tween_2),
-      all_tweens: [tween_1, tween_2]
-    };
-  }
-  function create_basic_fade_out_animation(duration, delay) {
-    const add_props = {
-      pos_x: 0,
-      pos_y: 0,
-      scale_x: 0,
-      scale_y: 0,
-      rotation: 0,
-      alpha: 0
-    };
-    const tween_1 = new Tween(add_props).to({ scale_x: 0.3, scale_y: 0.3 }, duration * (1 / 2)).easing(Easing.Quadratic.In).delay(delay);
-    const tween_2 = new Tween(add_props).to({ scale_x: -1, scale_y: -1 }, duration * (1 / 2)).easing(Easing.Quadratic.Out);
-    return {
-      add_props,
-      tween: tween_1.chain(tween_2),
-      all_tweens: [tween_1, tween_2]
-    };
-  }
 
   // node_modules/@vue/shared/dist/shared.esm-bundler.js
   // @__NO_SIDE_EFFECTS__
@@ -42663,7 +40933,7 @@ ${e3}`);
   };
   var NO = () => false;
   var extend = Object.assign;
-  var remove2 = (arr, el) => {
+  var remove = (arr, el) => {
     const i3 = arr.indexOf(el);
     if (i3 > -1) {
       arr.splice(i3, 1);
@@ -43285,7 +41555,7 @@ ${e3}`);
     !isReadonly2 && track(toRaw(target), "iterate", ITERATE_KEY);
     return Reflect.get(target, "size", target);
   }
-  function add2(value) {
+  function add(value) {
     value = toRaw(value);
     const target = toRaw(this);
     const proto = getProto(target);
@@ -43406,7 +41676,7 @@ ${e3}`);
         return size(this);
       },
       has,
-      add: add2,
+      add,
       set,
       delete: deleteEntry,
       clear,
@@ -43420,7 +41690,7 @@ ${e3}`);
         return size(this);
       },
       has,
-      add: add2,
+      add,
       set,
       delete: deleteEntry,
       clear,
@@ -44499,7 +42769,7 @@ getter: `, this.getter);
     const unwatch = () => {
       effect2.stop();
       if (scope) {
-        remove2(scope.effects, effect2);
+        remove(scope.effects, effect2);
       }
     };
     if (true) {
@@ -45946,6 +44216,1122 @@ This will fail in production.`);
     return useStore;
   }
 
+  // node_modules/ts-pattern/dist/index.js
+  var t2 = Symbol.for("@ts-pattern/matcher");
+  var e2 = Symbol.for("@ts-pattern/isVariadic");
+  var n2 = "@ts-pattern/anonymous-select-key";
+  var r2 = (t3) => Boolean(t3 && "object" == typeof t3);
+  var i2 = (e3) => e3 && !!e3[t2];
+  var s2 = (n3, o3, c3) => {
+    if (i2(n3)) {
+      const e3 = n3[t2](), { matched: r3, selections: i3 } = e3.match(o3);
+      return r3 && i3 && Object.keys(i3).forEach((t3) => c3(t3, i3[t3])), r3;
+    }
+    if (r2(n3)) {
+      if (!r2(o3))
+        return false;
+      if (Array.isArray(n3)) {
+        if (!Array.isArray(o3))
+          return false;
+        let t3 = [], r3 = [], a3 = [];
+        for (const s3 of n3.keys()) {
+          const o4 = n3[s3];
+          i2(o4) && o4[e2] ? a3.push(o4) : a3.length ? r3.push(o4) : t3.push(o4);
+        }
+        if (a3.length) {
+          if (a3.length > 1)
+            throw new Error("Pattern error: Using `...P.array(...)` several times in a single pattern is not allowed.");
+          if (o3.length < t3.length + r3.length)
+            return false;
+          const e3 = o3.slice(0, t3.length), n4 = 0 === r3.length ? [] : o3.slice(-r3.length), i3 = o3.slice(t3.length, 0 === r3.length ? Infinity : -r3.length);
+          return t3.every((t4, n5) => s2(t4, e3[n5], c3)) && r3.every((t4, e4) => s2(t4, n4[e4], c3)) && (0 === a3.length || s2(a3[0], i3, c3));
+        }
+        return n3.length === o3.length && n3.every((t4, e3) => s2(t4, o3[e3], c3));
+      }
+      return Object.keys(n3).every((e3) => {
+        const r3 = n3[e3];
+        return (e3 in o3 || i2(a3 = r3) && "optional" === a3[t2]().matcherType) && s2(r3, o3[e3], c3);
+        var a3;
+      });
+    }
+    return Object.is(o3, n3);
+  };
+  var o2 = (e3) => {
+    var n3, s3, a3;
+    return r2(e3) ? i2(e3) ? null != (n3 = null == (s3 = (a3 = e3[t2]()).getSelectionKeys) ? void 0 : s3.call(a3)) ? n3 : [] : Array.isArray(e3) ? c2(e3, o2) : c2(Object.values(e3), o2) : [];
+  };
+  var c2 = (t3, e3) => t3.reduce((t4, n3) => t4.concat(e3(n3)), []);
+  function a2(...t3) {
+    if (1 === t3.length) {
+      const [e3] = t3;
+      return (t4) => s2(e3, t4, () => {
+      });
+    }
+    if (2 === t3.length) {
+      const [e3, n3] = t3;
+      return s2(e3, n3, () => {
+      });
+    }
+    throw new Error(`isMatching wasn't given the right number of arguments: expected 1 or 2, received ${t3.length}.`);
+  }
+  function u2(t3) {
+    return Object.assign(t3, { optional: () => l2(t3), and: (e3) => m2(t3, e3), or: (e3) => y2(t3, e3), select: (e3) => void 0 === e3 ? p2(t3) : p2(e3, t3) });
+  }
+  function h2(t3) {
+    return Object.assign(((t4) => Object.assign(t4, { *[Symbol.iterator]() {
+      yield Object.assign(t4, { [e2]: true });
+    } }))(t3), { optional: () => h2(l2(t3)), select: (e3) => h2(void 0 === e3 ? p2(t3) : p2(e3, t3)) });
+  }
+  function l2(e3) {
+    return u2({ [t2]: () => ({ match: (t3) => {
+      let n3 = {};
+      const r3 = (t4, e4) => {
+        n3[t4] = e4;
+      };
+      return void 0 === t3 ? (o2(e3).forEach((t4) => r3(t4, void 0)), { matched: true, selections: n3 }) : { matched: s2(e3, t3, r3), selections: n3 };
+    }, getSelectionKeys: () => o2(e3), matcherType: "optional" }) });
+  }
+  var f2 = (t3, e3) => {
+    for (const n3 of t3)
+      if (!e3(n3))
+        return false;
+    return true;
+  };
+  var g2 = (t3, e3) => {
+    for (const [n3, r3] of t3.entries())
+      if (!e3(r3, n3))
+        return false;
+    return true;
+  };
+  function m2(...e3) {
+    return u2({ [t2]: () => ({ match: (t3) => {
+      let n3 = {};
+      const r3 = (t4, e4) => {
+        n3[t4] = e4;
+      };
+      return { matched: e3.every((e4) => s2(e4, t3, r3)), selections: n3 };
+    }, getSelectionKeys: () => c2(e3, o2), matcherType: "and" }) });
+  }
+  function y2(...e3) {
+    return u2({ [t2]: () => ({ match: (t3) => {
+      let n3 = {};
+      const r3 = (t4, e4) => {
+        n3[t4] = e4;
+      };
+      return c2(e3, o2).forEach((t4) => r3(t4, void 0)), { matched: e3.some((e4) => s2(e4, t3, r3)), selections: n3 };
+    }, getSelectionKeys: () => c2(e3, o2), matcherType: "or" }) });
+  }
+  function d2(e3) {
+    return { [t2]: () => ({ match: (t3) => ({ matched: Boolean(e3(t3)) }) }) };
+  }
+  function p2(...e3) {
+    const r3 = "string" == typeof e3[0] ? e3[0] : void 0, i3 = 2 === e3.length ? e3[1] : "string" == typeof e3[0] ? void 0 : e3[0];
+    return u2({ [t2]: () => ({ match: (t3) => {
+      let e4 = { [null != r3 ? r3 : n2]: t3 };
+      return { matched: void 0 === i3 || s2(i3, t3, (t4, n3) => {
+        e4[t4] = n3;
+      }), selections: e4 };
+    }, getSelectionKeys: () => [null != r3 ? r3 : n2].concat(void 0 === i3 ? [] : o2(i3)) }) });
+  }
+  function v2(t3) {
+    return "number" == typeof t3;
+  }
+  function b2(t3) {
+    return "string" == typeof t3;
+  }
+  function w2(t3) {
+    return "bigint" == typeof t3;
+  }
+  var S2 = u2(d2(function(t3) {
+    return true;
+  }));
+  var O = S2;
+  var j2 = (t3) => Object.assign(u2(t3), { startsWith: (e3) => {
+    return j2(m2(t3, (n3 = e3, d2((t4) => b2(t4) && t4.startsWith(n3)))));
+    var n3;
+  }, endsWith: (e3) => {
+    return j2(m2(t3, (n3 = e3, d2((t4) => b2(t4) && t4.endsWith(n3)))));
+    var n3;
+  }, minLength: (e3) => j2(m2(t3, ((t4) => d2((e4) => b2(e4) && e4.length >= t4))(e3))), maxLength: (e3) => j2(m2(t3, ((t4) => d2((e4) => b2(e4) && e4.length <= t4))(e3))), includes: (e3) => {
+    return j2(m2(t3, (n3 = e3, d2((t4) => b2(t4) && t4.includes(n3)))));
+    var n3;
+  }, regex: (e3) => {
+    return j2(m2(t3, (n3 = e3, d2((t4) => b2(t4) && Boolean(t4.match(n3))))));
+    var n3;
+  } });
+  var E = j2(d2(b2));
+  var K = (t3) => Object.assign(u2(t3), { between: (e3, n3) => K(m2(t3, ((t4, e4) => d2((n4) => v2(n4) && t4 <= n4 && e4 >= n4))(e3, n3))), lt: (e3) => K(m2(t3, ((t4) => d2((e4) => v2(e4) && e4 < t4))(e3))), gt: (e3) => K(m2(t3, ((t4) => d2((e4) => v2(e4) && e4 > t4))(e3))), lte: (e3) => K(m2(t3, ((t4) => d2((e4) => v2(e4) && e4 <= t4))(e3))), gte: (e3) => K(m2(t3, ((t4) => d2((e4) => v2(e4) && e4 >= t4))(e3))), int: () => K(m2(t3, d2((t4) => v2(t4) && Number.isInteger(t4)))), finite: () => K(m2(t3, d2((t4) => v2(t4) && Number.isFinite(t4)))), positive: () => K(m2(t3, d2((t4) => v2(t4) && t4 > 0))), negative: () => K(m2(t3, d2((t4) => v2(t4) && t4 < 0))) });
+  var A = K(d2(v2));
+  var x2 = (t3) => Object.assign(u2(t3), { between: (e3, n3) => x2(m2(t3, ((t4, e4) => d2((n4) => w2(n4) && t4 <= n4 && e4 >= n4))(e3, n3))), lt: (e3) => x2(m2(t3, ((t4) => d2((e4) => w2(e4) && e4 < t4))(e3))), gt: (e3) => x2(m2(t3, ((t4) => d2((e4) => w2(e4) && e4 > t4))(e3))), lte: (e3) => x2(m2(t3, ((t4) => d2((e4) => w2(e4) && e4 <= t4))(e3))), gte: (e3) => x2(m2(t3, ((t4) => d2((e4) => w2(e4) && e4 >= t4))(e3))), positive: () => x2(m2(t3, d2((t4) => w2(t4) && t4 > 0))), negative: () => x2(m2(t3, d2((t4) => w2(t4) && t4 < 0))) });
+  var P = x2(d2(w2));
+  var T = u2(d2(function(t3) {
+    return "boolean" == typeof t3;
+  }));
+  var k2 = u2(d2(function(t3) {
+    return "symbol" == typeof t3;
+  }));
+  var B = u2(d2(function(t3) {
+    return null == t3;
+  }));
+  var _ = { __proto__: null, matcher: t2, optional: l2, array: function(...e3) {
+    return h2({ [t2]: () => ({ match: (t3) => {
+      if (!Array.isArray(t3))
+        return { matched: false };
+      if (0 === e3.length)
+        return { matched: true };
+      const n3 = e3[0];
+      let r3 = {};
+      if (0 === t3.length)
+        return o2(n3).forEach((t4) => {
+          r3[t4] = [];
+        }), { matched: true, selections: r3 };
+      const i3 = (t4, e4) => {
+        r3[t4] = (r3[t4] || []).concat([e4]);
+      };
+      return { matched: t3.every((t4) => s2(n3, t4, i3)), selections: r3 };
+    }, getSelectionKeys: () => 0 === e3.length ? [] : o2(e3[0]) }) });
+  }, set: function(...e3) {
+    return u2({ [t2]: () => ({ match: (t3) => {
+      if (!(t3 instanceof Set))
+        return { matched: false };
+      let n3 = {};
+      if (0 === t3.size)
+        return { matched: true, selections: n3 };
+      if (0 === e3.length)
+        return { matched: true };
+      const r3 = (t4, e4) => {
+        n3[t4] = (n3[t4] || []).concat([e4]);
+      }, i3 = e3[0];
+      return { matched: f2(t3, (t4) => s2(i3, t4, r3)), selections: n3 };
+    }, getSelectionKeys: () => 0 === e3.length ? [] : o2(e3[0]) }) });
+  }, map: function(...e3) {
+    return u2({ [t2]: () => ({ match: (t3) => {
+      if (!(t3 instanceof Map))
+        return { matched: false };
+      let n3 = {};
+      if (0 === t3.size)
+        return { matched: true, selections: n3 };
+      const r3 = (t4, e4) => {
+        n3[t4] = (n3[t4] || []).concat([e4]);
+      };
+      if (0 === e3.length)
+        return { matched: true };
+      var i3;
+      if (1 === e3.length)
+        throw new Error(`\`P.map\` wasn't given enough arguments. Expected (key, value), received ${null == (i3 = e3[0]) ? void 0 : i3.toString()}`);
+      const [o3, c3] = e3;
+      return { matched: g2(t3, (t4, e4) => {
+        const n4 = s2(o3, e4, r3), i4 = s2(c3, t4, r3);
+        return n4 && i4;
+      }), selections: n3 };
+    }, getSelectionKeys: () => 0 === e3.length ? [] : [...o2(e3[0]), ...o2(e3[1])] }) });
+  }, intersection: m2, union: y2, not: function(e3) {
+    return u2({ [t2]: () => ({ match: (t3) => ({ matched: !s2(e3, t3, () => {
+    }) }), getSelectionKeys: () => [], matcherType: "not" }) });
+  }, when: d2, select: p2, any: S2, _: O, string: E, number: A, bigint: P, boolean: T, symbol: k2, nullish: B, instanceOf: function(t3) {
+    return u2(d2(/* @__PURE__ */ function(t4) {
+      return (e3) => e3 instanceof t4;
+    }(t3)));
+  }, shape: function(t3) {
+    return u2(d2(a2(t3)));
+  } };
+  var W = { matched: false, value: void 0 };
+  function N2(t3) {
+    return new $2(t3, W);
+  }
+  var $2 = class _$ {
+    constructor(t3, e3) {
+      this.input = void 0, this.state = void 0, this.input = t3, this.state = e3;
+    }
+    with(...t3) {
+      if (this.state.matched)
+        return this;
+      const e3 = t3[t3.length - 1], r3 = [t3[0]];
+      let i3;
+      3 === t3.length && "function" == typeof t3[1] ? i3 = t3[1] : t3.length > 2 && r3.push(...t3.slice(1, t3.length - 1));
+      let o3 = false, c3 = {};
+      const a3 = (t4, e4) => {
+        o3 = true, c3[t4] = e4;
+      }, u3 = !r3.some((t4) => s2(t4, this.input, a3)) || i3 && !Boolean(i3(this.input)) ? W : { matched: true, value: e3(o3 ? n2 in c3 ? c3[n2] : c3 : this.input, this.input) };
+      return new _$(this.input, u3);
+    }
+    when(t3, e3) {
+      if (this.state.matched)
+        return this;
+      const n3 = Boolean(t3(this.input));
+      return new _$(this.input, n3 ? { matched: true, value: e3(this.input, this.input) } : W);
+    }
+    otherwise(t3) {
+      return this.state.matched ? this.state.value : t3(this.input);
+    }
+    exhaustive() {
+      if (this.state.matched)
+        return this.state.value;
+      let t3;
+      try {
+        t3 = JSON.stringify(this.input);
+      } catch (e3) {
+        t3 = this.input;
+      }
+      throw new Error(`Pattern matching error: no pattern matches value ${t3}`);
+    }
+    run() {
+      return this.exhaustive();
+    }
+    returnType() {
+      return this;
+    }
+  };
+
+  // node_modules/@tweenjs/tween.js/dist/tween.esm.js
+  var Easing = Object.freeze({
+    Linear: Object.freeze({
+      None: function(amount) {
+        return amount;
+      },
+      In: function(amount) {
+        return amount;
+      },
+      Out: function(amount) {
+        return amount;
+      },
+      InOut: function(amount) {
+        return amount;
+      }
+    }),
+    Quadratic: Object.freeze({
+      In: function(amount) {
+        return amount * amount;
+      },
+      Out: function(amount) {
+        return amount * (2 - amount);
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return 0.5 * amount * amount;
+        }
+        return -0.5 * (--amount * (amount - 2) - 1);
+      }
+    }),
+    Cubic: Object.freeze({
+      In: function(amount) {
+        return amount * amount * amount;
+      },
+      Out: function(amount) {
+        return --amount * amount * amount + 1;
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return 0.5 * amount * amount * amount;
+        }
+        return 0.5 * ((amount -= 2) * amount * amount + 2);
+      }
+    }),
+    Quartic: Object.freeze({
+      In: function(amount) {
+        return amount * amount * amount * amount;
+      },
+      Out: function(amount) {
+        return 1 - --amount * amount * amount * amount;
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return 0.5 * amount * amount * amount * amount;
+        }
+        return -0.5 * ((amount -= 2) * amount * amount * amount - 2);
+      }
+    }),
+    Quintic: Object.freeze({
+      In: function(amount) {
+        return amount * amount * amount * amount * amount;
+      },
+      Out: function(amount) {
+        return --amount * amount * amount * amount * amount + 1;
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return 0.5 * amount * amount * amount * amount * amount;
+        }
+        return 0.5 * ((amount -= 2) * amount * amount * amount * amount + 2);
+      }
+    }),
+    Sinusoidal: Object.freeze({
+      In: function(amount) {
+        return 1 - Math.sin((1 - amount) * Math.PI / 2);
+      },
+      Out: function(amount) {
+        return Math.sin(amount * Math.PI / 2);
+      },
+      InOut: function(amount) {
+        return 0.5 * (1 - Math.sin(Math.PI * (0.5 - amount)));
+      }
+    }),
+    Exponential: Object.freeze({
+      In: function(amount) {
+        return amount === 0 ? 0 : Math.pow(1024, amount - 1);
+      },
+      Out: function(amount) {
+        return amount === 1 ? 1 : 1 - Math.pow(2, -10 * amount);
+      },
+      InOut: function(amount) {
+        if (amount === 0) {
+          return 0;
+        }
+        if (amount === 1) {
+          return 1;
+        }
+        if ((amount *= 2) < 1) {
+          return 0.5 * Math.pow(1024, amount - 1);
+        }
+        return 0.5 * (-Math.pow(2, -10 * (amount - 1)) + 2);
+      }
+    }),
+    Circular: Object.freeze({
+      In: function(amount) {
+        return 1 - Math.sqrt(1 - amount * amount);
+      },
+      Out: function(amount) {
+        return Math.sqrt(1 - --amount * amount);
+      },
+      InOut: function(amount) {
+        if ((amount *= 2) < 1) {
+          return -0.5 * (Math.sqrt(1 - amount * amount) - 1);
+        }
+        return 0.5 * (Math.sqrt(1 - (amount -= 2) * amount) + 1);
+      }
+    }),
+    Elastic: Object.freeze({
+      In: function(amount) {
+        if (amount === 0) {
+          return 0;
+        }
+        if (amount === 1) {
+          return 1;
+        }
+        return -Math.pow(2, 10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI);
+      },
+      Out: function(amount) {
+        if (amount === 0) {
+          return 0;
+        }
+        if (amount === 1) {
+          return 1;
+        }
+        return Math.pow(2, -10 * amount) * Math.sin((amount - 0.1) * 5 * Math.PI) + 1;
+      },
+      InOut: function(amount) {
+        if (amount === 0) {
+          return 0;
+        }
+        if (amount === 1) {
+          return 1;
+        }
+        amount *= 2;
+        if (amount < 1) {
+          return -0.5 * Math.pow(2, 10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI);
+        }
+        return 0.5 * Math.pow(2, -10 * (amount - 1)) * Math.sin((amount - 1.1) * 5 * Math.PI) + 1;
+      }
+    }),
+    Back: Object.freeze({
+      In: function(amount) {
+        var s3 = 1.70158;
+        return amount === 1 ? 1 : amount * amount * ((s3 + 1) * amount - s3);
+      },
+      Out: function(amount) {
+        var s3 = 1.70158;
+        return amount === 0 ? 0 : --amount * amount * ((s3 + 1) * amount + s3) + 1;
+      },
+      InOut: function(amount) {
+        var s3 = 1.70158 * 1.525;
+        if ((amount *= 2) < 1) {
+          return 0.5 * (amount * amount * ((s3 + 1) * amount - s3));
+        }
+        return 0.5 * ((amount -= 2) * amount * ((s3 + 1) * amount + s3) + 2);
+      }
+    }),
+    Bounce: Object.freeze({
+      In: function(amount) {
+        return 1 - Easing.Bounce.Out(1 - amount);
+      },
+      Out: function(amount) {
+        if (amount < 1 / 2.75) {
+          return 7.5625 * amount * amount;
+        } else if (amount < 2 / 2.75) {
+          return 7.5625 * (amount -= 1.5 / 2.75) * amount + 0.75;
+        } else if (amount < 2.5 / 2.75) {
+          return 7.5625 * (amount -= 2.25 / 2.75) * amount + 0.9375;
+        } else {
+          return 7.5625 * (amount -= 2.625 / 2.75) * amount + 0.984375;
+        }
+      },
+      InOut: function(amount) {
+        if (amount < 0.5) {
+          return Easing.Bounce.In(amount * 2) * 0.5;
+        }
+        return Easing.Bounce.Out(amount * 2 - 1) * 0.5 + 0.5;
+      }
+    }),
+    generatePow: function(power) {
+      if (power === void 0) {
+        power = 4;
+      }
+      power = power < Number.EPSILON ? Number.EPSILON : power;
+      power = power > 1e4 ? 1e4 : power;
+      return {
+        In: function(amount) {
+          return Math.pow(amount, power);
+        },
+        Out: function(amount) {
+          return 1 - Math.pow(1 - amount, power);
+        },
+        InOut: function(amount) {
+          if (amount < 0.5) {
+            return Math.pow(amount * 2, power) / 2;
+          }
+          return (1 - Math.pow(2 - amount * 2, power)) / 2 + 0.5;
+        }
+      };
+    }
+  });
+  var now = function() {
+    return performance.now();
+  };
+  var Group = (
+    /** @class */
+    function() {
+      function Group2() {
+        this._tweens = {};
+        this._tweensAddedDuringUpdate = {};
+      }
+      Group2.prototype.getAll = function() {
+        var _this = this;
+        return Object.keys(this._tweens).map(function(tweenId) {
+          return _this._tweens[tweenId];
+        });
+      };
+      Group2.prototype.removeAll = function() {
+        this._tweens = {};
+      };
+      Group2.prototype.add = function(tween) {
+        this._tweens[tween.getId()] = tween;
+        this._tweensAddedDuringUpdate[tween.getId()] = tween;
+      };
+      Group2.prototype.remove = function(tween) {
+        delete this._tweens[tween.getId()];
+        delete this._tweensAddedDuringUpdate[tween.getId()];
+      };
+      Group2.prototype.update = function(time, preserve) {
+        if (time === void 0) {
+          time = now();
+        }
+        if (preserve === void 0) {
+          preserve = false;
+        }
+        var tweenIds = Object.keys(this._tweens);
+        if (tweenIds.length === 0) {
+          return false;
+        }
+        while (tweenIds.length > 0) {
+          this._tweensAddedDuringUpdate = {};
+          for (var i3 = 0; i3 < tweenIds.length; i3++) {
+            var tween = this._tweens[tweenIds[i3]];
+            var autoStart = !preserve;
+            if (tween && tween.update(time, autoStart) === false && !preserve) {
+              delete this._tweens[tweenIds[i3]];
+            }
+          }
+          tweenIds = Object.keys(this._tweensAddedDuringUpdate);
+        }
+        return true;
+      };
+      return Group2;
+    }()
+  );
+  var Interpolation = {
+    Linear: function(v3, k3) {
+      var m3 = v3.length - 1;
+      var f3 = m3 * k3;
+      var i3 = Math.floor(f3);
+      var fn = Interpolation.Utils.Linear;
+      if (k3 < 0) {
+        return fn(v3[0], v3[1], f3);
+      }
+      if (k3 > 1) {
+        return fn(v3[m3], v3[m3 - 1], m3 - f3);
+      }
+      return fn(v3[i3], v3[i3 + 1 > m3 ? m3 : i3 + 1], f3 - i3);
+    },
+    Bezier: function(v3, k3) {
+      var b3 = 0;
+      var n3 = v3.length - 1;
+      var pw = Math.pow;
+      var bn = Interpolation.Utils.Bernstein;
+      for (var i3 = 0; i3 <= n3; i3++) {
+        b3 += pw(1 - k3, n3 - i3) * pw(k3, i3) * v3[i3] * bn(n3, i3);
+      }
+      return b3;
+    },
+    CatmullRom: function(v3, k3) {
+      var m3 = v3.length - 1;
+      var f3 = m3 * k3;
+      var i3 = Math.floor(f3);
+      var fn = Interpolation.Utils.CatmullRom;
+      if (v3[0] === v3[m3]) {
+        if (k3 < 0) {
+          i3 = Math.floor(f3 = m3 * (1 + k3));
+        }
+        return fn(v3[(i3 - 1 + m3) % m3], v3[i3], v3[(i3 + 1) % m3], v3[(i3 + 2) % m3], f3 - i3);
+      } else {
+        if (k3 < 0) {
+          return v3[0] - (fn(v3[0], v3[0], v3[1], v3[1], -f3) - v3[0]);
+        }
+        if (k3 > 1) {
+          return v3[m3] - (fn(v3[m3], v3[m3], v3[m3 - 1], v3[m3 - 1], f3 - m3) - v3[m3]);
+        }
+        return fn(v3[i3 ? i3 - 1 : 0], v3[i3], v3[m3 < i3 + 1 ? m3 : i3 + 1], v3[m3 < i3 + 2 ? m3 : i3 + 2], f3 - i3);
+      }
+    },
+    Utils: {
+      Linear: function(p0, p1, t3) {
+        return (p1 - p0) * t3 + p0;
+      },
+      Bernstein: function(n3, i3) {
+        var fc = Interpolation.Utils.Factorial;
+        return fc(n3) / fc(i3) / fc(n3 - i3);
+      },
+      Factorial: /* @__PURE__ */ function() {
+        var a3 = [1];
+        return function(n3) {
+          var s3 = 1;
+          if (a3[n3]) {
+            return a3[n3];
+          }
+          for (var i3 = n3; i3 > 1; i3--) {
+            s3 *= i3;
+          }
+          a3[n3] = s3;
+          return s3;
+        };
+      }(),
+      CatmullRom: function(p0, p1, p22, p3, t3) {
+        var v0 = (p22 - p0) * 0.5;
+        var v1 = (p3 - p1) * 0.5;
+        var t22 = t3 * t3;
+        var t32 = t3 * t22;
+        return (2 * p1 - 2 * p22 + v0 + v1) * t32 + (-3 * p1 + 3 * p22 - 2 * v0 - v1) * t22 + v0 * t3 + p1;
+      }
+    }
+  };
+  var Sequence = (
+    /** @class */
+    function() {
+      function Sequence2() {
+      }
+      Sequence2.nextId = function() {
+        return Sequence2._nextId++;
+      };
+      Sequence2._nextId = 0;
+      return Sequence2;
+    }()
+  );
+  var mainGroup = new Group();
+  var Tween = (
+    /** @class */
+    function() {
+      function Tween2(_object, _group) {
+        if (_group === void 0) {
+          _group = mainGroup;
+        }
+        this._object = _object;
+        this._group = _group;
+        this._isPaused = false;
+        this._pauseStart = 0;
+        this._valuesStart = {};
+        this._valuesEnd = {};
+        this._valuesStartRepeat = {};
+        this._duration = 1e3;
+        this._isDynamic = false;
+        this._initialRepeat = 0;
+        this._repeat = 0;
+        this._yoyo = false;
+        this._isPlaying = false;
+        this._reversed = false;
+        this._delayTime = 0;
+        this._startTime = 0;
+        this._easingFunction = Easing.Linear.None;
+        this._interpolationFunction = Interpolation.Linear;
+        this._chainedTweens = [];
+        this._onStartCallbackFired = false;
+        this._onEveryStartCallbackFired = false;
+        this._id = Sequence.nextId();
+        this._isChainStopped = false;
+        this._propertiesAreSetUp = false;
+        this._goToEnd = false;
+      }
+      Tween2.prototype.getId = function() {
+        return this._id;
+      };
+      Tween2.prototype.isPlaying = function() {
+        return this._isPlaying;
+      };
+      Tween2.prototype.isPaused = function() {
+        return this._isPaused;
+      };
+      Tween2.prototype.getDuration = function() {
+        return this._duration;
+      };
+      Tween2.prototype.to = function(target, duration) {
+        if (duration === void 0) {
+          duration = 1e3;
+        }
+        if (this._isPlaying)
+          throw new Error("Can not call Tween.to() while Tween is already started or paused. Stop the Tween first.");
+        this._valuesEnd = target;
+        this._propertiesAreSetUp = false;
+        this._duration = duration < 0 ? 0 : duration;
+        return this;
+      };
+      Tween2.prototype.duration = function(duration) {
+        if (duration === void 0) {
+          duration = 1e3;
+        }
+        this._duration = duration < 0 ? 0 : duration;
+        return this;
+      };
+      Tween2.prototype.dynamic = function(dynamic) {
+        if (dynamic === void 0) {
+          dynamic = false;
+        }
+        this._isDynamic = dynamic;
+        return this;
+      };
+      Tween2.prototype.start = function(time, overrideStartingValues) {
+        if (time === void 0) {
+          time = now();
+        }
+        if (overrideStartingValues === void 0) {
+          overrideStartingValues = false;
+        }
+        if (this._isPlaying) {
+          return this;
+        }
+        this._group && this._group.add(this);
+        this._repeat = this._initialRepeat;
+        if (this._reversed) {
+          this._reversed = false;
+          for (var property in this._valuesStartRepeat) {
+            this._swapEndStartRepeatValues(property);
+            this._valuesStart[property] = this._valuesStartRepeat[property];
+          }
+        }
+        this._isPlaying = true;
+        this._isPaused = false;
+        this._onStartCallbackFired = false;
+        this._onEveryStartCallbackFired = false;
+        this._isChainStopped = false;
+        this._startTime = time;
+        this._startTime += this._delayTime;
+        if (!this._propertiesAreSetUp || overrideStartingValues) {
+          this._propertiesAreSetUp = true;
+          if (!this._isDynamic) {
+            var tmp = {};
+            for (var prop in this._valuesEnd)
+              tmp[prop] = this._valuesEnd[prop];
+            this._valuesEnd = tmp;
+          }
+          this._setupProperties(this._object, this._valuesStart, this._valuesEnd, this._valuesStartRepeat, overrideStartingValues);
+        }
+        return this;
+      };
+      Tween2.prototype.startFromCurrentValues = function(time) {
+        return this.start(time, true);
+      };
+      Tween2.prototype._setupProperties = function(_object, _valuesStart, _valuesEnd, _valuesStartRepeat, overrideStartingValues) {
+        for (var property in _valuesEnd) {
+          var startValue = _object[property];
+          var startValueIsArray = Array.isArray(startValue);
+          var propType = startValueIsArray ? "array" : typeof startValue;
+          var isInterpolationList = !startValueIsArray && Array.isArray(_valuesEnd[property]);
+          if (propType === "undefined" || propType === "function") {
+            continue;
+          }
+          if (isInterpolationList) {
+            var endValues = _valuesEnd[property];
+            if (endValues.length === 0) {
+              continue;
+            }
+            var temp = [startValue];
+            for (var i3 = 0, l3 = endValues.length; i3 < l3; i3 += 1) {
+              var value = this._handleRelativeValue(startValue, endValues[i3]);
+              if (isNaN(value)) {
+                isInterpolationList = false;
+                console.warn("Found invalid interpolation list. Skipping.");
+                break;
+              }
+              temp.push(value);
+            }
+            if (isInterpolationList) {
+              _valuesEnd[property] = temp;
+            }
+          }
+          if ((propType === "object" || startValueIsArray) && startValue && !isInterpolationList) {
+            _valuesStart[property] = startValueIsArray ? [] : {};
+            var nestedObject = startValue;
+            for (var prop in nestedObject) {
+              _valuesStart[property][prop] = nestedObject[prop];
+            }
+            _valuesStartRepeat[property] = startValueIsArray ? [] : {};
+            var endValues = _valuesEnd[property];
+            if (!this._isDynamic) {
+              var tmp = {};
+              for (var prop in endValues)
+                tmp[prop] = endValues[prop];
+              _valuesEnd[property] = endValues = tmp;
+            }
+            this._setupProperties(nestedObject, _valuesStart[property], endValues, _valuesStartRepeat[property], overrideStartingValues);
+          } else {
+            if (typeof _valuesStart[property] === "undefined" || overrideStartingValues) {
+              _valuesStart[property] = startValue;
+            }
+            if (!startValueIsArray) {
+              _valuesStart[property] *= 1;
+            }
+            if (isInterpolationList) {
+              _valuesStartRepeat[property] = _valuesEnd[property].slice().reverse();
+            } else {
+              _valuesStartRepeat[property] = _valuesStart[property] || 0;
+            }
+          }
+        }
+      };
+      Tween2.prototype.stop = function() {
+        if (!this._isChainStopped) {
+          this._isChainStopped = true;
+          this.stopChainedTweens();
+        }
+        if (!this._isPlaying) {
+          return this;
+        }
+        this._group && this._group.remove(this);
+        this._isPlaying = false;
+        this._isPaused = false;
+        if (this._onStopCallback) {
+          this._onStopCallback(this._object);
+        }
+        return this;
+      };
+      Tween2.prototype.end = function() {
+        this._goToEnd = true;
+        this.update(Infinity);
+        return this;
+      };
+      Tween2.prototype.pause = function(time) {
+        if (time === void 0) {
+          time = now();
+        }
+        if (this._isPaused || !this._isPlaying) {
+          return this;
+        }
+        this._isPaused = true;
+        this._pauseStart = time;
+        this._group && this._group.remove(this);
+        return this;
+      };
+      Tween2.prototype.resume = function(time) {
+        if (time === void 0) {
+          time = now();
+        }
+        if (!this._isPaused || !this._isPlaying) {
+          return this;
+        }
+        this._isPaused = false;
+        this._startTime += time - this._pauseStart;
+        this._pauseStart = 0;
+        this._group && this._group.add(this);
+        return this;
+      };
+      Tween2.prototype.stopChainedTweens = function() {
+        for (var i3 = 0, numChainedTweens = this._chainedTweens.length; i3 < numChainedTweens; i3++) {
+          this._chainedTweens[i3].stop();
+        }
+        return this;
+      };
+      Tween2.prototype.group = function(group) {
+        if (group === void 0) {
+          group = mainGroup;
+        }
+        this._group = group;
+        return this;
+      };
+      Tween2.prototype.delay = function(amount) {
+        if (amount === void 0) {
+          amount = 0;
+        }
+        this._delayTime = amount;
+        return this;
+      };
+      Tween2.prototype.repeat = function(times) {
+        if (times === void 0) {
+          times = 0;
+        }
+        this._initialRepeat = times;
+        this._repeat = times;
+        return this;
+      };
+      Tween2.prototype.repeatDelay = function(amount) {
+        this._repeatDelayTime = amount;
+        return this;
+      };
+      Tween2.prototype.yoyo = function(yoyo) {
+        if (yoyo === void 0) {
+          yoyo = false;
+        }
+        this._yoyo = yoyo;
+        return this;
+      };
+      Tween2.prototype.easing = function(easingFunction) {
+        if (easingFunction === void 0) {
+          easingFunction = Easing.Linear.None;
+        }
+        this._easingFunction = easingFunction;
+        return this;
+      };
+      Tween2.prototype.interpolation = function(interpolationFunction) {
+        if (interpolationFunction === void 0) {
+          interpolationFunction = Interpolation.Linear;
+        }
+        this._interpolationFunction = interpolationFunction;
+        return this;
+      };
+      Tween2.prototype.chain = function() {
+        var tweens = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+          tweens[_i] = arguments[_i];
+        }
+        this._chainedTweens = tweens;
+        return this;
+      };
+      Tween2.prototype.onStart = function(callback) {
+        this._onStartCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onEveryStart = function(callback) {
+        this._onEveryStartCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onUpdate = function(callback) {
+        this._onUpdateCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onRepeat = function(callback) {
+        this._onRepeatCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onComplete = function(callback) {
+        this._onCompleteCallback = callback;
+        return this;
+      };
+      Tween2.prototype.onStop = function(callback) {
+        this._onStopCallback = callback;
+        return this;
+      };
+      Tween2.prototype.update = function(time, autoStart) {
+        var _a;
+        if (time === void 0) {
+          time = now();
+        }
+        if (autoStart === void 0) {
+          autoStart = true;
+        }
+        if (this._isPaused)
+          return true;
+        var endTime = this._startTime + this._duration;
+        if (!this._goToEnd && !this._isPlaying) {
+          if (time > endTime)
+            return false;
+          if (autoStart)
+            this.start(time, true);
+        }
+        this._goToEnd = false;
+        if (time < this._startTime) {
+          return true;
+        }
+        if (this._onStartCallbackFired === false) {
+          if (this._onStartCallback) {
+            this._onStartCallback(this._object);
+          }
+          this._onStartCallbackFired = true;
+        }
+        if (this._onEveryStartCallbackFired === false) {
+          if (this._onEveryStartCallback) {
+            this._onEveryStartCallback(this._object);
+          }
+          this._onEveryStartCallbackFired = true;
+        }
+        var elapsedTime = time - this._startTime;
+        var durationAndDelay = this._duration + ((_a = this._repeatDelayTime) !== null && _a !== void 0 ? _a : this._delayTime);
+        var totalTime = this._duration + this._repeat * durationAndDelay;
+        var elapsed = this._calculateElapsedPortion(elapsedTime, durationAndDelay, totalTime);
+        var value = this._easingFunction(elapsed);
+        var status = this._calculateCompletionStatus(elapsedTime, durationAndDelay);
+        if (status === "repeat") {
+          this._processRepetition(elapsedTime, durationAndDelay);
+        }
+        this._updateProperties(this._object, this._valuesStart, this._valuesEnd, value);
+        if (status === "about-to-repeat") {
+          this._processRepetition(elapsedTime, durationAndDelay);
+        }
+        if (this._onUpdateCallback) {
+          this._onUpdateCallback(this._object, elapsed);
+        }
+        if (status === "repeat" || status === "about-to-repeat") {
+          if (this._onRepeatCallback) {
+            this._onRepeatCallback(this._object);
+          }
+          this._onEveryStartCallbackFired = false;
+        } else if (status === "completed") {
+          this._isPlaying = false;
+          if (this._onCompleteCallback) {
+            this._onCompleteCallback(this._object);
+          }
+          for (var i3 = 0, numChainedTweens = this._chainedTweens.length; i3 < numChainedTweens; i3++) {
+            this._chainedTweens[i3].start(this._startTime + this._duration, false);
+          }
+        }
+        return status !== "completed";
+      };
+      Tween2.prototype._calculateElapsedPortion = function(elapsedTime, durationAndDelay, totalTime) {
+        if (this._duration === 0 || elapsedTime > totalTime) {
+          return 1;
+        }
+        var timeIntoCurrentRepeat = elapsedTime % durationAndDelay;
+        var portion = Math.min(timeIntoCurrentRepeat / this._duration, 1);
+        if (portion === 0 && elapsedTime !== 0 && elapsedTime % this._duration === 0) {
+          return 1;
+        }
+        return portion;
+      };
+      Tween2.prototype._calculateCompletionStatus = function(elapsedTime, durationAndDelay) {
+        if (this._duration !== 0 && elapsedTime < this._duration) {
+          return "playing";
+        }
+        if (this._repeat <= 0) {
+          return "completed";
+        }
+        if (elapsedTime === this._duration) {
+          return "about-to-repeat";
+        }
+        return "repeat";
+      };
+      Tween2.prototype._processRepetition = function(elapsedTime, durationAndDelay) {
+        var completeCount = Math.min(Math.trunc((elapsedTime - this._duration) / durationAndDelay) + 1, this._repeat);
+        if (isFinite(this._repeat)) {
+          this._repeat -= completeCount;
+        }
+        for (var property in this._valuesStartRepeat) {
+          var valueEnd = this._valuesEnd[property];
+          if (!this._yoyo && typeof valueEnd === "string") {
+            this._valuesStartRepeat[property] = this._valuesStartRepeat[property] + parseFloat(valueEnd);
+          }
+          if (this._yoyo) {
+            this._swapEndStartRepeatValues(property);
+          }
+          this._valuesStart[property] = this._valuesStartRepeat[property];
+        }
+        if (this._yoyo) {
+          this._reversed = !this._reversed;
+        }
+        this._startTime += durationAndDelay * completeCount;
+      };
+      Tween2.prototype._updateProperties = function(_object, _valuesStart, _valuesEnd, value) {
+        for (var property in _valuesEnd) {
+          if (_valuesStart[property] === void 0) {
+            continue;
+          }
+          var start = _valuesStart[property] || 0;
+          var end = _valuesEnd[property];
+          var startIsArray = Array.isArray(_object[property]);
+          var endIsArray = Array.isArray(end);
+          var isInterpolationList = !startIsArray && endIsArray;
+          if (isInterpolationList) {
+            _object[property] = this._interpolationFunction(end, value);
+          } else if (typeof end === "object" && end) {
+            this._updateProperties(_object[property], start, end, value);
+          } else {
+            end = this._handleRelativeValue(start, end);
+            if (typeof end === "number") {
+              _object[property] = start + (end - start) * value;
+            }
+          }
+        }
+      };
+      Tween2.prototype._handleRelativeValue = function(start, end) {
+        if (typeof end !== "string") {
+          return end;
+        }
+        if (end.charAt(0) === "+" || end.charAt(0) === "-") {
+          return start + parseFloat(end);
+        }
+        return parseFloat(end);
+      };
+      Tween2.prototype._swapEndStartRepeatValues = function(property) {
+        var tmp = this._valuesStartRepeat[property];
+        var endValue = this._valuesEnd[property];
+        if (typeof endValue === "string") {
+          this._valuesStartRepeat[property] = this._valuesStartRepeat[property] + parseFloat(endValue);
+        } else {
+          this._valuesStartRepeat[property] = this._valuesEnd[property];
+        }
+        this._valuesEnd[property] = tmp;
+      };
+      return Tween2;
+    }()
+  );
+  var nextId = Sequence.nextId;
+  var TWEEN = mainGroup;
+  var getAll = TWEEN.getAll.bind(TWEEN);
+  var removeAll = TWEEN.removeAll.bind(TWEEN);
+  var add2 = TWEEN.add.bind(TWEEN);
+  var remove2 = TWEEN.remove.bind(TWEEN);
+  var update = TWEEN.update.bind(TWEEN);
+
+  // client/sprite-animations.ts
+  function create_basic_fade_in_animation(duration, delay) {
+    const add_props = {
+      pos_x: 0,
+      pos_y: 0,
+      scale_x: 0,
+      scale_y: 0,
+      rotation: 0,
+      alpha: 0
+    };
+    const tween_1 = new Tween(add_props).to({ scale_x: 1.5, scale_y: 1.5 }, duration * (1 / 2)).easing(Easing.Quadratic.Out).delay(delay);
+    const tween_2 = new Tween(add_props).to({ scale_x: 1, scale_y: 1 }, duration * (1 / 2)).easing(Easing.Quadratic.In);
+    return {
+      add_props,
+      tween: tween_1.chain(tween_2),
+      all_tweens: [tween_1, tween_2]
+    };
+  }
+  function create_basic_fade_out_animation(duration, delay) {
+    const add_props = {
+      pos_x: 0,
+      pos_y: 0,
+      scale_x: 0,
+      scale_y: 0,
+      rotation: 0,
+      alpha: 0
+    };
+    const tween_1 = new Tween(add_props).to({ scale_x: 0.3, scale_y: 0.3 }, duration * (1 / 2)).easing(Easing.Quadratic.In).delay(delay);
+    const tween_2 = new Tween(add_props).to({ scale_x: -1, scale_y: -1 }, duration * (1 / 2)).easing(Easing.Quadratic.Out);
+    return {
+      add_props,
+      tween: tween_1.chain(tween_2),
+      all_tweens: [tween_1, tween_2]
+    };
+  }
+
   // client/effects-manager.ts
   var EffectsManager = class {
     _active_animations = [];
@@ -46506,10 +45892,10 @@ This will fail in production.`);
       },
       load_editor_data() {
         window.medium.reset_instances();
-        send_admin_event2("LoadEditorData");
+        send_admin_event("LoadEditorData");
       },
       save_module_server(module_id, module_update) {
-        send_admin_event2({
+        send_admin_event({
           UpdateModule: [
             module_id,
             {
@@ -46541,42 +45927,42 @@ This will fail in production.`);
         }
       },
       save_conductor_server(conductor) {
-        send_admin_event2({ UpdateConductor: conductor });
+        send_admin_event({ UpdateConductor: conductor });
       },
       save_character_animation_server(character_animation) {
-        send_admin_event2({ UpdateCharacterAnimation: character_animation });
+        send_admin_event({ UpdateCharacterAnimation: character_animation });
       },
       set_conductor(conductor) {
         state.conductor = conductor;
       },
       browse_folder(path2) {
-        send_admin_event2({ BrowseFolder: path2 });
+        send_admin_event({ BrowseFolder: path2 });
       },
       set_current_file_browser_result(result) {
         state.current_file_browser_result = result;
       },
       get_resource_server(path2) {
-        send_admin_event2({ GetResource: path2 });
+        send_admin_event({ GetResource: path2 });
       },
       create_map_server(map2) {
-        send_admin_event2({ CreateMap: [map2.module_id, map2] });
+        send_admin_event({ CreateMap: [map2.module_id, map2] });
       },
       create_scene_server(module_id, scene) {
-        send_admin_event2({ CreateScene: [module_id, scene] });
+        send_admin_event({ CreateScene: [module_id, scene] });
       },
       create_script_server(module_id, script) {
-        send_admin_event2({ CreateScript: [module_id, script] });
+        send_admin_event({ CreateScript: [module_id, script] });
       },
       update_script_server(script) {
-        send_admin_event2({ UpdateScript: script });
+        send_admin_event({ UpdateScript: script });
       },
       create_character_animation_server(module_id, character_animation) {
-        send_admin_event2({
+        send_admin_event({
           CreateCharacterAnimation: [module_id, character_animation]
         });
       },
       update_instance_node(module_id, game_instance_id, world_id, entity_update) {
-        send_admin_event2({
+        send_admin_event({
           UpdateInstancedNode: [
             module_id,
             game_instance_id,
@@ -46586,36 +45972,36 @@ This will fail in production.`);
         });
       },
       update_data_in_scene_node_on_server(resource_path, path2, game_node_id, entity_update) {
-        send_admin_event2({
+        send_admin_event({
           UpdateSceneNode: {
             UpdateData: [resource_path, path2, game_node_id, entity_update]
           }
         });
       },
       update_scene_root_with_node(resource_path, node) {
-        send_admin_event2({
+        send_admin_event({
           OverwriteSceneRoot: [resource_path, node]
         });
       },
       add_child_to_scene_on_server(resource_path, path2, game_node_id, data) {
-        send_admin_event2({
+        send_admin_event({
           UpdateSceneNode: {
             AddChild: [resource_path, path2, game_node_id, data]
           }
         });
       },
       remove_child_from_scene_on_server(resource_path, path2, data) {
-        send_admin_event2({
+        send_admin_event({
           UpdateSceneNode: {
             RemoveChild: [resource_path, path2, data]
           }
         });
       },
       delete_scene_server(scene) {
-        send_admin_event2({ DeleteScene: scene });
+        send_admin_event({ DeleteScene: scene });
       },
       update_map_server(map_update) {
-        send_admin_event2({
+        send_admin_event({
           UpdateMap: {
             chunk: null,
             ...map_update
@@ -46623,38 +46009,38 @@ This will fail in production.`);
         });
       },
       delete_map_server(map2) {
-        send_admin_event2({ DeleteMap: [map2.module_id, map2] });
+        send_admin_event({ DeleteMap: [map2.module_id, map2] });
       },
       create_tileset_server(module_id, tileset) {
-        send_admin_event2({ CreateTileset: [module_id, tileset] });
+        send_admin_event({ CreateTileset: [module_id, tileset] });
       },
       update_tileset_server(resource_path, tile_update) {
-        send_admin_event2({ UpdateTileset: [resource_path, tile_update] });
+        send_admin_event({ UpdateTileset: [resource_path, tile_update] });
       },
       update_character_animation_server(character_animation) {
-        send_admin_event2({ UpdateCharacterAnimation: character_animation });
+        send_admin_event({ UpdateCharacterAnimation: character_animation });
       },
       delete_tileset_server(tileset) {
-        send_admin_event2({ DeleteTileset: tileset });
+        send_admin_event({ DeleteTileset: tileset });
       },
       create_module_server(name) {
-        send_admin_event2({ CreateModule: name });
+        send_admin_event({ CreateModule: name });
       },
       delete_module_server(id) {
-        send_admin_event2({ DeleteModule: id });
+        send_admin_event({ DeleteModule: id });
       },
       create_font_server(module_id, font) {
-        send_admin_event2({
+        send_admin_event({
           CudResource: { Font: [module_id, { Create: font }] }
         });
       },
       save_font_server(module_id, font) {
-        send_admin_event2({
+        send_admin_event({
           CudResource: { Font: [module_id, { Update: font }] }
         });
       },
       delete_font_server(module_id, font) {
-        send_admin_event2({
+        send_admin_event({
           CudResource: { Font: [module_id, { Delete: font }] }
         });
       }
@@ -46664,7 +46050,7 @@ This will fail in production.`);
       ...actions
     };
   });
-  function send_admin_event2(event) {
+  function send_admin_event(event) {
     if (window?.medium?.communication_state?.is_connection_open) {
       window.medium.communication_state.ws_connection.send(JSON.stringify(event));
     } else {
@@ -46692,6 +46078,9 @@ This will fail in production.`);
   function get_generic_game_node(node) {
     return Object.values(node)[0];
   }
+
+  // shared/index.ts
+  var RENDER_SCALE = 32;
 
   // client/entity-layer-manager.ts
   var EntityLayerManager = class {
@@ -46757,6 +46146,11 @@ This will fail in production.`);
         );
       }
     }
+    change_layer_transparency(number) {
+      for (const key of Object.keys(this._entity_layer_map)) {
+        this._entity_layer_map[key].alpha = number;
+      }
+    }
   };
 
   // ui/src/stores/game-instances.ts
@@ -46778,18 +46172,22 @@ This will fail in production.`);
           scene,
           resource_module
         );
+        const new_blueprint_render = {
+          scene_resource_path,
+          render_graph_data,
+          is_pinned,
+          module_id
+        };
+        window.medium.set_blueprint_renderer(
+          state.blueprint_render,
+          new_blueprint_render
+        );
         state.blueprint_render = {
           scene_resource_path,
           render_graph_data,
           is_pinned,
           module_id
         };
-        if (!state.blueprint_render.render_graph_data?.render_root.container) {
-          return;
-        }
-        window.medium.set_blueprint_renderer(
-          state.blueprint_render
-        );
       },
       add_game_instance_data(instance_id, world_id, create_container) {
         if (!state.game_instance_data_map[instance_id]) {
@@ -47447,7 +46845,637 @@ This will fail in production.`);
     return typeof game_node.entity_id === "number" ? game_node.entity_id : game_node.id;
   }
 
+  // client/renderer/create_game_renderer.ts
+  function set_blueprint_render(render_system, game_instances, blueprint_render_data_old, blueprint_render_data_new) {
+    if (render_system.current_main_instance.instance_id && render_system.current_main_instance.world_id) {
+      const worlds = game_instances[render_system.current_main_instance.instance_id];
+      const game_instance = worlds[render_system.current_main_instance.world_id];
+      if (game_instance) {
+        if (blueprint_render_data_old && blueprint_render_data_old.render_graph_data) {
+          blueprint_render_data_old.render_graph_data.entity_layer_manager.clear(
+            game_instance.renderer.layer_map
+          );
+        }
+        if (blueprint_render_data_new && blueprint_render_data_new.render_graph_data) {
+          blueprint_render_data_new.render_graph_data.entity_layer_manager.change_layer_transparency(
+            0.5
+          );
+          blueprint_render_data_new.render_graph_data.entity_layer_manager.attach_to_layer_map(
+            game_instance.renderer.layer_map
+          );
+          for (const [id, render_node] of Object.entries(
+            blueprint_render_data_new.render_graph_data.entity_node_to_render_node_map
+          )) {
+            const node = blueprint_render_data_new.render_graph_data.entity_node_map[id];
+            if (node) {
+              blueprint_render_data_new.render_graph_data.entity_layer_manager.update_container_position(
+                render_key(get_generic_game_node(node)),
+                render_node.container
+              );
+            }
+          }
+        }
+      }
+    }
+  }
+  async function create_game_renderer() {
+    const canvas_wrapper = document.getElementById("canvas");
+    if (!canvas_wrapper) {
+      throw new Error("Could not find canvas!");
+    }
+    const width = canvas_wrapper.offsetWidth;
+    const height = canvas_wrapper.offsetHeight;
+    const renderer = await autoDetectRenderer({
+      backgroundColor: config_exports.get_bg_color(),
+      width,
+      height
+    });
+    const mainContainer = new Container();
+    const global_mouse_position = new import_strongly_typed_events2.SimpleEventDispatcher();
+    mainContainer.interactive = true;
+    mainContainer.on("mousemove", (event) => {
+      global_mouse_position.dispatch(event);
+    });
+    canvas_wrapper.appendChild(renderer.view.canvas);
+    const dummy_texture_tileset_missing = Texture.from(
+      await create_dummy_pic("#ff00ff")
+    );
+    const dummy_texture_loading = Texture.from(await create_dummy_pic("#ffff00"));
+    return {
+      renderer,
+      isDirty: true,
+      dummy_texture_tileset_missing,
+      dummy_texture_loading,
+      blueprint_render_data: null,
+      current_main_instance: {},
+      global_mouse_position,
+      stage: mainContainer
+    };
+  }
+  var create_dummy_pic = async (color) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      console.error("Could not get 2d context...?", canvas);
+      return new ImageBitmap();
+    }
+    canvas.width = 100;
+    canvas.height = 100;
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    try {
+      return await createImageBitmap(canvas);
+    } catch (e3) {
+      return new ImageBitmap();
+    }
+  };
+  var create_instance_rendering = (world_params) => {
+    const main_container = new Container();
+    const main_container_wrapper = new Container();
+    const layer_map = createLayerMap();
+    const blueprint_container = new Container();
+    addLayerMapToContainer(main_container, layer_map);
+    layer_map.ObjectsFront.addChild(blueprint_container);
+    main_container_wrapper.addChild(main_container);
+    const camera = create_camera();
+    if (world_params.camera_ref) {
+      console.log("Setting camera ref", world_params.camera_ref);
+      camera.set_camera_ref(world_params.camera_ref);
+    }
+    return {
+      camera,
+      layer_map,
+      main_container,
+      blueprint_container,
+      main_container_wrapper,
+      terrain_params: world_params.terrain_params
+    };
+  };
+  var setup_resizing = (renderer) => {
+    const canvas_wrapper = document.getElementById("canvas");
+    if (!canvas_wrapper) {
+      console.error("Could not find canvas wrapper!");
+      return;
+    }
+    window.addEventListener("resize", () => {
+      viewPortResize(
+        canvas_wrapper.offsetWidth,
+        canvas_wrapper.offsetHeight,
+        renderer.renderer
+      );
+    });
+    viewPortResize(
+      canvas_wrapper.offsetWidth,
+      canvas_wrapper.offsetHeight,
+      renderer.renderer
+    );
+    const twitch_chat = document.getElementById("twitch-chat") || {
+      className: "",
+      clientWidth: 0,
+      style: { width: "" }
+    };
+    const toggle_chat_element = document.getElementById("toggle-chat");
+    if (toggle_chat_element && twitch_chat) {
+      twitch_chat.className = "";
+      toggle_chat_element.addEventListener("click", (e3) => {
+        const toggle = e3.target;
+        if (toggle.innerHTML === "\xBB") {
+          twitch_chat.style.width = "0px";
+          toggle.innerHTML = "\xAB";
+        } else {
+          twitch_chat.style.width = "";
+          toggle.innerHTML = "\xBB";
+        }
+        viewPortResize(
+          canvas_wrapper.offsetWidth,
+          canvas_wrapper.offsetHeight,
+          renderer.renderer
+        );
+      });
+    }
+  };
+  var viewPortResize = (width, height, renderer) => {
+    renderer.canvas.style.width = `${width}px`;
+    renderer.canvas.style.height = `${height}px`;
+    set_stage_width(width);
+    set_stage_height(height);
+    renderer.resize(get_stage_width(), get_stage_height());
+  };
+
+  // client/is_admin.ts
+  var is_admin = !!new URLSearchParams(window.location.search).get("admin");
+
+  // client/login-menu.ts
+  var loginMenuConfig = {
+    name: "HLayout",
+    config: {
+      columns: [
+        {
+          cols: { xs: 12, sm: 10, md: 8, lg: 6, xl: 5 },
+          component: { name: "LoginMenu" }
+        }
+      ]
+    }
+  };
+
+  // client/reconnect-menu.ts
+  var reconnectMenuConfig = {
+    name: "HLayout",
+    config: {
+      columns: [
+        {
+          cols: { xs: 12, sm: 10, md: 8, lg: 6, xl: 5 },
+          component: { name: "ReconnectMenu" }
+        }
+      ]
+    }
+  };
+
+  // client/menu/index.ts
+  var MenuSystem = class _MenuSystem {
+    _menus;
+    static static_menus = {
+      LoginMenu: "login-menu",
+      ReconnectMenu: "reconnect-menu"
+    };
+    constructor() {
+      this._menus = {};
+      this.create_menu_from_config(
+        loginMenuConfig,
+        _MenuSystem.static_menus.LoginMenu
+      );
+      this.create_menu_from_config(
+        reconnectMenuConfig,
+        _MenuSystem.static_menus.ReconnectMenu
+      );
+    }
+    create_menu_from_config(config, menu_name) {
+      if (!this._menus[menu_name]) {
+        this._menus[menu_name] = config;
+      } else {
+        throw Error("Menu already existed");
+      }
+    }
+    get(menu_name) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error(`Tried to get menu that did not exist. ${menu_name}`);
+      }
+      return menu;
+    }
+    activate(menu_name, context2) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error(`Tried to activate menu that did not exist. ${menu_name}`);
+      }
+      if (context2) {
+        window.medium_gui.ui.set_menu_context(context2);
+      }
+      window.medium_gui.ui.set_menu(menu);
+      window.medium_gui.ui.open_menu();
+    }
+    toggle(menu_name) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error("Tried to deactivate menu that did not exist.");
+      }
+      window.medium_gui.ui.set_menu(menu);
+      window.medium_gui.ui.toggle_menu();
+    }
+    deactivate(menu_name) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error("Tried to deactivate menu that did not exist.");
+      }
+      window.medium_gui.ui.close_menu();
+    }
+    remove(menu_name) {
+      const menu = this._menus[menu_name];
+      if (!menu) {
+        throw Error("Tried to deactivate menu that did not exist.");
+      }
+      window.medium_gui.ui.close_menu();
+      delete this._menus[menu_name];
+    }
+  };
+
+  // client/communication/setup_communication_system.ts
+  function setup_communication_system(menu_system) {
+    const ws_connection = new WebSocket(config_exports.getWsSocketUrl());
+    const communication_state = {
+      is_connection_open: false,
+      is_connection_ready: false,
+      inbox: [],
+      ws_connection
+    };
+    reset_communication_system(
+      communication_state,
+      menu_system,
+      void 0,
+      ws_connection
+    );
+    return communication_state;
+  }
+  function reset_communication_system(communication_state, menu_system, on_open_callback, websocket) {
+    const ws_connection = websocket ? websocket : new WebSocket(config_exports.getWsSocketUrl());
+    const mainDoorStatusUrl = config_exports.getMainDoorStatusUrl();
+    ws_connection.onopen = () => {
+      communication_state.is_connection_open = true;
+      if (on_open_callback) {
+        on_open_callback();
+      }
+    };
+    ws_connection.onclose = (close_event) => {
+      window.medium.hide_loading_indicator();
+      if (close_event.reason === "Logged in elsewhere") {
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "logged_in_elsewhere",
+            message: "You seem to have logged in somewhere else, please login again if you want to use this device.",
+            mainDoorStatusUrl
+          }
+        });
+      } else {
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "connection_closed",
+            message: "Seems like the connection to the server was closed, please try to reconnect.",
+            mainDoorStatusUrl
+          }
+        });
+      }
+      communication_state.is_connection_open = false;
+    };
+    ws_connection.onmessage = (message) => {
+      try {
+        communication_state.inbox.push(
+          JSON.parse(message.data)
+        );
+      } catch (e3) {
+        console.error(e3);
+      }
+    };
+    ws_connection.onerror = (event) => {
+      communication_state.is_connection_open = false;
+      window.medium.hide_loading_indicator();
+      menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+        connection_error: {
+          type: "connection_error",
+          message: "Connection to server encountered an error, please try to reconnect.",
+          mainDoorStatusUrl
+        }
+      });
+      console.error(event);
+    };
+    communication_state.is_connection_open = false;
+    communication_state.is_connection_ready = false;
+    communication_state.inbox = [];
+    communication_state.ws_connection = ws_connection;
+  }
+  var last_message_send = Date.now();
+  function check_for_connection_ready(menu_system, communication_state) {
+    for (const communication of communication_state.inbox) {
+      if (communication == "AlreadyConnected") {
+        communication_state.ws_connection.close(1e3);
+        menu_system.activate(MenuSystem.static_menus.ReconnectMenu, {
+          connection_error: {
+            type: "already_connected",
+            message: "You are already connected somewhere. Maybe check your browser tabs?"
+          }
+        });
+        continue;
+      }
+      if ("ConnectionReady" in communication) {
+        communication_state.is_connection_ready = true;
+        try {
+          sessionStorage.setItem("session_id", communication.ConnectionReady[0]);
+        } catch (e3) {
+          console.error(
+            "Seems like you block local storage or something, you'll have to login on every reload."
+          );
+        }
+        setInterval(() => {
+          if (Date.now() - last_message_send > 1e4) {
+            is_admin ? send_admin_event2("Ping", communication_state) : send_system_event("Ping", communication_state);
+          }
+        }, 1e4);
+      }
+    }
+  }
+  function send_system_event(input, communication_state) {
+    send_event({ GuestToSystemEvent: input }, communication_state);
+  }
+  function send_admin_event2(input, communication_state) {
+    send_event(input, communication_state);
+  }
+  function send_module_event(input, communication_state) {
+    send_event({ GuestToModuleEvent: input }, communication_state);
+  }
+  function send_event(input, communication_state) {
+    if (communication_state.is_connection_open) {
+      communication_state.ws_connection.send(JSON.stringify(input));
+      last_message_send = Date.now();
+    }
+  }
+  function send_ticket(ticket, communication_state) {
+    communication_state.ws_connection.send(JSON.stringify(ticket));
+  }
+
+  // client/input/create_guest_input.ts
+  function create_guest_input() {
+    const guest_input = {
+      key_bindings: {},
+      button_pressed_map: {},
+      key_pressed_map: {},
+      x_axis_callback: () => 0,
+      y_axis_callback: () => 0,
+      is_button_pressed: () => true,
+      is_dirty: true
+    };
+    window.addEventListener("blur", () => {
+      for (const key of Object.keys(guest_input.key_bindings)) {
+        guest_input.button_pressed_map[guest_input.key_bindings[key]] = false;
+        guest_input.key_pressed_map[key] = false;
+      }
+      guest_input.is_dirty = true;
+    });
+    window.addEventListener("contextmenu", () => {
+      for (const key of Object.keys(guest_input.key_bindings)) {
+        guest_input.button_pressed_map[guest_input.key_bindings[key]] = false;
+        guest_input.key_pressed_map[key] = false;
+      }
+      guest_input.is_dirty = true;
+    });
+    return guest_input;
+  }
+
+  // client/renderer/render.ts
+  function render(render_system) {
+    render_system.renderer.render(render_system.stage);
+  }
+
+  // client/renderer/toast.ts
+  function createToast(alertLevel, text) {
+    window.medium_gui.toast.add_toast(text, alertLevel);
+  }
+
+  // client/input/index.ts
+  var Button = /* @__PURE__ */ ((Button2) => {
+    Button2["Jump"] = "Jump";
+    Button2["Left"] = "Left";
+    Button2["Right"] = "Right";
+    Button2["Up"] = "Up";
+    Button2["Down"] = "Down";
+    Button2["Start"] = "Start";
+    Button2["Action1"] = "Action1";
+    Button2["Action2"] = "Action2";
+    Button2["Exit"] = "Exit";
+    return Button2;
+  })(Button || {});
+  function create_guest_input_event(guest_input_state) {
+    return {
+      x_axis: guest_input_state.x_axis_callback(),
+      y_axis: guest_input_state.y_axis_callback(),
+      start: guest_input_state.button_pressed_map["Start" /* Start */] ? guest_input_state.button_pressed_map["Start" /* Start */] : false,
+      jump: guest_input_state.button_pressed_map["Jump" /* Jump */] ? guest_input_state.button_pressed_map["Jump" /* Jump */] : false,
+      up: guest_input_state.button_pressed_map["Up" /* Up */] ? guest_input_state.button_pressed_map["Up" /* Up */] : false,
+      down: guest_input_state.button_pressed_map["Down" /* Down */] ? guest_input_state.button_pressed_map["Down" /* Down */] : false,
+      left: guest_input_state.button_pressed_map["Left" /* Left */] ? guest_input_state.button_pressed_map["Left" /* Left */] : false,
+      right: guest_input_state.button_pressed_map["Right" /* Right */] ? guest_input_state.button_pressed_map["Right" /* Right */] : false,
+      action_1: guest_input_state.button_pressed_map["Action1" /* Action1 */] ? guest_input_state.button_pressed_map["Action1" /* Action1 */] : false,
+      action_2: guest_input_state.button_pressed_map["Action2" /* Action2 */] ? guest_input_state.button_pressed_map["Action2" /* Action2 */] : false
+    };
+  }
+
+  // client/plugins.ts
+  var import_strongly_typed_events3 = __toESM(require_dist8());
+  var input_plugins = [];
+  var activate_plugin = new import_strongly_typed_events3.SimpleEventDispatcher();
+  var active_plugin;
+  activate_plugin.subscribe((plugin_id) => {
+    active_plugin = plugin_id;
+  });
+  function get_plugin(id) {
+    return input_plugins.find((i3) => i3.id === id);
+  }
+  function set_active_plugin(name, input_toggle_icon) {
+    switch (name) {
+      case "CONTROLLER":
+        input_toggle_icon.textContent = "videogame_asset";
+        break;
+      case "KEYBOARD":
+        input_toggle_icon.textContent = "keyboard";
+        break;
+      case "MOUSE":
+        input_toggle_icon.textContent = "mouse";
+        break;
+      default:
+        return;
+    }
+    try {
+      localStorage.setItem("preferred_input", name);
+    } catch (e3) {
+      console.error(
+        "Seems like you block local storage or something, you'll have to choose your input method on every reload."
+      );
+    }
+    activate_plugin.dispatch(name);
+  }
+  function setup_plugin_system() {
+    window.register_input_plugin = (plugin) => {
+      input_plugins.push(plugin);
+    };
+    document.addEventListener("DOMContentLoaded", () => {
+      const input_toggle = document.getElementById("toggle-input-method");
+      const input_toggle_icon = document.querySelector(
+        "#toggle-input-method span"
+      );
+      if (!input_toggle || !input_toggle_icon) {
+        console.error("No input toggle?!");
+        return;
+      }
+      input_toggle.addEventListener("click", () => {
+        if (active_plugin === "MOUSE") {
+          set_active_plugin("CONTROLLER", input_toggle_icon);
+          return;
+        }
+        if (active_plugin === "CONTROLLER") {
+          if (input_plugins.find((i3) => i3.id === "KEYBOARD")) {
+            set_active_plugin("KEYBOARD", input_toggle_icon);
+          } else {
+            set_active_plugin("MOUSE", input_toggle_icon);
+          }
+          return;
+        }
+        if (active_plugin === "KEYBOARD") {
+          set_active_plugin("MOUSE", input_toggle_icon);
+          return;
+        }
+      });
+    });
+  }
+  var initialize_input_plugins = (guest_input) => {
+    for (const plugin of input_plugins) {
+      plugin.initialize(guest_input, activate_plugin);
+      plugin.update = plugin.update ? plugin.update : () => {
+      };
+    }
+    const input_toggle_icon = document.querySelector("#toggle-input-method span");
+    if (!input_toggle_icon) {
+      console.error("No input toggle?!");
+      return;
+    }
+    try {
+      const preferred_input = localStorage.getItem("preferred_input");
+      if (preferred_input) {
+        set_active_plugin(preferred_input, input_toggle_icon);
+      } else {
+        set_active_plugin("MOUSE", input_toggle_icon);
+      }
+    } catch (e3) {
+      set_active_plugin("MOUSE", input_toggle_icon);
+      console.error(
+        "Seems like you block local storage or something, you'll have to choose your input method on every reload."
+      );
+    }
+  };
+  var update_input_plugins = () => {
+    for (const plugin of input_plugins) {
+      plugin.update && plugin.update(plugin.id === active_plugin);
+    }
+  };
+
+  // client/button-feedback.ts
+  var setup_button_feedback = () => {
+    const button_element_map = {};
+    const input_feedback = document.getElementById("input-feedback");
+    const input_toggle = document.getElementById("toggle-input-feedback");
+    const input_toggle_icon = document.querySelector(
+      "#toggle-input-feedback span"
+    );
+    if (!input_toggle || !input_feedback || !input_toggle_icon) {
+      console.error("Button feedback elements are missing!");
+      return (_2) => {
+      };
+    }
+    input_toggle.addEventListener("click", () => {
+      if (input_toggle_icon.textContent === "visibility") {
+        input_toggle_icon.textContent = "visibility_off";
+        input_feedback.className = "feedback-disabled";
+      } else {
+        input_toggle_icon.textContent = "visibility";
+        input_feedback.className = "";
+      }
+    });
+    for (const button in Button) {
+      button_element_map[button] = document.getElementById(`input-feedback-${button}`) || { className: "" };
+    }
+    return (guest_input) => {
+      for (const button in Button) {
+        if (guest_input.button_pressed_map[button]) {
+          button_element_map[button].className = "button-active";
+        } else {
+          button_element_map[button].className = "button-inactive";
+        }
+      }
+    };
+  };
+
+  // client/menu/twitch.ts
+  function send_twitch_login(communication_state, message) {
+    const event = {
+      ProviderLoggedIn: {
+        login_provider: "Twitch",
+        auth_code: message.data.auth_code ? message.data.auth_code : null,
+        access_token: message.data.access_token ? message.data.access_token : null
+      }
+    };
+    is_admin ? send_admin_event2(event, communication_state) : send_system_event(event, communication_state);
+  }
+  function login(communication_state) {
+    const twitch_login_channel = new BroadcastChannel(twitch_login_channel_name);
+    const signal_channel = new BroadcastChannel(signal_channel_name);
+    return new Promise((resolve, reject) => {
+      try {
+        twitch_login_channel.onmessage = async (message) => {
+          try {
+            send_twitch_login(communication_state, message);
+          } catch (e3) {
+            console.error(e3);
+            reject(e3);
+          }
+        };
+        signal_channel.onmessage = async (message) => {
+          const signal = message.data;
+          if (signal === "LoginSuccess") {
+            resolve();
+          }
+          if (signal === "LoginFailed") {
+            reject();
+          }
+          twitch_login_channel.close();
+          signal_channel.close();
+        };
+        if (twitch_service.authToken) {
+          send_twitch_login(communication_state, {
+            data: { access_token: twitch_service.authToken }
+          });
+        } else {
+          window.open(
+            `https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=uchpfk924k24ozzra8f6i7bpthn33r&redirect_uri=${config_exports.getTwitchAuthRedirect()}`,
+            "",
+            "width=500,height=500"
+          );
+        }
+      } catch (e3) {
+        console.error(e3);
+        reject(e3);
+      }
+    });
+  }
+
   // client/resources/index.ts
+  var import_strongly_typed_events4 = __toESM(require_dist8());
   var ResourceManager = class {
     constructor(_base_url, renderer, module_id) {
       this._base_url = _base_url;
@@ -48115,8 +48143,13 @@ This will fail in production.`);
       },
       create_display_object,
       create_collider_graphic,
-      set_blueprint_renderer: (blueprint_render_data) => {
-        set_blueprint_render(render_system, instances, blueprint_render_data);
+      set_blueprint_renderer: (blueprint_render_data_old, blueprint_render_data_new) => {
+        set_blueprint_render(
+          render_system,
+          instances,
+          blueprint_render_data_old,
+          blueprint_render_data_new
+        );
       },
       adjust_brush_hover: (instance_id, world_id, brush) => {
         if (instances[instance_id] && instances[instance_id][world_id]) {
@@ -48631,7 +48664,7 @@ This will fail in production.`);
               }
               toggle_grid(new_instance.renderer);
               const guaranteed_world_id_as_admin = w_id;
-              send_admin_event(
+              send_admin_event2(
                 {
                   WorldInitialized: [
                     module_id,
@@ -48706,7 +48739,7 @@ This will fail in production.`);
       }
       if (guest_input.is_dirty && current_active_instance_id !== null && current_active_module_id !== null) {
         if (is_admin) {
-          send_admin_event(
+          send_admin_event2(
             {
               ControlInput: [
                 current_active_module_id,

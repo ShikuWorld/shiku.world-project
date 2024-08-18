@@ -93,4 +93,10 @@ export class EntityLayerManager {
       );
     }
   }
+
+  change_layer_transparency(number: number) {
+    for (const key of Object.keys(this._entity_layer_map)) {
+      this._entity_layer_map[key as LayerKind].alpha = number;
+    }
+  }
 }

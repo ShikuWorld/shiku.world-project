@@ -80,8 +80,16 @@ export const setup_medium_api = (
     },
     create_display_object,
     create_collider_graphic,
-    set_blueprint_renderer: (blueprint_render_data) => {
-      set_blueprint_render(render_system, instances, blueprint_render_data);
+    set_blueprint_renderer: (
+      blueprint_render_data_old,
+      blueprint_render_data_new,
+    ) => {
+      set_blueprint_render(
+        render_system,
+        instances,
+        blueprint_render_data_old,
+        blueprint_render_data_new,
+      );
     },
     adjust_brush_hover: (
       instance_id: string,
