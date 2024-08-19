@@ -300,6 +300,9 @@ export const use_resources_store = defineStore("resources", () => {
                 },
                 resource_manager,
               );
+              window.medium.update_blueprint_render_positions(
+                blueprint_render.value.render_graph_data as RenderGraphData,
+              );
             }
           },
         )

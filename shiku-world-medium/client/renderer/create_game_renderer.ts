@@ -14,7 +14,11 @@ import {
 import { Config } from "../config";
 import { create_camera } from "@/client/camera";
 import { SimpleEventDispatcher } from "strongly-typed-events";
-import { GameInstancesStore, render_key } from "@/editor/stores/game-instances";
+import {
+  GameInstancesStore,
+  render_key,
+  RenderGraphData,
+} from "@/editor/stores/game-instances";
 import { GameInstanceMap } from "@/client/game-instance";
 import { WorldParams } from "@/editor/blueprints/WorldParams";
 import {
@@ -62,18 +66,38 @@ export function set_blueprint_render(
         blueprint_render_data_new.render_graph_data.entity_layer_manager.attach_to_layer_map(
           game_instance.renderer.layer_map,
         );
-        for (const [id, render_node] of Object.entries(
-          blueprint_render_data_new.render_graph_data
-            .entity_node_to_render_node_map,
-        )) {
-          const node =
-            blueprint_render_data_new.render_graph_data.entity_node_map[id];
-          if (node) {
-            blueprint_render_data_new.render_graph_data.entity_layer_manager.update_container_position(
-              render_key(get_generic_game_node(node)),
-              render_node.container,
-            );
-          }
+        update_blueprint_render_positions(
+          render_system,
+          game_instances,
+          blueprint_render_data_new.render_graph_data,
+        );
+      }
+    }
+  }
+}
+
+export function update_blueprint_render_positions(
+  render_system: RenderSystem,
+  game_instances: GameInstanceMap,
+  render_graph_data: RenderGraphData,
+) {
+  if (
+    render_system.current_main_instance.instance_id &&
+    render_system.current_main_instance.world_id
+  ) {
+    const worlds =
+      game_instances[render_system.current_main_instance.instance_id];
+    const game_instance = worlds[render_system.current_main_instance.world_id];
+    if (game_instance && render_graph_data) {
+      for (const [id, render_node] of Object.entries(
+        render_graph_data.entity_node_to_render_node_map,
+      )) {
+        const node = render_graph_data.entity_node_map[id];
+        if (node) {
+          render_graph_data.entity_layer_manager.update_container_position(
+            render_key(get_generic_game_node(node)),
+            render_node.container,
+          );
         }
       }
     }

@@ -10,6 +10,7 @@ import { Isometry } from "@/client/entities";
 import { use_resources_store } from "@/editor/stores/resources";
 import {
   GameInstancesStore,
+  RenderGraphData,
   use_game_instances_store,
 } from "@/editor/stores/game-instances";
 import {
@@ -36,6 +37,9 @@ declare global {
           | GameInstancesStore["blueprint_render"]
           | undefined,
         blueprint_render_data_new: GameInstancesStore["blueprint_render"],
+      ) => void;
+      update_blueprint_render_positions: (
+        blueprint_render_data: RenderGraphData,
       ) => void;
       sync_grid_with_layer_p_scaling: (
         instance_id: string,

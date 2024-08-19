@@ -40,6 +40,35 @@ export function create_basic_fade_in_animation(
   };
 }
 
+export function create_entity_fade_in_animation_1(
+  duration: number,
+  delay: number,
+): SpriteEffect {
+  const add_props: SpriteEffectProperties = {
+    pos_x: 0,
+    pos_y: -30,
+    scale_x: -0.8,
+    scale_y: -0.8,
+    rotation: 0,
+    alpha: -1,
+  };
+  const tween_1 = new Tween(add_props)
+    .to(
+      { pos_y: -80, alpha: -0.5, scale_x: -0.5, scale_y: -0.5 },
+      duration * (1 / 2),
+    )
+    .easing(Easing.Quadratic.Out)
+    .delay(delay);
+  const tween_2 = new Tween(add_props)
+    .to({ pos_y: 0, scale_x: 0, scale_y: 0, alpha: 0 }, duration * (1 / 2))
+    .easing(Easing.Quadratic.In);
+  return {
+    add_props,
+    tween: tween_1.chain(tween_2),
+    all_tweens: [tween_1, tween_2],
+  };
+}
+
 export function create_basic_fade_out_animation(
   duration: number,
   delay: number,

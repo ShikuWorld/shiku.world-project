@@ -154,9 +154,9 @@ export class EffectsManager {
       base_props: {
         pos_x: sprite.x,
         pos_y: sprite.y,
-        scale_x: 0,
-        scale_y: 0,
-        rotation: 0,
+        scale_x: 1,
+        scale_y: 1,
+        rotation: sprite.rotation,
         alpha: 1,
       },
       fade_in:

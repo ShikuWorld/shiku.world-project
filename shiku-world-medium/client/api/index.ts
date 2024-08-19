@@ -8,7 +8,10 @@ import {
   ResourceManagerMap,
 } from "@/client/resources";
 import { Container } from "pixi.js";
-import { set_blueprint_render } from "@/client/renderer/create_game_renderer";
+import {
+  set_blueprint_render,
+  update_blueprint_render_positions,
+} from "@/client/renderer/create_game_renderer";
 import { adjust_selected_tile_size, toggle_grid } from "@/client/renderer/grid";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { reset_communication_system } from "@/client/communication/setup_communication_system";
@@ -89,6 +92,13 @@ export const setup_medium_api = (
         instances,
         blueprint_render_data_old,
         blueprint_render_data_new,
+      );
+    },
+    update_blueprint_render_positions: (blueprint_render_data) => {
+      update_blueprint_render_positions(
+        render_system,
+        instances,
+        blueprint_render_data,
       );
     },
     adjust_brush_hover: (

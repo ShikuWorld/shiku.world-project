@@ -28,8 +28,8 @@ import { TextRender } from "@/editor/blueprints/TextRender";
 import { TextStyleAlign } from "pixi.js/lib/scene/text/TextStyle";
 import { EffectsManager } from "@/client/effects-manager";
 import {
-  create_basic_fade_in_animation,
   create_basic_fade_out_animation,
+  create_entity_fade_in_animation_1,
 } from "@/client/sprite-animations";
 import { EntityLayerManager } from "@/client/entity-layer-manager";
 import { render_key } from "@/editor/stores/game-instances";
@@ -506,7 +506,7 @@ export function create_display_object(
                   id_in_tileset,
                   tileset_path,
                 ),
-                create_basic_fade_in_animation(300, 0),
+                create_entity_fade_in_animation_1(500, 0),
                 create_basic_fade_out_animation(300, 0),
               );
               return sprite;
@@ -531,7 +531,7 @@ export function create_display_object(
                     id_in_tileset,
                     tileset_path,
                   ),
-                  create_basic_fade_in_animation(300, 0),
+                  create_entity_fade_in_animation_1(500, 0),
                   create_basic_fade_out_animation(300, 0),
                 );
                 return sprite;
