@@ -26,6 +26,7 @@ export const use_medium_api = (): typeof window.medium =>
         ) => {},
         create_container: () => new Container(),
         set_blueprint_renderer: () => {},
+        update_blueprint_render_positions: () => {},
         create_display_object: () => new Container(),
         get_resource_manager: (_: string) => undefined,
         swap_main_render_instance: (_a: string, _b: string) => {},
