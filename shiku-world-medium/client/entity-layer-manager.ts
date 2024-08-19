@@ -88,9 +88,9 @@ export class EntityLayerManager {
 
   update_container_position(renderKey: number | string, container: Container) {
     if (this._container_map[renderKey]) {
-      this._container_map[renderKey].container.position.copyFrom(
-        container.toGlobal({ x: 0, y: 0 }),
-      );
+      const new_pos = container.toGlobal({ x: 0, y: 0 });
+      this._container_map[renderKey].container.position.copyFrom(new_pos);
+      this._container_map[renderKey].container.zIndex = new_pos.y;
     }
   }
 

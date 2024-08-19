@@ -2947,7 +2947,7 @@ Deprecated since v${version}`);
   });
 
   // node_modules/@pixi/colord/index.mjs
-  var r, t, n, e, u, a, o, i, s, h, b, g, d, f, c, l, p, v, m, y, N, x, M, H, $, j, w, S, k;
+  var r, t, n, e, u, a, o, i, s2, h, b, g, d, f, c, l, p, v, m, y, N, x, M, H, $, j, w, S, k;
   var init_colord = __esm({
     "node_modules/@pixi/colord/index.mjs"() {
       "use strict";
@@ -2971,7 +2971,7 @@ Deprecated since v${version}`);
         return { r: n(r3.r), g: n(r3.g), b: n(r3.b), a: n(r3.a, 3) };
       };
       i = /^#([0-9a-f]{3,8})$/i;
-      s = function(r3) {
+      s2 = function(r3) {
         var t3 = r3.toString(16);
         return t3.length < 2 ? "0" + t3 : t3;
       };
@@ -2982,8 +2982,8 @@ Deprecated since v${version}`);
       b = function(r3) {
         var t3 = r3.h, n3 = r3.s, e3 = r3.v, u3 = r3.a;
         t3 = t3 / 360 * 6, n3 /= 100, e3 /= 100;
-        var a3 = Math.floor(t3), o3 = e3 * (1 - n3), i3 = e3 * (1 - (t3 - a3) * n3), s3 = e3 * (1 - (1 - t3 + a3) * n3), h3 = a3 % 6;
-        return { r: 255 * [e3, i3, o3, o3, s3, e3][h3], g: 255 * [s3, e3, e3, i3, o3, o3][h3], b: 255 * [o3, o3, s3, e3, e3, i3][h3], a: u3 };
+        var a3 = Math.floor(t3), o3 = e3 * (1 - n3), i3 = e3 * (1 - (t3 - a3) * n3), s4 = e3 * (1 - (1 - t3 + a3) * n3), h3 = a3 % 6;
+        return { r: 255 * [e3, i3, o3, o3, s4, e3][h3], g: 255 * [s4, e3, e3, i3, o3, o3][h3], b: 255 * [o3, o3, s4, e3, e3, i3][h3], a: u3 };
       };
       g = function(r3) {
         return { h: u(r3.h), s: e(r3.s, 0, 100), l: e(r3.l, 0, 100), a: e(r3.a) };
@@ -3025,12 +3025,12 @@ Deprecated since v${version}`);
         var i3 = g({ h: Number(n3), s: Number(e3), l: Number(u3), a: Number(o3) });
         return f(i3);
       }, "hsl"], [function(r3) {
-        var n3 = r3.h, a3 = r3.s, o3 = r3.v, i3 = r3.a, s3 = void 0 === i3 ? 1 : i3;
+        var n3 = r3.h, a3 = r3.s, o3 = r3.v, i3 = r3.a, s4 = void 0 === i3 ? 1 : i3;
         if (!t(n3) || !t(a3) || !t(o3))
           return null;
         var h3 = function(r4) {
           return { h: u(r4.h), s: e(r4.s, 0, 100), v: e(r4.v, 0, 100), a: e(r4.a) };
-        }({ h: Number(n3), s: Number(a3), v: Number(o3), a: Number(s3) });
+        }({ h: Number(n3), s: Number(a3), v: Number(o3), a: Number(s4) });
         return b(h3);
       }, "hsv"]] };
       N = function(r3, t3) {
@@ -3068,7 +3068,7 @@ Deprecated since v${version}`);
         }, r3.prototype.isLight = function() {
           return H(this.rgba) >= 0.5;
         }, r3.prototype.toHex = function() {
-          return r4 = o(this.rgba), t3 = r4.r, e3 = r4.g, u3 = r4.b, i3 = (a3 = r4.a) < 1 ? s(n(255 * a3)) : "", "#" + s(t3) + s(e3) + s(u3) + i3;
+          return r4 = o(this.rgba), t3 = r4.r, e3 = r4.g, u3 = r4.b, i3 = (a3 = r4.a) < 1 ? s2(n(255 * a3)) : "", "#" + s2(t3) + s2(e3) + s2(u3) + i3;
           var r4, t3, e3, u3, a3, i3;
         }, r3.prototype.toRgb = function() {
           return o(this.rgba);
@@ -4994,8 +4994,8 @@ Deprecated since v${version}`);
           if (rt.x <= lt.x || lb.y <= lt.y) {
             return false;
           }
-          const s3 = Math.sign(transform2.a * transform2.d - transform2.b * transform2.c);
-          if (s3 === 0) {
+          const s4 = Math.sign(transform2.a * transform2.d - transform2.b * transform2.c);
+          if (s4 === 0) {
             return false;
           }
           transform2.apply(lt, lt);
@@ -5005,8 +5005,8 @@ Deprecated since v${version}`);
           if (Math.max(lt.x, lb.x, rt.x, rb.x) <= x0 || Math.min(lt.x, lb.x, rt.x, rb.x) >= x1 || Math.max(lt.y, lb.y, rt.y, rb.y) <= y0 || Math.min(lt.y, lb.y, rt.y, rb.y) >= y1) {
             return false;
           }
-          const nx = s3 * (lb.y - lt.y);
-          const ny = s3 * (lt.x - lb.x);
+          const nx = s4 * (lb.y - lt.y);
+          const ny = s4 * (lt.x - lb.x);
           const n00 = nx * x0 + ny * y0;
           const n10 = nx * x1 + ny * y0;
           const n01 = nx * x0 + ny * y1;
@@ -5014,8 +5014,8 @@ Deprecated since v${version}`);
           if (Math.max(n00, n10, n01, n11) <= nx * lt.x + ny * lt.y || Math.min(n00, n10, n01, n11) >= nx * rb.x + ny * rb.y) {
             return false;
           }
-          const mx = s3 * (lt.y - rt.y);
-          const my = s3 * (rt.x - lt.x);
+          const mx = s4 * (lt.y - rt.y);
+          const my = s4 * (rt.x - lt.x);
           const m00 = mx * x0 + my * y0;
           const m10 = mx * x1 + my * y0;
           const m01 = mx * x0 + my * y1;
@@ -21967,9 +21967,9 @@ Deprecated since v${version}`);
       _CanvasTextMetrics.graphemeSegmenter = (() => {
         if (typeof Intl?.Segmenter === "function") {
           const segmenter = new Intl.Segmenter();
-          return (s3) => [...segmenter.segment(s3)].map((x3) => x3.segment);
+          return (s4) => [...segmenter.segment(s4)].map((x3) => x3.segment);
         }
-        return (s3) => [...s3];
+        return (s4) => [...s4];
       })();
       _CanvasTextMetrics.experimentalLetterSpacing = false;
       _CanvasTextMetrics._fonts = {};
@@ -35693,8 +35693,8 @@ ${parts.join("\n")}
             let ev = new EventManagement_1.EventManagement(() => this.unsub(sub.handler));
             let nargs = Array.prototype.slice.call(args);
             nargs.push(ev);
-            let s3 = sub;
-            s3.execute(executeAsync, scope, nargs);
+            let s4 = sub;
+            s4.execute(executeAsync, scope, nargs);
             this.cleanup(sub);
             if (!executeAsync && ev.propagationStopped) {
               return { propagationStopped: true };
@@ -40977,8 +40977,8 @@ ${e3}`);
     return str.charAt(0).toUpperCase() + str.slice(1);
   });
   var toHandlerKey = cacheStringFunction((str) => {
-    const s3 = str ? `on${capitalize(str)}` : ``;
-    return s3;
+    const s4 = str ? `on${capitalize(str)}` : ``;
+    return s4;
   });
   var hasChanged = (value, oldValue) => !Object.is(value, oldValue);
   var def = (obj, key, value, writable = false) => {
@@ -42644,10 +42644,10 @@ getter: `, this.getter);
         );
       }
     }
-    const warnInvalidSource = (s3) => {
+    const warnInvalidSource = (s4) => {
       warn$1(
         `Invalid watch source: `,
-        s3,
+        s4,
         `A watch source can only be a getter/effect function, a ref, a reactive object, or an array of these types.`
       );
     };
@@ -42667,16 +42667,16 @@ getter: `, this.getter);
       forceTrigger = true;
     } else if (isArray(source2)) {
       isMultiSource = true;
-      forceTrigger = source2.some((s3) => isReactive(s3) || isShallow(s3));
-      getter = () => source2.map((s3) => {
-        if (isRef(s3)) {
-          return s3.value;
-        } else if (isReactive(s3)) {
-          return reactiveGetter(s3);
-        } else if (isFunction(s3)) {
-          return callWithErrorHandling(s3, instance, 2);
+      forceTrigger = source2.some((s4) => isReactive(s4) || isShallow(s4));
+      getter = () => source2.map((s4) => {
+        if (isRef(s4)) {
+          return s4.value;
+        } else if (isReactive(s4)) {
+          return reactiveGetter(s4);
+        } else if (isFunction(s4)) {
+          return callWithErrorHandling(s4, instance, 2);
         } else {
-          warnInvalidSource(s3);
+          warnInvalidSource(s4);
         }
       });
     } else if (isFunction(source2)) {
@@ -44222,7 +44222,7 @@ This will fail in production.`);
   var n2 = "@ts-pattern/anonymous-select-key";
   var r2 = (t3) => Boolean(t3 && "object" == typeof t3);
   var i2 = (e3) => e3 && !!e3[t2];
-  var s2 = (n3, o3, c3) => {
+  var s3 = (n3, o3, c3) => {
     if (i2(n3)) {
       const e3 = n3[t2](), { matched: r3, selections: i3 } = e3.match(o3);
       return r3 && i3 && Object.keys(i3).forEach((t3) => c3(t3, i3[t3])), r3;
@@ -44234,8 +44234,8 @@ This will fail in production.`);
         if (!Array.isArray(o3))
           return false;
         let t3 = [], r3 = [], a3 = [];
-        for (const s3 of n3.keys()) {
-          const o4 = n3[s3];
+        for (const s4 of n3.keys()) {
+          const o4 = n3[s4];
           i2(o4) && o4[e2] ? a3.push(o4) : a3.length ? r3.push(o4) : t3.push(o4);
         }
         if (a3.length) {
@@ -44244,32 +44244,32 @@ This will fail in production.`);
           if (o3.length < t3.length + r3.length)
             return false;
           const e3 = o3.slice(0, t3.length), n4 = 0 === r3.length ? [] : o3.slice(-r3.length), i3 = o3.slice(t3.length, 0 === r3.length ? Infinity : -r3.length);
-          return t3.every((t4, n5) => s2(t4, e3[n5], c3)) && r3.every((t4, e4) => s2(t4, n4[e4], c3)) && (0 === a3.length || s2(a3[0], i3, c3));
+          return t3.every((t4, n5) => s3(t4, e3[n5], c3)) && r3.every((t4, e4) => s3(t4, n4[e4], c3)) && (0 === a3.length || s3(a3[0], i3, c3));
         }
-        return n3.length === o3.length && n3.every((t4, e3) => s2(t4, o3[e3], c3));
+        return n3.length === o3.length && n3.every((t4, e3) => s3(t4, o3[e3], c3));
       }
       return Object.keys(n3).every((e3) => {
         const r3 = n3[e3];
-        return (e3 in o3 || i2(a3 = r3) && "optional" === a3[t2]().matcherType) && s2(r3, o3[e3], c3);
+        return (e3 in o3 || i2(a3 = r3) && "optional" === a3[t2]().matcherType) && s3(r3, o3[e3], c3);
         var a3;
       });
     }
     return Object.is(o3, n3);
   };
   var o2 = (e3) => {
-    var n3, s3, a3;
-    return r2(e3) ? i2(e3) ? null != (n3 = null == (s3 = (a3 = e3[t2]()).getSelectionKeys) ? void 0 : s3.call(a3)) ? n3 : [] : Array.isArray(e3) ? c2(e3, o2) : c2(Object.values(e3), o2) : [];
+    var n3, s4, a3;
+    return r2(e3) ? i2(e3) ? null != (n3 = null == (s4 = (a3 = e3[t2]()).getSelectionKeys) ? void 0 : s4.call(a3)) ? n3 : [] : Array.isArray(e3) ? c2(e3, o2) : c2(Object.values(e3), o2) : [];
   };
   var c2 = (t3, e3) => t3.reduce((t4, n3) => t4.concat(e3(n3)), []);
   function a2(...t3) {
     if (1 === t3.length) {
       const [e3] = t3;
-      return (t4) => s2(e3, t4, () => {
+      return (t4) => s3(e3, t4, () => {
       });
     }
     if (2 === t3.length) {
       const [e3, n3] = t3;
-      return s2(e3, n3, () => {
+      return s3(e3, n3, () => {
       });
     }
     throw new Error(`isMatching wasn't given the right number of arguments: expected 1 or 2, received ${t3.length}.`);
@@ -44288,7 +44288,7 @@ This will fail in production.`);
       const r3 = (t4, e4) => {
         n3[t4] = e4;
       };
-      return void 0 === t3 ? (o2(e3).forEach((t4) => r3(t4, void 0)), { matched: true, selections: n3 }) : { matched: s2(e3, t3, r3), selections: n3 };
+      return void 0 === t3 ? (o2(e3).forEach((t4) => r3(t4, void 0)), { matched: true, selections: n3 }) : { matched: s3(e3, t3, r3), selections: n3 };
     }, getSelectionKeys: () => o2(e3), matcherType: "optional" }) });
   }
   var f2 = (t3, e3) => {
@@ -44309,7 +44309,7 @@ This will fail in production.`);
       const r3 = (t4, e4) => {
         n3[t4] = e4;
       };
-      return { matched: e3.every((e4) => s2(e4, t3, r3)), selections: n3 };
+      return { matched: e3.every((e4) => s3(e4, t3, r3)), selections: n3 };
     }, getSelectionKeys: () => c2(e3, o2), matcherType: "and" }) });
   }
   function y2(...e3) {
@@ -44318,7 +44318,7 @@ This will fail in production.`);
       const r3 = (t4, e4) => {
         n3[t4] = e4;
       };
-      return c2(e3, o2).forEach((t4) => r3(t4, void 0)), { matched: e3.some((e4) => s2(e4, t3, r3)), selections: n3 };
+      return c2(e3, o2).forEach((t4) => r3(t4, void 0)), { matched: e3.some((e4) => s3(e4, t3, r3)), selections: n3 };
     }, getSelectionKeys: () => c2(e3, o2), matcherType: "or" }) });
   }
   function d2(e3) {
@@ -44328,7 +44328,7 @@ This will fail in production.`);
     const r3 = "string" == typeof e3[0] ? e3[0] : void 0, i3 = 2 === e3.length ? e3[1] : "string" == typeof e3[0] ? void 0 : e3[0];
     return u2({ [t2]: () => ({ match: (t3) => {
       let e4 = { [null != r3 ? r3 : n2]: t3 };
-      return { matched: void 0 === i3 || s2(i3, t3, (t4, n3) => {
+      return { matched: void 0 === i3 || s3(i3, t3, (t4, n3) => {
         e4[t4] = n3;
       }), selections: e4 };
     }, getSelectionKeys: () => [null != r3 ? r3 : n2].concat(void 0 === i3 ? [] : o2(i3)) }) });
@@ -44388,7 +44388,7 @@ This will fail in production.`);
       const i3 = (t4, e4) => {
         r3[t4] = (r3[t4] || []).concat([e4]);
       };
-      return { matched: t3.every((t4) => s2(n3, t4, i3)), selections: r3 };
+      return { matched: t3.every((t4) => s3(n3, t4, i3)), selections: r3 };
     }, getSelectionKeys: () => 0 === e3.length ? [] : o2(e3[0]) }) });
   }, set: function(...e3) {
     return u2({ [t2]: () => ({ match: (t3) => {
@@ -44402,7 +44402,7 @@ This will fail in production.`);
       const r3 = (t4, e4) => {
         n3[t4] = (n3[t4] || []).concat([e4]);
       }, i3 = e3[0];
-      return { matched: f2(t3, (t4) => s2(i3, t4, r3)), selections: n3 };
+      return { matched: f2(t3, (t4) => s3(i3, t4, r3)), selections: n3 };
     }, getSelectionKeys: () => 0 === e3.length ? [] : o2(e3[0]) }) });
   }, map: function(...e3) {
     return u2({ [t2]: () => ({ match: (t3) => {
@@ -44421,12 +44421,12 @@ This will fail in production.`);
         throw new Error(`\`P.map\` wasn't given enough arguments. Expected (key, value), received ${null == (i3 = e3[0]) ? void 0 : i3.toString()}`);
       const [o3, c3] = e3;
       return { matched: g2(t3, (t4, e4) => {
-        const n4 = s2(o3, e4, r3), i4 = s2(c3, t4, r3);
+        const n4 = s3(o3, e4, r3), i4 = s3(c3, t4, r3);
         return n4 && i4;
       }), selections: n3 };
     }, getSelectionKeys: () => 0 === e3.length ? [] : [...o2(e3[0]), ...o2(e3[1])] }) });
   }, intersection: m2, union: y2, not: function(e3) {
-    return u2({ [t2]: () => ({ match: (t3) => ({ matched: !s2(e3, t3, () => {
+    return u2({ [t2]: () => ({ match: (t3) => ({ matched: !s3(e3, t3, () => {
     }) }), getSelectionKeys: () => [], matcherType: "not" }) });
   }, when: d2, select: p2, any: S2, _: O, string: E, number: A, bigint: P, boolean: T, symbol: k2, nullish: B, instanceOf: function(t3) {
     return u2(d2(/* @__PURE__ */ function(t4) {
@@ -44452,7 +44452,7 @@ This will fail in production.`);
       let o3 = false, c3 = {};
       const a3 = (t4, e4) => {
         o3 = true, c3[t4] = e4;
-      }, u3 = !r3.some((t4) => s2(t4, this.input, a3)) || i3 && !Boolean(i3(this.input)) ? W : { matched: true, value: e3(o3 ? n2 in c3 ? c3[n2] : c3 : this.input, this.input) };
+      }, u3 = !r3.some((t4) => s3(t4, this.input, a3)) || i3 && !Boolean(i3(this.input)) ? W : { matched: true, value: e3(o3 ? n2 in c3 ? c3[n2] : c3 : this.input, this.input) };
       return new _$(this.input, u3);
     }
     when(t3, e3) {
@@ -44635,19 +44635,19 @@ This will fail in production.`);
     }),
     Back: Object.freeze({
       In: function(amount) {
-        var s3 = 1.70158;
-        return amount === 1 ? 1 : amount * amount * ((s3 + 1) * amount - s3);
+        var s4 = 1.70158;
+        return amount === 1 ? 1 : amount * amount * ((s4 + 1) * amount - s4);
       },
       Out: function(amount) {
-        var s3 = 1.70158;
-        return amount === 0 ? 0 : --amount * amount * ((s3 + 1) * amount + s3) + 1;
+        var s4 = 1.70158;
+        return amount === 0 ? 0 : --amount * amount * ((s4 + 1) * amount + s4) + 1;
       },
       InOut: function(amount) {
-        var s3 = 1.70158 * 1.525;
+        var s4 = 1.70158 * 1.525;
         if ((amount *= 2) < 1) {
-          return 0.5 * (amount * amount * ((s3 + 1) * amount - s3));
+          return 0.5 * (amount * amount * ((s4 + 1) * amount - s4));
         }
-        return 0.5 * ((amount -= 2) * amount * ((s3 + 1) * amount + s3) + 2);
+        return 0.5 * ((amount -= 2) * amount * ((s4 + 1) * amount + s4) + 2);
       }
     }),
     Bounce: Object.freeze({
@@ -44803,15 +44803,15 @@ This will fail in production.`);
       Factorial: /* @__PURE__ */ function() {
         var a3 = [1];
         return function(n3) {
-          var s3 = 1;
+          var s4 = 1;
           if (a3[n3]) {
             return a3[n3];
           }
           for (var i3 = n3; i3 > 1; i3--) {
-            s3 *= i3;
+            s4 *= i3;
           }
-          a3[n3] = s3;
-          return s3;
+          a3[n3] = s4;
+          return s4;
         };
       }(),
       CatmullRom: function(p0, p1, p22, p3, t3) {
@@ -46141,9 +46141,10 @@ This will fail in production.`);
     }
     update_container_position(renderKey, container) {
       if (this._container_map[renderKey]) {
-        this._container_map[renderKey].container.position.copyFrom(
-          container.toGlobal({ x: 0, y: 0 })
-        );
+        const new_pos = container.toGlobal({ x: 0, y: 0 });
+        this._container_map[renderKey].container.position.copyFrom(new_pos);
+        this._container_map[renderKey].container.zIndex = new_pos.y;
+        s;
       }
     }
     change_layer_transparency(number) {
