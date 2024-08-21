@@ -146,7 +146,6 @@ export class EffectsManager {
       is_animated &&
       this.sprite_by_gid_map[gid].main_animation_sprite_key == null
     ) {
-      console.log(is_animated, this.sprite_by_gid_map, gid);
       this.sprite_by_gid_map[gid].main_animation_sprite_key = unique_key;
       sprite.play();
     }
@@ -178,6 +177,25 @@ export class EffectsManager {
     tile_key: string,
   ): MainSpriteEffects | undefined {
     return this.sprite_effects_map[tile_key];
+  }
+
+  start_fade_out_animation(
+    tile_key: string,
+    on_complete: () => void = () => {},
+  ) {
+    const sprite_effect = this.sprite_effects_map[tile_key];
+    this.remove_sprite_effect(tile_key);
+    if (!sprite_effect) {
+      console.error("Could not find sprite effect to remove?!", tile_key);
+    } else {
+      this._active_animations.push(sprite_effect);
+      sprite_effect.fade_out.tween.start(window.performance.now());
+      sprite_effect.fade_out.all_tweens[
+        sprite_effect.fade_out.all_tweens.length - 1
+      ].onComplete(() => {
+        on_complete();
+      });
+    }
   }
 
   remove_sprite_effect(unique_key: string) {

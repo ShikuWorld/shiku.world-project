@@ -139,11 +139,7 @@ export class TerrainManager {
         if (gid === sprite_effect.gid) {
           continue;
         }
-        this.sprite_effects_manager.remove_sprite_effect(tile_key);
-        sprite_effect.fade_out.tween.start(window.performance.now());
-        sprite_effect.fade_out.all_tweens[
-          sprite_effect.fade_out.all_tweens.length - 1
-        ].onComplete(() => {
+        this.sprite_effects_manager.start_fade_out_animation(tile_key, () => {
           chunk_map_entry.container.removeChild(sprite_effect.sprite);
         });
         if (gid !== 0) {
