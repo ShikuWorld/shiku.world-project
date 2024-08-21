@@ -744,6 +744,22 @@ impl World {
         );
 
         let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("get_entity_by_tag").set_into_module(
+            &mut module,
+            move |tag: &str| -> Dynamic {
+                if let Some(shared) = ecs_shared.try_borrow() {
+                    let tag_as_string = tag.to_string();
+                    for (entity, tags) in &shared.entities.game_node_tags {
+                        if tags.contains(&tag_as_string) {
+                            return Dynamic::from(*entity);
+                        }
+                    }
+                }
+                Dynamic::from(())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("get_first_child_entity_by_tag").set_into_module(
             &mut module,
             move |entity: Entity, tag: &str| -> Dynamic {

@@ -108,6 +108,12 @@ export const options = [
     detail: "(entity: Entity, key: &str, value: Dynamic) -> void",
 },
 {
+    label: "shiku::nodes::get_entity_by_tag",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(tag: &str) -> Dynamic",
+},
+{
     label: "shiku::nodes::get_first_child_entity_by_tag",
     type: "function",
     info: "TODO: Add description",
