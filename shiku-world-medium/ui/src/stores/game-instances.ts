@@ -256,6 +256,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
               resource_manager,
               effects_manager,
               entity_layer_manager,
+              state.show_entity_colliders,
             ),
           ),
           parent: null,
@@ -400,7 +401,33 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             const game_node =
               render_graph_data.render_graph_data.entity_node_map[node_id];
             if ("Collider" in game_node.Node2D.data.kind) {
-              render_node.container.visible = state.show_entity_colliders;
+              const entity =
+                render_graph_data.render_graph_data.entity_layer_manager.get_entity(
+                  render_node.node_id,
+                );
+              if (entity) {
+                entity.display_object.visible = state.show_entity_colliders;
+              }
+            }
+          }
+        }
+      }
+
+      if (state.blueprint_render?.render_graph_data) {
+        for (const node_id in state.blueprint_render.render_graph_data
+          .entity_node_map) {
+          const render_node =
+            state.blueprint_render.render_graph_data
+              .entity_node_to_render_node_map[node_id];
+          const game_node =
+            state.blueprint_render.render_graph_data.entity_node_map[node_id];
+          if ("Collider" in game_node.Node2D.data.kind) {
+            const entity =
+              state.blueprint_render.render_graph_data.entity_layer_manager.get_entity(
+                render_node.node_id,
+              );
+            if (entity) {
+              entity.display_object.visible = state.show_entity_colliders;
             }
           }
         }
@@ -411,303 +438,309 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       update: { id: string | number; kind: EntityUpdateKind },
       resource_manager: ResourceManager,
     ) {
-      const node = render_graph_data.entity_node_map[update.id];
-      const render_node =
-        render_graph_data.entity_node_to_render_node_map[update.id];
-      if (!node || !render_node) {
-        console.error(
-          "Could not update game node!",
-          node,
-          render_node,
-          update,
-          render_graph_data,
-        );
-        return;
-      }
-      const game_node = Object.values(node)[0];
-      match(update.kind)
-        .with({ Tags: P.select() }, (tags) => {
-          game_node.tags = tags;
-        })
-        .with({ Transform: P.select() }, (transform) => {
-          if (!game_node.data.transform) {
-            console.error("Tried to update Node without transform, wtf?");
-            return;
-          }
-          (game_node.data as Node2D).transform = transform;
-          render_node.container.position.x =
-            transform.position[0] * RENDER_SCALE;
-          render_node.container.position.y =
-            transform.position[1] * RENDER_SCALE;
-          render_node.container.rotation = transform.rotation;
-        })
-        .with({ ScriptPath: P.select() }, (script) => {
-          game_node.script = script;
-        })
-        .with({ Name: P.select() }, (name) => {
-          game_node.name = name;
-        })
-        .with({ RigidBodyType: P.select() }, (rigid_body_type) => {
-          if (!game_node.data.transform) {
-            console.error(
-              "Tried to update rigid body without a transform, wtf?",
-            );
-            return;
-          }
-          const node_2d = game_node.data as Node2D;
-          const rigid_body =
-            "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
-          if (!rigid_body) {
-            console.error("Could not upate rigid body type");
-            return;
-          }
-          rigid_body.body = rigid_body_type;
-          rigid_body.kinematic_character_controller_props = match(
-            rigid_body_type,
-          )
-            .with("Dynamic", "Fixed", () => null)
-            .with(
-              "KinematicPositionBased",
-              "KinematicVelocityBased",
-              () =>
-                ({
-                  normal_nudge_factor: 0.0,
-                  slide: false,
-                  max_slope_climb_angle: 45.0,
-                  min_slope_slide_angle: 45.0,
-                  offset: 0.0,
-                  snap_to_ground: null,
-                  up: [0, -1],
-                  autostep: null,
-                }) as KinematicCharacterControllerProps,
-            )
-            .exhaustive();
-        })
-        .with({ PositionRotation: P.select() }, ([x, y, r]) => {
-          if (!game_node.data.transform) {
-            console.error("Tried to update Node without transform, wtf?");
-            return;
-          }
-          const node_2d = game_node.data as Node2D;
-          node_2d.transform.position = [x, y];
-          node_2d.transform.rotation = r;
-        })
-        .with({ Gid: P.select() }, (local_id) => {
-          if (get_local_id(game_node) === local_id) {
-            return;
-          }
-          const sprite = match((game_node.data as Node2D).kind)
-            .with({ Render: { kind: P.select() } }, (render_kind) =>
-              match(render_kind)
-                .with({ Text: P.select() }, () => {
-                  return resource_manager.get_sprite_from_graphics(
-                    resource_manager.get_graphics_by_id_and_tileset_path(
-                      0,
-                      "TRIED_TO_SET_GID_ON_TEXT_WTF?",
-                    ),
-                  );
-                })
-                .with({ Sprite: P.select() }, () => {
-                  const sprite_render = render_kind as {
-                    Sprite: [string, number];
-                  };
-                  sprite_render.Sprite[1] = local_id;
-                  const gid = resource_manager.get_gid_from_local_id(
-                    local_id,
-                    sprite_render.Sprite[0],
-                  );
-                  const sprite = resource_manager.get_sprite_from_graphics(
-                    resource_manager.get_graphics_data_by_gid(gid),
-                  );
-                  render_graph_data.effects_manager.update_sprite(
-                    `${render_key(game_node)}`,
-                    sprite,
-                    gid,
-                  );
-                  return sprite;
-                })
-                .with({ AnimatedSprite: P.select() }, () => {
-                  const animated_sprite_node = render_kind as {
-                    AnimatedSprite: [string, number];
-                  };
-                  animated_sprite_node.AnimatedSprite[1] = local_id;
-                  const gid = resource_manager.get_gid_from_local_id(
-                    local_id,
-                    resource_manager.character_animation_to_tileset_map[
-                      animated_sprite_node.AnimatedSprite[0]
-                    ],
-                  );
-                  const sprite = resource_manager.get_sprite_from_graphics(
-                    resource_manager.get_graphics_data_by_gid(gid),
-                  );
-                  render_graph_data.effects_manager.update_sprite(
-                    `${render_key(game_node)}`,
-                    sprite,
-                    gid,
-                  );
-                  return sprite;
-                })
-                .exhaustive(),
-            )
-            .run();
-          render_graph_data.entity_layer_manager.update_container_display_object(
-            render_key(game_node),
-            sprite,
+      try {
+        const node = render_graph_data.entity_node_map[update.id];
+        const render_node =
+          render_graph_data.entity_node_to_render_node_map[update.id];
+        if (!node || !render_node) {
+          console.error(
+            "Could not update game node!",
+            node,
+            render_node,
+            update,
+            render_graph_data,
           );
-        })
-        .with({ SpriteTilesetResource: P.select() }, (resource) => {
-          const graphics = match((game_node.data as Node2D).kind)
-            .with({ Render: { kind: P.select() } }, (render_kind) =>
-              match(render_kind)
-                .with({ Sprite: P.select() }, () => {
-                  const sprite_render = render_kind as {
-                    Sprite: [string, number];
-                  };
-                  sprite_render.Sprite[0] = resource;
-                  return resource_manager.get_graphics_by_id_and_tileset_path(
-                    sprite_render.Sprite[1],
-                    sprite_render.Sprite[0],
-                  );
-                })
-                .with({ AnimatedSprite: P.select() }, () => {
-                  return resource_manager.get_graphics_by_id_and_tileset_path(
-                    0,
-                    "TRIED_TO_SET_SPRITE_TILESET_ON_ANIMATED_SPRITE_WTF?",
-                  );
-                })
-                .with({ Text: P.select() }, () => {
-                  return resource_manager.get_graphics_by_id_and_tileset_path(
-                    0,
-                    "TRIED_TO_SET_SPRITE_TILESET_ON_TEXT_WTF?",
-                  );
-                })
-                .exhaustive(),
+          return;
+        }
+        const game_node = Object.values(node)[0];
+        match(update.kind)
+          .with({ Tags: P.select() }, (tags) => {
+            game_node.tags = tags;
+          })
+          .with({ Transform: P.select() }, (transform) => {
+            if (!game_node.data.transform) {
+              console.error("Tried to update Node without transform, wtf?");
+              return;
+            }
+            (game_node.data as Node2D).transform = transform;
+            render_node.container.position.x =
+              transform.position[0] * RENDER_SCALE;
+            render_node.container.position.y =
+              transform.position[1] * RENDER_SCALE;
+            render_node.container.rotation = transform.rotation;
+          })
+          .with({ ScriptPath: P.select() }, (script) => {
+            game_node.script = script;
+          })
+          .with({ Name: P.select() }, (name) => {
+            game_node.name = name;
+          })
+          .with({ RigidBodyType: P.select() }, (rigid_body_type) => {
+            if (!game_node.data.transform) {
+              console.error(
+                "Tried to update rigid body without a transform, wtf?",
+              );
+              return;
+            }
+            const node_2d = game_node.data as Node2D;
+            const rigid_body =
+              "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
+            if (!rigid_body) {
+              console.error("Could not upate rigid body type");
+              return;
+            }
+            rigid_body.body = rigid_body_type;
+            rigid_body.kinematic_character_controller_props = match(
+              rigid_body_type,
             )
-            .run();
-          render_graph_data.entity_layer_manager.update_container_display_object(
-            render_key(game_node),
-            resource_manager.get_sprite_from_graphics(graphics),
-          );
-        })
-        .with({ AnimatedSpriteResource: P.select() }, (resource_path) => {
-          match((game_node.data as Node2D).kind)
-            .with({ Render: { kind: P.select() } }, (render_kind) => {
-              match(render_kind)
-                .with({ Sprite: P.select() }, () => {})
-                .with({ Text: P.select() }, () => {})
-                .with({ AnimatedSprite: P.select() }, () => {
-                  (
-                    render_kind as { AnimatedSprite: [string, number] }
-                  ).AnimatedSprite[0] = resource_path;
-                })
-                .exhaustive();
-            })
-            .run();
-        })
-        .with({ RenderKind: P.select() }, (render_kind) => {
-          const node2D = game_node.data as Node2D;
-          if ("Render" in node2D.kind && node2D.kind.Render.kind) {
-            node2D.kind.Render.kind = render_kind;
-
-            const container = match(render_kind)
-              .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) =>
-                resource_manager.get_sprite_from_graphics(
-                  resource_manager.get_graphics_by_id_and_tileset_path(
-                    id_in_tileset,
-                    tileset_path,
-                  ),
-                ),
-              )
+              .with("Dynamic", "Fixed", () => null)
               .with(
-                { AnimatedSprite: P.select() },
-                ([char_anim_resource_path, id_in_tileset]) =>
+                "KinematicPositionBased",
+                "KinematicVelocityBased",
+                () =>
+                  ({
+                    normal_nudge_factor: 0.0,
+                    slide: false,
+                    max_slope_climb_angle: 45.0,
+                    min_slope_slide_angle: 45.0,
+                    offset: 0.0,
+                    snap_to_ground: null,
+                    up: [0, -1],
+                    autostep: null,
+                  }) as KinematicCharacterControllerProps,
+              )
+              .exhaustive();
+          })
+          .with({ PositionRotation: P.select() }, ([x, y, r]) => {
+            if (!game_node.data.transform) {
+              console.error("Tried to update Node without transform, wtf?");
+              return;
+            }
+            const node_2d = game_node.data as Node2D;
+            node_2d.transform.position = [x, y];
+            node_2d.transform.rotation = r;
+          })
+          .with({ Gid: P.select() }, (local_id) => {
+            if (get_local_id(game_node) === local_id) {
+              return;
+            }
+            const sprite = match((game_node.data as Node2D).kind)
+              .with({ Render: { kind: P.select() } }, (render_kind) =>
+                match(render_kind)
+                  .with({ Text: P.select() }, () => {
+                    return resource_manager.get_sprite_from_graphics(
+                      resource_manager.get_graphics_by_id_and_tileset_path(
+                        0,
+                        "TRIED_TO_SET_GID_ON_TEXT_WTF?",
+                      ),
+                    );
+                  })
+                  .with({ Sprite: P.select() }, () => {
+                    const sprite_render = render_kind as {
+                      Sprite: [string, number];
+                    };
+                    sprite_render.Sprite[1] = local_id;
+                    const gid = resource_manager.get_gid_from_local_id(
+                      local_id,
+                      sprite_render.Sprite[0],
+                    );
+                    const sprite = resource_manager.get_sprite_from_graphics(
+                      resource_manager.get_graphics_data_by_gid(gid),
+                    );
+                    render_graph_data.effects_manager.update_sprite(
+                      `${render_key(game_node)}`,
+                      sprite,
+                      gid,
+                    );
+                    return sprite;
+                  })
+                  .with({ AnimatedSprite: P.select() }, () => {
+                    const animated_sprite_node = render_kind as {
+                      AnimatedSprite: [string, number];
+                    };
+                    animated_sprite_node.AnimatedSprite[1] = local_id;
+                    const gid = resource_manager.get_gid_from_local_id(
+                      local_id,
+                      resource_manager.character_animation_to_tileset_map[
+                        animated_sprite_node.AnimatedSprite[0]
+                      ],
+                    );
+                    const sprite = resource_manager.get_sprite_from_graphics(
+                      resource_manager.get_graphics_data_by_gid(gid),
+                    );
+                    render_graph_data.effects_manager.update_sprite(
+                      `${render_key(game_node)}`,
+                      sprite,
+                      gid,
+                    );
+                    return sprite;
+                  })
+                  .exhaustive(),
+              )
+              .run();
+            render_graph_data.entity_layer_manager.update_container_display_object(
+              render_key(game_node),
+              sprite,
+            );
+          })
+          .with({ SpriteTilesetResource: P.select() }, (resource) => {
+            const graphics = match((game_node.data as Node2D).kind)
+              .with({ Render: { kind: P.select() } }, (render_kind) =>
+                match(render_kind)
+                  .with({ Sprite: P.select() }, () => {
+                    const sprite_render = render_kind as {
+                      Sprite: [string, number];
+                    };
+                    sprite_render.Sprite[0] = resource;
+                    return resource_manager.get_graphics_by_id_and_tileset_path(
+                      sprite_render.Sprite[1],
+                      sprite_render.Sprite[0],
+                    );
+                  })
+                  .with({ AnimatedSprite: P.select() }, () => {
+                    return resource_manager.get_graphics_by_id_and_tileset_path(
+                      0,
+                      "TRIED_TO_SET_SPRITE_TILESET_ON_ANIMATED_SPRITE_WTF?",
+                    );
+                  })
+                  .with({ Text: P.select() }, () => {
+                    return resource_manager.get_graphics_by_id_and_tileset_path(
+                      0,
+                      "TRIED_TO_SET_SPRITE_TILESET_ON_TEXT_WTF?",
+                    );
+                  })
+                  .exhaustive(),
+              )
+              .run();
+            render_graph_data.entity_layer_manager.update_container_display_object(
+              render_key(game_node),
+              resource_manager.get_sprite_from_graphics(graphics),
+            );
+          })
+          .with({ AnimatedSpriteResource: P.select() }, (resource_path) => {
+            match((game_node.data as Node2D).kind)
+              .with({ Render: { kind: P.select() } }, (render_kind) => {
+                match(render_kind)
+                  .with({ Sprite: P.select() }, () => {})
+                  .with({ Text: P.select() }, () => {})
+                  .with({ AnimatedSprite: P.select() }, () => {
+                    (
+                      render_kind as { AnimatedSprite: [string, number] }
+                    ).AnimatedSprite[0] = resource_path;
+                  })
+                  .exhaustive();
+              })
+              .run();
+          })
+          .with({ RenderKind: P.select() }, (render_kind) => {
+            const node2D = game_node.data as Node2D;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              node2D.kind.Render.kind = render_kind;
+
+              const container = match(render_kind)
+                .with({ Sprite: P.select() }, ([tileset_path, id_in_tileset]) =>
                   resource_manager.get_sprite_from_graphics(
                     resource_manager.get_graphics_by_id_and_tileset_path(
                       id_in_tileset,
-                      resource_manager.character_animation_to_tileset_map[
-                        char_anim_resource_path
-                      ],
+                      tileset_path,
                     ),
                   ),
-              )
-              .with({ Text: P.select() }, (text) =>
-                resource_manager.create_bitmap_text(text),
-              )
-              .exhaustive();
-            render_node.container.removeChildAt(0);
-            render_node.container.addChildAt(container, 0);
-          }
-        })
-        .with({ InstancePath: P.select() }, (_) => {
-          console.error(
-            "There should ve no InstancePath updates from the backend at this point",
-          );
-        })
-        .with({ Collider: P.select() }, (collider) => {
-          if (!game_node.data.transform) {
-            console.error(
-              "Tried to update rigid body without a transform, wtf?",
-            );
-            return;
-          }
-          const node_2d = game_node.data as Node2D;
-          if (!("Collider" in node_2d.kind)) {
-            console.error("Could not upate collider");
-            return;
-          }
-          node_2d.kind.Collider = collider;
-
-          const [graphics, pivot_x, pivot_y] =
-            window.medium.create_collider_graphic(collider);
-          render_node.container.removeChildAt(0);
-          render_node.container.addChildAt(graphics, 0);
-          render_node.container.x = pivot_x;
-          render_node.container.y = pivot_y;
-          render_node.container.visible = state.show_entity_colliders;
-        })
-        .with(
-          { UpdateScriptScope: P.select() },
-          ([_scope_key, _scope_value]) => {
-            /* dealt with one level up */
-          },
-        )
-        .with({ KinematicCharacterControllerProps: P.select() }, (props) => {
-          const node_2d = game_node.data as Node2D;
-          const rigid_body =
-            "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
-          if (!rigid_body) {
-            console.error("Could not upate rigid body type");
-            return;
-          }
-          rigid_body.kinematic_character_controller_props = props;
-        })
-        .with({ SetScriptScope: P.select() }, (_scope_cache_update) => {
-          /* dealt with one level up */
-        })
-        .with({ TextRender: P.select() }, (text_render) => {
-          const node2D = game_node.data as Node2D;
-          if ("Render" in node2D.kind && node2D.kind.Render.kind) {
-            if ("Text" in node2D.kind.Render.kind) {
-              node2D.kind.Render.kind.Text = text_render;
-              const container =
-                resource_manager.create_bitmap_text(text_render);
+                )
+                .with(
+                  { AnimatedSprite: P.select() },
+                  ([char_anim_resource_path, id_in_tileset]) =>
+                    resource_manager.get_sprite_from_graphics(
+                      resource_manager.get_graphics_by_id_and_tileset_path(
+                        id_in_tileset,
+                        resource_manager.character_animation_to_tileset_map[
+                          char_anim_resource_path
+                        ],
+                      ),
+                    ),
+                )
+                .with({ Text: P.select() }, (text) =>
+                  resource_manager.create_bitmap_text(text),
+                )
+                .exhaustive();
               render_node.container.removeChildAt(0);
               render_node.container.addChildAt(container, 0);
             }
-          }
-        })
-        .with({ Layer: P.select() }, (layer) => {
-          const node2D = game_node.data as Node2D;
-          if ("Render" in node2D.kind && node2D.kind.Render.kind) {
-            render_graph_data.entity_layer_manager.move_display_object_between_layers(
-              render_key(game_node),
-              node2D.kind.Render.layer,
-              layer,
+          })
+          .with({ InstancePath: P.select() }, (_) => {
+            console.error(
+              "There should ve no InstancePath updates from the backend at this point",
             );
-            node2D.kind.Render.layer = layer;
-          }
-        })
-        .exhaustive();
+          })
+          .with({ Collider: P.select() }, (collider) => {
+            if (!game_node.data.transform) {
+              console.error(
+                "Tried to update rigid body without a transform, wtf?",
+              );
+              return;
+            }
+            const node_2d = game_node.data as Node2D;
+            if (!("Collider" in node_2d.kind)) {
+              console.error("Could not upate collider");
+              return;
+            }
+            node_2d.kind.Collider = collider;
+
+            const [graphics, pivot_x, pivot_y] =
+              window.medium.create_collider_graphic(collider);
+            render_node.container.x = pivot_x;
+            render_node.container.y = pivot_y;
+            graphics.visible = state.show_entity_colliders;
+            render_graph_data.entity_layer_manager.update_container_display_object(
+              render_node.node_id,
+              graphics,
+            );
+          })
+          .with(
+            { UpdateScriptScope: P.select() },
+            ([_scope_key, _scope_value]) => {
+              /* dealt with one level up */
+            },
+          )
+          .with({ KinematicCharacterControllerProps: P.select() }, (props) => {
+            const node_2d = game_node.data as Node2D;
+            const rigid_body =
+              "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
+            if (!rigid_body) {
+              console.error("Could not upate rigid body type");
+              return;
+            }
+            rigid_body.kinematic_character_controller_props = props;
+          })
+          .with({ SetScriptScope: P.select() }, (_scope_cache_update) => {
+            /* dealt with one level up */
+          })
+          .with({ TextRender: P.select() }, (text_render) => {
+            const node2D = game_node.data as Node2D;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              if ("Text" in node2D.kind.Render.kind) {
+                node2D.kind.Render.kind.Text = text_render;
+                const container =
+                  resource_manager.create_bitmap_text(text_render);
+                render_node.container.removeChildAt(0);
+                render_node.container.addChildAt(container, 0);
+              }
+            }
+          })
+          .with({ Layer: P.select() }, (layer) => {
+            const node2D = game_node.data as Node2D;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              render_graph_data.entity_layer_manager.move_display_object_between_layers(
+                render_key(game_node),
+                node2D.kind.Render.layer,
+                layer,
+              );
+              node2D.kind.Render.layer = layer;
+            }
+          })
+          .exhaustive();
+      } catch (e) {
+        console.error("Could not apply entity update", e, update);
+      }
     },
     add_child_to_render_graph(
       render_graph_data: RenderGraphData,

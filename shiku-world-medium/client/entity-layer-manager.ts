@@ -21,6 +21,10 @@ export class EntityLayerManager {
     }, {} as EntityLayerMap);
   }
 
+  get_entity(entity_id: string | number) {
+    return this._container_map[entity_id];
+  }
+
   attach_to_layer_map(layer_map: LayerMap) {
     for (const key of Object.keys(layer_map)) {
       layer_map[key as LayerKind].addChild(

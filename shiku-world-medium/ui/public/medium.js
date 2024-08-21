@@ -46115,6 +46115,9 @@ This will fail in production.`);
         return acc;
       }, {});
     }
+    get_entity(entity_id) {
+      return this._container_map[entity_id];
+    }
     attach_to_layer_map(layer_map) {
       for (const key of Object.keys(layer_map)) {
         layer_map[key].addChild(
@@ -46453,7 +46456,12 @@ This will fail in production.`);
               const render_node = render_graph_data.render_graph_data.entity_node_to_render_node_map[node_id];
               const game_node = render_graph_data.render_graph_data.entity_node_map[node_id];
               if ("Collider" in game_node.Node2D.data.kind) {
-                render_node.container.visible = state.show_entity_colliders;
+                const entity = render_graph_data.render_graph_data.entity_layer_manager.get_entity(
+                  render_node.node_id
+                );
+                if (entity) {
+                  entity.display_object.visible = state.show_entity_colliders;
+                }
               }
             }
           }
@@ -47905,7 +47913,13 @@ This will fail in production.`);
         container.addChild(graphics);
         container.pivot.x = pivot_x * RENDER_SCALE;
         container.pivot.y = pivot_y * RENDER_SCALE;
-        container.visible = show_colliders;
+        graphics.visible = show_colliders;
+        entity_layer_manager.add_display_object(
+          render_key(game_node),
+          "FG10",
+          graphics,
+          window.medium.create_container
+        );
       }).exhaustive();
     }).exhaustive();
     return container;
