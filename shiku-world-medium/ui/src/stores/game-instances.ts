@@ -367,11 +367,15 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       )) {
         const node = render_graph_data.entity_node_map[id];
         if (node) {
-          this.update_render_position(render_node, node);
-          render_graph_data.entity_layer_manager.update_container_position(
-            render_key(get_generic_game_node(node)),
-            render_node.container,
-          );
+          try {
+            this.update_render_position(render_node, node);
+            render_graph_data.entity_layer_manager.update_container_position(
+              render_key(get_generic_game_node(node)),
+              render_node.container,
+            );
+          } catch (e) {
+            console.error("Could not update render position", e);
+          }
         }
       }
     },
