@@ -174,12 +174,13 @@ impl World {
                 Self::clear_removed_colliders_from_ecs(&mut shared_ecs);
             }
         }
-        self.ecs
-            .process_added_and_removed_entities_and_scope_sets(&self.script_engine);
 
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
         }
+
+        self.ecs
+            .process_added_and_removed_entities_and_scope_sets(&self.script_engine);
     }
 
     fn clear_removed_colliders_from_ecs(shared: &mut ECSShared) {
