@@ -462,8 +462,8 @@ impl World {
                 if let Some(shared) = ecs_shared.try_borrow() {
                     if let Some(transform) = shared.entities.transforms.get(&entity) {
                         return vec![
-                            Dynamic::from(transform.position.0),
-                            Dynamic::from(transform.position.1),
+                            Dynamic::from(transform.position.0 as f64),
+                            Dynamic::from(transform.position.1 as f64),
                         ];
                     } else {
                         error!("Could not find transform for entity: {}", entity);
