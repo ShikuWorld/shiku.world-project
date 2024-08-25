@@ -621,6 +621,10 @@ impl World {
             "CharacterDirection",
             exported_module!(CharacterDirectionModule).into(),
         );
+
+        engine
+            .register_type_with_name::<Entity>("Entity")
+            .register_fn("get_entity_id", |entity: Entity| entity.0);
     }
 
     fn setup_nodes_api(
