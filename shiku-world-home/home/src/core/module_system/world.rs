@@ -755,13 +755,8 @@ impl World {
             &mut module,
             move |entity: Entity, tag: &str| -> Dynamic {
                 if let Some(shared) = ecs_shared.try_borrow() {
-                    let children = shared.entities.game_node_children.get(&entity);
-                    if let Some(children) = children {
-                        for child in children {
-                            if let Some(tags) = shared.entities.game_node_tags.get(child) {
-                                return Dynamic::from(tags.contains(&tag.to_string()));
-                            }
-                        }
+                    if let Some(tags) = shared.entities.game_node_tags.get(&entity) {
+                        return Dynamic::from(tags.contains(&tag.to_string()));
                     }
                 }
                 Dynamic::from(false)
@@ -1190,11 +1185,9 @@ impl World {
                 )
             };
             if let Some(script) = entity_scripts.get_mut(&collider_entity_1) {
-                debug!("calling 1");
                 script.call(function_child.clone(), script_engine, (collider_entity_2,));
             }
             if let Some(script) = entity_scripts.get_mut(&collider_parent_1) {
-                debug!("calling 1 parent");
                 script.call(
                     function_parent.clone(),
                     script_engine,
