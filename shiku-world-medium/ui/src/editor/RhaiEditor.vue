@@ -6,6 +6,7 @@ import { cobalt } from "thememirror";
 import { use_resources_store } from "@/editor/stores/resources";
 import { storeToRefs } from "pinia";
 import { basicSetup } from "@/editor/utils/basic-setup";
+import ServerLogs from "@/editor/editor/ServerLogs.vue";
 
 const props = defineProps<{
   script_resource_path: string;
@@ -44,16 +45,24 @@ function on_save() {
     });
   }
 }
+
+const { logs } = storeToRefs(use_resources_store());
 </script>
 
 <template>
   <v-dialog max-width="800" v-model="is_active" :scrim="'#ffffff'">
     <v-card v-if="!script">Loading...</v-card>
     <v-card v-if="script" title="Lets cooode">
-      <div ref="editor"></div>
+      <div class="editor" ref="editor"></div>
       <v-card-actions>
         <v-spacer></v-spacer>
-
+        <ServerLogs
+          class="editor-log"
+          :logs="logs"
+          log_level="DEBUG"
+          log_location="home::core::module_system::world"
+        />
+        <v-spacer></v-spacer>
         <v-btn text="Save" @click="on_save"></v-btn>
         <v-btn text="Close Dialog" @click="is_active = false"></v-btn>
       </v-card-actions>
@@ -61,4 +70,16 @@ function on_save() {
   </v-dialog>
 </template>
 
-<style scoped></style>
+<style scoped>
+.editor {
+  display: block;
+  width: 100%;
+  max-height: 500px;
+  overflow: auto;
+}
+.editor-log {
+  position: relative;
+  width: 100%;
+  height: 60px;
+}
+</style>

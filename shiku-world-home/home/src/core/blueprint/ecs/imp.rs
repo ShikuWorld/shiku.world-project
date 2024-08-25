@@ -52,6 +52,7 @@ impl ECS {
             entity_scripts: HashMap::new(),
             entities: HashSet::new(),
             processed_added_entities: Vec::new(),
+            intersects_data_tmp: Vec::new(),
             shared: ApiShare::new(ECSShared {
                 entities: EntityMaps {
                     game_node_id: HashMap::new(),
@@ -399,7 +400,6 @@ impl ECS {
                 }
             }
         }
-        debug!("Adding entity: {:?} {:?}", entity, script_path);
         ecs.added_entities.push((entity, script_path));
         if let Some(instance_root_node) = Self::get_node_2d_instance_root_node(node_kind) {
             debug!("# Adding instance root node");

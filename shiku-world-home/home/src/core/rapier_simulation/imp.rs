@@ -121,10 +121,6 @@ impl RapierSimulation {
     pub fn create_kinematic_character_controller(
         props: &KinematicCharacterControllerProps,
     ) -> BasicKinematicCharacterController {
-        debug!(
-            "Creating kinematic character controller with props: {:?}",
-            props
-        );
         let mut kinematic = BasicKinematicCharacterController::default();
         if let Some(auto_step_props) = &props.autostep {
             kinematic.autostep = Some(CharacterAutostep {
@@ -136,7 +132,6 @@ impl RapierSimulation {
             kinematic.autostep = None;
         }
         kinematic.offset = CharacterLength::Absolute(props.offset.abs());
-        debug!("Kinematic offset: {:?}", props.slide);
         kinematic.slide = props.slide;
         kinematic.up = UnitVector::new_normalize(Vector2::new(props.up.0, props.up.1));
         kinematic.normal_nudge_factor = props.normal_nudge_factor.abs();
@@ -147,7 +142,6 @@ impl RapierSimulation {
         } else {
             kinematic.snap_to_ground = None;
         }
-        debug!("{:?}", kinematic);
         kinematic
     }
 

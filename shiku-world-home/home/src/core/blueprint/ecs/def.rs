@@ -46,6 +46,8 @@ impl Display for Entity {
     }
 }
 
+pub type IntersectEventData = (Entity, Entity, Entity, Entity, bool);
+
 #[derive(Debug)]
 pub struct ECS {
     pub scene_root: Entity,
@@ -54,6 +56,7 @@ pub struct ECS {
     pub scene_id: SceneId,
     pub entities: HashSet<Entity>,
     pub entity_scripts: HashMap<Entity, GameNodeScript>,
+    pub intersects_data_tmp: Vec<IntersectEventData>,
     pub processed_added_entities: Vec<Entity>,
     pub shared: ApiShare<ECSShared>,
 }

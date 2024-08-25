@@ -27,7 +27,7 @@ const trace_levels = ["ERROR", "DEBUG", "TRACE"];
 
 const filtered_logs = computed(() => {
   return logs.value
-    .filter(([_id, _time, level, location, _message]) => {
+    .filter(([_id, _time, level, _location, _message]) => {
       if (log_level.value) {
         return match(log_level.value)
           .with("ERROR", (): string[] => error_levels)
@@ -36,7 +36,13 @@ const filtered_logs = computed(() => {
           .otherwise((): string[] => [])
           .includes(level);
       }
-      return !(log_location.value && location !== log_location.value);
+      return true;
+    })
+    .filter(([_id, _time, _level, location, _message]) => {
+      if (log_location.value) {
+        return location === log_location.value;
+      }
+      return true;
     })
     .reverse();
 });

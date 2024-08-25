@@ -10,7 +10,8 @@ use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::CameraSettings;
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{
-    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, TimerId, TweenId, ECS,
+    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, IntersectEventData, TimerId,
+    TweenId, ECS,
 };
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, GameNodeScriptFunction};
 use crate::core::blueprint::resource_loader::Blueprint;
@@ -132,6 +133,9 @@ impl World {
         self.terrain_manager.re_add_polylines(&mut physics);
         let physics_share = ApiShare::new(physics);
         let mut script_engine = Engine::new();
+        script_engine.on_print(move |s| debug!("{}", s));
+        script_engine
+            .on_debug(move |s, src, pos| debug!("{} @ {}:{}", s, src.unwrap_or_default(), pos));
         Self::register_types(&mut script_engine);
         Self::setup_nodes_api(
             &mut script_engine,
@@ -164,16 +168,21 @@ impl World {
                     physics.integration_parameters.dt as f64,
                 );
 
-                Self::call_intersection_events(
+                Self::gather_intersect_events_data(
                     &mut physics,
                     &mut shared_ecs,
-                    &mut self.ecs.entity_scripts,
-                    &self.script_engine,
+                    &mut self.ecs.intersects_data_tmp,
                 );
 
                 Self::clear_removed_colliders_from_ecs(&mut shared_ecs);
             }
         }
+
+        Self::call_intersect_events(
+            &mut self.ecs.intersects_data_tmp,
+            &mut self.ecs.entity_scripts,
+            &self.script_engine,
+        );
 
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
@@ -191,11 +200,10 @@ impl World {
         }
     }
 
-    fn call_intersection_events(
+    fn gather_intersect_events_data(
         physics: &mut RefMut<RapierSimulation>,
         shared_ecs: &mut RefMut<ECSShared>,
-        entity_scripts: &mut HashMap<Entity, GameNodeScript>,
-        script_engine: &Engine,
+        intersect_events_data: &mut Vec<(Entity, Entity, Entity, Entity, bool)>,
     ) {
         while let Ok(collision_event) = physics.intersection_receiver.try_recv() {
             if let (Some(collider_entity_1), Some(collider_entity_2)) = (
@@ -208,56 +216,18 @@ impl World {
                     .get(&collision_event.collider2())
                     .cloned(),
             ) {
-                let call_parent_script =
-                    |scripts: &mut HashMap<Entity, GameNodeScript>,
-                     entity,
-                     function,
-                     entity_collided_with| {
-                        if let (Some(parent_entity), Some(entity_collided_with_parent)) = (
-                            shared_ecs.get_parent_entity(&entity),
-                            shared_ecs.get_parent_entity(&entity_collided_with),
-                        ) {
-                            if let Some(script) = scripts.get_mut(&parent_entity) {
-                                script.call(
-                                    function,
-                                    script_engine,
-                                    (entity_collided_with_parent, entity, entity_collided_with),
-                                );
-                            }
-                        }
-                    };
-
-                let (function_child, function_parent) = if collision_event.started() {
-                    (
-                        GameNodeScriptFunction::IntersectStart,
-                        GameNodeScriptFunction::ChildIntersectStart,
-                    )
-                } else {
-                    (
-                        GameNodeScriptFunction::IntersectEnd,
-                        GameNodeScriptFunction::ChildIntersectEnd,
-                    )
-                };
-
-                if let Some(script) = entity_scripts.get_mut(&collider_entity_1) {
-                    script.call(function_child.clone(), script_engine, (collider_entity_2,));
+                if let (Some(parent_1_entity), Some(parent_2_entity)) = (
+                    shared_ecs.get_parent_entity(&collider_entity_1),
+                    shared_ecs.get_parent_entity(&collider_entity_2),
+                ) {
+                    intersect_events_data.push((
+                        collider_entity_1,
+                        collider_entity_2,
+                        parent_2_entity,
+                        parent_1_entity,
+                        collision_event.started(),
+                    ));
                 }
-                call_parent_script(
-                    entity_scripts,
-                    collider_entity_1,
-                    function_parent.clone(),
-                    collider_entity_2,
-                );
-
-                if let Some(script) = entity_scripts.get_mut(&collider_entity_2) {
-                    script.call(function_child.clone(), script_engine, (collider_entity_1,));
-                }
-                call_parent_script(
-                    entity_scripts,
-                    collider_entity_2,
-                    function_parent,
-                    collider_entity_1,
-                );
             }
         }
     }
@@ -1197,6 +1167,51 @@ impl World {
         {
             Self::get_children_to_delete_rec(children_to_delete, &child, entities);
             children_to_delete.push(child);
+        }
+    }
+
+    fn call_intersect_events(
+        intersect_event_data_tmp: &mut Vec<IntersectEventData>,
+        entity_scripts: &mut HashMap<Entity, GameNodeScript>,
+        script_engine: &Engine,
+    ) {
+        for (collider_entity_1, collider_entity_2, collider_parent_1, collider_parent_2, started) in
+            intersect_event_data_tmp.drain(..)
+        {
+            let (function_child, function_parent) = if started {
+                (
+                    GameNodeScriptFunction::IntersectStart,
+                    GameNodeScriptFunction::ChildIntersectStart,
+                )
+            } else {
+                (
+                    GameNodeScriptFunction::IntersectEnd,
+                    GameNodeScriptFunction::ChildIntersectEnd,
+                )
+            };
+            if let Some(script) = entity_scripts.get_mut(&collider_entity_1) {
+                debug!("calling 1");
+                script.call(function_child.clone(), script_engine, (collider_entity_2,));
+            }
+            if let Some(script) = entity_scripts.get_mut(&collider_parent_1) {
+                debug!("calling 1 parent");
+                script.call(
+                    function_parent.clone(),
+                    script_engine,
+                    (collider_parent_2, collider_entity_1, collider_entity_2),
+                );
+            }
+
+            if let Some(script) = entity_scripts.get_mut(&collider_entity_2) {
+                script.call(function_child.clone(), script_engine, (collider_entity_1,));
+            }
+            if let Some(script) = entity_scripts.get_mut(&collider_parent_2) {
+                script.call(
+                    function_parent.clone(),
+                    script_engine,
+                    (collider_parent_1, collider_entity_2, collider_entity_1),
+                );
+            }
         }
     }
 }
