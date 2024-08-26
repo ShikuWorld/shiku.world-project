@@ -75,7 +75,6 @@ impl AstCache {
         engine: &Engine,
         script: &Script,
     ) -> Result<(), ParseError> {
-        debug!("{:?}", &script.content);
         engine.compile(&script.content).map(|ast| {
             let script_resource_path = script.get_full_resource_path();
 
@@ -409,9 +408,7 @@ impl GameInstanceManager {
                     for world in game_instance.dynamic_module.world_map.values_mut() {
                         let mut script_reset = false;
                         for game_node_script in world.ecs.entity_scripts.values_mut() {
-                            debug!("Checking script path: {:?}", script_resource_path);
                             if game_node_script.path == *script_resource_path {
-                                debug!("Resetting script from new ast!");
                                 script_reset = true;
                                 game_node_script
                                     .reset_from_new_ast(&world.script_engine, ast.clone());

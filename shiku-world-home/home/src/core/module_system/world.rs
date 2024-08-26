@@ -185,7 +185,11 @@ impl World {
         );
 
         for game_node_script in self.ecs.entity_scripts.values_mut() {
-            game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ());
+            if game_node_script.last_execution_succeeded
+                && !game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ())
+            {
+                game_node_script.last_execution_succeeded = false;
+            }
         }
 
         self.ecs

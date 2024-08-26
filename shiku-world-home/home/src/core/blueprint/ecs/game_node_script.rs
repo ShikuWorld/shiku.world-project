@@ -17,6 +17,7 @@ pub struct GameNodeScript {
     pub entity: Entity,
     pub scope_cache: HashMap<String, ScopeCacheValue>,
     pub scope: Scope<'static>,
+    pub last_execution_succeeded: bool,
     pub(crate) game_node_script_functions: HashMap<GameNodeScriptFunction, &'static str>,
 }
 
@@ -217,6 +218,7 @@ impl GameNodeScript {
             ast,
             scope_cache: HashMap::new(),
             scope,
+            last_execution_succeeded: true,
             game_node_script_functions,
         }
     }
@@ -279,6 +281,7 @@ impl GameNodeScript {
     pub fn reset_from_new_ast(&mut self, engine: &Engine, ast: AST) {
         self.ast = ast;
         self.game_node_script_functions = GameNodeScriptFunction::map_from_ast(&self.ast);
+        self.last_execution_succeeded = true;
         self.update_scope_from_script(engine);
     }
 
@@ -287,13 +290,17 @@ impl GameNodeScript {
         script_fun: GameNodeScriptFunction,
         engine: &Engine,
         args: impl FuncArgs + Sized,
-    ) {
+    ) -> bool {
         if let Some(name) = self.game_node_script_functions.get(&script_fun) {
-            match engine.call_fn::<()>(&mut self.scope, &self.ast, name, args) {
-                Ok(()) => {}
-                Err(e) => error!("Error calling {name} function: {:?}", e),
-            }
+            return match engine.call_fn::<()>(&mut self.scope, &self.ast, name, args) {
+                Ok(()) => true,
+                Err(e) => {
+                    error!("Error calling {name} function: {:?}", e);
+                    false
+                }
+            };
         }
+        false
     }
 
     fn compile(engine: &Engine, path: ResourcePath) -> Result<AST, GameNodeScriptError> {
