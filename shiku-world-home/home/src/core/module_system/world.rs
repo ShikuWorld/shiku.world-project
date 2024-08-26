@@ -743,6 +743,17 @@ impl World {
         );
 
         let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("entity_exists").set_into_module(
+            &mut module,
+            move |entity: Entity| -> Dynamic {
+                if let Some(shared) = ecs_shared.try_borrow() {
+                    return Dynamic::from(shared.entities.game_node_id.contains_key(&entity));
+                }
+                Dynamic::from(false)
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("get_first_child_entity_by_tag").set_into_module(
             &mut module,
             move |entity: Entity, tag: &str| -> Dynamic {
