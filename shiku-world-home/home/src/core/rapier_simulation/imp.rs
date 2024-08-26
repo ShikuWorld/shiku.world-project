@@ -63,6 +63,7 @@ impl RapierSimulation {
                 |collision| {
                     character_collisions.push(collision);
                 },
+                collider.is_sensor(),
             );
 
             character_controller.solve_character_collision_impulses(

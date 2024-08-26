@@ -231,12 +231,17 @@ impl BasicKinematicCharacterController {
         desired_translation: Vector<Real>,
         filter: QueryFilter,
         mut events: impl FnMut(CharacterCollision),
+        is_sensor: bool,
     ) -> EffectiveCharacterMovement {
         let mut result = EffectiveCharacterMovement {
             translation: Vector::zeros(),
             grounded: false,
             is_sliding_down_slope: false,
         };
+        if is_sensor {
+            result.translation = desired_translation;
+            return result;
+        }
         let dims = self.compute_dims(character_shape);
 
         // 1. Check and fix penetrations.
@@ -437,6 +442,9 @@ impl BasicKinematicCharacterController {
 
         queries.colliders_with_aabb_intersecting_aabb(&character_aabb, |handle| {
             if let Some(collider) = colliders.get(*handle) {
+                if collider.is_sensor() {
+                    return;
+                }
                 if filter.test(bodies, *handle, collider) {
                     manifolds.clear();
                     let pos12 = character_pos.inv_mul(collider.position());
