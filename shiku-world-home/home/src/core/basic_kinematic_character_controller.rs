@@ -911,9 +911,12 @@ impl BasicKinematicCharacterController {
         colliders: &ColliderSet,
         collider_handle: &ColliderHandle,
         collision: &CharacterCollision,
-    ) -> Vector<Real> {
+    ) -> Option<Vector<Real>> {
         let mut impulse = Vector::new(0.0, 0.0);
         if let Some(character_collider) = colliders.get(*collider_handle) {
+            if character_collider.is_sensor() {
+                return None;
+            }
             if let Some(character_body_handle) = character_collider.parent() {
                 if let Some(character_body_mass) =
                     bodies.get(character_body_handle).map(|b| b.mass())
@@ -929,6 +932,9 @@ impl BasicKinematicCharacterController {
 
                     let mut manifolds: Vec<ContactManifold> = vec![];
                     if let Some(other_collider) = colliders.get(collision.handle) {
+                        if other_collider.is_sensor() {
+                            return None;
+                        }
                         if let Some(other_parent) = other_collider.parent() {
                             if let Some(other_body) = bodies.get(other_parent) {
                                 if other_body.is_kinematic() {
@@ -979,7 +985,7 @@ impl BasicKinematicCharacterController {
                 }
             }
         }
-        impulse
+        Some(impulse)
     }
 }
 

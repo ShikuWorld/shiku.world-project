@@ -598,11 +598,15 @@ impl World {
         for (entity, (collision, collider_handle, _)) in &shared.kinematic_collision_map {
             let mut impulse = Vector::new(0.0, 0.0);
             if let Some(kinematic_body) = shared.entities.kinematic_character.get_mut(entity) {
-                impulse = physics.get_single_character_collision_impulse(
+                if let Some(imp) = physics.get_single_character_collision_impulse(
                     &kinematic_body.controller,
                     collider_handle,
                     collision,
-                );
+                ) {
+                    impulse = imp;
+                } else {
+                    continue;
+                }
                 if impulse.magnitude() < impulse_cutoff {
                     impulse.x = 0.0;
                     impulse.y = 0.0;

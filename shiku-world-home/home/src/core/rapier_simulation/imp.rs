@@ -96,7 +96,7 @@ impl RapierSimulation {
         character_controller: &BasicKinematicCharacterController,
         collider_handle: &ColliderHandle,
         character_collision: &CharacterCollision,
-    ) -> Vector<Real> {
+    ) -> Option<Vector<Real>> {
         character_controller.get_single_character_collision_impulse(
             self.integration_parameters.dt,
             &mut self.bodies,
