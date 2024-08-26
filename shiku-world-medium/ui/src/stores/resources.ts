@@ -80,6 +80,7 @@ export const use_resources_store = defineStore("resources", () => {
     },
     add_logs(logs: LogInfo[]) {
       state.logs = [...state.logs, ...logs];
+      state.logs = state.logs.slice(-100);
     },
     get_or_load_script(
       script_map: { [script_path: string]: Script },

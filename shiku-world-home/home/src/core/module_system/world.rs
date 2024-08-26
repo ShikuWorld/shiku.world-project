@@ -184,6 +184,10 @@ impl World {
             &self.script_engine,
         );
 
+        if let Some(mut shared_ecs) = self.ecs.shared.try_borrow_mut() {
+            Self::clear_removed_colliders_from_ecs(&mut shared_ecs);
+        }
+
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             if game_node_script.last_execution_succeeded
                 && !game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ())

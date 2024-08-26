@@ -815,11 +815,6 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         get_local_id(generic_game_node_to_remove as GameNode<Node2D>) !==
         undefined
       ) {
-        console.log(
-          "Removing sprite effect",
-          generic_game_node_to_remove,
-          `${render_key(generic_game_node_to_remove)}`,
-        );
         render_graph_data.effects_manager.remove_sprite_effect(
           `${render_key(generic_game_node_to_remove)}`,
         );
