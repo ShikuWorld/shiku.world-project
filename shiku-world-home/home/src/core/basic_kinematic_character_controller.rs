@@ -443,7 +443,7 @@ impl BasicKinematicCharacterController {
         queries.colliders_with_aabb_intersecting_aabb(&character_aabb, |handle| {
             if let Some(collider) = colliders.get(*handle) {
                 if collider.is_sensor() {
-                    return;
+                    return false;
                 }
                 if filter.test(bodies, *handle, collider) {
                     manifolds.clear();
