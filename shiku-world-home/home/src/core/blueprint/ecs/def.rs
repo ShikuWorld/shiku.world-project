@@ -77,6 +77,7 @@ pub struct ECSShared {
     pub tween_counter: TweenId,
     pub character_collisions_tmp: Vec<CharacterCollision>,
     pub collider_to_entity_map: HashMap<ColliderHandle, Entity>,
+    pub collider_to_parent_entity_map: HashMap<ColliderHandle, Entity>,
     pub removed_colliders: Vec<ColliderHandle>,
     pub kinematic_collision_map: HashMap<Entity, (CharacterCollision, ColliderHandle, bool)>,
 }

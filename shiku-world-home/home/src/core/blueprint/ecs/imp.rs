@@ -90,6 +90,7 @@ impl ECS {
                 character_collisions_tmp: Vec::new(),
                 kinematic_collision_map: HashMap::new(),
                 collider_to_entity_map: HashMap::new(),
+                collider_to_parent_entity_map: HashMap::new(),
                 removed_colliders: Vec::new(),
                 entity_counter: 0,
             }),
@@ -176,7 +177,6 @@ impl ECS {
         ecs: &mut ECSShared,
         physics: &mut RapierSimulation,
     ) {
-        debug!("Attaching colliders to entity: {:?}", entity);
         if let (Some(children), Some(rigid_body_handle)) = (
             ecs.entities.game_node_children.get(entity),
             ecs.entities.rigid_body_handle.get(entity),
@@ -190,7 +190,8 @@ impl ECS {
                         .insert(*child_entity, child_collider_handle);
                     ecs.collider_to_entity_map
                         .insert(child_collider_handle, *child_entity);
-                    debug!("Successfully attached collider");
+                    ecs.collider_to_parent_entity_map
+                        .insert(child_collider_handle, *entity);
                 }
             }
         }
@@ -215,6 +216,9 @@ impl ECS {
             shared
                 .collider_to_entity_map
                 .insert(child_collider_handle, *child_entity);
+            shared
+                .collider_to_parent_entity_map
+                .insert(child_collider_handle, *parent_entity);
         }
     }
 
@@ -241,7 +245,9 @@ impl ECS {
                         shared
                             .collider_to_entity_map
                             .insert(child_collider_handle, *child_entity);
-                        debug!("Successfully attached collider 2");
+                        shared
+                            .collider_to_parent_entity_map
+                            .insert(child_collider_handle, *parent_entity);
                     }
                 }
             }

@@ -173,8 +173,6 @@ impl World {
                     &mut shared_ecs,
                     &mut self.ecs.intersects_data_tmp,
                 );
-
-                Self::clear_removed_colliders_from_ecs(&mut shared_ecs);
             }
         }
 
@@ -205,37 +203,48 @@ impl World {
         // can still find the entities and parent entities for the intersection callbacks for the now removed colliders
         for removed_collider in shared.removed_colliders.drain(..) {
             shared.collider_to_entity_map.remove(&removed_collider);
+            shared
+                .collider_to_parent_entity_map
+                .remove(&removed_collider);
         }
     }
 
     fn gather_intersect_events_data(
         physics: &mut RefMut<RapierSimulation>,
         shared_ecs: &mut RefMut<ECSShared>,
-        intersect_events_data: &mut Vec<(Entity, Entity, Entity, Entity, bool)>,
+        intersect_events_data: &mut Vec<IntersectEventData>,
     ) {
         while let Ok(collision_event) = physics.intersection_receiver.try_recv() {
-            if let (Some(collider_entity_1), Some(collider_entity_2)) = (
+            if let (
+                Some(collider_entity_1),
+                Some(parent_1_entity),
+                Some(collider_entity_2),
+                Some(parent_2_entity),
+            ) = (
                 shared_ecs
                     .collider_to_entity_map
+                    .get(&collision_event.collider1())
+                    .cloned(),
+                shared_ecs
+                    .collider_to_parent_entity_map
                     .get(&collision_event.collider1())
                     .cloned(),
                 shared_ecs
                     .collider_to_entity_map
                     .get(&collision_event.collider2())
                     .cloned(),
+                shared_ecs
+                    .collider_to_parent_entity_map
+                    .get(&collision_event.collider2())
+                    .cloned(),
             ) {
-                if let (Some(parent_1_entity), Some(parent_2_entity)) = (
-                    shared_ecs.get_parent_entity(&collider_entity_1),
-                    shared_ecs.get_parent_entity(&collider_entity_2),
-                ) {
-                    intersect_events_data.push((
-                        collider_entity_1,
-                        collider_entity_2,
-                        parent_2_entity,
-                        parent_1_entity,
-                        collision_event.started(),
-                    ));
-                }
+                intersect_events_data.push((
+                    collider_entity_1,
+                    collider_entity_2,
+                    parent_2_entity,
+                    parent_1_entity,
+                    collision_event.started(),
+                ));
             }
         }
     }
@@ -428,7 +437,7 @@ impl World {
                         character.desired_translation.x = x as f32;
                         character.desired_translation.y = y as f32;
                     } else {
-                        error!("Could not find kinematic character for entity: {}", entity);
+                        error!("set_entity_desired_translation: Could not find kinematic character for entity: {}", entity);
                     }
                 }
             },
@@ -442,7 +451,7 @@ impl World {
                     if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
                         character.desired_translation.y = y as f32;
                     } else {
-                        error!("Could not find kinematic character for entity: {}", entity);
+                        error!("set_entity_desired_translation_y: Could not find kinematic character for entity: {}", entity);
                     }
                 }
             },
@@ -457,7 +466,7 @@ impl World {
                         character.desired_translation.x += x as f32;
                         character.desired_translation.y += y as f32;
                     } else {
-                        error!("Could not find kinematic character for entity: {}", entity);
+                        error!("add_entity_desired_translation: Could not find kinematic character for entity: {}", entity);
                     }
                 }
             },
@@ -494,7 +503,7 @@ impl World {
                             character.desired_translation.x = 0.0;
                         }
                     } else {
-                        error!("Could not find kinematic character for entity: {}", entity);
+                        error!("apply_entity_friction_x: Could not find kinematic character for entity: {}", entity);
                     }
                 }
             },
@@ -509,7 +518,7 @@ impl World {
                         character.desired_translation.x *= dampening as f32;
                         character.desired_translation.y *= dampening as f32;
                     } else {
-                        error!("Could not find kinematic character for entity: {}", entity);
+                        error!("apply_entity_linear_dampening: Could not find kinematic character for entity: {}", entity);
                     }
                 }
             },

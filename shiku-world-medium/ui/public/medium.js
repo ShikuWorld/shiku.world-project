@@ -45684,6 +45684,7 @@ This will fail in production.`);
       },
       add_logs(logs) {
         state.logs = [...state.logs, ...logs];
+        state.logs = state.logs.slice(-100);
       },
       get_or_load_script(script_map, path2) {
         if (!script_map[path2]) {
@@ -46789,11 +46790,6 @@ This will fail in production.`);
       },
       remove_node_from_render(generic_game_node_to_remove, render_graph_data) {
         if (get_local_id(generic_game_node_to_remove) !== void 0) {
-          console.log(
-            "Removing sprite effect",
-            generic_game_node_to_remove,
-            `${render_key(generic_game_node_to_remove)}`
-          );
           render_graph_data.effects_manager.remove_sprite_effect(
             `${render_key(generic_game_node_to_remove)}`
           );
