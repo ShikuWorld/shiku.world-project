@@ -1159,6 +1159,11 @@ impl World {
                 }
             }
         }
+        if let Some(parent) = shared.entities.game_node_parent.get(&entity) {
+            if let Some(children) = shared.entities.game_node_children.get_mut(parent) {
+                children.retain(|child| *child != entity);
+            }
+        }
         shared.entities.remove_entity(entity);
         shared.removed_entities.push(entity);
         for child in children_to_delete {
