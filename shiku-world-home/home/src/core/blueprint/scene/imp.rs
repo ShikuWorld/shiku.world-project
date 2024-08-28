@@ -6,9 +6,9 @@ use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityUpdateKind, ECS}
 use crate::core::blueprint::ecs::game_node_script::GameNodeScript;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
-    GameNode, GameNodeKind, GameNodeKindClean, KinematicCharacterControllerProps, Node2D,
-    Node2DDud, Node2DKind, Node2DKindClean, Render, RenderKind, RenderKindClean, RigidBody,
-    RigidBodyType, Scene,
+    FadeinEffect, FadeoutEffect, GameNode, GameNodeKind, GameNodeKindClean,
+    KinematicCharacterControllerProps, Node2D, Node2DDud, Node2DKind, Node2DKindClean, Render,
+    RenderKind, RenderKindClean, RigidBody, RigidBodyType, Scene,
 };
 
 pub fn build_scene_from_ecs(ecs: &ECS) -> Option<Scene> {
@@ -69,10 +69,18 @@ fn get_render_node_2d_kind_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<
 }
 
 fn get_render_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<Render> {
-    if let (Some(render_kind), Some(render_layer), Some(render_offset)) = (
+    if let (
+        Some(render_kind),
+        Some(render_layer),
+        Some(render_offset),
+        Some(fadein_effect),
+        Some(fadeout_effect),
+    ) = (
         ecs.entities.render_kind.get(entity),
         ecs.entities.render_layer.get(entity),
         ecs.entities.render_offset.get(entity),
+        ecs.entities.render_fadein_effect.get(entity),
+        ecs.entities.render_fadeout_effect.get(entity),
     ) {
         if let Some(kind) = match render_kind {
             RenderKindClean::Text => ecs
@@ -101,6 +109,8 @@ fn get_render_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<Render> {
             return Some(Render {
                 offset: *render_offset,
                 layer: render_layer.clone(),
+                fadein_effect: fadein_effect.clone(),
+                fadeout_effect: fadeout_effect.clone(),
                 kind,
             });
         }
@@ -145,6 +155,16 @@ impl GameNodeKind {
     pub fn update_with_entity_update(&mut self, update: EntityUpdateKind) {
         let GameNodeKind::Node2D(n) = self;
         match update {
+            EntityUpdateKind::FadeInEffect(fade_in_effect, duration) => {
+                if let Node2DKind::Render(render) = &mut n.data.kind {
+                    render.fadein_effect = (fade_in_effect, duration);
+                }
+            }
+            EntityUpdateKind::FadeOutEffect(fade_out_effect, duration) => {
+                if let Node2DKind::Render(render) = &mut n.data.kind {
+                    render.fadeout_effect = (fade_out_effect, duration);
+                }
+            }
             EntityUpdateKind::Layer(layer) => {
                 if let Node2DKind::Render(render) = &mut n.data.kind {
                     render.layer = layer;

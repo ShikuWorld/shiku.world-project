@@ -15,8 +15,9 @@ use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
 use crate::core::blueprint::scene::def::{
-    Collider, GameNodeId, GameNodeKindClean, KinematicCharacterControllerProps, Node2DKindClean,
-    NodeInstanceId, RenderKind, RenderKindClean, RigidBodyType, SceneId, TextRender, Transform,
+    Collider, FadeinEffect, FadeoutEffect, GameNodeId, GameNodeKindClean,
+    KinematicCharacterControllerProps, Node2DKindClean, NodeInstanceId, RenderKind,
+    RenderKindClean, RigidBodyType, SceneId, TextRender, Transform,
 };
 use crate::core::timer::Timer;
 use crate::core::tween::Tween;
@@ -56,6 +57,7 @@ pub struct ECS {
     pub scene_id: SceneId,
     pub entities: HashSet<Entity>,
     pub entity_scripts: HashMap<Entity, GameNodeScript>,
+    pub script_pending_removal: HashSet<Entity>,
     pub intersects_data_tmp: Vec<IntersectEventData>,
     pub processed_added_entities: Vec<Entity>,
     pub shared: ApiShare<ECSShared>,
@@ -98,6 +100,8 @@ pub struct EntityMaps {
     pub render_kind: HashMap<Entity, RenderKindClean>,
     pub render_offset: HashMap<Entity, (Real, Real)>,
     pub render_layer: HashMap<Entity, LayerKind>,
+    pub render_fadein_effect: HashMap<Entity, (FadeinEffect, u32)>,
+    pub render_fadeout_effect: HashMap<Entity, (FadeoutEffect, u32)>,
     pub render_gid: HashMap<Entity, Gid>,
     pub render_gid_tileset_path: HashMap<Entity, ResourcePath>,
     pub character_animation: HashMap<Entity, CharacterAnimation>,
@@ -135,6 +139,8 @@ pub enum EntityUpdateKind {
     Name(String),
     Tags(Vec<String>),
     Layer(LayerKind),
+    FadeInEffect(FadeinEffect, u32),
+    FadeOutEffect(FadeoutEffect, u32),
     InstancePath(ResourcePath),
     ScriptPath(Option<ResourcePath>),
     UpdateScriptScope(String, ScopeCacheValue),

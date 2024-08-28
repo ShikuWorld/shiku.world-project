@@ -420,7 +420,6 @@ impl RapierSimulation {
         body_handle: RigidBodyHandle,
         is_sensor: bool,
     ) -> ColliderHandle {
-        debug!("Creating ball collider with is_sensor: {}", is_sensor);
         let collider = ColliderBuilder::ball(radius)
             .active_events(ActiveEvents::all())
             .active_collision_types(ActiveCollisionTypes::all())

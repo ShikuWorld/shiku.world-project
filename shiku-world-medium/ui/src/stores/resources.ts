@@ -79,8 +79,8 @@ export const use_resources_store = defineStore("resources", () => {
       }
     },
     add_logs(logs: LogInfo[]) {
-      state.logs = [...state.logs, ...logs];
-      state.logs = state.logs.slice(-100);
+      const new_logs = [...state.logs, ...logs];
+      state.logs = new_logs.slice(-100);
     },
     get_or_load_script(
       script_map: { [script_path: string]: Script },
@@ -683,6 +683,8 @@ export function create_2d_game_node(
         Render: {
           offset: [0, 0],
           layer: "ObjectsBelow",
+          fadein_effect: ["None", 0],
+          fadeout_effect: ["None", 0],
           kind: { Sprite: ["", 0] },
         },
       }),

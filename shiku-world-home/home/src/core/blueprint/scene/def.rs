@@ -199,9 +199,27 @@ pub enum CollisionShape {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub enum FadeinEffect {
+    None,
+    Fade,
+    JumpForth,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub enum FadeoutEffect {
+    None,
+    Fade,
+    JumpBack,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct Render {
     pub offset: (Real, Real),
     pub layer: LayerKind,
+    pub fadein_effect: (FadeinEffect, u32),
+    pub fadeout_effect: (FadeoutEffect, u32),
     pub kind: RenderKind,
 }
 

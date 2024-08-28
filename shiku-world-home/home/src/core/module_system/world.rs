@@ -32,6 +32,7 @@ pub type ChildEntity = Entity;
 pub struct Events {
     pub add_entity_events: Vec<(ParentEntity, ChildEntity)>,
     pub remove_entity_events: Vec<Entity>,
+    pub disable_script_events: Vec<Entity>,
 }
 
 pub struct World {
@@ -103,6 +104,7 @@ impl World {
             event_cache: ApiShare::new(Events {
                 add_entity_events: Vec::new(),
                 remove_entity_events: Vec::new(),
+                disable_script_events: Vec::new(),
             }),
             actor_api: ApiShare::new(ActorApi {
                 inputs: HashMap::new(),
@@ -176,21 +178,37 @@ impl World {
             }
         }
 
+        if let Some(mut shared_ecs) = self.ecs.shared.try_borrow_mut() {
+            Self::clear_removed_colliders_from_ecs(&mut shared_ecs);
+        }
+
         Self::call_intersect_events(
             &mut self.ecs.intersects_data_tmp,
             &mut self.ecs.entity_scripts,
             &self.script_engine,
         );
 
-        if let Some(mut shared_ecs) = self.ecs.shared.try_borrow_mut() {
-            Self::clear_removed_colliders_from_ecs(&mut shared_ecs);
+        if let Some(mut events) = self.event_cache.try_borrow_mut() {
+            for e in events.disable_script_events.drain(..) {
+                self.ecs.script_pending_removal.insert(e);
+            }
         }
 
-        for game_node_script in self.ecs.entity_scripts.values_mut() {
+        for (entity, game_node_script) in self.ecs.entity_scripts.iter_mut() {
             if game_node_script.last_execution_succeeded
-                && !game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ())
+                && !self.ecs.script_pending_removal.contains(entity)
             {
-                game_node_script.last_execution_succeeded = false;
+                match game_node_script.call(GameNodeScriptFunction::Update, &self.script_engine, ())
+                {
+                    true => {
+                        if let Some(mut events) = self.event_cache.try_borrow_mut() {
+                            for e in events.disable_script_events.drain(..) {
+                                self.ecs.script_pending_removal.insert(e);
+                            }
+                        }
+                    }
+                    false => game_node_script.last_execution_succeeded = false,
+                }
             }
         }
 
@@ -206,46 +224,6 @@ impl World {
             shared
                 .collider_to_parent_entity_map
                 .remove(&removed_collider);
-        }
-    }
-
-    fn gather_intersect_events_data(
-        physics: &mut RefMut<RapierSimulation>,
-        shared_ecs: &mut RefMut<ECSShared>,
-        intersect_events_data: &mut Vec<IntersectEventData>,
-    ) {
-        while let Ok(collision_event) = physics.intersection_receiver.try_recv() {
-            if let (
-                Some(collider_entity_1),
-                Some(parent_1_entity),
-                Some(collider_entity_2),
-                Some(parent_2_entity),
-            ) = (
-                shared_ecs
-                    .collider_to_entity_map
-                    .get(&collision_event.collider1())
-                    .cloned(),
-                shared_ecs
-                    .collider_to_parent_entity_map
-                    .get(&collision_event.collider1())
-                    .cloned(),
-                shared_ecs
-                    .collider_to_entity_map
-                    .get(&collision_event.collider2())
-                    .cloned(),
-                shared_ecs
-                    .collider_to_parent_entity_map
-                    .get(&collision_event.collider2())
-                    .cloned(),
-            ) {
-                intersect_events_data.push((
-                    collider_entity_1,
-                    collider_entity_2,
-                    parent_2_entity,
-                    parent_1_entity,
-                    collision_event.started(),
-                ));
-            }
         }
     }
 
@@ -721,6 +699,7 @@ impl World {
                 ) {
                     Self::_remove_entity(&mut shared, &mut physics, entity);
                     events.remove_entity_events.push(entity);
+                    events.disable_script_events.push(entity);
                 }
             },
         );
@@ -1156,11 +1135,14 @@ impl World {
     }
 
     pub fn remove_entity(&mut self, entity: Entity) {
-        if let (Some(mut shared), Some(mut physics)) = (
+        if let (Some(mut shared), Some(mut physics), Some(mut events)) = (
             self.ecs.shared.try_borrow_mut(),
             self.physics.try_borrow_mut(),
+            self.event_cache.try_borrow_mut(),
         ) {
             Self::_remove_entity(&mut shared, &mut physics, entity);
+            events.remove_entity_events.push(entity);
+            self.ecs.script_pending_removal.insert(entity);
         }
     }
 
@@ -1198,6 +1180,46 @@ impl World {
         {
             Self::get_children_to_delete_rec(children_to_delete, &child, entities);
             children_to_delete.push(child);
+        }
+    }
+
+    fn gather_intersect_events_data(
+        physics: &mut RefMut<RapierSimulation>,
+        shared_ecs: &mut RefMut<ECSShared>,
+        intersect_events_data: &mut Vec<IntersectEventData>,
+    ) {
+        while let Ok(collision_event) = physics.intersection_receiver.try_recv() {
+            if let (
+                Some(collider_entity_1),
+                Some(parent_1_entity),
+                Some(collider_entity_2),
+                Some(parent_2_entity),
+            ) = (
+                shared_ecs
+                    .collider_to_entity_map
+                    .get(&collision_event.collider1())
+                    .cloned(),
+                shared_ecs
+                    .collider_to_parent_entity_map
+                    .get(&collision_event.collider1())
+                    .cloned(),
+                shared_ecs
+                    .collider_to_entity_map
+                    .get(&collision_event.collider2())
+                    .cloned(),
+                shared_ecs
+                    .collider_to_parent_entity_map
+                    .get(&collision_event.collider2())
+                    .cloned(),
+            ) {
+                intersect_events_data.push((
+                    collider_entity_1,
+                    collider_entity_2,
+                    parent_1_entity,
+                    parent_2_entity,
+                    collision_event.started(),
+                ));
+            }
         }
     }
 

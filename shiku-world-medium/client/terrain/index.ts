@@ -5,6 +5,10 @@ import { TerrainParams } from "@/editor/blueprints/TerrainParams";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { Chunk } from "@/editor/blueprints/Chunk";
 import { EffectsManager } from "@/client/effects-manager";
+import {
+  create_tile_fade_in_animation,
+  create_tile_fade_out_animation,
+} from "@/client/sprite-animations";
 
 export function to_natural(num: number): number {
   if (num < 0) {
@@ -174,7 +178,13 @@ export class TerrainManager {
     sprite.rotation = 0;
     chunk_map_entry.container.addChild(sprite);
 
-    this.sprite_effects_manager.add_sprite_with_effects(sprite, tile_key, gid);
+    this.sprite_effects_manager.add_sprite_with_effects(
+      sprite,
+      tile_key,
+      gid,
+      create_tile_fade_in_animation(300, Math.random() * 600),
+      create_tile_fade_out_animation(300, Math.random() * 600),
+    );
   }
 }
 

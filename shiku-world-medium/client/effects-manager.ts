@@ -1,7 +1,5 @@
 import { AnimatedSprite } from "pixi.js";
 import {
-  create_basic_fade_in_animation,
-  create_basic_fade_out_animation,
   SpriteEffect,
   SpriteEffectProperties,
 } from "@/client/sprite-animations";
@@ -132,8 +130,8 @@ export class EffectsManager {
     sprite: AnimatedSprite,
     unique_key: string,
     gid: number,
-    fade_in_effect?: SpriteEffect,
-    fade_out_effect?: SpriteEffect,
+    fade_in_effect: SpriteEffect,
+    fade_out_effect: SpriteEffect,
   ) {
     if (!this.sprite_by_gid_map[gid]) {
       this.sprite_by_gid_map[gid] = {
@@ -158,12 +156,8 @@ export class EffectsManager {
         rotation: sprite.rotation,
         alpha: 1,
       },
-      fade_in:
-        fade_in_effect ??
-        create_basic_fade_in_animation(300, Math.random() * 600),
-      fade_out:
-        fade_out_effect ??
-        create_basic_fade_out_animation(300, Math.random() * 600),
+      fade_in: fade_in_effect,
+      fade_out: fade_out_effect,
       sprite,
       gid,
     };

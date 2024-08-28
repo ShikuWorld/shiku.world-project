@@ -44483,6 +44483,187 @@ This will fail in production.`);
     }
   };
 
+  // client/effects-manager.ts
+  var EffectsManager = class {
+    _active_animations = [];
+    sprite_by_gid_map = {};
+    sprite_effects_map = {};
+    update_animations_for_animated_sprites(resource_manager, gid) {
+      if (!this.sprite_by_gid_map[gid]) {
+        return;
+      }
+      const effects_for_gid = this.sprite_by_gid_map[gid];
+      const graphics = resource_manager.get_graphics_data_by_gid(gid);
+      const is_animated = graphics.frame_objects.length > 0;
+      for (const tile_key of effects_for_gid.effects.values()) {
+        this.sprite_effects_map[tile_key].sprite.textures = graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures;
+      }
+      if (is_animated) {
+        if (effects_for_gid.main_animation_sprite_key == null) {
+          effects_for_gid.main_animation_sprite_key = effects_for_gid.effects.values().next().value;
+        }
+        this.sprite_effects_map[effects_for_gid.main_animation_sprite_key].sprite.play();
+      }
+      if (!is_animated && effects_for_gid.main_animation_sprite_key != null) {
+        effects_for_gid.main_animation_sprite_key = null;
+      }
+    }
+    sync_sprite_animations() {
+      for (const sprite_map of Object.values(this.sprite_by_gid_map)) {
+        if (sprite_map.main_animation_sprite_key === null) {
+          continue;
+        }
+        let main_sprite = this.sprite_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
+        if (!main_sprite) {
+          sprite_map.main_animation_sprite_key = sprite_map.effects.values().next().value ?? null;
+          main_sprite = this.sprite_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
+          if (!main_sprite) {
+            continue;
+          }
+          main_sprite.play();
+        }
+        const current_frame = main_sprite.currentFrame;
+        for (const tile_key of sprite_map.effects.values()) {
+          if (tile_key === sprite_map.main_animation_sprite_key) {
+            continue;
+          }
+          this.sprite_effects_map[tile_key].sprite.currentFrame = current_frame;
+        }
+      }
+    }
+    update_effects() {
+      this._active_animations = this._active_animations.filter((tile_effect) => {
+        tile_effect.fade_in.all_tweens.forEach(
+          (t3) => t3.update(window.performance.now())
+        );
+        tile_effect.fade_out.all_tweens.forEach(
+          (t3) => t3.update(window.performance.now())
+        );
+        tile_effect.sprite.position.x = tile_effect.base_props.pos_x + tile_effect.fade_in.add_props.pos_x + tile_effect.fade_out.add_props.pos_x;
+        tile_effect.sprite.position.y = tile_effect.base_props.pos_y + tile_effect.fade_in.add_props.pos_y + tile_effect.fade_out.add_props.pos_y;
+        tile_effect.sprite.rotation = tile_effect.base_props.rotation + tile_effect.fade_in.add_props.rotation + tile_effect.fade_out.add_props.rotation;
+        tile_effect.sprite.alpha = tile_effect.base_props.alpha + tile_effect.fade_in.add_props.alpha + tile_effect.fade_out.add_props.alpha;
+        tile_effect.sprite.scale.x = tile_effect.base_props.scale_x + tile_effect.fade_in.add_props.scale_x + tile_effect.fade_out.add_props.scale_x;
+        tile_effect.sprite.scale.y = tile_effect.base_props.scale_y + tile_effect.fade_in.add_props.scale_y + tile_effect.fade_out.add_props.scale_y;
+        return tile_effect.fade_in.all_tweens.some((t3) => t3.isPlaying()) || tile_effect.fade_out.all_tweens.some((t3) => t3.isPlaying());
+      });
+    }
+    add_sprite_with_effects(sprite, unique_key, gid, fade_in_effect, fade_out_effect) {
+      if (!this.sprite_by_gid_map[gid]) {
+        this.sprite_by_gid_map[gid] = {
+          effects: /* @__PURE__ */ new Set(),
+          main_animation_sprite_key: null
+        };
+      }
+      const is_animated = sprite.textures.length > 1;
+      if (is_animated && this.sprite_by_gid_map[gid].main_animation_sprite_key == null) {
+        this.sprite_by_gid_map[gid].main_animation_sprite_key = unique_key;
+        sprite.play();
+      }
+      this.sprite_effects_map[unique_key] = {
+        base_props: {
+          pos_x: sprite.x,
+          pos_y: sprite.y,
+          scale_x: 1,
+          scale_y: 1,
+          rotation: sprite.rotation,
+          alpha: 1
+        },
+        fade_in: fade_in_effect,
+        fade_out: fade_out_effect,
+        sprite,
+        gid
+      };
+      const new_sprite_effect = this.sprite_effects_map[unique_key];
+      this.sprite_by_gid_map[gid].effects.add(unique_key);
+      new_sprite_effect.fade_in.tween.start(window.performance.now());
+      this._active_animations.push(new_sprite_effect);
+    }
+    get_sprite_effect_by_unique_key(tile_key) {
+      return this.sprite_effects_map[tile_key];
+    }
+    start_fade_out_animation(tile_key, on_complete = () => {
+    }) {
+      const sprite_effect = this.sprite_effects_map[tile_key];
+      this.remove_sprite_effect(tile_key);
+      if (!sprite_effect) {
+        console.error("Could not find sprite effect to remove?!", tile_key);
+      } else {
+        this._active_animations.push(sprite_effect);
+        sprite_effect.fade_out.tween.start(window.performance.now());
+        sprite_effect.fade_out.all_tweens[sprite_effect.fade_out.all_tweens.length - 1].onComplete(() => {
+          on_complete();
+        });
+      }
+    }
+    remove_sprite_effect(unique_key) {
+      const sprite_effect = this.sprite_effects_map[unique_key];
+      if (!sprite_effect) {
+        console.error(
+          "Could not find sprite effect to remove?!",
+          unique_key,
+          this.sprite_effects_map
+        );
+      } else {
+        const gid = sprite_effect.gid;
+        if (this.sprite_by_gid_map[gid]) {
+          delete this.sprite_effects_map[unique_key];
+          this.sprite_by_gid_map[gid].effects.delete(unique_key);
+        } else {
+          console.error(
+            "Trying to remove a sprite that is not the main animation sprite"
+          );
+        }
+      }
+    }
+    update_sprite(unique_key, sprite, new_gid) {
+      const sprite_effect = this.sprite_effects_map[unique_key];
+      if (!sprite_effect) {
+        console.error(
+          "Could not find sprite effect to update?!",
+          unique_key,
+          this.sprite_effects_map
+        );
+      } else {
+        const current_gid = sprite_effect.gid;
+        if (new_gid === current_gid) {
+          return;
+        }
+        if (!this.sprite_by_gid_map[new_gid]) {
+          this.sprite_by_gid_map[new_gid] = {
+            effects: /* @__PURE__ */ new Set(),
+            main_animation_sprite_key: null
+          };
+        }
+        if (this.sprite_by_gid_map[current_gid]) {
+          this.sprite_by_gid_map[current_gid].effects.delete(unique_key);
+          if (this.sprite_by_gid_map[current_gid].effects.size === 0) {
+            delete this.sprite_by_gid_map[current_gid];
+          } else {
+            if (this.sprite_by_gid_map[current_gid].main_animation_sprite_key === unique_key) {
+              const next_unique_key = this.sprite_by_gid_map[current_gid].effects.values().next().value;
+              this.sprite_by_gid_map[current_gid].main_animation_sprite_key = next_unique_key;
+              const next_sprite = this.sprite_effects_map[next_unique_key].sprite;
+              next_sprite.play();
+            }
+          }
+          sprite_effect.gid = new_gid;
+          sprite_effect.sprite = sprite;
+          const is_animated = sprite.textures.length > 1;
+          this.sprite_by_gid_map[new_gid].effects.add(unique_key);
+          if (is_animated && this.sprite_by_gid_map[new_gid].main_animation_sprite_key == null) {
+            this.sprite_by_gid_map[new_gid].main_animation_sprite_key = unique_key;
+            sprite.play();
+          }
+        } else {
+          console.error(
+            "Trying to remove a sprite that is not the main animation sprite"
+          );
+        }
+      }
+    }
+  };
+
   // node_modules/@tweenjs/tween.js/dist/tween.esm.js
   var Easing = Object.freeze({
     Linear: Object.freeze({
@@ -45297,7 +45478,55 @@ This will fail in production.`);
   var update = TWEEN.update.bind(TWEEN);
 
   // client/sprite-animations.ts
-  function create_basic_fade_in_animation(duration, delay) {
+  function create_no_effect(_duration, _delay) {
+    const add_props = {
+      pos_x: 0,
+      pos_y: 0,
+      scale_x: 0,
+      scale_y: 0,
+      rotation: 0,
+      alpha: 0
+    };
+    const tween = new Tween(add_props).to({ scale_x: 0 }, 0).delay(0);
+    return {
+      add_props,
+      tween,
+      all_tweens: [tween]
+    };
+  }
+  function create_simple_fade_in(duration, delay) {
+    const add_props = {
+      pos_x: 0,
+      pos_y: 0,
+      scale_x: 0,
+      scale_y: 0,
+      rotation: 0,
+      alpha: -1
+    };
+    const tween = new Tween(add_props).easing(Easing.Cubic.In).to({ alpha: 0 }, duration).delay(delay);
+    return {
+      add_props,
+      tween,
+      all_tweens: [tween]
+    };
+  }
+  function create_simple_fade_out(duration, delay) {
+    const add_props = {
+      pos_x: 0,
+      pos_y: 0,
+      scale_x: 0,
+      scale_y: 0,
+      rotation: 0,
+      alpha: 0
+    };
+    const tween = new Tween(add_props).easing(Easing.Quadratic.Out).to({ alpha: -1 }, duration).delay(delay);
+    return {
+      add_props,
+      tween,
+      all_tweens: [tween]
+    };
+  }
+  function create_tile_fade_in_animation(duration, delay) {
     const add_props = {
       pos_x: 0,
       pos_y: 0,
@@ -45314,7 +45543,36 @@ This will fail in production.`);
       all_tweens: [tween_1, tween_2]
     };
   }
-  function create_entity_fade_in_animation_1(duration, delay) {
+  function create_fade_in_animation(fade_in_effect, duration) {
+    return N2(fade_in_effect).with("None", () => create_no_effect(duration, 0)).with("Fade", () => create_simple_fade_in(duration, 0)).with("JumpForth", () => create_jump_forth_animation(duration, 0)).exhaustive();
+  }
+  function create_fade_out_animation(fade_out_effect, duration) {
+    return N2(fade_out_effect).with("None", () => create_no_effect(duration, 0)).with("Fade", () => create_simple_fade_out(duration, 0)).with("JumpBack", () => create_jump_back_animation(duration, 0)).exhaustive();
+  }
+  function create_jump_back_animation(duration, delay) {
+    const add_props = {
+      pos_x: 0,
+      pos_y: 0,
+      scale_x: 0,
+      scale_y: 0,
+      rotation: 0,
+      alpha: 0
+    };
+    const tween_1 = new Tween(add_props).to(
+      { pos_y: -80, alpha: -0.5, scale_x: -0.5, scale_y: -0.5 },
+      duration * (1 / 2)
+    ).easing(Easing.Quadratic.In).delay(delay);
+    const tween_2 = new Tween(add_props).to(
+      { pos_y: -30, scale_x: -0.8, scale_y: -0.8, alpha: -1 },
+      duration * (1 / 2)
+    ).easing(Easing.Quadratic.Out);
+    return {
+      add_props,
+      tween: tween_1.chain(tween_2),
+      all_tweens: [tween_1, tween_2]
+    };
+  }
+  function create_jump_forth_animation(duration, delay) {
     const add_props = {
       pos_x: 0,
       pos_y: -30,
@@ -45334,7 +45592,7 @@ This will fail in production.`);
       all_tweens: [tween_1, tween_2]
     };
   }
-  function create_basic_fade_out_animation(duration, delay) {
+  function create_tile_fade_out_animation(duration, delay) {
     const add_props = {
       pos_x: 0,
       pos_y: 0,
@@ -45351,187 +45609,6 @@ This will fail in production.`);
       all_tweens: [tween_1, tween_2]
     };
   }
-
-  // client/effects-manager.ts
-  var EffectsManager = class {
-    _active_animations = [];
-    sprite_by_gid_map = {};
-    sprite_effects_map = {};
-    update_animations_for_animated_sprites(resource_manager, gid) {
-      if (!this.sprite_by_gid_map[gid]) {
-        return;
-      }
-      const effects_for_gid = this.sprite_by_gid_map[gid];
-      const graphics = resource_manager.get_graphics_data_by_gid(gid);
-      const is_animated = graphics.frame_objects.length > 0;
-      for (const tile_key of effects_for_gid.effects.values()) {
-        this.sprite_effects_map[tile_key].sprite.textures = graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures;
-      }
-      if (is_animated) {
-        if (effects_for_gid.main_animation_sprite_key == null) {
-          effects_for_gid.main_animation_sprite_key = effects_for_gid.effects.values().next().value;
-        }
-        this.sprite_effects_map[effects_for_gid.main_animation_sprite_key].sprite.play();
-      }
-      if (!is_animated && effects_for_gid.main_animation_sprite_key != null) {
-        effects_for_gid.main_animation_sprite_key = null;
-      }
-    }
-    sync_sprite_animations() {
-      for (const sprite_map of Object.values(this.sprite_by_gid_map)) {
-        if (sprite_map.main_animation_sprite_key === null) {
-          continue;
-        }
-        let main_sprite = this.sprite_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
-        if (!main_sprite) {
-          sprite_map.main_animation_sprite_key = sprite_map.effects.values().next().value ?? null;
-          main_sprite = this.sprite_effects_map[sprite_map.main_animation_sprite_key]?.sprite;
-          if (!main_sprite) {
-            continue;
-          }
-          main_sprite.play();
-        }
-        const current_frame = main_sprite.currentFrame;
-        for (const tile_key of sprite_map.effects.values()) {
-          if (tile_key === sprite_map.main_animation_sprite_key) {
-            continue;
-          }
-          this.sprite_effects_map[tile_key].sprite.currentFrame = current_frame;
-        }
-      }
-    }
-    update_effects() {
-      this._active_animations = this._active_animations.filter((tile_effect) => {
-        tile_effect.fade_in.all_tweens.forEach(
-          (t3) => t3.update(window.performance.now())
-        );
-        tile_effect.fade_out.all_tweens.forEach(
-          (t3) => t3.update(window.performance.now())
-        );
-        tile_effect.sprite.position.x = tile_effect.base_props.pos_x + tile_effect.fade_in.add_props.pos_x + tile_effect.fade_out.add_props.pos_x;
-        tile_effect.sprite.position.y = tile_effect.base_props.pos_y + tile_effect.fade_in.add_props.pos_y + tile_effect.fade_out.add_props.pos_y;
-        tile_effect.sprite.rotation = tile_effect.base_props.rotation + tile_effect.fade_in.add_props.rotation + tile_effect.fade_out.add_props.rotation;
-        tile_effect.sprite.alpha = tile_effect.base_props.alpha + tile_effect.fade_in.add_props.alpha + tile_effect.fade_out.add_props.alpha;
-        tile_effect.sprite.scale.x = tile_effect.base_props.scale_x + tile_effect.fade_in.add_props.scale_x + tile_effect.fade_out.add_props.scale_x;
-        tile_effect.sprite.scale.y = tile_effect.base_props.scale_y + tile_effect.fade_in.add_props.scale_y + tile_effect.fade_out.add_props.scale_y;
-        return tile_effect.fade_in.all_tweens.some((t3) => t3.isPlaying()) || tile_effect.fade_out.all_tweens.some((t3) => t3.isPlaying());
-      });
-    }
-    add_sprite_with_effects(sprite, unique_key, gid, fade_in_effect, fade_out_effect) {
-      if (!this.sprite_by_gid_map[gid]) {
-        this.sprite_by_gid_map[gid] = {
-          effects: /* @__PURE__ */ new Set(),
-          main_animation_sprite_key: null
-        };
-      }
-      const is_animated = sprite.textures.length > 1;
-      if (is_animated && this.sprite_by_gid_map[gid].main_animation_sprite_key == null) {
-        this.sprite_by_gid_map[gid].main_animation_sprite_key = unique_key;
-        sprite.play();
-      }
-      this.sprite_effects_map[unique_key] = {
-        base_props: {
-          pos_x: sprite.x,
-          pos_y: sprite.y,
-          scale_x: 1,
-          scale_y: 1,
-          rotation: sprite.rotation,
-          alpha: 1
-        },
-        fade_in: fade_in_effect ?? create_basic_fade_in_animation(300, Math.random() * 600),
-        fade_out: fade_out_effect ?? create_basic_fade_out_animation(300, Math.random() * 600),
-        sprite,
-        gid
-      };
-      const new_sprite_effect = this.sprite_effects_map[unique_key];
-      this.sprite_by_gid_map[gid].effects.add(unique_key);
-      new_sprite_effect.fade_in.tween.start(window.performance.now());
-      this._active_animations.push(new_sprite_effect);
-    }
-    get_sprite_effect_by_unique_key(tile_key) {
-      return this.sprite_effects_map[tile_key];
-    }
-    start_fade_out_animation(tile_key, on_complete = () => {
-    }) {
-      const sprite_effect = this.sprite_effects_map[tile_key];
-      this.remove_sprite_effect(tile_key);
-      if (!sprite_effect) {
-        console.error("Could not find sprite effect to remove?!", tile_key);
-      } else {
-        this._active_animations.push(sprite_effect);
-        sprite_effect.fade_out.tween.start(window.performance.now());
-        sprite_effect.fade_out.all_tweens[sprite_effect.fade_out.all_tweens.length - 1].onComplete(() => {
-          on_complete();
-        });
-      }
-    }
-    remove_sprite_effect(unique_key) {
-      const sprite_effect = this.sprite_effects_map[unique_key];
-      if (!sprite_effect) {
-        console.error(
-          "Could not find sprite effect to remove?!",
-          unique_key,
-          this.sprite_effects_map
-        );
-      } else {
-        const gid = sprite_effect.gid;
-        if (this.sprite_by_gid_map[gid]) {
-          delete this.sprite_effects_map[unique_key];
-          this.sprite_by_gid_map[gid].effects.delete(unique_key);
-        } else {
-          console.error(
-            "Trying to remove a sprite that is not the main animation sprite"
-          );
-        }
-      }
-    }
-    update_sprite(unique_key, sprite, new_gid) {
-      const sprite_effect = this.sprite_effects_map[unique_key];
-      if (!sprite_effect) {
-        console.error(
-          "Could not find sprite effect to update?!",
-          unique_key,
-          this.sprite_effects_map
-        );
-      } else {
-        const current_gid = sprite_effect.gid;
-        if (new_gid === current_gid) {
-          return;
-        }
-        if (!this.sprite_by_gid_map[new_gid]) {
-          this.sprite_by_gid_map[new_gid] = {
-            effects: /* @__PURE__ */ new Set(),
-            main_animation_sprite_key: null
-          };
-        }
-        if (this.sprite_by_gid_map[current_gid]) {
-          this.sprite_by_gid_map[current_gid].effects.delete(unique_key);
-          if (this.sprite_by_gid_map[current_gid].effects.size === 0) {
-            delete this.sprite_by_gid_map[current_gid];
-          } else {
-            if (this.sprite_by_gid_map[current_gid].main_animation_sprite_key === unique_key) {
-              const next_unique_key = this.sprite_by_gid_map[current_gid].effects.values().next().value;
-              this.sprite_by_gid_map[current_gid].main_animation_sprite_key = next_unique_key;
-              const next_sprite = this.sprite_effects_map[next_unique_key].sprite;
-              next_sprite.play();
-            }
-          }
-          sprite_effect.gid = new_gid;
-          sprite_effect.sprite = sprite;
-          const is_animated = sprite.textures.length > 1;
-          this.sprite_by_gid_map[new_gid].effects.add(unique_key);
-          if (is_animated && this.sprite_by_gid_map[new_gid].main_animation_sprite_key == null) {
-            this.sprite_by_gid_map[new_gid].main_animation_sprite_key = unique_key;
-            sprite.play();
-          }
-        } else {
-          console.error(
-            "Trying to remove a sprite that is not the main animation sprite"
-          );
-        }
-      }
-    }
-  };
 
   // client/terrain/index.ts
   function to_natural(num) {
@@ -45646,7 +45723,13 @@ This will fail in production.`);
       sprite.y = y3;
       sprite.rotation = 0;
       chunk_map_entry.container.addChild(sprite);
-      this.sprite_effects_manager.add_sprite_with_effects(sprite, tile_key, gid);
+      this.sprite_effects_manager.add_sprite_with_effects(
+        sprite,
+        tile_key,
+        gid,
+        create_tile_fade_in_animation(300, Math.random() * 600),
+        create_tile_fade_out_animation(300, Math.random() * 600)
+      );
     }
   };
   function get_tile_key(layer_kind, chunk_x, chunk_y, tile_x, tile_y) {
@@ -45683,8 +45766,8 @@ This will fail in production.`);
         }
       },
       add_logs(logs) {
-        state.logs = [...state.logs, ...logs];
-        state.logs = state.logs.slice(-100);
+        const new_logs = [...state.logs, ...logs];
+        state.logs = new_logs.slice(-100);
       },
       get_or_load_script(script_map, path2) {
         if (!script_map[path2]) {
@@ -46735,6 +46818,16 @@ This will fail in production.`);
                 layer
               );
               node2D.kind.Render.layer = layer;
+            }
+          }).with({ FadeInEffect: _.select() }, (fade_in) => {
+            const node2D = game_node.data;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              node2D.kind.Render.fadein_effect = fade_in;
+            }
+          }).with({ FadeOutEffect: _.select() }, (fade_out) => {
+            const node2D = game_node.data;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              node2D.kind.Render.fadeout_effect = fade_out;
             }
           }).exhaustive();
         } catch (e3) {
@@ -47902,8 +47995,14 @@ This will fail in production.`);
               id_in_tileset,
               tileset_path
             ),
-            create_entity_fade_in_animation_1(500, 0),
-            create_basic_fade_out_animation(300, 0)
+            create_fade_in_animation(
+              render2.fadein_effect[0],
+              render2.fadein_effect[1]
+            ),
+            create_fade_out_animation(
+              render2.fadeout_effect[0],
+              render2.fadeout_effect[1]
+            )
           );
           return sprite;
         }).with(
@@ -47923,8 +48022,14 @@ This will fail in production.`);
                 id_in_tileset,
                 tileset_path
               ),
-              create_entity_fade_in_animation_1(500, 0),
-              create_basic_fade_out_animation(300, 0)
+              create_fade_in_animation(
+                render2.fadein_effect[0],
+                render2.fadein_effect[1]
+              ),
+              create_fade_out_animation(
+                render2.fadeout_effect[0],
+                render2.fadeout_effect[1]
+              )
             );
             return sprite;
           }

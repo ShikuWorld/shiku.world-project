@@ -53,6 +53,7 @@ impl ECS {
             entities: HashSet::new(),
             processed_added_entities: Vec::new(),
             intersects_data_tmp: Vec::new(),
+            script_pending_removal: HashSet::new(),
             shared: ApiShare::new(ECSShared {
                 entities: EntityMaps {
                     game_node_id: HashMap::new(),
@@ -68,6 +69,8 @@ impl ECS {
                     render_offset: HashMap::new(),
                     render_layer: HashMap::new(),
                     render_gid: HashMap::new(),
+                    render_fadeout_effect: HashMap::new(),
+                    render_fadein_effect: HashMap::new(),
                     render_gid_tileset_path: HashMap::new(),
                     character_animation: HashMap::new(),
                     transforms: HashMap::new(),
@@ -126,7 +129,6 @@ impl ECS {
         shared: &mut ECSShared,
         physics: &mut RapierSimulation,
     ) {
-        debug!("Adding rigid body for entity: {:?}", original_entity);
         let rigid_body_handle =
             Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
         shared
@@ -379,6 +381,12 @@ impl ECS {
                             .render_layer
                             .insert(entity, render.layer.clone());
                         ecs.entities.render_offset.insert(entity, render.offset);
+                        ecs.entities
+                            .render_fadein_effect
+                            .insert(entity, render.fadein_effect.clone());
+                        ecs.entities
+                            .render_fadeout_effect
+                            .insert(entity, render.fadeout_effect.clone());
                         match &render.kind {
                             RenderKind::Text(text_render) => {
                                 ecs.entities
@@ -485,8 +493,9 @@ impl ECS {
                         }
                     };
                 }
-                for new_entity in shared.removed_entities.drain(..) {
-                    self.entity_scripts.remove(&new_entity);
+                for removed_entity in shared.removed_entities.drain(..) {
+                    self.entity_scripts.remove(&removed_entity);
+                    self.script_pending_removal.remove(&removed_entity);
                 }
                 for (entity, scope_cache) in shared.set_scope_variables.drain() {
                     if let Some(game_node_script) = self.entity_scripts.get_mut(&entity) {
@@ -517,6 +526,18 @@ impl ECS {
         let entity = entity_update.id;
 
         match entity_update.kind {
+            EntityUpdateKind::FadeInEffect(fade_in_effect, duration) => {
+                shared
+                    .entities
+                    .render_fadein_effect
+                    .insert(entity, (fade_in_effect, duration));
+            }
+            EntityUpdateKind::FadeOutEffect(fade_out_effect, duration) => {
+                shared
+                    .entities
+                    .render_fadeout_effect
+                    .insert(entity, (fade_out_effect, duration));
+            }
             EntityUpdateKind::Layer(layer) => {
                 shared.entities.render_layer.insert(entity, layer);
             }
@@ -546,7 +567,6 @@ impl ECS {
                         physics.remove_collider(collider_handle);
                         shared.entities.collider_handle.remove(&entity);
                         shared.removed_colliders.push(collider_handle);
-                        debug!("updated collider {:?}", collider);
                         ECS::attach_collider_to_its_entity(&parent, &entity, shared, physics);
                     }
                 }

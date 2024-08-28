@@ -741,6 +741,18 @@ export const use_game_instances_store = defineStore("game-instances", () => {
               node2D.kind.Render.layer = layer;
             }
           })
+          .with({ FadeInEffect: P.select() }, (fade_in) => {
+            const node2D = game_node.data as Node2D;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              node2D.kind.Render.fadein_effect = fade_in;
+            }
+          })
+          .with({ FadeOutEffect: P.select() }, (fade_out) => {
+            const node2D = game_node.data as Node2D;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              node2D.kind.Render.fadeout_effect = fade_out;
+            }
+          })
           .exhaustive();
       } catch (e) {
         console.error("Could not apply entity update", e, update);

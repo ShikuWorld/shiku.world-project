@@ -27,14 +27,63 @@
       (new_value) => update_sprite_tileset_resource(new_value)
     "
   ></v-select>
-  <v-text-field
-    type="number"
+  <v-number-input
+    control-variant="stacked"
+    density="compact"
+    hide-details="auto"
+    label="Letter spacing"
+    :step="1"
+    :min="0"
+    v-if="render_kind == 'AnimatedSprite' || render_kind == 'Sprite'"
+    :model-value="gid"
+    @update:model-value="(new_value) => update_gid(new_value)"
+  ></v-number-input>
+  <v-label class="form-label">Fade-in</v-label>
+  <v-select
     :hide-details="true"
     density="compact"
-    :model-value="gid"
-    v-if="render_kind == 'AnimatedSprite' || render_kind == 'Sprite'"
-    @update:model-value="(new_value) => update_gid(new_value)"
-  ></v-text-field>
+    :items="fade_in_effects"
+    :model-value="fade_in_effect"
+    @update:model-value="
+      (new_value) => update_fade_in(new_value, fade_in_duration)
+    "
+  ></v-select>
+  <v-number-input
+    control-variant="stacked"
+    density="compact"
+    hide-details="auto"
+    label="Fade-in duration"
+    :step="1"
+    :min="0"
+    v-if="fade_in_effect !== 'None'"
+    :model-value="fade_in_duration"
+    @update:model-value="
+      (new_value) => update_fade_in(fade_in_effect, new_value)
+    "
+  ></v-number-input>
+  <v-label class="form-label">Fade-out</v-label>
+  <v-select
+    :hide-details="true"
+    density="compact"
+    :items="fade_out_effects"
+    :model-value="fade_out_effect"
+    @update:model-value="
+      (new_value) => update_fade_out(new_value, fade_out_duration)
+    "
+  ></v-select>
+  <v-number-input
+    control-variant="stacked"
+    density="compact"
+    hide-details="auto"
+    label="Fade-out duration"
+    :step="1"
+    :min="0"
+    v-if="fade_out_effect !== 'None'"
+    :model-value="fade_out_duration"
+    @update:model-value="
+      (new_value) => update_fade_out(fade_out_effect, new_value)
+    "
+  ></v-number-input>
   <v-label class="form-label" v-if="render_kind == 'AnimatedSprite'"
     >Character Animation</v-label
   >
@@ -69,6 +118,9 @@ import { use_editor_store } from "@/editor/stores/editor";
 import TextRender from "@/editor/editor/game_nodes/TextRender.vue";
 import { PossibleLayers } from "@/client/renderer";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { VNumberInput } from "vuetify/labs/VNumberInput";
+import { FadeinEffect } from "@/editor/blueprints/FadeinEffect";
+import { FadeoutEffect } from "@/editor/blueprints/FadeoutEffect";
 
 const { get_module } = use_resources_store();
 const { selected_module_id } = storeToRefs(use_editor_store());
@@ -87,6 +139,31 @@ const render_options: Array<KeysOfUnion<RenderKind>> = [
 const emit = defineEmits<{
   (e: "entityUpdate", data: EntityUpdateKind): void;
 }>();
+
+const fade_in_effects: FadeinEffect[] = ["None", "Fade", "JumpForth"];
+const fade_out_effects: FadeoutEffect[] = ["None", "Fade", "JumpBack"];
+
+const fade_in_effect = computed(() => {
+  return data.value.fadein_effect[0];
+});
+const fade_in_duration = computed(() => {
+  return data.value.fadein_effect[1];
+});
+
+const fade_out_effect = computed(() => {
+  return data.value.fadeout_effect[0];
+});
+const fade_out_duration = computed(() => {
+  return data.value.fadeout_effect[1];
+});
+
+const update_fade_in = (effect: FadeinEffect, duration: number) => {
+  emit("entityUpdate", { FadeInEffect: [effect, duration] });
+};
+
+const update_fade_out = (effect: FadeoutEffect, duration: number) => {
+  emit("entityUpdate", { FadeOutEffect: [effect, duration] });
+};
 
 const text_render = computed(() => {
   if ("Text" in data.value.kind) {
@@ -171,8 +248,8 @@ function update_render_layer(layer: LayerKind) {
   emit("entityUpdate", { Layer: layer });
 }
 
-function update_gid(gid: string) {
-  emit("entityUpdate", { Gid: Number(gid) });
+function update_gid(gid: number) {
+  emit("entityUpdate", { Gid: gid });
 }
 
 function update_sprite_tileset_resource(resource_path: string) {

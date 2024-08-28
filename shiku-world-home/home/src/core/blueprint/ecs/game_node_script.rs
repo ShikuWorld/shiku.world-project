@@ -131,7 +131,7 @@ impl ScopeCacheValue {
             ScopeCacheValue::Empty => dynamic_value.is::<()>(),
             ScopeCacheValue::Entity(entity) => {
                 if let Some(dynamic_entity) = dynamic_value.read_lock::<Entity>() {
-                    *entity == *dynamic_entity
+                    entity.0 == dynamic_entity.0
                 } else {
                     false
                 }
@@ -145,8 +145,8 @@ impl ScopeCacheValue {
                 }
             }
             ScopeCacheValue::String(value) => {
-                if let Some(dynamic_value) = dynamic_value.read_lock::<String>() {
-                    *value == *dynamic_value
+                if let Some(dynamic_value) = dynamic_value.read_lock::<ImmutableString>() {
+                    dynamic_value.eq(value)
                 } else {
                     false
                 }
@@ -167,6 +167,9 @@ impl ScopeCacheValue {
             }
             ScopeCacheValue::Map(scope_cache_map) => {
                 if let Some(dynamic_map) = dynamic_value.read_lock::<DynamicMap>() {
+                    if scope_cache_map.len() != dynamic_map.len() {
+                        return false;
+                    }
                     scope_cache_map.iter().all(|(key, cache_val)| {
                         if cache_val.is_unknown() {
                             return true;
@@ -202,10 +205,6 @@ impl GameNodeScript {
 
     pub fn update_scope(&mut self, scope_key: String, scope_value: ScopeCacheValue) {
         let dynamic_value: Dynamic = scope_value.into();
-        debug!(
-            "Updating scope key: {} with value: {:?}",
-            scope_key, dynamic_value
-        );
         self.scope.set_value(&scope_key, dynamic_value);
     }
 
@@ -237,7 +236,7 @@ impl GameNodeScript {
 
         for (key, value) in self.scope_cache.iter_mut() {
             if let Some(dynamic_value) = self.scope.get(key) {
-                if ScopeCacheValue::equals_dynamic_value(value, self.scope.get(key).unwrap()) {
+                if ScopeCacheValue::equals_dynamic_value(value, self.scope.get(key)?) {
                     continue;
                 }
                 updated = true;
@@ -266,13 +265,11 @@ impl GameNodeScript {
                 }
                 self.scope.clear();
                 for (key, value) in scope_cache.iter() {
-                    debug!("Setting key: {} with value: {:?}", key, value);
                     let dynamic_value: Dynamic = value.clone().into();
                     self.scope.set_value(key.clone(), dynamic_value);
                 }
                 self.scope
                     .push_constant("ENTITY_ID", Dynamic::from(self.entity));
-                debug!("Scope update successful");
             }
             Err(e) => error!("Error updating scope: {:?}", e),
         }

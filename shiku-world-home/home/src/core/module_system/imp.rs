@@ -499,21 +499,6 @@ impl DynamicGameModule {
         if let Some(world) = self.world_map.get_mut(world_id) {
             world.remove_entity(entity);
         }
-        let entity_removed_event = ModuleInstanceEvent {
-            world_id: None,
-            module_id: self.module_id.clone(),
-            instance_id: self.instance_id.clone(),
-            event_type: GameSystemToGuestEvent::RemoveEntity(entity),
-        };
-        Self::send_event_to_actors(
-            world_id,
-            &mut self.module_communication,
-            &self.world_to_guest,
-            &self.world_to_admin,
-            &self.connected_actor_set,
-            entity_removed_event,
-            "Could not send entity remove event",
-        );
     }
 
     pub fn add_entity(
@@ -931,9 +916,7 @@ impl DynamicGameModule {
         world_id: WorldId,
     ) -> Result<EnterSuccessState, EnterFailedState> {
         self.world_to_admin.insert_entry(world_id.clone(), admin.id);
-        debug!("Admin entered world: {:?}", world_id);
         self.admin_to_world.insert_entry(admin.id, world_id.clone());
-        debug!("admin to world: {:?}", self.admin_to_world);
         self.admins.entry(admin.id).or_insert(ModuleAdmin {
             id: admin.id,
             last_input_time: Instant::now(),
@@ -972,7 +955,6 @@ impl DynamicGameModule {
         main_world_id: WorldId,
         _module_enter_slot: &ModuleEnterSlot,
     ) -> Result<EnterSuccessState, EnterFailedState> {
-        debug!("Guest entering world with id: {:?}", main_world_id);
         self.guest_to_world.insert(guest.id, main_world_id.clone());
         self.world_to_guest
             .insert_entry(main_world_id.clone(), guest.id);
