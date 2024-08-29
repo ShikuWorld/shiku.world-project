@@ -326,6 +326,12 @@ pub trait JsonResource {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub struct PhysicsSettings {
+    pub gravity: (Real, Real),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct GameMap {
     pub module_id: String,
     pub world_id: String,
@@ -336,6 +342,7 @@ pub struct GameMap {
     pub tile_height: u32,
     pub main_scene: ResourcePath,
     pub camera_settings: CameraSettings,
+    pub physics_settings: PhysicsSettings,
     pub terrain: HashMap<LayerKind, HashMap<u32, Chunk>>,
     pub layer_parallax: HashMap<LayerKind, (f32, f32)>,
 }
@@ -347,6 +354,7 @@ pub struct MapUpdate {
     pub resource_path: ResourcePath,
     pub chunk: Option<(LayerKind, ChunkUpdate)>,
     pub scene: Option<ResourcePath>,
+    pub physics_settings: Option<PhysicsSettings>,
     pub layer_parallax: Option<(LayerKind, (f32, f32))>,
     pub camera_settings: Option<CameraSettings>,
 }

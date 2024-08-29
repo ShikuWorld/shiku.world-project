@@ -1,13 +1,14 @@
 use flume::Sender;
 use log::{debug, error};
 use rapier2d::math::Real;
+use rapier2d::na::Vector2;
 use std::collections::{HashMap, HashSet};
 use tokio::time::Instant;
 
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     BlueprintService, CameraSettings, Chunk, GameMap, Gid, LayerKind, LayerParralaxMap, Module,
-    ModuleId, ResourcePath, TerrainParams, WorldParams,
+    ModuleId, PhysicsSettings, ResourcePath, TerrainParams, WorldParams,
 };
 use crate::core::blueprint::ecs::character_animation::Animation;
 use crate::core::blueprint::ecs::def::{Entity, EntityUpdate, EntityUpdateKind};
@@ -185,6 +186,18 @@ impl DynamicGameModule {
                 },
                 "Could not send parallax update",
             );
+        }
+    }
+
+    pub fn save_physics_setting_to_world(
+        &mut self,
+        world_id: &WorldId,
+        physics_settings: PhysicsSettings,
+    ) {
+        if let Some(world) = self.world_map.get_mut(world_id) {
+            if let Some(mut physics) = world.physics.try_borrow_mut() {
+                physics.set_gravity(physics_settings.gravity);
+            }
         }
     }
 

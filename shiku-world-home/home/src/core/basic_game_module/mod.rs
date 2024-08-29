@@ -46,7 +46,7 @@ impl<T: EntityManager, S> BasicGameModule<T, S> {
     }
 
     pub fn set_gravity(&mut self, gravity: Vector<Real>) {
-        self.simulation.set_gravity(gravity);
+        self.simulation.set_gravity((gravity.x, gravity.y));
     }
 
     pub fn update(&mut self) {

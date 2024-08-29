@@ -346,6 +346,9 @@ pub async fn handle_admin_to_system_event(
                     if let Some(camera_settings) = &map_update.camera_settings {
                         map.camera_settings = camera_settings.clone();
                     }
+                    if let Some(physics_settings) = &map_update.physics_settings {
+                        map.physics_settings = physics_settings.clone();
+                    }
                     match Blueprint::save_map(&map) {
                         Ok(()) => {
                             if let (Some(module), Some((layer_kind, _)), Some(chunk)) = (
@@ -369,6 +372,13 @@ pub async fn handle_admin_to_system_event(
                                             module.save_and_send_camera_settings_to_actors(
                                                 &map.world_id,
                                                 camera_settings,
+                                            );
+                                        }
+                                        if let Some(physics_settings) = &map_update.physics_settings
+                                        {
+                                            module.save_physics_setting_to_world(
+                                                &map.world_id,
+                                                physics_settings.clone(),
                                             );
                                         }
                                     }

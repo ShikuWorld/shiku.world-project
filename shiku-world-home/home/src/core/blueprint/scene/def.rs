@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
-use crate::core::blueprint::ecs::def::Entity;
+use crate::core::blueprint::ecs::def::{DynamicRigidBodyPropsUpdate, Entity};
 
 pub type SceneId = String;
 pub type ScriptId = String;
@@ -89,6 +89,8 @@ pub enum Node2DKindClean {
 pub struct Collider {
     pub kind: ColliderKind,
     pub shape: ColliderShape,
+    pub density: Real,
+    pub restitution: Real,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -176,8 +178,54 @@ impl KinematicCharacterControllerProps {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub struct DynamicRigidBodyProps {
+    pub gravity_scale: Real,
+    pub can_sleep: bool,
+    pub ccd_enabled: bool,
+    pub linear_dampening: Real,
+    pub angular_dampening: Real,
+    pub rotation_locked: bool,
+}
+
+impl DynamicRigidBodyProps {
+    pub fn new() -> Self {
+        Self {
+            gravity_scale: 1.0,
+            can_sleep: true,
+            ccd_enabled: false,
+            linear_dampening: 0.0,
+            angular_dampening: 0.0,
+            rotation_locked: false,
+        }
+    }
+
+    pub fn update(&mut self, update: DynamicRigidBodyPropsUpdate) {
+        if let Some(gravity_scale) = update.gravity_scale {
+            self.gravity_scale = gravity_scale;
+        }
+        if let Some(can_sleep) = update.can_sleep {
+            self.can_sleep = can_sleep;
+        }
+        if let Some(ccd_enabled) = update.ccd_enabled {
+            self.ccd_enabled = ccd_enabled;
+        }
+        if let Some(linear_dampening) = update.linear_dampening {
+            self.linear_dampening = linear_dampening;
+        }
+        if let Some(angular_dampening) = update.angular_dampening {
+            self.angular_dampening = angular_dampening;
+        }
+        if let Some(rotation_locked) = update.rotation_locked {
+            self.rotation_locked = rotation_locked;
+        }
+    }
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub struct RigidBody {
     pub kinematic_character_controller_props: Option<KinematicCharacterControllerProps>,
+    pub dynamic_rigid_body_props: Option<DynamicRigidBodyProps>,
     pub body: RigidBodyType,
 }
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

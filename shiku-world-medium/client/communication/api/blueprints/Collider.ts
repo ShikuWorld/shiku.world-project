@@ -2,4 +2,4 @@
 import type { ColliderKind } from "./ColliderKind";
 import type { ColliderShape } from "./ColliderShape";
 
-export interface Collider { kind: ColliderKind, shape: ColliderShape, }
+export interface Collider { kind: ColliderKind, shape: ColliderShape, density: number, restitution: number, }

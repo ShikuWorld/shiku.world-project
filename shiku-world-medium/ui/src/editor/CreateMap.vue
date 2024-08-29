@@ -55,6 +55,9 @@ const game_map = reactive<GameMap>({
   main_scene: "",
   name: "",
   resource_path: "",
+  physics_settings: {
+    gravity: [0, 9.81],
+  },
   layer_parallax: {
     BG10: [1.0, 1.0],
     BG09: [1.0, 1.0],

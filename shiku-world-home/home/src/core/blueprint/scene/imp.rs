@@ -6,7 +6,7 @@ use crate::core::blueprint::ecs::def::{ECSShared, Entity, EntityUpdateKind, ECS}
 use crate::core::blueprint::ecs::game_node_script::GameNodeScript;
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
-    FadeinEffect, FadeoutEffect, GameNode, GameNodeKind, GameNodeKindClean,
+    DynamicRigidBodyProps, FadeinEffect, FadeoutEffect, GameNode, GameNodeKind, GameNodeKindClean,
     KinematicCharacterControllerProps, Node2D, Node2DDud, Node2DKind, Node2DKindClean, Render,
     RenderKind, RenderKindClean, RigidBody, RigidBodyType, Scene,
 };
@@ -40,6 +40,11 @@ fn get_render_node_2d_kind_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<
                 if let Some(body) = ecs.entities.rigid_body_type.get(entity) {
                     return Some(Node2DKind::RigidBody(RigidBody {
                         body: body.clone(),
+                        dynamic_rigid_body_props: ecs
+                            .entities
+                            .dynamic_rigid_body_props
+                            .get(entity)
+                            .cloned(),
                         kinematic_character_controller_props: ecs
                             .entities
                             .kinematic_character
@@ -155,6 +160,14 @@ impl GameNodeKind {
     pub fn update_with_entity_update(&mut self, update: EntityUpdateKind) {
         let GameNodeKind::Node2D(n) = self;
         match update {
+            EntityUpdateKind::DynamicRigidBodyTypeProps(props) => {
+                if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
+                    if let Some(dynamic_rigid_body_props) = &mut rigid_body.dynamic_rigid_body_props
+                    {
+                        dynamic_rigid_body_props.update(props);
+                    }
+                }
+            }
             EntityUpdateKind::FadeInEffect(fade_in_effect, duration) => {
                 if let Node2DKind::Render(render) = &mut n.data.kind {
                     render.fadein_effect = (fade_in_effect, duration);
@@ -201,7 +214,13 @@ impl GameNodeKind {
                             Some(KinematicCharacterControllerProps::new())
                         }
                         RigidBodyType::Dynamic | RigidBodyType::Fixed => None,
-                    }
+                    };
+                    rigid_body.dynamic_rigid_body_props = match rigid_body.body {
+                        RigidBodyType::Dynamic => Some(DynamicRigidBodyProps::new()),
+                        RigidBodyType::Fixed
+                        | RigidBodyType::KinematicPositionBased
+                        | RigidBodyType::KinematicVelocityBased => None,
+                    };
                 }
             }
             EntityUpdateKind::RenderKind(render_kind) => {

@@ -15,7 +15,7 @@ use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
 use crate::core::blueprint::scene::def::{
-    Collider, FadeinEffect, FadeoutEffect, GameNodeId, GameNodeKindClean,
+    Collider, DynamicRigidBodyProps, FadeinEffect, FadeoutEffect, GameNodeId, GameNodeKindClean,
     KinematicCharacterControllerProps, Node2DKindClean, NodeInstanceId, RenderKind,
     RenderKindClean, RigidBodyType, SceneId, TextRender, Transform,
 };
@@ -108,6 +108,7 @@ pub struct EntityMaps {
     pub transforms: HashMap<Entity, Transform>,
     pub rigid_body_type: HashMap<Entity, RigidBodyType>,
     pub kinematic_character: HashMap<Entity, KinematicCharacter>,
+    pub dynamic_rigid_body_props: HashMap<Entity, DynamicRigidBodyProps>,
     pub rigid_body_handle: HashMap<Entity, RigidBodyHandle>,
     pub collider: HashMap<Entity, Collider>,
     pub collider_handle: HashMap<Entity, ColliderHandle>,
@@ -134,6 +135,17 @@ pub struct EntityUpdate {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub struct DynamicRigidBodyPropsUpdate {
+    pub gravity_scale: Option<Real>,
+    pub can_sleep: Option<bool>,
+    pub ccd_enabled: Option<bool>,
+    pub linear_dampening: Option<Real>,
+    pub angular_dampening: Option<Real>,
+    pub rotation_locked: Option<bool>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub enum EntityUpdateKind {
     Transform(Transform),
     Name(String),
@@ -146,6 +158,7 @@ pub enum EntityUpdateKind {
     UpdateScriptScope(String, ScopeCacheValue),
     SetScriptScope(HashMap<String, ScopeCacheValue>),
     RigidBodyType(RigidBodyType),
+    DynamicRigidBodyTypeProps(DynamicRigidBodyPropsUpdate),
     KinematicCharacterControllerProps(KinematicCharacterControllerProps),
     Collider(Collider),
     PositionRotation((Real, Real, Real)),

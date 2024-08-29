@@ -20,6 +20,7 @@ import { KinematicCharacterControllerProps } from "@/editor/blueprints/Kinematic
 import { EffectsManager } from "@/client/effects-manager";
 import { EntityLayerManager } from "@/client/entity-layer-manager";
 import { InstanceRendering } from "@/client/renderer";
+import { DynamicRigidBodyProps } from "@/editor/blueprints/DynamicRigidBodyProps";
 
 export interface Node {
   node_id: ReturnType<typeof render_key>;
@@ -382,12 +383,10 @@ export const use_game_instances_store = defineStore("game-instances", () => {
     update_render_position(render_node: Node, game_node: GameNodeKind) {
       const node_2d = get_generic_game_node(game_node).data as Node2D;
       if (node_2d.transform) {
-        render_node.container.position.x = Math.round(
-          node_2d.transform.position[0] * RENDER_SCALE,
-        );
-        render_node.container.position.y = Math.round(
-          node_2d.transform.position[1] * RENDER_SCALE,
-        );
+        render_node.container.position.x =
+          node_2d.transform.position[0] * RENDER_SCALE;
+        render_node.container.position.y =
+          node_2d.transform.position[1] * RENDER_SCALE;
         render_node.container.rotation = node_2d.transform.rotation;
       }
     },
@@ -514,7 +513,71 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                   }) as KinematicCharacterControllerProps,
               )
               .exhaustive();
+            rigid_body.dynamic_rigid_body_props = match(rigid_body_type)
+              .with(
+                "Dynamic",
+                () =>
+                  ({
+                    angular_dampening: 0.0,
+                    can_sleep: true,
+                    ccd_enabled: false,
+                    gravity_scale: 1.0,
+                    linear_dampening: 0.0,
+                    rotation_locked: false,
+                  }) as DynamicRigidBodyProps,
+              )
+              .with(
+                "Fixed",
+                "KinematicPositionBased",
+                "KinematicVelocityBased",
+                () => null,
+              )
+              .exhaustive();
           })
+          .with(
+            { DynamicRigidBodyTypeProps: P.select() },
+            (body_props_update) => {
+              if (!game_node.data.transform) {
+                console.error(
+                  "Tried to update rigid body without a transform, wtf?",
+                );
+                return;
+              }
+              const node_2d = game_node.data as Node2D;
+              const rigid_body =
+                "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
+              if (!rigid_body) {
+                console.error("Could not upate rigid body type");
+                return;
+              }
+              if (!rigid_body.dynamic_rigid_body_props) {
+                console.error(
+                  "Could not upate rigid body type, dynamic_rigid_body_props is null",
+                );
+                return;
+              }
+              rigid_body.dynamic_rigid_body_props = {
+                rotation_locked:
+                  body_props_update.rotation_locked ??
+                  rigid_body.dynamic_rigid_body_props.rotation_locked,
+                angular_dampening:
+                  body_props_update.angular_dampening ??
+                  rigid_body.dynamic_rigid_body_props.angular_dampening,
+                linear_dampening:
+                  body_props_update.linear_dampening ??
+                  rigid_body.dynamic_rigid_body_props.linear_dampening,
+                can_sleep:
+                  body_props_update.can_sleep ??
+                  rigid_body.dynamic_rigid_body_props.can_sleep,
+                ccd_enabled:
+                  body_props_update.ccd_enabled ??
+                  rigid_body.dynamic_rigid_body_props.ccd_enabled,
+                gravity_scale:
+                  body_props_update.gravity_scale ??
+                  rigid_body.dynamic_rigid_body_props.gravity_scale,
+              };
+            },
+          )
           .with({ PositionRotation: P.select() }, ([x, y, r]) => {
             if (!game_node.data.transform) {
               console.error("Tried to update Node without transform, wtf?");

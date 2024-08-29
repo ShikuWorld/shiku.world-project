@@ -176,6 +176,10 @@ export const use_resources_store = defineStore("resources", () => {
             ...update,
           },
         };
+        if (map_update.physics_settings) {
+          state.game_map_map[key].physics_settings =
+            map_update.physics_settings;
+        }
         if (map_update.chunk) {
           const [layer_kind, chunk_update] = map_update.chunk;
           const chunk_id = cantor_pair(
@@ -507,6 +511,7 @@ export const use_resources_store = defineStore("resources", () => {
       send_admin_event({
         UpdateMap: {
           chunk: null,
+          physics_settings: null,
           ...map_update,
         },
       });
@@ -667,14 +672,20 @@ export function create_2d_game_node(
       (): Node2DKind => ({
         RigidBody: {
           kinematic_character_controller_props: null,
-          body: "Dynamic",
+          dynamic_rigid_body_props: null,
+          body: "Fixed",
         },
       }),
     )
     .with(
       "Node2D-Collider",
       (): Node2DKind => ({
-        Collider: { kind: "Solid", shape: { Ball: 0.5 } },
+        Collider: {
+          kind: "Solid",
+          shape: { Ball: 0.5 },
+          density: 1.0,
+          restitution: 0.0,
+        },
       }),
     )
     .with(

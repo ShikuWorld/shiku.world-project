@@ -10,6 +10,38 @@
       :model-value="game_map.camera_settings.zoom"
       @update:model-value="update_camera_zoom"
     ></v-number-input>
+    <v-number-input
+      :reverse="false"
+      label="gravity x"
+      controlVariant="stacked"
+      density="compact"
+      :hide-details="true"
+      :step="0.1"
+      :model-value="game_map.physics_settings.gravity[0]"
+      @update:model-value="
+        (new_value) =>
+          update_physics_gravity(
+            new_value,
+            game_map.physics_settings.gravity[1],
+          )
+      "
+    ></v-number-input>
+    <v-number-input
+      :reverse="false"
+      label="gravity y"
+      controlVariant="stacked"
+      density="compact"
+      :hide-details="true"
+      :step="0.1"
+      :model-value="game_map.physics_settings.gravity[1]"
+      @update:model-value="
+        (new_value) =>
+          update_physics_gravity(
+            game_map.physics_settings.gravity[0],
+            new_value,
+          )
+      "
+    ></v-number-input>
     <v-switch
       label="Bounds"
       :model-value="bounds_enabled"
@@ -107,6 +139,20 @@ const props = defineProps<{
 }>();
 const { game_map } = toRefs(props);
 const { update_map_server } = use_resources_store();
+
+function update_physics_gravity(x: number, y: number) {
+  update_map_server({
+    name: game_map.value.name,
+    resource_path: game_map.value.resource_path,
+    layer_parallax: null,
+    scene: null,
+    camera_settings: null,
+    physics_settings: {
+      ...game_map.value.physics_settings,
+      gravity: [x, y],
+    },
+  });
+}
 
 const bounds_enabled = computed(() => !!game_map.value.camera_settings.bounds);
 function toggle_bounds(enabled: boolean | null) {

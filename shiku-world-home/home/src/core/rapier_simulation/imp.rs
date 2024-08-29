@@ -3,7 +3,10 @@ use std::ops::Deref;
 use crate::core::basic_kinematic_character_controller::{
     BasicKinematicCharacterController, CharacterAutostep, CharacterCollision, CharacterLength,
 };
-use crate::core::blueprint::scene::def::KinematicCharacterControllerProps;
+use crate::core::blueprint::ecs::def::DynamicRigidBodyPropsUpdate;
+use crate::core::blueprint::scene::def::{
+    DynamicRigidBodyProps, KinematicCharacterControllerProps,
+};
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::terrain_gen::TerrainGenTerrainChunk;
 use log::{debug, error};
@@ -193,8 +196,9 @@ impl RapierSimulation {
             .collect()
     }
 
-    pub fn set_gravity(&mut self, gravity: Vector<Real>) {
-        self.gravity = gravity;
+    pub fn set_gravity(&mut self, gravity: (Real, Real)) {
+        self.gravity.x = gravity.0;
+        self.gravity.y = gravity.1;
     }
 
     pub fn set_linear_dampening(&mut self, body_handle: RigidBodyHandle, dampening: Real) {
@@ -404,9 +408,13 @@ impl RapierSimulation {
         half_y: Real,
         body_handle: RigidBodyHandle,
         is_sensor: bool,
+        density: Real,
+        restitution: Real,
     ) -> ColliderHandle {
         let collider = ColliderBuilder::cuboid(half_x, half_y)
             .sensor(is_sensor)
+            .density(density)
+            .restitution(restitution)
             .active_events(ActiveEvents::all())
             .build();
 
@@ -414,15 +422,63 @@ impl RapierSimulation {
             .insert_with_parent(collider, body_handle, &mut self.bodies)
     }
 
+    fn _set_dynamic_rigid_body_props(
+        rigid_body: &mut RigidBody,
+        props: DynamicRigidBodyPropsUpdate,
+    ) {
+        debug!("Setting dynamic rigid body props {:?}", props);
+        if let Some(gravity_scale) = props.gravity_scale {
+            rigid_body.set_gravity_scale(gravity_scale, true);
+        }
+        if let Some(linear_dampening) = props.linear_dampening {
+            rigid_body.set_linear_damping(linear_dampening);
+        }
+        if let Some(angular_dampening) = props.angular_dampening {
+            rigid_body.set_angular_damping(angular_dampening);
+        }
+        if let Some(rotation_locked) = props.rotation_locked {
+            rigid_body.set_enabled_rotations(
+                rotation_locked,
+                rotation_locked,
+                rotation_locked,
+                true,
+            );
+        }
+        if let Some(ccd_enabled) = props.ccd_enabled {
+            rigid_body.enable_ccd(ccd_enabled);
+        }
+        if let Some(can_sleep) = props.can_sleep {
+            if can_sleep {
+                rigid_body.sleep();
+            } else {
+                rigid_body.wake_up(false);
+            }
+        }
+    }
+
+    pub fn set_dynamic_rigid_body_props(
+        &mut self,
+        rigid_body_handle: RigidBodyHandle,
+        props: DynamicRigidBodyPropsUpdate,
+    ) {
+        if let Some(rigid_body) = self.bodies.get_mut(rigid_body_handle) {
+            Self::_set_dynamic_rigid_body_props(rigid_body, props);
+        }
+    }
+
     pub fn create_ball_collider(
         &mut self,
         radius: Real,
         body_handle: RigidBodyHandle,
         is_sensor: bool,
+        density: Real,
+        restitution: Real,
     ) -> ColliderHandle {
         let collider = ColliderBuilder::ball(radius)
             .active_events(ActiveEvents::all())
             .active_collision_types(ActiveCollisionTypes::all())
+            .density(density)
+            .restitution(restitution)
             .sensor(is_sensor)
             .build();
 
@@ -469,9 +525,11 @@ impl RapierSimulation {
     pub fn add_dynamic_rigid_body(&mut self, pos_x: Real, pos_y: Real) -> RigidBodyHandle {
         let rigid_body = RigidBodyBuilder::dynamic()
             .translation(Vector::new(pos_x, pos_y))
-            .ccd_enabled(true)
-            .can_sleep(false)
-            .linear_damping(0.5)
+            .linear_damping(0.0)
+            .angular_damping(0.0)
+            .gravity_scale(1.0)
+            .ccd_enabled(false)
+            .can_sleep(true)
             .build();
 
         self.bodies.insert(rigid_body)

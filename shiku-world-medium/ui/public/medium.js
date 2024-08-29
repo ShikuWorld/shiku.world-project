@@ -46122,6 +46122,7 @@ This will fail in production.`);
         send_admin_event({
           UpdateMap: {
             chunk: null,
+            physics_settings: null,
             ...map_update
           }
         });
@@ -46537,12 +46538,8 @@ This will fail in production.`);
       update_render_position(render_node, game_node) {
         const node_2d = get_generic_game_node(game_node).data;
         if (node_2d.transform) {
-          render_node.container.position.x = Math.round(
-            node_2d.transform.position[0] * RENDER_SCALE
-          );
-          render_node.container.position.y = Math.round(
-            node_2d.transform.position[1] * RENDER_SCALE
-          );
+          render_node.container.position.x = node_2d.transform.position[0] * RENDER_SCALE;
+          render_node.container.position.y = node_2d.transform.position[1] * RENDER_SCALE;
           render_node.container.rotation = node_2d.transform.rotation;
         }
       },
@@ -46641,7 +46638,53 @@ This will fail in production.`);
                 autostep: null
               })
             ).exhaustive();
-          }).with({ PositionRotation: _.select() }, ([x3, y3, r3]) => {
+            rigid_body.dynamic_rigid_body_props = N2(rigid_body_type).with(
+              "Dynamic",
+              () => ({
+                angular_dampening: 0,
+                can_sleep: true,
+                ccd_enabled: false,
+                gravity_scale: 1,
+                linear_dampening: 0,
+                rotation_locked: false
+              })
+            ).with(
+              "Fixed",
+              "KinematicPositionBased",
+              "KinematicVelocityBased",
+              () => null
+            ).exhaustive();
+          }).with(
+            { DynamicRigidBodyTypeProps: _.select() },
+            (body_props_update) => {
+              if (!game_node.data.transform) {
+                console.error(
+                  "Tried to update rigid body without a transform, wtf?"
+                );
+                return;
+              }
+              const node_2d = game_node.data;
+              const rigid_body = "RigidBody" in node_2d.kind ? node_2d.kind.RigidBody : null;
+              if (!rigid_body) {
+                console.error("Could not upate rigid body type");
+                return;
+              }
+              if (!rigid_body.dynamic_rigid_body_props) {
+                console.error(
+                  "Could not upate rigid body type, dynamic_rigid_body_props is null"
+                );
+                return;
+              }
+              rigid_body.dynamic_rigid_body_props = {
+                rotation_locked: body_props_update.rotation_locked ?? rigid_body.dynamic_rigid_body_props.rotation_locked,
+                angular_dampening: body_props_update.angular_dampening ?? rigid_body.dynamic_rigid_body_props.angular_dampening,
+                linear_dampening: body_props_update.linear_dampening ?? rigid_body.dynamic_rigid_body_props.linear_dampening,
+                can_sleep: body_props_update.can_sleep ?? rigid_body.dynamic_rigid_body_props.can_sleep,
+                ccd_enabled: body_props_update.ccd_enabled ?? rigid_body.dynamic_rigid_body_props.ccd_enabled,
+                gravity_scale: body_props_update.gravity_scale ?? rigid_body.dynamic_rigid_body_props.gravity_scale
+              };
+            }
+          ).with({ PositionRotation: _.select() }, ([x3, y3, r3]) => {
             if (!game_node.data.transform) {
               console.error("Tried to update Node without transform, wtf?");
               return;

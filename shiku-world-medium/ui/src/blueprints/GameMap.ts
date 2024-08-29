@@ -2,5 +2,6 @@
 import type { CameraSettings } from "./CameraSettings";
 import type { Chunk } from "./Chunk";
 import type { LayerKind } from "./LayerKind";
+import type { PhysicsSettings } from "./PhysicsSettings";
 
-export interface GameMap { module_id: string, world_id: string, name: string, resource_path: string, chunk_size: number, tile_width: number, tile_height: number, main_scene: string, camera_settings: CameraSettings, terrain: Record<LayerKind, Record<number, Chunk>>, layer_parallax: Record<LayerKind, [number, number]>, }
+export interface GameMap { module_id: string, world_id: string, name: string, resource_path: string, chunk_size: number, tile_width: number, tile_height: number, main_scene: string, camera_settings: CameraSettings, physics_settings: PhysicsSettings, terrain: Record<LayerKind, Record<number, Chunk>>, layer_parallax: Record<LayerKind, [number, number]>, }

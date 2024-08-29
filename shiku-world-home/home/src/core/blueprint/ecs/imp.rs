@@ -10,15 +10,15 @@ use rhai::{Engine, Scope, AST};
 use crate::core::blueprint::def::ResourcePath;
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::def::{
-    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, KinematicCharacter, TimerId,
-    TweenId, ECS,
+    DynamicRigidBodyPropsUpdate, ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind,
+    KinematicCharacter, TimerId, TweenId, ECS,
 };
 use crate::core::blueprint::ecs::game_node_script::{
     GameNodeScript, GameNodeScriptFunction, ScopeCacheValue,
 };
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
-    Collider, ColliderKind, ColliderShape, GameNodeKind, GameNodeKindClean,
+    Collider, ColliderKind, ColliderShape, DynamicRigidBodyProps, GameNodeKind, GameNodeKindClean,
     KinematicCharacterControllerProps, Node2DKind, Node2DKindClean, RenderKind, RenderKindClean,
     RigidBodyType, Scene, SceneId, Transform,
 };
@@ -77,6 +77,7 @@ impl ECS {
                     kinematic_character: HashMap::new(),
                     rigid_body_type: HashMap::new(),
                     rigid_body_handle: HashMap::new(),
+                    dynamic_rigid_body_props: HashMap::new(),
                     collider: HashMap::new(),
                     collider_handle: HashMap::new(),
                     text_render: HashMap::new(),
@@ -131,6 +132,23 @@ impl ECS {
     ) {
         let rigid_body_handle =
             Self::create_rigid_body_from_type(rigid_body_type, transform, physics);
+        if let Some(dynamic_rigid_body_props) = shared
+            .entities
+            .dynamic_rigid_body_props
+            .get(original_entity)
+        {
+            physics.set_dynamic_rigid_body_props(
+                rigid_body_handle,
+                DynamicRigidBodyPropsUpdate {
+                    can_sleep: Some(dynamic_rigid_body_props.can_sleep),
+                    rotation_locked: Some(dynamic_rigid_body_props.rotation_locked),
+                    angular_dampening: Some(dynamic_rigid_body_props.angular_dampening),
+                    linear_dampening: Some(dynamic_rigid_body_props.linear_dampening),
+                    gravity_scale: Some(dynamic_rigid_body_props.gravity_scale),
+                    ccd_enabled: Some(dynamic_rigid_body_props.ccd_enabled),
+                },
+            );
+        }
         shared
             .entities
             .rigid_body_handle
@@ -266,18 +284,27 @@ impl ECS {
             ColliderKind::Sensor => true,
         };
         match collider.shape {
-            ColliderShape::Ball(radius) => {
-                physics.create_ball_collider(radius, *rigid_body_handle, is_sensor)
-            }
+            ColliderShape::Ball(radius) => physics.create_ball_collider(
+                radius,
+                *rigid_body_handle,
+                is_sensor,
+                collider.density,
+                collider.restitution,
+            ),
             ColliderShape::CapsuleX(half_y, radius) => {
                 physics.create_capsule_x_collider(half_y, radius, *rigid_body_handle, is_sensor)
             }
             ColliderShape::CapsuleY(half_x, radius) => {
                 physics.create_capsule_y_collider(half_x, radius, *rigid_body_handle, is_sensor)
             }
-            ColliderShape::Cuboid(half_x, half_y) => {
-                physics.create_cuboid_collider(half_x, half_y, *rigid_body_handle, is_sensor)
-            }
+            ColliderShape::Cuboid(half_x, half_y) => physics.create_cuboid_collider(
+                half_x,
+                half_y,
+                *rigid_body_handle,
+                is_sensor,
+                collider.density,
+                collider.restitution,
+            ),
         }
     }
 
@@ -365,6 +392,12 @@ impl ECS {
                                     grounded: false,
                                 },
                             );
+                        }
+                        if let Some(dynamic_rigid_body_props) = &rigid_body.dynamic_rigid_body_props
+                        {
+                            ecs.entities
+                                .dynamic_rigid_body_props
+                                .insert(entity, dynamic_rigid_body_props.clone());
                         }
                     }
                     Node2DKind::Collider(collider) => {
@@ -526,6 +559,18 @@ impl ECS {
         let entity = entity_update.id;
 
         match entity_update.kind {
+            EntityUpdateKind::DynamicRigidBodyTypeProps(props) => {
+                if let Some(rigid_body_handle) =
+                    shared.entities.rigid_body_handle.get(&entity_update.id)
+                {
+                    if let Some(mut dynamic_rigid_body_props) =
+                        shared.entities.dynamic_rigid_body_props.get_mut(&entity)
+                    {
+                        dynamic_rigid_body_props.update(props.clone());
+                    }
+                    physics.set_dynamic_rigid_body_props(*rigid_body_handle, props);
+                }
+            }
             EntityUpdateKind::FadeInEffect(fade_in_effect, duration) => {
                 shared
                     .entities
@@ -644,9 +689,18 @@ impl ECS {
                                         &kinematic_character.props,
                                     );
                             }
+                            shared.entities.dynamic_rigid_body_props.remove(&entity);
                         }
-                        RigidBodyType::Dynamic | RigidBodyType::Fixed => {
+                        RigidBodyType::Dynamic => {
                             shared.entities.kinematic_character.remove(&entity);
+                            shared
+                                .entities
+                                .dynamic_rigid_body_props
+                                .insert(entity, DynamicRigidBodyProps::new());
+                        }
+                        RigidBodyType::Fixed => {
+                            shared.entities.kinematic_character.remove(&entity);
+                            shared.entities.dynamic_rigid_body_props.remove(&entity);
                         }
                     }
                     physics.remove_rigid_body(*rigid_body_handle);

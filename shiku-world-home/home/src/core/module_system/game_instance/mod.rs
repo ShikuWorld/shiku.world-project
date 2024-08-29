@@ -11,7 +11,8 @@ use thiserror::Error;
 use crate::core::blueprint::character_animation::CharacterAnimation;
 use crate::core::blueprint::def::{
     BlueprintError, BlueprintResource, CameraSettings, Chunk, GameMap, Gid, JsonResource, Layer,
-    LayerKind, LayerParralaxMap, ModuleId, ResourceKind, TerrainParams, WorldParams,
+    LayerKind, LayerParralaxMap, ModuleId, PhysicsSettings, ResourceKind, TerrainParams,
+    WorldParams,
 };
 use crate::core::blueprint::def::{Module, ResourcePath};
 use crate::core::blueprint::ecs::def::Entity;
@@ -154,6 +155,18 @@ impl GameInstanceManager {
             game_instance
                 .dynamic_module
                 .save_and_send_camera_settings_to_actors(world_id, camera_settings);
+        }
+    }
+
+    pub fn save_physics_setting_to_world(
+        &mut self,
+        world_id: &WorldId,
+        physics_settings: PhysicsSettings,
+    ) {
+        for game_instance in self.game_instances.values_mut() {
+            game_instance
+                .dynamic_module
+                .save_physics_setting_to_world(world_id, physics_settings.clone());
         }
     }
 

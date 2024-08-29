@@ -13,6 +13,16 @@
     :model-value="collider_shape_kind"
     @update:model-value="(newValue) => update_collider_shape_kind(newValue)"
   ></v-select>
+  <v-number-input
+    label="Density"
+    :model-value="data.density"
+    @update:model-value="(newValue) => update_collider_density(newValue)"
+  ></v-number-input>
+  <v-number-input
+    label="Restitution"
+    :model-value="data.restitution"
+    @update:model-value="(newValue) => update_collider_restitution(newValue)"
+  ></v-number-input>
   <v-textarea
     :model-value="collision_data_tmp"
     @update:model-value="(new_value) => (collision_data_tmp = new_value)"
@@ -22,6 +32,7 @@
   >
 </template>
 <script lang="ts" setup>
+import { VNumberInput } from "vuetify/labs/VNumberInput";
 import { Collider } from "@/editor/blueprints/Collider";
 import { computed, onMounted, ref, toRefs, watch } from "vue";
 import { EntityUpdateKind } from "@/editor/blueprints/EntityUpdateKind";
@@ -53,6 +64,30 @@ const update_is_sensor = (is_sensor: boolean | null) => {
     Collider: {
       kind: (is_sensor ? "Sensor" : "Solid") as ColliderKind,
       shape: data.value.shape,
+      density: 1.0,
+      restitution: 0.0,
+    },
+  });
+};
+
+const update_collider_density = (density: number | null) => {
+  emit("entityUpdate", {
+    Collider: {
+      kind: data.value.kind,
+      shape: data.value.shape,
+      restitution: data.value.restitution,
+      density: density ?? 1.0,
+    },
+  });
+};
+
+const update_collider_restitution = (restitution: number | null) => {
+  emit("entityUpdate", {
+    Collider: {
+      kind: data.value.kind,
+      shape: data.value.shape,
+      density: data.value.density,
+      restitution: restitution ?? 0.0,
     },
   });
 };
@@ -64,6 +99,8 @@ const update_collider_shape_kind = (shape_kind: ShapeKind | null) => {
   emit("entityUpdate", {
     Collider: {
       kind: data.value.kind,
+      restitution: data.value.restitution,
+      density: data.value.density,
       shape: create_collider_shape(shape_kind),
     },
   });
@@ -77,6 +114,8 @@ const update_collider_shape_kind_value = (
     emit("entityUpdate", {
       Collider: {
         kind: data.value.kind,
+        density: data.value.density,
+        restitution: data.value.restitution,
         shape: { [collider_shape_kind.value]: value } as ColliderShape,
       },
     });

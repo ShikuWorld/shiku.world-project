@@ -2,5 +2,6 @@
 import type { CameraSettings } from "./CameraSettings";
 import type { ChunkUpdate } from "./ChunkUpdate";
 import type { LayerKind } from "./LayerKind";
+import type { PhysicsSettings } from "./PhysicsSettings";
 
-export interface MapUpdate { name: string, resource_path: string, chunk: [LayerKind, ChunkUpdate] | null, scene: string | null, layer_parallax: [LayerKind, [number, number]] | null, camera_settings: CameraSettings | null, }
+export interface MapUpdate { name: string, resource_path: string, chunk: [LayerKind, ChunkUpdate] | null, scene: string | null, physics_settings: PhysicsSettings | null, layer_parallax: [LayerKind, [number, number]] | null, camera_settings: CameraSettings | null, }

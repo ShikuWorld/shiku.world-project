@@ -4,7 +4,9 @@ use std::collections::{HashMap, HashSet};
 use log::{debug, error};
 use rand::{thread_rng, Rng};
 use rapier2d::prelude::*;
-use rhai::{exported_module, Dynamic, Engine, FuncRegistration, Module as RhaiModule};
+use rhai::{
+    exported_module, Dynamic, Engine, EvalAltResult, FuncRegistration, Module as RhaiModule,
+};
 
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::CameraSettings;
@@ -131,6 +133,7 @@ impl World {
 
         let mut ecs = ECS::from(&world_scene);
         let mut physics = RapierSimulation::new();
+        physics.set_gravity(game_map.physics_settings.gravity);
         Self::init_physics_simulation_from_ecs(&mut ecs, &mut physics);
         self.terrain_manager.re_add_polylines(&mut physics);
         let physics_share = ApiShare::new(physics);
@@ -409,69 +412,86 @@ impl World {
         let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("set_entity_desired_translation").set_into_module(
             &mut module,
-            move |entity: Entity, x: f64, y: f64| {
+            move |entity: Entity, x: f64, y: f64| -> Result<(), Box<EvalAltResult>> {
                 if let Some(mut shared) = ecs_shared.try_borrow_mut() {
                     if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
                         character.desired_translation.x = x as f32;
                         character.desired_translation.y = y as f32;
                     } else {
-                        error!("set_entity_desired_translation: Could not find kinematic character for entity: {}", entity);
+                        return Err(format!(
+                            "Could not find kinematic character for entity: {}",
+                            entity
+                        )
+                        .into());
                     }
                 }
+                Ok(())
             },
         );
 
         let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("set_entity_desired_translation_y").set_into_module(
             &mut module,
-            move |entity: Entity, y: f64| {
+            move |entity: Entity, y: f64| -> Result<(), Box<EvalAltResult>> {
                 if let Some(mut shared) = ecs_shared.try_borrow_mut() {
                     if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
                         character.desired_translation.y = y as f32;
                     } else {
-                        error!("set_entity_desired_translation_y: Could not find kinematic character for entity: {}", entity);
+                        return Err(format!(
+                            "set_entity_desired_translation_y: Could not find kinematic character for entity: {}",
+                            entity
+                        )
+                            .into());
                     }
                 }
+                Ok(())
             },
         );
 
         let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("add_entity_desired_translation").set_into_module(
             &mut module,
-            move |entity: Entity, x: f64, y: f64| {
+            move |entity: Entity, x: f64, y: f64| -> Result<(), Box<EvalAltResult>> {
                 if let Some(mut shared) = ecs_shared.try_borrow_mut() {
                     if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
                         character.desired_translation.x += x as f32;
                         character.desired_translation.y += y as f32;
                     } else {
-                        error!("add_entity_desired_translation: Could not find kinematic character for entity: {}", entity);
+                        return Err(format!(
+                            "add_entity_desired_translation: Could not find kinematic character for entity: {}",
+                            entity
+                        )
+                            .into());
                     }
                 }
+                Ok(())
             },
         );
 
         let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("get_position").set_into_module(
             &mut module,
-            move |entity: Entity| -> Vec<Dynamic> {
+            move |entity: Entity| -> Result<Vec<Dynamic>, Box<EvalAltResult>> {
                 if let Some(shared) = ecs_shared.try_borrow() {
                     if let Some(transform) = shared.entities.transforms.get(&entity) {
-                        return vec![
+                        return Ok(vec![
                             Dynamic::from(transform.position.0 as f64),
                             Dynamic::from(transform.position.1 as f64),
-                        ];
+                        ]);
                     } else {
-                        error!("Could not find transform for entity: {}", entity);
+                        return Err(
+                            format!("Could not find transform for entity: {}", entity).into()
+                        );
                     }
                 }
-                vec![Dynamic::from(0.0), Dynamic::from(0.0)]
+                Ok(vec![Dynamic::from(0.0), Dynamic::from(0.0)])
             },
         );
 
         let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("apply_entity_friction_x").set_into_module(
             &mut module,
-            move |entity: Entity, friction_x: f64| {
+            move |entity: Entity, friction_x: f64| -> Result<(), Box<EvalAltResult>> {
                 if let Some(mut shared) = ecs_shared.try_borrow_mut() {
                     if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
                         if character.desired_translation.x.abs() > friction_x as f32 {
@@ -481,24 +501,34 @@ impl World {
                             character.desired_translation.x = 0.0;
                         }
                     } else {
-                        error!("apply_entity_friction_x: Could not find kinematic character for entity: {}", entity);
+                        return Err(format!(
+                            "apply_entity_friction_x: Could not find kinematic character for entity: {}",
+                            entity
+                        )
+                            .into());
                     }
                 }
+                Ok(())
             },
         );
 
         let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("apply_entity_linear_dampening").set_into_module(
             &mut module,
-            move |entity: Entity, dampening: f64| {
+            move |entity: Entity, dampening: f64| -> Result<(), Box<EvalAltResult>> {
                 if let Some(mut shared) = ecs_shared.try_borrow_mut() {
                     if let Some(character) = shared.entities.kinematic_character.get_mut(&entity) {
                         character.desired_translation.x *= dampening as f32;
                         character.desired_translation.y *= dampening as f32;
                     } else {
-                        error!("apply_entity_linear_dampening: Could not find kinematic character for entity: {}", entity);
+                        return Err(format!(
+                            "apply_entity_linear_dampening: Could not find kinematic character for entity: {}",
+                            entity
+                        )
+                            .into());
                     }
                 }
+                Ok(())
             },
         );
 
@@ -532,6 +562,25 @@ impl World {
                     if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity)
                     {
                         physics.apply_impulse(
+                            *rigid_body_handle,
+                            Vector::new(force_x as Real, force_y as Real),
+                        );
+                    }
+                }
+            },
+        );
+
+        let physics_clone = physics_share.clone();
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("apply_force_to_rigid_body").set_into_module(
+            &mut module,
+            move |entity: Entity, force_x: f64, force_y: f64| {
+                if let (Some(mut physics), Some(shared)) =
+                    (physics_clone.try_borrow_mut(), ecs_shared.try_borrow_mut())
+                {
+                    if let Some(rigid_body_handle) = shared.entities.rigid_body_handle.get(&entity)
+                    {
+                        physics.s_apply_force(
                             *rigid_body_handle,
                             Vector::new(force_x as Real, force_y as Real),
                         );
@@ -984,28 +1033,26 @@ impl World {
         let actor_api_share_clone = actor_api_share.clone();
         FuncRegistration::new("get_actor_display_name").set_into_module(
             &mut module,
-            move |actor_id: ActorId| -> Dynamic {
+            move |actor_id: ActorId| -> Result<Dynamic, Box<EvalAltResult>> {
                 if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
                     if let Some(guest_input) = actor_api.login_data.get(&actor_id) {
-                        return Dynamic::from(guest_input.display_name.clone());
+                        return Ok(Dynamic::from(guest_input.display_name.clone()));
                     }
                 }
-                error!("Not able to get display name in api, what?!");
-                Dynamic::from(())
+                Err("Not able to get display name in api, what?!".into())
             },
         );
 
         let actor_api_share_clone = actor_api_share.clone();
         FuncRegistration::new("get_actor_provider_id").set_into_module(
             &mut module,
-            move |actor_id: ActorId| -> Dynamic {
+            move |actor_id: ActorId| -> Result<Dynamic, Box<EvalAltResult>> {
                 if let Some(actor_api) = actor_api_share_clone.try_borrow_mut() {
                     if let Some(guest_input) = actor_api.login_data.get(&actor_id) {
-                        return Dynamic::from(guest_input.provider_user_id.clone());
+                        return Ok(Dynamic::from(guest_input.provider_user_id.clone()));
                     }
                 }
-                error!("Not able to get provider user id in api, what?!");
-                Dynamic::from(())
+                Err("Not able to get provider id in api, what?!".into())
             },
         );
 
