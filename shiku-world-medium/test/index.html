@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shiku's World</title>
+  <script src="https://pixijs.download/release/pixi.js"></script>
+  <style type="text/css">
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    #game-wrapper {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #canvas {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body class="">
+<div id="game-wrapper">
+  <div id="canvas">
+  </div>
+<script type="module">
+async function type_a() {
+    const canvas_wrapper = document.getElementById("canvas");
+    if (!canvas_wrapper) {
+      throw new Error("Could not find canvas!");
+    }
+    const width = canvas_wrapper.offsetWidth;
+    const height = canvas_wrapper.offsetHeight;
+    const renderer = await PIXI.autoDetectRenderer({
+      backgroundColor: 0x6495ed,
+      width,
+      height,
+    });
+    canvas_wrapper.appendChild(renderer.view.canvas);
+    const container = new PIXI.Container();
+
+  // Load the bunny texture
+  const texture = await PIXI.Assets.load('https://pixijs.com/assets/bunny.png');
+
+  // Create a 5x5 grid of bunnies in the container
+  for (let i = 0; i < 25; i++)
+  {
+    const bunny = new PIXI.Sprite(texture);
+
+    bunny.x = (i % 5) * 40;
+    bunny.y = Math.floor(i / 5) * 40;
+    container.addChild(bunny);
+  }
+
+  // Move the container to the center
+  container.x = width / 2;
+  container.y = height / 2;
+
+  // Center the bunny sprites in local container coordinates
+  container.pivot.x = container.width / 2;
+  container.pivot.y = container.height / 2;
+
+  // Listen for animate update
+  PIXI.Ticker.shared.add((time) =>
+  {
+    // Continuously rotate the container!
+    // * use delta to create frame-independent transform *
+    container.rotation -= 0.01 * time.deltaTime;
+  });
+
+
+    function main_loop() {
+      window.requestAnimationFrame(main_loop);
+      renderer.render(container);
+    }
+
+    main_loop();
+  }
+
+  async function type_b() {
+    // Create a new application
+    const app = new PIXI.Application();
+
+    // Initialize the application
+    await app.init({ background: '#1099bb', resizeTo: window });
+
+    // Append the application canvas to the document body
+    document.body.appendChild(app.canvas);
+
+    // Create and add a container to the stage
+    const container = new PIXI.Container();
+
+    app.stage.addChild(container);
+
+    // Load the bunny texture
+    const texture = await PIXI.Assets.load('https://pixijs.com/assets/bunny.png');
+
+    // Create a 5x5 grid of bunnies in the container
+    for (let i = 0; i < 25; i++)
+    {
+      const bunny = new PIXI.Sprite(texture);
+
+      bunny.x = (i % 5) * 40;
+      bunny.y = Math.floor(i / 5) * 40;
+      container.addChild(bunny);
+    }
+
+    // Move the container to the center
+    container.x = app.screen.width / 2;
+    container.y = app.screen.height / 2;
+
+    // Center the bunny sprites in local container coordinates
+    container.pivot.x = container.width / 2;
+    container.pivot.y = container.height / 2;
+
+    // Listen for animate update
+    app.ticker.add((time) =>
+    {
+      // Continuously rotate the container!
+      // * use delta to create frame-independent transform *
+      container.rotation -= 0.01 * time.deltaTime;
+    });
+  }
+type_a();
+//type_b();
+</script>
+</div>
+</body>
+</html>

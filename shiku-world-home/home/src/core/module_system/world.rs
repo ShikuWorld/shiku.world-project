@@ -839,6 +839,18 @@ impl World {
         );
 
         let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("set_timer_duration").set_into_module(
+            &mut module,
+            move |timer: TimerId, duration: f64| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(timer) = shared.timer_map.get_mut(&timer) {
+                        timer.set_duration(duration);
+                    }
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("get_timer_progress").set_into_module(
             &mut module,
             move |timer: TimerId| -> f64 {

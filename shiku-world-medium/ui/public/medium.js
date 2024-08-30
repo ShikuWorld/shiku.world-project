@@ -40596,6 +40596,7 @@ ${e3}`);
   init_textureFrom();
   init_Container();
   init_Graphics();
+  init_Ticker();
   init_eventemitter3();
   var import_earcut2 = __toESM(require_earcut(), 1);
   extensions.add(browserExt, webworkerExt);
@@ -45842,6 +45843,9 @@ This will fail in production.`);
               ...update2
             }
           };
+          if (map_update.physics_settings) {
+            state.game_map_map[key].physics_settings = map_update.physics_settings;
+          }
           if (map_update.chunk) {
             const [layer_kind, chunk_update] = map_update.chunk;
             const chunk_id = cantor_pair(
@@ -48810,7 +48814,6 @@ This will fail in production.`);
       menu_system.toggle(`${current_active_instance_id}Menu`);
     });
     function main_loop() {
-      window.requestAnimationFrame(main_loop);
       render(render_system);
       if (door && guest_input.button_pressed_map["Exit" /* Exit */] && canvas) {
         canvas.className = "canvas--hidden";
@@ -49010,7 +49013,7 @@ This will fail in production.`);
         }
         check_for_connection_ready(menu_system, communication_system);
         if (communication_system.is_connection_ready) {
-          window.requestAnimationFrame(main_loop);
+          Ticker.shared.add(main_loop);
           if (canvas) {
             canvas.className = "canvas--active";
           }

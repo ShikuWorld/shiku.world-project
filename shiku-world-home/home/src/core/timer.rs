@@ -49,6 +49,7 @@ impl Timer {
     }
 
     pub fn set_duration(&mut self, duration: f64) {
+        self.current_time = 0.0;
         self.duration = duration.max(0.001);
     }
 }

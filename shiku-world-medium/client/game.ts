@@ -30,6 +30,7 @@ import { handle_editor_event } from "@/client/handle-editor-event";
 import { init_grid, toggle_grid } from "@/client/renderer/grid";
 import { twitch_service } from "@/client/communication/api/twitch/twitch";
 import { login } from "@/client/menu/twitch";
+import { Ticker } from "pixi.js";
 
 export async function start_medium() {
   const signal_broadcast_channel = new BroadcastChannel(signal_channel_name);
@@ -102,8 +103,6 @@ export async function start_medium() {
   });
 
   function main_loop() {
-    window.requestAnimationFrame(main_loop);
-
     render(render_system);
 
     if (door && guest_input.button_pressed_map[Button.Exit] && canvas) {
@@ -334,7 +333,7 @@ export async function start_medium() {
 
       check_for_connection_ready(menu_system, communication_system);
       if (communication_system.is_connection_ready) {
-        window.requestAnimationFrame(main_loop);
+        Ticker.shared.add(main_loop);
         if (canvas) {
           canvas.className = "canvas--active";
         }

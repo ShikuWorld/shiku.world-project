@@ -144,6 +144,12 @@ export const options = [
     detail: "(duration: f64) -> Dynamic",
 },
 {
+    label: "shiku::nodes::set_timer_duration",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(timer: TimerId, duration: f64) -> void",
+},
+{
     label: "shiku::nodes::get_timer_progress",
     type: "function",
     info: "TODO: Add description",
