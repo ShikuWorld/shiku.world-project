@@ -46513,7 +46513,7 @@ This will fail in production.`);
           this.apply_entity_update(render_graph_data, update2, resource_manager);
         }
       },
-      update_render_positions(instance_id, world_id) {
+      update_render_positions(instance_id, world_id, delta_ms) {
         const game_instance_data = this.get_game_instance_data(
           instance_id,
           world_id
@@ -46528,7 +46528,7 @@ This will fail in production.`);
           const node = render_graph_data.entity_node_map[id];
           if (node) {
             try {
-              this.update_render_position(render_node, node);
+              this.update_render_position(render_node, node, delta_ms);
               render_graph_data.entity_layer_manager.update_container_position(
                 render_key(get_generic_game_node(node)),
                 render_node.container
@@ -46539,7 +46539,7 @@ This will fail in production.`);
           }
         }
       },
-      update_render_position(render_node, game_node) {
+      update_render_position(render_node, game_node, delta_ms) {
         const node_2d = get_generic_game_node(game_node).data;
         if (node_2d.transform) {
           render_node.container.position.x = node_2d.transform.position[0] * RENDER_SCALE;
@@ -48496,10 +48496,11 @@ This will fail in production.`);
     toggle_terrain_collisions() {
       this.collision_lines.visible = !this.collision_lines.visible;
     }
-    update() {
+    update(delta_ms) {
       window.medium_gui.game_instances.update_render_positions(
         this.id,
-        this.world_id
+        this.world_id,
+        delta_ms
       );
       const render_graph_data = window.medium_gui.game_instances.get_render_graph_data(
         this.id,
@@ -48813,7 +48814,7 @@ This will fail in production.`);
     open_menu?.addEventListener("click", () => {
       menu_system.toggle(`${current_active_instance_id}Menu`);
     });
-    function main_loop() {
+    function main_loop(ticker) {
       render(render_system);
       if (door && guest_input.button_pressed_map["Exit" /* Exit */] && canvas) {
         canvas.className = "canvas--hidden";
@@ -48858,7 +48859,6 @@ This will fail in production.`);
             char_anim_to_tileset_map
           ]) => {
             const resource_manager = lazy_get_resource_manager(module_id);
-            console.log("setting gid_map", gid_map, module_id);
             resource_manager.gid_map = gid_map;
             resource_manager.tilesets = tilesets;
             resource_manager.set_tileset_map(tilesets);
@@ -48974,7 +48974,7 @@ This will fail in production.`);
       communication_system.inbox = [];
       for (const instances_per_world of Object.values(instances)) {
         for (const instance of Object.values(instances_per_world)) {
-          instance.update();
+          instance.update(ticker.deltaMS);
         }
       }
       if (guest_input.is_dirty && current_active_instance_id !== null && current_active_module_id !== null) {

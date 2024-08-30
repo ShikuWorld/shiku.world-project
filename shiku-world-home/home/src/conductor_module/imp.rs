@@ -70,6 +70,7 @@ impl ConductorModule {
         self.resource_module.check_reconnect().await;
 
         self.send_logs_to_admins();
+        self.process_prepare_game_event_queue();
     }
 
     pub fn send_logs_to_admins(&mut self) {
@@ -166,7 +167,7 @@ impl ConductorModule {
 
     fn handle_timeouts(&mut self) {
         for (guest_id, connection_lost_time) in &self.guest_timeout_map {
-            if connection_lost_time.elapsed().as_secs() > 30 {
+            if connection_lost_time.elapsed().as_secs() > 3 {
                 self.timeouts.push(*guest_id);
             }
         }
@@ -193,6 +194,56 @@ impl ConductorModule {
     pub fn update_modules(&mut self) {
         for instance_manager in self.module_map.values_mut() {
             instance_manager.update();
+        }
+    }
+
+    pub fn process_prepare_game_event_queue(&mut self) {
+        for guest_id in self.prepare_game_event_queue.drain(..) {
+            if let Some(guest) = self.guests.get_mut(&guest_id) {
+                if let (Some(current_module_id), Some(current_instance_id)) =
+                    (&guest.current_module_id, &guest.current_instance_id)
+                {
+                    if let Some(module) = self.module_map.get(current_module_id) {
+                        if let Some((world_params, layer_parralax)) =
+                            module.get_world_info_for_guest(&guest.id, current_instance_id)
+                        {
+                            debug!("Loading tilesets and sending prepare game event to guest");
+                            match BlueprintService::load_module_tilesets(
+                                &module.module_blueprint.resources,
+                            ) {
+                                Ok(tilesets) => Self::send_prepare_game_event(
+                                    &guest,
+                                    &mut self.resource_module,
+                                    &mut self.websocket_module,
+                                    current_module_id,
+                                    current_instance_id,
+                                    world_params,
+                                    layer_parralax
+                                        .into_iter()
+                                        .map(|(kind, (x, y))| (kind, x, y))
+                                        .collect(),
+                                    tilesets,
+                                    module.module_blueprint.gid_map.clone(),
+                                    module
+                                        .module_blueprint
+                                        .char_animation_to_tileset_map
+                                        .clone(),
+                                ),
+                                Err(err) => {
+                                    error!("Could not load tilesets for module! {:?}", err)
+                                }
+                            }
+                        } else {
+                            error!("Could not get terrain info for guest");
+                        }
+                    } else {
+                        error!(
+                            "Module {} did not exist, so user cannot enter it, guest is stuck!",
+                            current_module_id
+                        );
+                    }
+                }
+            }
         }
     }
 
@@ -248,6 +299,7 @@ impl ConductorModule {
             session_id_to_guest_map: HashMap::new(),
             session_id_to_admin_map: HashMap::new(),
             guest_timeout_map: HashMap::new(),
+            prepare_game_event_queue: Vec::new(),
 
             timeouts: Vec::new(),
             module_map,
@@ -340,96 +392,56 @@ impl ConductorModule {
                 .get(&ticket.session_id.unwrap_or_default())
                 .unwrap_or(&0);
 
-            let guest_id: Snowflake = if let Some(guest) =
-                self.guests.get_mut(guest_id_from_session_id)
-            {
-                debug!("Guest already existed with their session!");
-                if guest.ws_connection_id.is_some() {
-                    error!("Guest already has a connection!");
-                    //TODO: Disconnect old connection and connect new connection
-                    self.websocket_module.send_event(
-                        &connection_id,
-                        serde_json::to_string(&CommunicationEvent::AlreadyConnected)
-                            .unwrap_or_else(|_| "AlreadyConnected".to_string()),
-                    );
-                    continue;
-                }
-                self.guest_timeout_map.remove(&guest.id);
-                self.ws_to_guest_map.insert(connection_id, guest.id);
-
-                guest.ws_connection_id = Some(connection_id);
-
-                if let (Some(current_module_id), Some(current_instance_id)) =
-                    (&guest.current_module_id, &guest.current_instance_id)
-                {
-                    debug!("Guest had a module and instance to reconnect to.");
-                    if let Some(module_communication) =
-                        self.module_communication_map.get_mut(current_module_id)
-                    {
-                        debug!("Sending reconnect event to module");
-                        send_and_log_error_custom(
-                            &mut module_communication.sender.system_to_module_sender,
-                            ModuleInstanceEvent {
-                                module_id: current_module_id.clone(),
-                                instance_id: current_instance_id.clone(),
-                                world_id: None,
-                                event_type: SystemToModuleEvent::Reconnected(guest.id),
-                            },
-                            "Error sending reconnect event",
+            let guest_id: Snowflake =
+                if let Some(guest) = self.guests.get_mut(guest_id_from_session_id) {
+                    debug!("Guest already existed with their session!");
+                    if guest.ws_connection_id.is_some() {
+                        error!("Guest already has a connection!");
+                        self.websocket_module.send_event(
+                            &connection_id,
+                            serde_json::to_string(&CommunicationEvent::AlreadyConnected)
+                                .unwrap_or_else(|_| "AlreadyConnected".to_string()),
                         );
-                        if let Some(module) = self.module_map.get(current_module_id) {
-                            if let Some((world_params, layer_parralax)) =
-                                module.get_world_info_for_guest(&guest.id, current_instance_id)
-                            {
-                                debug!("Loading tilesets and sending prepare game event to guest");
-                                match BlueprintService::load_module_tilesets(
-                                    &module.module_blueprint.resources,
-                                ) {
-                                    Ok(tilesets) => Self::send_prepare_game_event(
-                                        &guest,
-                                        &mut self.resource_module,
-                                        &mut self.websocket_module,
-                                        current_module_id,
-                                        current_instance_id,
-                                        world_params,
-                                        layer_parralax
-                                            .into_iter()
-                                            .map(|(kind, (x, y))| (kind, x, y))
-                                            .collect(),
-                                        tilesets,
-                                        module.module_blueprint.gid_map.clone(),
-                                        module
-                                            .module_blueprint
-                                            .char_animation_to_tileset_map
-                                            .clone(),
-                                    ),
-                                    Err(err) => {
-                                        error!("Could not load tilesets for module! {:?}", err)
-                                    }
-                                }
-                            } else {
-                                error!("Could not get terrain info for guest");
-                            }
+                        continue;
+                    }
+                    self.guest_timeout_map.remove(&guest.id);
+                    self.ws_to_guest_map.insert(connection_id, guest.id);
+
+                    guest.ws_connection_id = Some(connection_id);
+
+                    if let (Some(current_module_id), Some(current_instance_id)) =
+                        (&guest.current_module_id, &guest.current_instance_id)
+                    {
+                        debug!("Guest had a module and instance to reconnect to.");
+                        if let Some(module_communication) =
+                            self.module_communication_map.get_mut(current_module_id)
+                        {
+                            debug!("Sending reconnect event to module");
+                            send_and_log_error_custom(
+                                &mut module_communication.sender.system_to_module_sender,
+                                ModuleInstanceEvent {
+                                    module_id: current_module_id.clone(),
+                                    instance_id: current_instance_id.clone(),
+                                    world_id: None,
+                                    event_type: SystemToModuleEvent::Reconnected(guest.id),
+                                },
+                                "Error sending reconnect event",
+                            );
+                            self.prepare_game_event_queue.push(guest.id);
                         } else {
                             error!(
-                                "Module {} did not exist, so user cannot enter it, guest is stuck!",
-                                current_module_id
+                                "Could not find module communication for module {} {:?}",
+                                current_module_id,
+                                self.module_communication_map.keys()
                             );
                         }
                     } else {
-                        error!(
-                            "Could not find module communication for module {} {:?}",
-                            current_module_id,
-                            self.module_communication_map.keys()
-                        );
+                        debug!("Guest did not have a module and instance to reconnect to.");
                     }
+                    guest.id
                 } else {
-                    debug!("Guest did not have a module and instance to reconnect to.");
-                }
-                guest.id
-            } else {
-                self.create_new_guest(connection_id)
-            };
+                    self.create_new_guest(connection_id)
+                };
 
             if let Some(guest) = self.guests.get(&guest_id) {
                 if let Ok(event_as_string) =
@@ -556,8 +568,8 @@ impl ConductorModule {
             websocket_module.send_event(ws_connection_id, event_as_string);
         } else {
             error!(
-                "Could not send to guest '{:?}' no active connection",
-                guest.id
+                "Could not send to guest '{:?}' no active connection. {:?}",
+                guest.id, event_as_string
             );
         }
     }
@@ -619,7 +631,7 @@ impl ConductorModule {
                             module_enter_slot,
                             target_module,
                             &mut self.resource_module,
-                            &mut self.websocket_module,
+                            &mut self.prepare_game_event_queue,
                         );
                     } else {
                         error!(
@@ -671,7 +683,7 @@ impl ConductorModule {
         module_enter_slot: &ModuleEnterSlot,
         module: &mut GameInstanceManager,
         resource_module: &mut ResourceModule,
-        websocket_module: &mut WebsocketModule,
+        prepare_game_event_queue: &mut Vec<Snowflake>,
     ) {
         let module_name = module.module_blueprint.name.clone();
         debug!("Trying to enter module {}", module_name);
@@ -685,37 +697,7 @@ impl ConductorModule {
                     module.module_blueprint.id.clone(),
                     &guest.id,
                 );
-                if let Some((terrain_params, layer_parralax)) =
-                    module.get_world_info_for_guest(&guest.id, &instance_id)
-                {
-                    debug!("Loading tilesets and sending prepare game event to guest");
-                    match BlueprintService::load_module_tilesets(&module.module_blueprint.resources)
-                    {
-                        Ok(tilesets) => Self::send_prepare_game_event(
-                            &guest,
-                            resource_module,
-                            websocket_module,
-                            &module.module_blueprint.id,
-                            &instance_id,
-                            terrain_params,
-                            layer_parralax
-                                .into_iter()
-                                .map(|(kind, (x, y))| (kind, x, y))
-                                .collect(),
-                            tilesets,
-                            module.module_blueprint.gid_map.clone(),
-                            module
-                                .module_blueprint
-                                .char_animation_to_tileset_map
-                                .clone(),
-                        ),
-                        Err(err) => {
-                            error!("Could not load tilesets for module! {:?}", err)
-                        }
-                    }
-                } else {
-                    error!("Could not get terrain info for guest");
-                }
+                prepare_game_event_queue.push(guest.id);
             }
             Err(EnterFailedState::PersistedStateGoneMissingGoneWild) => {
                 error!("Guest state could not be loaded...? {}", module_name);
@@ -1175,6 +1157,7 @@ impl ConductorModule {
         let ws_to_admin_map = &mut self.ws_to_admin_map;
         let session_id_to_guest_map = &mut self.session_id_to_guest_map;
         let session_id_to_admin_map = &mut self.session_id_to_admin_map;
+        let prepare_game_event_queue = &mut self.prepare_game_event_queue;
         self.login_manager.process_running_logins(|res| match res {
             Ok((actor_id, login_data)) => {
                 debug!("login {} {:?}", actor_id, login_data);
@@ -1193,8 +1176,12 @@ impl ConductorModule {
                                 error!("Oh oh! There was an error while trying to get guest persistence!!! {:?}", err)
                             }
                             debug!("Guest login success!!!!! {:?}", guest);
-                            if guest.pending_module_exit.is_none() && guest.current_module_id.is_none() {
-                               guest.pending_module_exit = Some("LoginOut".to_string());
+                            if guest.pending_module_exit.is_none() {
+                                if guest.current_module_id.is_none() {
+                                    guest.pending_module_exit = Some("LoginOut".to_string());
+                                } else {
+                                    prepare_game_event_queue.push(guest.id);
+                                }
                             }
                         }));
                 } else {

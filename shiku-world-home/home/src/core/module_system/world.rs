@@ -312,17 +312,17 @@ impl World {
     }
 
     pub fn actor_left_world(&mut self, actor_id: ActorId) {
-        if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
-            actor_api.active_set.remove(&actor_id);
-            actor_api.inputs.remove(&actor_id);
-            actor_api.login_data.remove(&actor_id);
-        }
         for game_node_script in self.ecs.entity_scripts.values_mut() {
             game_node_script.call(
                 GameNodeScriptFunction::ActorLeft,
                 &self.script_engine,
                 (actor_id,),
             );
+        }
+        if let Some(mut actor_api) = self.actor_api.try_borrow_mut() {
+            actor_api.active_set.remove(&actor_id);
+            actor_api.inputs.remove(&actor_id);
+            actor_api.login_data.remove(&actor_id);
         }
     }
 

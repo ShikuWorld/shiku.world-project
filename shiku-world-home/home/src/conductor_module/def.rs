@@ -34,6 +34,7 @@ pub struct ConductorModule {
     pub(super) module_communication_map: ModuleCommunicationMap,
     pub(super) guests: HashMap<Snowflake, Guest>,
     pub(super) admins: HashMap<Snowflake, Admin>,
+    pub(super) prepare_game_event_queue: Vec<Snowflake>,
 
     pub(super) ws_to_guest_map: HashMap<Snowflake, Snowflake>,
     pub(super) ws_to_admin_map: HashMap<Snowflake, Snowflake>,

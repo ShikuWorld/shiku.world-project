@@ -354,7 +354,11 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         this.apply_entity_update(render_graph_data, update, resource_manager);
       }
     },
-    update_render_positions(instance_id: string, world_id: string) {
+    update_render_positions(
+      instance_id: string,
+      world_id: string,
+      delta_ms: number,
+    ) {
       const game_instance_data = this.get_game_instance_data(
         instance_id,
         world_id,
@@ -369,7 +373,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         const node = render_graph_data.entity_node_map[id];
         if (node) {
           try {
-            this.update_render_position(render_node, node);
+            this.update_render_position(render_node, node, delta_ms);
             render_graph_data.entity_layer_manager.update_container_position(
               render_key(get_generic_game_node(node)),
               render_node.container,
@@ -380,7 +384,11 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         }
       }
     },
-    update_render_position(render_node: Node, game_node: GameNodeKind) {
+    update_render_position(
+      render_node: Node,
+      game_node: GameNodeKind,
+      delta_ms: number,
+    ) {
       const node_2d = get_generic_game_node(game_node).data as Node2D;
       if (node_2d.transform) {
         render_node.container.position.x =

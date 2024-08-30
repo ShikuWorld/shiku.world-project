@@ -79,10 +79,11 @@ export class GameInstance {
     this.collision_lines.visible = !this.collision_lines.visible;
   }
 
-  update() {
+  update(delta_ms: number) {
     window.medium_gui.game_instances.update_render_positions(
       this.id,
       this.world_id,
+      delta_ms,
     );
 
     const render_graph_data =

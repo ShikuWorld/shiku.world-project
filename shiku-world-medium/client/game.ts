@@ -102,9 +102,8 @@ export async function start_medium() {
     menu_system.toggle(`${current_active_instance_id}Menu`);
   });
 
-  function main_loop() {
+  function main_loop(ticker: Ticker) {
     render(render_system);
-
     if (door && guest_input.button_pressed_map[Button.Exit] && canvas) {
       canvas.className = "canvas--hidden";
     }
@@ -154,7 +153,6 @@ export async function start_medium() {
             char_anim_to_tileset_map,
           ]) => {
             const resource_manager = lazy_get_resource_manager(module_id);
-            console.log("setting gid_map", gid_map, module_id);
             resource_manager.gid_map = gid_map;
             resource_manager.tilesets = tilesets;
             resource_manager.set_tileset_map(tilesets);
@@ -286,7 +284,7 @@ export async function start_medium() {
 
     for (const instances_per_world of Object.values(instances)) {
       for (const instance of Object.values(instances_per_world)) {
-        instance.update();
+        instance.update(ticker.deltaMS);
       }
     }
 

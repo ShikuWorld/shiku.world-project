@@ -371,22 +371,24 @@ impl DynamicGameModule {
 
             if let Some(mut actor_api) = world.actor_api.try_borrow_mut() {
                 for (actor_id, event) in actor_api.game_system_to_guest_events.drain(..) {
-                    send_and_log_error_custom(
-                        &mut self
-                            .module_communication
-                            .output_sender
-                            .game_system_to_guest_sender,
-                        GuestEvent {
-                            guest_id: actor_id,
-                            event_type: ModuleInstanceEvent {
-                                module_id: self.module_id.clone(),
-                                instance_id: self.instance_id.clone(),
-                                world_id: None,
-                                event_type: event,
+                    if self.connected_actor_set.contains(&actor_id) {
+                        send_and_log_error_custom(
+                            &mut self
+                                .module_communication
+                                .output_sender
+                                .game_system_to_guest_sender,
+                            GuestEvent {
+                                guest_id: actor_id,
+                                event_type: ModuleInstanceEvent {
+                                    module_id: self.module_id.clone(),
+                                    instance_id: self.instance_id.clone(),
+                                    world_id: None,
+                                    event_type: event,
+                                },
                             },
-                        },
-                        "Could not send event to actor from actor api",
-                    );
+                            "Could not send event to actor from actor api",
+                        );
+                    }
                 }
             }
         }
@@ -467,6 +469,7 @@ impl DynamicGameModule {
     }
     pub fn actor_disconnected(&mut self, actor_id: &ActorId) {
         if let Some(guest) = self.guests.get_mut(actor_id) {
+            self.connected_actor_set.remove(actor_id);
             guest.guest_com.connected = false;
             if let Some(world_id) = &guest.world_id {
                 if let Some(world) = self.world_map.get_mut(world_id) {
@@ -476,6 +479,7 @@ impl DynamicGameModule {
         }
         if let Some(admin) = self.admins.get_mut(actor_id) {
             admin.connected = false;
+            self.connected_actor_set.remove(actor_id);
             if let Some(world_ids) = self.admin_to_world.hashset(actor_id) {
                 for world_id in world_ids {
                     if let Some(world) = self.world_map.get_mut(world_id) {
@@ -688,6 +692,7 @@ impl DynamicGameModule {
 
     pub fn actor_reconnected(&mut self, actor_id: &ActorId) {
         if let Some(guest) = self.guests.get_mut(actor_id) {
+            self.connected_actor_set.insert(*actor_id);
             guest.guest_com.connected = true;
             if let Some(world_id) = &guest.world_id {
                 if let Some(world) = self.world_map.get_mut(world_id) {
@@ -696,6 +701,7 @@ impl DynamicGameModule {
             }
         }
         if let Some(admin) = self.admins.get_mut(actor_id) {
+            self.connected_actor_set.insert(*actor_id);
             admin.connected = true;
             if let Some(world_ids) = self.admin_to_world.hashset(actor_id) {
                 for world_id in world_ids {

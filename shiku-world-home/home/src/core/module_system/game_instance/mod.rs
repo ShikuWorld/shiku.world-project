@@ -514,12 +514,13 @@ impl GameInstanceManager {
             if let Some(game_instance) = self.game_instances.get_mut(&message.instance_id) {
                 match message.event_type {
                     SystemToModuleEvent::Disconnected(actor_id) => {
-                        game_instance.dynamic_module.actor_disconnected(&actor_id);
                         self.connected_actor_ids.remove(&actor_id);
+                        debug!("Actor disconnected {:?}", actor_id);
+                        game_instance.dynamic_module.actor_disconnected(&actor_id);
                     }
                     SystemToModuleEvent::Reconnected(actor_id) => {
-                        game_instance.dynamic_module.actor_reconnected(&actor_id);
                         self.connected_actor_ids.insert(actor_id);
+                        game_instance.dynamic_module.actor_reconnected(&actor_id);
                     }
                 }
             }
