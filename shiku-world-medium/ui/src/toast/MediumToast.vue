@@ -80,5 +80,5 @@ const map_alert_level = (level: ToastAlertLevel) =>
     .with("Info", () => "info")
     .exhaustive() as "error" | "success" | "warning" | "info" | undefined;
 
-setInterval(() => toast_store.update_toast_progress(), 1000);
+window.setInterval(() => toast_store.update_toast_progress(), 1000);
 </script>

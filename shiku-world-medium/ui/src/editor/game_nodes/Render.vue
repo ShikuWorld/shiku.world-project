@@ -14,10 +14,11 @@
     :model-value="layer"
     @update:model-value="(new_value) => update_render_layer(new_value)"
   ></v-select>
-  <v-label class="form-label" v-if="render_kind == 'Sprite'">GID</v-label>
+  <v-label class="form-label" v-if="render_kind == 'Sprite'">Sprite</v-label>
   <v-select
     v-if="render_kind == 'Sprite'"
     :hide-details="true"
+    :label="'Tileset'"
     density="compact"
     :items="tileset_options"
     :item-title="'file_name'"
@@ -31,13 +32,22 @@
     control-variant="stacked"
     density="compact"
     hide-details="auto"
-    label="Letter spacing"
+    label="GID"
     :step="1"
     :min="0"
     v-if="render_kind == 'AnimatedSprite' || render_kind == 'Sprite'"
     :model-value="gid"
     @update:model-value="(new_value) => update_gid(new_value)"
   ></v-number-input>
+  <v-label class="form-label" v-if="progress_bar">ProgressBar</v-label>
+  <ProgressBar
+    v-if="progress_bar"
+    :progress_bar="progress_bar"
+    :tileset_options="tileset_options"
+    @progressBarUpdate="
+      (update) => emit('entityUpdate', { ProgressBar: update })
+    "
+  ></ProgressBar>
   <v-label class="form-label">Fade-in</v-label>
   <v-select
     :hide-details="true"
@@ -121,6 +131,7 @@ import { LayerKind } from "@/editor/blueprints/LayerKind";
 import { VNumberInput } from "vuetify/labs/VNumberInput";
 import { FadeinEffect } from "@/editor/blueprints/FadeinEffect";
 import { FadeoutEffect } from "@/editor/blueprints/FadeoutEffect";
+import ProgressBar from "@/editor/editor/game_nodes/ProgressBar.vue";
 
 const { get_module } = use_resources_store();
 const { selected_module_id } = storeToRefs(use_editor_store());
@@ -135,10 +146,18 @@ const render_options: Array<KeysOfUnion<RenderKind>> = [
   "AnimatedSprite",
   "Sprite",
   "Text",
+  "ProgressBar",
 ];
 const emit = defineEmits<{
   (e: "entityUpdate", data: EntityUpdateKind): void;
 }>();
+
+const progress_bar = computed(() => {
+  if ("ProgressBar" in data.value.kind) {
+    return data.value.kind.ProgressBar;
+  }
+  return null;
+});
 
 const fade_in_effects: FadeinEffect[] = ["None", "Fade", "JumpForth"];
 const fade_out_effects: FadeoutEffect[] = ["None", "Fade", "JumpBack"];
@@ -211,6 +230,7 @@ const gid = computed(() => {
     .with({ Sprite: P.select() }, ([_, gid]) => gid)
     .with({ AnimatedSprite: P.select() }, ([_, gid]) => gid)
     .with({ Text: P.select() }, () => 0)
+    .with({ ProgressBar: P.select() }, () => 0)
     .exhaustive();
 });
 
@@ -240,6 +260,21 @@ function update_render_type(kind: KeysOfUnion<RenderKind>) {
           },
         });
       }
+    })
+    .with("ProgressBar", () => {
+      emit("entityUpdate", {
+        RenderKind: {
+          ProgressBar: {
+            progress: 0.0,
+            tileset: "",
+            background: 0,
+            fill: 0,
+            width: 50,
+            height: 10,
+            fill_paddings: [0, 0, 0, 0],
+          },
+        },
+      });
     })
     .exhaustive();
 }

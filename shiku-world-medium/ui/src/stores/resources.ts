@@ -641,7 +641,7 @@ export function create_game_node(
         data: {
           transform: {
             position: [0, 0],
-            scale: [0, 0],
+            scale: [1.0, 1.0],
             velocity: [0, 0],
             rotation: 0,
           },

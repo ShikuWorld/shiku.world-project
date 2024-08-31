@@ -89,7 +89,7 @@ export const use_editor_store = defineStore(
       },
     });
 
-    setInterval(() => {
+    window.setInterval(() => {
       if (
         window?.medium?.communication_state?.is_connection_ready &&
         !state.client_connection_ready

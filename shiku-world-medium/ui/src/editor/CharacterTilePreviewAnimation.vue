@@ -54,7 +54,7 @@ const animate_to_next_frame = () => {
   const frame_duration = animation_state.value.frames[current_frame_index.value]
     ? animation_state.value.frames[current_frame_index.value].duration_in_ms
     : 100;
-  frame_timeout = setTimeout(() => {
+  frame_timeout = window.setTimeout(() => {
     current_frame_index.value =
       (current_frame_index.value + 1) % animation_state.value.frames.length;
     animate_to_next_frame();

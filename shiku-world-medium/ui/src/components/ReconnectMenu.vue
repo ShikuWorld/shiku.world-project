@@ -112,7 +112,7 @@ let update_status_check_interval_handler: number | undefined;
 let status_check_running = false;
 let unmounted = false;
 onMounted(() => {
-  setTimeout(() => {
+  window.setTimeout(() => {
     if (connection_error.value) {
       getMainDoorStatus(connection_error.value.mainDoorStatusUrl).then(
         (status) => {
@@ -134,7 +134,7 @@ const main_status_check = (time: number) => {
     clearInterval(update_status_check_interval_handler);
   }
   re_check_text.value = "Checking door status...";
-  update_status_check_interval_handler = setInterval(() => {
+  update_status_check_interval_handler = window.setInterval(() => {
     if (current_check_progress.value >= 100) {
       clearInterval(update_status_check_interval_handler);
     } else {
@@ -142,7 +142,7 @@ const main_status_check = (time: number) => {
     }
   }, 100);
 
-  setTimeout(() => {
+  window.setTimeout(() => {
     if (connection_error.value) {
       getMainDoorStatus(connection_error.value.mainDoorStatusUrl).then(
         (status) => {
@@ -155,9 +155,9 @@ const main_status_check = (time: number) => {
             re_check_text.value = "Uhhh something happened :o!";
           }
           main_door_status.value = status.type as DoorStatusCheck["type"];
-          setTimeout(() => {
+          window.setTimeout(() => {
             current_check_progress.value = 0;
-            setTimeout(() => {
+            window.setTimeout(() => {
               status_check_running = false;
               main_status_check(time);
             }, 2000);

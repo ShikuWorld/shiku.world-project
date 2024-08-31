@@ -5,6 +5,7 @@ import { RenderSystem } from "@/client/renderer";
 import {
   create_collider_graphic,
   create_display_object,
+  create_progress_bar,
   ResourceManagerMap,
 } from "@/client/resources";
 import { Container } from "pixi.js";
@@ -27,6 +28,7 @@ export const setup_medium_api = (
 ) => {
   console.log("Setting up medium api");
   window.medium = {
+    create_progress_bar,
     twitch_login: (communication_state: CommunicationState) =>
       login(communication_state),
     communication_state: communication_state,

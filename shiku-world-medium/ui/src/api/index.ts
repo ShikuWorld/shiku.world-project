@@ -2,6 +2,7 @@ import { Container, Graphics } from "pixi.js";
 import { CommunicationState } from "@/client/communication";
 import { Isometry } from "@/client/entities";
 import { LayerKind } from "@/editor/blueprints/LayerKind";
+import { ProgressBar } from "@pixi/ui";
 
 export const use_medium_api = (): typeof window.medium =>
   window.medium
@@ -12,6 +13,9 @@ export const use_medium_api = (): typeof window.medium =>
         reset_instances: () => {},
         toggle_terrain_collisions: () => {},
         reconnect: () => Promise.resolve(),
+        create_progress_bar: () => {
+          return new ProgressBar();
+        },
         is_instance_ready: (_instance_id: string, _world_id: string) => false,
         toggle_grid: (_instance_id: string, _world_id: string) => {},
         adjust_brush_hover: (

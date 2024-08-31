@@ -16,7 +16,7 @@ use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
 use crate::core::blueprint::scene::def::{
     Collider, DynamicRigidBodyProps, FadeinEffect, FadeoutEffect, GameNodeId, GameNodeKindClean,
-    KinematicCharacterControllerProps, Node2DKindClean, NodeInstanceId, RenderKind,
+    KinematicCharacterControllerProps, Node2DKindClean, NodeInstanceId, ProgressBar, RenderKind,
     RenderKindClean, RigidBodyType, SceneId, TextRender, Transform,
 };
 use crate::core::timer::Timer;
@@ -104,6 +104,7 @@ pub struct EntityMaps {
     pub render_fadeout_effect: HashMap<Entity, (FadeoutEffect, u32)>,
     pub render_gid: HashMap<Entity, Gid>,
     pub render_gid_tileset_path: HashMap<Entity, ResourcePath>,
+    pub ui_progress_bar: HashMap<Entity, ProgressBar>,
     pub character_animation: HashMap<Entity, CharacterAnimation>,
     pub transforms: HashMap<Entity, Transform>,
     pub rigid_body_type: HashMap<Entity, RigidBodyType>,
@@ -146,11 +147,24 @@ pub struct DynamicRigidBodyPropsUpdate {
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
+pub struct ProgressBarUpdate {
+    pub tileset: Option<ResourcePath>,
+    pub background: Option<Gid>,
+    pub fill: Option<Gid>,
+    pub fill_paddings: Option<(Real, Real, Real, Real)>,
+    pub progress: Option<Real>,
+    pub width: Option<Real>,
+    pub height: Option<Real>,
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
 pub enum EntityUpdateKind {
     Transform(Transform),
     Name(String),
     Tags(Vec<String>),
     Layer(LayerKind),
+    ProgressBar(ProgressBarUpdate),
     FadeInEffect(FadeinEffect, u32),
     FadeOutEffect(FadeoutEffect, u32),
     InstancePath(ResourcePath),

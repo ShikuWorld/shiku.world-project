@@ -283,10 +283,10 @@ const {
 const { component_stores } = storeToRefs(use_inspector_store());
 
 // try to load modules until window?.medium?.communication_state?.is_connection_ready is set to true
-const load_modules_interval = setInterval(() => {
+const load_modules_interval = window.setInterval(() => {
   if (window?.medium?.communication_state?.is_connection_ready) {
     clearInterval(load_modules_interval);
-    setTimeout(() => {
+    window.setTimeout(() => {
       load_editor_data();
       if (inspecting_worlds.value.main) {
         start_inspecting_world(
@@ -296,7 +296,7 @@ const load_modules_interval = setInterval(() => {
           inspecting_worlds.value.main.map_resource_path,
         );
         // try selecting main instances as long as instance is not loaded
-        const interval = setInterval(() => {
+        const interval = window.setInterval(() => {
           if (
             inspecting_worlds.value.main &&
             !window?.medium?.is_instance_ready(
@@ -374,7 +374,7 @@ const on_selected_scene_context_menu = (e: MouseEvent) => {
   prevent_browser_default(e);
   if (scenes_in_module.value?.length > 0) {
     if (!all_scenes_loaded.value) {
-      setTimeout(() => {
+      window.setTimeout(() => {
         on_selected_scene_context_menu(e);
       }, 100);
       return;
@@ -423,7 +423,7 @@ function on_remove_node_from_scene(
 
 function on_edit_script(script_resource_path: string) {
   selected_script_resource_path.value = script_resource_path;
-  setTimeout(() => {
+  window.setTimeout(() => {
     if (rhai_editor.value) {
       rhai_editor.value.open();
     }
@@ -875,7 +875,7 @@ function select_as_main_instance(
 function open_resource_editor(resource: BlueprintResource) {
   selected_nav_top_tab.value = "resources";
   let path_index = add_open_resource_path(resource_key(resource));
-  setTimeout(() => {
+  window.setTimeout(() => {
     set_selected_resource_tab(path_index + 1);
   }, 50);
 }

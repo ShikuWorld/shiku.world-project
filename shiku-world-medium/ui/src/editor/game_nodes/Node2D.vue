@@ -47,6 +47,37 @@
           ])
       "
     ></v-number-input>
+    <v-label class="form-label">Scale</v-label>
+    <v-number-input
+      control-variant="stacked"
+      :step="0.1"
+      :prepend-icon="mdiAlphaXBox"
+      :hide-details="true"
+      density="compact"
+      :model-value="game_node.data.transform.scale[0]"
+      @update:model-value="
+        (newValue) =>
+          update_transform('scale', [
+            Number(newValue),
+            game_node.data.transform.scale[1],
+          ])
+      "
+    ></v-number-input>
+    <v-number-input
+      :prepend-icon="mdiAlphaYBox"
+      control-variant="stacked"
+      :step="0.1"
+      :hide-details="true"
+      density="compact"
+      :model-value="game_node.data.transform.scale[1]"
+      @update:model-value="
+        (newValue) =>
+          update_transform('scale', [
+            game_node.data.transform.scale[0],
+            Number(newValue),
+          ])
+      "
+    ></v-number-input>
     <v-label class="form-label">Rotation</v-label>
     <v-number-input
       control-variant="stacked"

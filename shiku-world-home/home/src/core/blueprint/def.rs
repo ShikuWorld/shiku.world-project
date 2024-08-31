@@ -394,6 +394,7 @@ pub enum LayerKind {
     FG08,
     FG09,
     FG10,
+    UI,
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

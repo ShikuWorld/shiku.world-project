@@ -33,6 +33,8 @@ import {
 } from "@/client/sprite-animations";
 import { EntityLayerManager } from "@/client/entity-layer-manager";
 import { render_key } from "@/editor/stores/game-instances";
+import { ProgressBar as ProgressBarData } from "@/editor/blueprints/ProgressBar";
+import { ProgressBar } from "@pixi/ui";
 
 export interface Graphics {
   textures: Texture[];
@@ -472,6 +474,34 @@ export class ResourceManager {
   }
 }
 
+export function create_progress_bar(
+  resource_manager: ResourceManager,
+  progress_bar: ProgressBarData,
+) {
+  const bg = resource_manager.get_sprite_from_graphics(
+    resource_manager.get_graphics_by_id_and_tileset_path(
+      progress_bar.background,
+      progress_bar.tileset,
+    ),
+  );
+  const fill = resource_manager.get_sprite_from_graphics(
+    resource_manager.get_graphics_by_id_and_tileset_path(
+      progress_bar.fill,
+      progress_bar.tileset,
+    ),
+  );
+  bg.anchor.set(0, 0);
+  fill.anchor.set(0, 0);
+  const pg = new ProgressBar({
+    bg,
+    fill,
+    progress: progress_bar.progress,
+  });
+  pg.width = progress_bar.width;
+  pg.height = progress_bar.height;
+  return pg;
+}
+
 export function create_display_object(
   node: GameNodeKind,
   resource_manager: ResourceManager,
@@ -552,6 +582,9 @@ export function create_display_object(
             .with({ Text: P.select() }, (text_render) =>
               resource_manager.create_bitmap_text(text_render),
             )
+            .with({ ProgressBar: P.select() }, (progress_bar_data) =>
+              create_progress_bar(resource_manager, progress_bar_data),
+            )
             .exhaustive();
           container.addChild(display_object);
           entity_layer_manager.add_display_object(
@@ -579,6 +612,14 @@ export function create_display_object(
         .exhaustive();
     })
     .exhaustive();
+
+  if (container.children.length > 0 && node.Node2D) {
+    container.children[0].scale.set(
+      node.Node2D.data.transform.scale[0],
+      node.Node2D.data.transform.scale[1],
+    );
+  }
+
   return container;
 }
 

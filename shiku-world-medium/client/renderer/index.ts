@@ -46,6 +46,7 @@ export const PossibleLayers = [
   "FG08",
   "FG09",
   "FG10",
+  "UI",
 ] as const;
 
 export const createLayerMap: () => LayerMap = () => {
@@ -88,6 +89,7 @@ export const addLayerMapToContainer = (
     layerMap.FG08,
     layerMap.FG09,
     layerMap.FG10,
+    layerMap.UI,
   );
 };
 

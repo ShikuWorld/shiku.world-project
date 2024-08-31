@@ -349,7 +349,7 @@ async function update_modules() {
       await removeNode(node);
     }
   }
-  setTimeout(async () => {
+  window.setTimeout(async () => {
     await update_connections();
     await layout();
   }, 100);

@@ -40588,6 +40588,173 @@ ${e3}`);
     }
   });
 
+  // node_modules/pixi.js/lib/scene/sprite-nine-slice/NineSliceSprite.mjs
+  init_Texture();
+  init_View();
+  init_NineSliceGeometry();
+  var _NineSliceSprite = class _NineSliceSprite2 extends ViewContainer {
+    /**
+     * @param {scene.NineSliceSpriteOptions|Texture} options - Options to use
+     * @param options.texture - The texture to use on the NineSliceSprite.
+     * @param options.leftWidth - Width of the left vertical bar (A)
+     * @param options.topHeight - Height of the top horizontal bar (C)
+     * @param options.rightWidth - Width of the right vertical bar (B)
+     * @param options.bottomHeight - Height of the bottom horizontal bar (D)
+     * @param options.width - Width of the NineSliceSprite,
+     * setting this will actually modify the vertices and not the UV's of this plane.
+     * @param options.height - Height of the NineSliceSprite,
+     * setting this will actually modify the vertices and not UV's of this plane.
+     */
+    constructor(options) {
+      if (options instanceof Texture) {
+        options = { texture: options };
+      }
+      const {
+        width,
+        height,
+        leftWidth,
+        rightWidth,
+        topHeight,
+        bottomHeight,
+        texture,
+        roundPixels,
+        ...rest
+      } = options;
+      super({
+        label: "NineSliceSprite",
+        ...rest
+      });
+      this.renderPipeId = "nineSliceSprite";
+      this.batched = true;
+      this._didSpriteUpdate = true;
+      this._leftWidth = leftWidth ?? texture?.defaultBorders?.left ?? NineSliceGeometry.defaultOptions.leftWidth;
+      this._topHeight = topHeight ?? texture?.defaultBorders?.top ?? NineSliceGeometry.defaultOptions.topHeight;
+      this._rightWidth = rightWidth ?? texture?.defaultBorders?.right ?? NineSliceGeometry.defaultOptions.rightWidth;
+      this._bottomHeight = bottomHeight ?? texture?.defaultBorders?.bottom ?? NineSliceGeometry.defaultOptions.bottomHeight;
+      this.bounds.maxX = this._width = width ?? texture.width ?? NineSliceGeometry.defaultOptions.width;
+      this.bounds.maxY = this._height = height ?? texture.height ?? NineSliceGeometry.defaultOptions.height;
+      this.allowChildren = false;
+      this.texture = texture ?? _NineSliceSprite2.defaultOptions.texture;
+      this.roundPixels = roundPixels ?? false;
+    }
+    /** The local bounds of the view. */
+    get bounds() {
+      return this._bounds;
+    }
+    /** The width of the NineSliceSprite, setting this will actually modify the vertices and UV's of this plane. */
+    get width() {
+      return this._width;
+    }
+    set width(value) {
+      this.bounds.maxX = this._width = value;
+      this.onViewUpdate();
+    }
+    /** The height of the NineSliceSprite, setting this will actually modify the vertices and UV's of this plane. */
+    get height() {
+      return this._height;
+    }
+    set height(value) {
+      this.bounds.maxY = this._height = value;
+      this.onViewUpdate();
+    }
+    /** The width of the left column (a) of the NineSliceSprite. */
+    get leftWidth() {
+      return this._leftWidth;
+    }
+    set leftWidth(value) {
+      this._leftWidth = value;
+      this.onViewUpdate();
+    }
+    /** The width of the right column (b) of the NineSliceSprite. */
+    get topHeight() {
+      return this._topHeight;
+    }
+    set topHeight(value) {
+      this._topHeight = value;
+      this.onViewUpdate();
+    }
+    /** The width of the right column (b) of the NineSliceSprite. */
+    get rightWidth() {
+      return this._rightWidth;
+    }
+    set rightWidth(value) {
+      this._rightWidth = value;
+      this.onViewUpdate();
+    }
+    /** The width of the right column (b) of the NineSliceSprite. */
+    get bottomHeight() {
+      return this._bottomHeight;
+    }
+    set bottomHeight(value) {
+      this._bottomHeight = value;
+      this.onViewUpdate();
+    }
+    /** The texture that the NineSliceSprite is using. */
+    get texture() {
+      return this._texture;
+    }
+    set texture(value) {
+      value || (value = Texture.EMPTY);
+      const currentTexture = this._texture;
+      if (currentTexture === value)
+        return;
+      if (currentTexture && currentTexture.dynamic)
+        currentTexture.off("update", this.onViewUpdate, this);
+      if (value.dynamic)
+        value.on("update", this.onViewUpdate, this);
+      this._texture = value;
+      this.onViewUpdate();
+    }
+    /** The original width of the texture */
+    get originalWidth() {
+      return this._texture.width;
+    }
+    /** The original height of the texture */
+    get originalHeight() {
+      return this._texture.height;
+    }
+    onViewUpdate() {
+      this._didViewChangeTick++;
+      this._didSpriteUpdate = true;
+      if (this.didViewUpdate)
+        return;
+      this.didViewUpdate = true;
+      const renderGroup = this.renderGroup || this.parentRenderGroup;
+      if (renderGroup) {
+        renderGroup.onChildViewUpdate(this);
+      }
+    }
+    /**
+     * Adds the bounds of this object to the bounds object.
+     * @param bounds - The output bounds object.
+     */
+    addBounds(bounds) {
+      const _bounds = this.bounds;
+      bounds.addFrame(_bounds.minX, _bounds.minY, _bounds.maxX, _bounds.maxY);
+    }
+    /**
+     * Destroys this sprite renderable and optionally its texture.
+     * @param options - Options parameter. A boolean will act as if all options
+     *  have been set to that value
+     * @param {boolean} [options.texture=false] - Should it destroy the current texture of the renderable as well
+     * @param {boolean} [options.textureSource=false] - Should it destroy the textureSource of the renderable as well
+     */
+    destroy(options) {
+      super.destroy(options);
+      const destroyTexture = typeof options === "boolean" ? options : options?.texture;
+      if (destroyTexture) {
+        const destroyTextureSource = typeof options === "boolean" ? options : options?.textureSource;
+        this._texture.destroy(destroyTextureSource);
+      }
+      this._texture = null;
+    }
+  };
+  _NineSliceSprite.defaultOptions = {
+    /** @default Texture.EMPTY */
+    texture: Texture.EMPTY
+  };
+  var NineSliceSprite = _NineSliceSprite;
+
   // node_modules/pixi.js/lib/index.mjs
   init_Rectangle();
   init_RenderTexture();
@@ -40596,6 +40763,7 @@ ${e3}`);
   init_textureFrom();
   init_Container();
   init_Graphics();
+  init_Sprite();
   init_Ticker();
   init_eventemitter3();
   var import_earcut2 = __toESM(require_earcut(), 1);
@@ -40627,7 +40795,8 @@ ${e3}`);
     "FG07",
     "FG08",
     "FG09",
-    "FG10"
+    "FG10",
+    "UI"
   ];
   var createLayerMap = () => {
     const map2 = PossibleLayers.reduce((acc, key) => {
@@ -40664,7 +40833,8 @@ ${e3}`);
       layerMap.FG07,
       layerMap.FG08,
       layerMap.FG09,
-      layerMap.FG10
+      layerMap.FG10,
+      layerMap.UI
     );
   };
 
@@ -46269,6 +46439,7 @@ This will fail in production.`);
       if (this._container_map[renderKey]) {
         const new_pos = container.toGlobal({ x: 0, y: 0 });
         this._container_map[renderKey].container.position.copyFrom(new_pos);
+        this._container_map[renderKey].container.scale.copyFrom(container.scale);
         this._container_map[renderKey].container.zIndex = new_pos.y + this._container_map[renderKey].container.children[0].height / 2;
       }
     }
@@ -46608,6 +46779,8 @@ This will fail in production.`);
             render_node.container.position.x = transform2.position[0] * RENDER_SCALE;
             render_node.container.position.y = transform2.position[1] * RENDER_SCALE;
             render_node.container.rotation = transform2.rotation;
+            render_node.container.scale.x = transform2.scale[0];
+            render_node.container.scale.y = transform2.scale[1];
           }).with({ ScriptPath: _.select() }, (script) => {
             game_node.script = script;
           }).with({ Name: _.select() }, (name) => {
@@ -46725,6 +46898,13 @@ This will fail in production.`);
                   gid
                 );
                 return sprite2;
+              }).with({ ProgressBar: _.select() }, () => {
+                return resource_manager.get_sprite_from_graphics(
+                  resource_manager.get_graphics_by_id_and_tileset_path(
+                    0,
+                    "TRIED_TO_SET_GID_ON_PROGRESS_BAR_WTF?"
+                  )
+                );
               }).with({ AnimatedSprite: _.select() }, () => {
                 const animated_sprite_node = render_kind;
                 animated_sprite_node.AnimatedSprite[1] = local_id;
@@ -46767,6 +46947,11 @@ This will fail in production.`);
                   0,
                   "TRIED_TO_SET_SPRITE_TILESET_ON_TEXT_WTF?"
                 );
+              }).with({ ProgressBar: _.select() }, () => {
+                return resource_manager.get_graphics_by_id_and_tileset_path(
+                  0,
+                  "TRIED_TO_SET_SPRITE_TILESET_ON_PROGRESS_BAR_WTF?"
+                );
               }).exhaustive()
             ).run();
             render_graph_data.entity_layer_manager.update_container_display_object(
@@ -46777,6 +46962,7 @@ This will fail in production.`);
             N2(game_node.data.kind).with({ Render: { kind: _.select() } }, (render_kind) => {
               N2(render_kind).with({ Sprite: _.select() }, () => {
               }).with({ Text: _.select() }, () => {
+              }).with({ ProgressBar: _.select() }, () => {
               }).with({ AnimatedSprite: _.select() }, () => {
                 render_kind.AnimatedSprite[0] = resource_path;
               }).exhaustive();
@@ -46804,9 +46990,17 @@ This will fail in production.`);
               ).with(
                 { Text: _.select() },
                 (text) => resource_manager.create_bitmap_text(text)
+              ).with(
+                { ProgressBar: _.select() },
+                (progress_bar) => window.medium.create_progress_bar(
+                  resource_manager,
+                  progress_bar
+                )
               ).exhaustive();
-              render_node.container.removeChildAt(0);
-              render_node.container.addChildAt(container, 0);
+              render_graph_data.entity_layer_manager.update_container_display_object(
+                render_node.node_id,
+                container
+              );
             }
           }).with({ InstancePath: _.select() }, (_2) => {
             console.error(
@@ -46828,6 +47022,7 @@ This will fail in production.`);
             const [graphics, pivot_x, pivot_y] = window.medium.create_collider_graphic(collider);
             render_node.container.x = pivot_x;
             render_node.container.y = pivot_y;
+            render_node.container.rotation = game_node.data.transform.rotation;
             graphics.visible = state.show_entity_colliders;
             render_graph_data.entity_layer_manager.update_container_display_object(
               render_node.node_id,
@@ -46875,6 +47070,49 @@ This will fail in production.`);
             const node2D = game_node.data;
             if ("Render" in node2D.kind && node2D.kind.Render.kind) {
               node2D.kind.Render.fadeout_effect = fade_out;
+            }
+          }).with({ ProgressBar: _.select() }, (progress_bar_update) => {
+            const node2D = game_node.data;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              if ("ProgressBar" in node2D.kind.Render.kind) {
+                for (const [key, value] of Object.entries(
+                  progress_bar_update
+                )) {
+                  if (value !== null) {
+                    const pg_key = key;
+                    node2D.kind.Render.kind.ProgressBar[pg_key] = value;
+                  }
+                  if (progress_bar_update.tileset || progress_bar_update.background || progress_bar_update.fill) {
+                    const new_progress_bar = window.medium.create_progress_bar(
+                      resource_manager,
+                      node2D.kind.Render.kind.ProgressBar,
+                      node2D.kind.Render.kind.ProgressBar.progress
+                    );
+                    render_graph_data.entity_layer_manager.update_container_display_object(
+                      render_key(game_node),
+                      new_progress_bar
+                    );
+                  }
+                  const progress_bar = render_graph_data.entity_layer_manager.get_entity(
+                    render_key(game_node)
+                  )?.display_object;
+                  if (!progress_bar) {
+                    return;
+                  }
+                  if (progress_bar_update.progress !== null) {
+                    node2D.kind.Render.kind.ProgressBar.progress = progress_bar_update.progress;
+                    progress_bar.progress = progress_bar_update.progress;
+                  }
+                  if (progress_bar_update.width !== null) {
+                    node2D.kind.Render.kind.ProgressBar.width = progress_bar_update.width;
+                    progress_bar.width = progress_bar_update.width;
+                  }
+                  if (progress_bar_update.height !== null) {
+                    node2D.kind.Render.kind.ProgressBar.height = progress_bar_update.height;
+                    progress_bar.height = progress_bar_update.height;
+                  }
+                }
+              }
             }
           }).exhaustive();
         } catch (e3) {
@@ -47040,7 +47278,7 @@ This will fail in production.`);
   });
   function get_local_id(node_2d) {
     if ("Render" in node_2d.data.kind) {
-      return N2(node_2d.data.kind.Render.kind).with({ Sprite: _.select() }, ([_2, gid]) => gid).with({ Text: _.select() }, () => void 0).with({ AnimatedSprite: _.select() }, ([_2, gid]) => gid).exhaustive();
+      return N2(node_2d.data.kind.Render.kind).with({ Sprite: _.select() }, ([_2, gid]) => gid).with({ Text: _.select() }, () => void 0).with({ ProgressBar: _.select() }, () => void 0).with({ AnimatedSprite: _.select() }, ([_2, gid]) => gid).exhaustive();
     }
     return void 0;
   }
@@ -47692,6 +47930,258 @@ This will fail in production.`);
 
   // client/resources/index.ts
   var import_strongly_typed_events4 = __toESM(require_dist8());
+
+  // node_modules/@pixi/ui/lib/utils/helpers/view.mjs
+  function getSpriteView(view) {
+    if (typeof view === "string") {
+      return Sprite.from(view);
+    }
+    return view;
+  }
+
+  // node_modules/@pixi/ui/lib/ProgressBar.mjs
+  var __defProp2 = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp2(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => {
+    __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+    return value;
+  };
+  var ProgressBar = class extends Container {
+    /**
+     * Creates a ProgressBar.
+     * @param options - Options.
+     * @param { Sprite | Graphics | string } options.bg - Background of the ProgressBar.
+     * @param { Sprite | Graphics | string } options.fill - Fill of the ProgressBar.
+     * @param { FillPaddings } options.fillPaddings - Fill offsets.
+     * @param { number } options.fillPaddings.top - Fill top offset.
+     * @param { number } options.fillPaddings.right - Fill right offset.
+     * @param { number } options.fillPaddings.bottom - Fill bottom offset.
+     * @param { number } options.fillPaddings.left - Fill left offset.
+     * @param { NineSliceSprite } options.nineSliceSprite - NineSliceSprite values for bg and fill.
+     * @param { Array } options.nineSliceSprite.bg - NineSliceSprite config for bg ([number, number, number, number]).
+     * @param { Array } options.nineSliceSprite.fill - NineSliceSprite config fill ([number, number, number, number]).
+     * @param { number } options.progress - Initial progress value.
+     */
+    constructor(options) {
+      super();
+      __publicField(this, "bg");
+      __publicField(this, "fill");
+      __publicField(this, "fillMask");
+      __publicField(this, "progressStart", 0);
+      __publicField(this, "_progress", 0);
+      __publicField(this, "options");
+      __publicField(this, "innerView");
+      __publicField(this, "_view");
+      this.options = options;
+      this.innerView = new Container();
+      this.addChild(this.innerView);
+      if (options?.bg && options?.fill) {
+        this.init(options);
+      }
+    }
+    /**
+     * Initialize ProgressBar.
+     * @param root0
+     * @param root0.bg - Background texture.
+     * @param root0.fill - Fill texture.
+     * @param root0.fillPaddings - Fill offset.
+     * @param root0.progress - Initial progress value.
+     */
+    init({ bg, fill, fillPaddings, progress }) {
+      this.setBackground(bg);
+      this.setFill(fill, fillPaddings);
+      this.progress = progress;
+    }
+    /**
+     * Set bg.
+     * @param bg
+     */
+    setBackground(bg) {
+      if (this.bg) {
+        this.bg.destroy();
+      }
+      if (this.options?.nineSliceSprite) {
+        if (typeof bg === "string") {
+          this.bg = new NineSliceSprite({
+            texture: Texture.from(bg),
+            leftWidth: this.options.nineSliceSprite.bg[0],
+            topHeight: this.options.nineSliceSprite.bg[1],
+            rightWidth: this.options.nineSliceSprite.bg[2],
+            bottomHeight: this.options.nineSliceSprite.bg[3]
+          });
+        } else {
+          console.warn("NineSliceSprite can not be used with views set as Container.");
+        }
+      }
+      if (bg instanceof Graphics) {
+        this.bg = bg;
+      }
+      if (!this.bg && (typeof bg === "string" || bg instanceof Sprite)) {
+        this.bg = getSpriteView(bg);
+      }
+      this.innerView.addChildAt(this.bg, 0);
+    }
+    /**
+     * Set fill.
+     * @param fill
+     * @param fillPadding
+     */
+    setFill(fill, fillPadding) {
+      if (this.fill) {
+        this.fill.destroy();
+      }
+      if (this.bg instanceof Sprite && fill === this.bg) {
+        console.warn("Can not use same Sprite instance for bg and fill.");
+        return;
+      }
+      if (this.options?.nineSliceSprite) {
+        if (typeof fill === "string") {
+          this.fill = new NineSliceSprite({
+            texture: Texture.from(fill),
+            leftWidth: this.options.nineSliceSprite.fill[0],
+            topHeight: this.options.nineSliceSprite.fill[1],
+            rightWidth: this.options.nineSliceSprite.fill[2],
+            bottomHeight: this.options.nineSliceSprite.fill[3]
+          });
+        } else {
+          console.warn("NineSliceSprite can not be used with views set as Container.");
+        }
+      }
+      if (!this.fill) {
+        if (fill instanceof Graphics) {
+          this.fill = fill;
+        } else {
+          this.fill = getSpriteView(fill);
+        }
+      }
+      this.innerView.addChildAt(this.fill, 1);
+      const offsetX = fillPadding?.left ?? 0;
+      const offsetY = fillPadding?.top ?? 0;
+      this.fill.x = offsetX;
+      this.fill.y = offsetY;
+      if (this.fillMask) {
+        this.fill.mask = null;
+        this.fillMask.destroy();
+      }
+      const leftWidth = this.fill.width / 2;
+      const rightWidth = this.fill.width / 2;
+      const topHeight = this.fill.height / 2;
+      const bottomHeight = this.fill.height / 2;
+      let texture = Texture.WHITE;
+      if (this.fill instanceof Sprite && this.fill.texture) {
+        texture = this.fill.texture;
+      }
+      this.fillMask = new NineSliceSprite({ texture, leftWidth, topHeight, rightWidth, bottomHeight });
+      this.fillMask.position.copyFrom(this.fill);
+      this.addChild(this.fillMask);
+      this.fill.mask = this.fillMask;
+    }
+    validate(progress) {
+      progress = Math.round(progress);
+      if (progress < 0) {
+        return 0;
+      }
+      if (progress > 100) {
+        return 100;
+      }
+      return progress;
+    }
+    /** Set current progress percentage value. */
+    set progress(progress) {
+      this._progress = this.validate(progress);
+      if (!this.fill)
+        return;
+      if (this.fillMask) {
+        this.fill.mask = null;
+        this.fillMask.width = this.fill.width / 100 * (this._progress - this.progressStart);
+        this.fillMask.x = this.progressStart / 100 * this.fill.width + this.fill.x;
+        this.fillMask.height = this.fill.height;
+        this.fill.mask = this.fillMask;
+      }
+    }
+    /** Return current progress percentage value. */
+    get progress() {
+      return this._progress;
+    }
+    /**
+     * Sets width of a ProgressBars background and fill.
+     * If nineSliceSprite is set, then width will be set to nineSliceSprite.
+     * If nineSliceSprite is not set, then width will control components width as Container.
+     * @param width - Width value.
+     */
+    set width(width) {
+      if (this.options?.nineSliceSprite) {
+        if (this.bg) {
+          this.bg.width = width;
+        }
+        if (this.fill) {
+          const leftPadding = this.options.fillPaddings?.left ?? 0;
+          const rightPadding = this.options.fillPaddings?.right ?? 0;
+          this.fill.width = width - leftPadding - rightPadding;
+          this.fillMask.width = width - leftPadding - rightPadding;
+        }
+        this.progress = this._progress;
+      } else {
+        super.width = width;
+      }
+    }
+    /** Gets width of a ProgressBar. */
+    get width() {
+      return super.width;
+    }
+    /**
+     * Sets height of a ProgressBars background and fill.
+     * If nineSliceSprite is set, then height will be set to nineSliceSprite.
+     * If nineSliceSprite is not set, then height will control components height as Container.
+     * @param height - Height value.
+     */
+    set height(height) {
+      if (this.options?.nineSliceSprite) {
+        if (this.bg) {
+          this.bg.height = height;
+        }
+        if (this.fill) {
+          const topPadding = this.options.fillPaddings?.top ?? 0;
+          const bottomPadding = this.options.fillPaddings?.bottom ?? 0;
+          this.fill.height = height - topPadding - bottomPadding;
+          this.fillMask.height = height - topPadding - bottomPadding;
+        }
+        this.progress = this._progress;
+      } else {
+        super.height = height;
+      }
+    }
+    /** Gets height of a ProgressBar. */
+    get height() {
+      return super.height;
+    }
+    setSize(value, height) {
+      if (this.options?.nineSliceSprite) {
+        if (this.bg) {
+          this.bg.setSize(value, height);
+        }
+        if (this.fill) {
+          if (typeof value === "object") {
+            height = value.height ?? value.width;
+            value = value.width;
+          } else {
+            height = height ?? value;
+          }
+          const topPadding = this.options.fillPaddings?.top ?? 0;
+          const bottomPadding = this.options.fillPaddings?.bottom ?? 0;
+          const leftPadding = this.options.fillPaddings?.left ?? 0;
+          const rightPadding = this.options.fillPaddings?.right ?? 0;
+          this.fill.setSize(value - leftPadding - rightPadding, height - topPadding - bottomPadding);
+          this.fillMask.setSize(value - leftPadding - rightPadding, height - topPadding - bottomPadding);
+        }
+        this.progress = this._progress;
+      } else {
+        super.setSize(value, height);
+      }
+    }
+  };
+
+  // client/resources/index.ts
   var ResourceManager = class {
     constructor(_base_url, renderer, module_id) {
       this._base_url = _base_url;
@@ -48020,6 +48510,30 @@ This will fail in production.`);
       return graphics;
     }
   };
+  function create_progress_bar(resource_manager, progress_bar) {
+    const bg = resource_manager.get_sprite_from_graphics(
+      resource_manager.get_graphics_by_id_and_tileset_path(
+        progress_bar.background,
+        progress_bar.tileset
+      )
+    );
+    const fill = resource_manager.get_sprite_from_graphics(
+      resource_manager.get_graphics_by_id_and_tileset_path(
+        progress_bar.fill,
+        progress_bar.tileset
+      )
+    );
+    bg.anchor.set(0, 0);
+    fill.anchor.set(0, 0);
+    const pg = new ProgressBar({
+      bg,
+      fill,
+      progress: progress_bar.progress
+    });
+    pg.width = progress_bar.width;
+    pg.height = progress_bar.height;
+    return pg;
+  }
   function create_display_object(node, resource_manager, effects_manager, entity_layer_manager, show_colliders = false) {
     const container = new Container();
     N2(node).with({ Node2D: _.select() }, (game_node) => {
@@ -48083,6 +48597,9 @@ This will fail in production.`);
         ).with(
           { Text: _.select() },
           (text_render) => resource_manager.create_bitmap_text(text_render)
+        ).with(
+          { ProgressBar: _.select() },
+          (progress_bar_data) => create_progress_bar(resource_manager, progress_bar_data)
         ).exhaustive();
         container.addChild(display_object);
         entity_layer_manager.add_display_object(
@@ -48106,6 +48623,12 @@ This will fail in production.`);
         );
       }).exhaustive();
     }).exhaustive();
+    if (container.children.length > 0 && node.Node2D) {
+      container.children[0].scale.set(
+        node.Node2D.data.transform.scale[0],
+        node.Node2D.data.transform.scale[1]
+      );
+    }
     return container;
   }
   function create_collider_graphic(collider) {
@@ -48326,6 +48849,7 @@ This will fail in production.`);
   var setup_medium_api = (communication_state, instances, resource_manager_map, render_system, menu_system, loading_indicator) => {
     console.log("Setting up medium api");
     window.medium = {
+      create_progress_bar,
       twitch_login: (communication_state2) => login(communication_state2),
       communication_state,
       reset_instances: () => {
@@ -48467,7 +48991,9 @@ This will fail in production.`);
       );
       this.renderer = create_instance_rendering(world_params);
       this.terrain_manager = create_terrain_manager(world_params.terrain_params);
-      this.layer_map_keys = Object.keys(this.renderer.layer_map);
+      this.layer_map_keys = Object.keys(this.renderer.layer_map).filter(
+        (key) => key != "UI"
+      );
       this.collision_lines = new Container();
       this.collision_lines.visible = false;
       this.renderer.layer_map.ObjectsFront.addChild(this.collision_lines);

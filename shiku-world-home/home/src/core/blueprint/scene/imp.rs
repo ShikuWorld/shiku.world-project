@@ -110,6 +110,11 @@ fn get_render_from_ecs(entity: &Entity, ecs: &ECSShared) -> Option<Render> {
                     .get(entity)
                     .map(|tileset_path| RenderKind::Sprite(tileset_path.clone(), *gid))
             }),
+            RenderKindClean::ProgressBar => ecs
+                .entities
+                .ui_progress_bar
+                .get(entity)
+                .map(|progress_bar| RenderKind::ProgressBar(progress_bar.clone())),
         } {
             return Some(Render {
                 offset: *render_offset,
@@ -160,6 +165,13 @@ impl GameNodeKind {
     pub fn update_with_entity_update(&mut self, update: EntityUpdateKind) {
         let GameNodeKind::Node2D(n) = self;
         match update {
+            EntityUpdateKind::ProgressBar(update) => {
+                if let Node2DKind::Render(render) = &mut n.data.kind {
+                    if let RenderKind::ProgressBar(progress_bar) = &mut render.kind {
+                        progress_bar.update(update);
+                    }
+                }
+            }
             EntityUpdateKind::DynamicRigidBodyTypeProps(props) => {
                 if let Node2DKind::RigidBody(rigid_body) = &mut n.data.kind {
                     if let Some(dynamic_rigid_body_props) = &mut rigid_body.dynamic_rigid_body_props
@@ -247,8 +259,9 @@ impl GameNodeKind {
             EntityUpdateKind::TextRender(text_render) => {
                 if let Node2DKind::Render(r) = &mut n.data.kind {
                     match r.kind {
-                        RenderKind::AnimatedSprite(_, _) => {}
-                        RenderKind::Sprite(_, _) => {}
+                        RenderKind::AnimatedSprite(_, _)
+                        | RenderKind::Sprite(_, _)
+                        | RenderKind::ProgressBar(_) => {}
                         RenderKind::Text(ref mut txtrndr) => {
                             *txtrndr = text_render;
                         }
@@ -264,7 +277,7 @@ impl GameNodeKind {
                         RenderKind::Sprite(_, ref mut g) => {
                             *g = gid;
                         }
-                        RenderKind::Text(_) => {}
+                        RenderKind::Text(_) | RenderKind::ProgressBar(_) => {}
                     }
                 }
             }
@@ -277,7 +290,7 @@ impl GameNodeKind {
                         RenderKind::Sprite(ref mut r, _) => {
                             *r = resource_path;
                         }
-                        RenderKind::Text(_) => {}
+                        RenderKind::Text(_) | RenderKind::ProgressBar(_) => {}
                     }
                 }
             }

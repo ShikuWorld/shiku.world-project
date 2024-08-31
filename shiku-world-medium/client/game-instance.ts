@@ -48,7 +48,9 @@ export class GameInstance {
     this.renderer = create_instance_rendering(world_params);
     //this.entity_manager = create_entity_manager();
     this.terrain_manager = create_terrain_manager(world_params.terrain_params);
-    this.layer_map_keys = Object.keys(this.renderer.layer_map) as LayerKind[];
+    this.layer_map_keys = Object.keys(this.renderer.layer_map).filter(
+      (key) => key != "UI",
+    ) as LayerKind[];
     this.collision_lines = new Container();
     this.collision_lines.visible = false;
     this.renderer.layer_map.ObjectsFront.addChild(this.collision_lines);

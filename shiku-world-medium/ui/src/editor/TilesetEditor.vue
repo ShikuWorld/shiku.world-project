@@ -150,7 +150,7 @@ const change_tile_source = (path: string, gid: number) => {
   if (change_tile_source_bounce_timeout.value !== null) {
     clearTimeout(change_tile_source_bounce_timeout.value);
   }
-  change_tile_source_bounce_timeout.value = setTimeout(() => {
+  change_tile_source_bounce_timeout.value = window.setTimeout(() => {
     const tile = tileset.value.tiles[gid];
     if (tile && tile.image) {
       update_tileset_server(tileset_key(tileset.value), {

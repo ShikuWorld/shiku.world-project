@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
-use crate::core::blueprint::ecs::def::{DynamicRigidBodyPropsUpdate, Entity};
+use crate::core::blueprint::ecs::def::{DynamicRigidBodyPropsUpdate, Entity, ProgressBarUpdate};
 
 pub type SceneId = String;
 pub type ScriptId = String;
@@ -277,6 +277,51 @@ pub enum RenderKind {
     AnimatedSprite(ResourcePath, Gid),
     Sprite(ResourcePath, Gid),
     Text(TextRender),
+    ProgressBar(ProgressBar),
+}
+
+#[derive(TS, Debug, Serialize, Deserialize, Clone)]
+#[ts(export, export_to = "blueprints/")]
+pub struct ProgressBar {
+    pub progress: Real,
+    pub tileset: ResourcePath,
+    pub background: Gid,
+    pub fill: Gid,
+    pub fill_paddings: (Real, Real, Real, Real),
+    pub width: Real,
+    pub height: Real,
+}
+
+impl ProgressBar {
+    pub fn new() -> Self {
+        Self {
+            progress: 0.0,
+            tileset: ResourcePath::new(),
+            background: 0,
+            fill: 0,
+            width: 50.0,
+            height: 50.0,
+            fill_paddings: (0.0, 0.0, 0.0, 0.0),
+        }
+    }
+
+    pub fn update(&mut self, update: ProgressBarUpdate) {
+        if let Some(tileset) = update.tileset {
+            self.tileset = tileset;
+        }
+        if let Some(background) = update.background {
+            self.background = background;
+        }
+        if let Some(fill) = update.fill {
+            self.fill = fill;
+        }
+        if let Some(fill_paddings) = update.fill_paddings {
+            self.fill_paddings = fill_paddings;
+        }
+        if let Some(progress) = update.progress {
+            self.progress = progress;
+        }
+    }
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
@@ -304,4 +349,5 @@ pub enum RenderKindClean {
     AnimatedSprite,
     Sprite,
     Text,
+    ProgressBar,
 }

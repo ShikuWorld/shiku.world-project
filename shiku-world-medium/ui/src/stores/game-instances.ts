@@ -21,6 +21,8 @@ import { EffectsManager } from "@/client/effects-manager";
 import { EntityLayerManager } from "@/client/entity-layer-manager";
 import { InstanceRendering } from "@/client/renderer";
 import { DynamicRigidBodyProps } from "@/editor/blueprints/DynamicRigidBodyProps";
+import { ProgressBar } from "@pixi/ui";
+import { ProgressBar as ProgressBarData } from "@/editor/blueprints/ProgressBar";
 
 export interface Node {
   node_id: ReturnType<typeof render_key>;
@@ -479,6 +481,8 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             render_node.container.position.y =
               transform.position[1] * RENDER_SCALE;
             render_node.container.rotation = transform.rotation;
+            render_node.container.scale.x = transform.scale[0];
+            render_node.container.scale.y = transform.scale[1];
           })
           .with({ ScriptPath: P.select() }, (script) => {
             game_node.script = script;
@@ -629,6 +633,14 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                     );
                     return sprite;
                   })
+                  .with({ ProgressBar: P.select() }, () => {
+                    return resource_manager.get_sprite_from_graphics(
+                      resource_manager.get_graphics_by_id_and_tileset_path(
+                        0,
+                        "TRIED_TO_SET_GID_ON_PROGRESS_BAR_WTF?",
+                      ),
+                    );
+                  })
                   .with({ AnimatedSprite: P.select() }, () => {
                     const animated_sprite_node = render_kind as {
                       AnimatedSprite: [string, number];
@@ -684,6 +696,12 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                       "TRIED_TO_SET_SPRITE_TILESET_ON_TEXT_WTF?",
                     );
                   })
+                  .with({ ProgressBar: P.select() }, () => {
+                    return resource_manager.get_graphics_by_id_and_tileset_path(
+                      0,
+                      "TRIED_TO_SET_SPRITE_TILESET_ON_PROGRESS_BAR_WTF?",
+                    );
+                  })
                   .exhaustive(),
               )
               .run();
@@ -698,6 +716,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                 match(render_kind)
                   .with({ Sprite: P.select() }, () => {})
                   .with({ Text: P.select() }, () => {})
+                  .with({ ProgressBar: P.select() }, () => {})
                   .with({ AnimatedSprite: P.select() }, () => {
                     (
                       render_kind as { AnimatedSprite: [string, number] }
@@ -736,9 +755,17 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                 .with({ Text: P.select() }, (text) =>
                   resource_manager.create_bitmap_text(text),
                 )
+                .with({ ProgressBar: P.select() }, (progress_bar) =>
+                  window.medium.create_progress_bar(
+                    resource_manager,
+                    progress_bar,
+                  ),
+                )
                 .exhaustive();
-              render_node.container.removeChildAt(0);
-              render_node.container.addChildAt(container, 0);
+              render_graph_data.entity_layer_manager.update_container_display_object(
+                render_node.node_id,
+                container,
+              );
             }
           })
           .with({ InstancePath: P.select() }, (_) => {
@@ -764,6 +791,7 @@ export const use_game_instances_store = defineStore("game-instances", () => {
               window.medium.create_collider_graphic(collider);
             render_node.container.x = pivot_x;
             render_node.container.y = pivot_y;
+            render_node.container.rotation = game_node.data.transform.rotation;
             graphics.visible = state.show_entity_colliders;
             render_graph_data.entity_layer_manager.update_container_display_object(
               render_node.node_id,
@@ -822,6 +850,59 @@ export const use_game_instances_store = defineStore("game-instances", () => {
             const node2D = game_node.data as Node2D;
             if ("Render" in node2D.kind && node2D.kind.Render.kind) {
               node2D.kind.Render.fadeout_effect = fade_out;
+            }
+          })
+          .with({ ProgressBar: P.select() }, (progress_bar_update) => {
+            const node2D = game_node.data as Node2D;
+            if ("Render" in node2D.kind && node2D.kind.Render.kind) {
+              if ("ProgressBar" in node2D.kind.Render.kind) {
+                for (const [key, value] of Object.entries(
+                  progress_bar_update,
+                )) {
+                  if (value !== null) {
+                    const pg_key = key as keyof ProgressBarData;
+                    (node2D.kind.Render.kind.ProgressBar[
+                      pg_key
+                    ] as ProgressBarData[typeof pg_key]) = value;
+                  }
+                  if (
+                    progress_bar_update.tileset ||
+                    progress_bar_update.background ||
+                    progress_bar_update.fill
+                  ) {
+                    const new_progress_bar = window.medium.create_progress_bar(
+                      resource_manager,
+                      node2D.kind.Render.kind.ProgressBar,
+                    );
+                    render_graph_data.entity_layer_manager.update_container_display_object(
+                      render_key(game_node),
+                      new_progress_bar,
+                    );
+                  }
+                  const progress_bar =
+                    render_graph_data.entity_layer_manager.get_entity(
+                      render_key(game_node),
+                    )?.display_object as ProgressBar | undefined;
+                  if (!progress_bar) {
+                    return;
+                  }
+                  if (progress_bar_update.progress !== null) {
+                    node2D.kind.Render.kind.ProgressBar.progress =
+                      progress_bar_update.progress;
+                    progress_bar.progress = progress_bar_update.progress;
+                  }
+                  if (progress_bar_update.width !== null) {
+                    node2D.kind.Render.kind.ProgressBar.width =
+                      progress_bar_update.width;
+                    progress_bar.width = progress_bar_update.width;
+                  }
+                  if (progress_bar_update.height !== null) {
+                    node2D.kind.Render.kind.ProgressBar.height =
+                      progress_bar_update.height;
+                    progress_bar.height = progress_bar_update.height;
+                  }
+                }
+              }
             }
           })
           .exhaustive();
@@ -1039,6 +1120,7 @@ function get_local_id(node_2d: GameNode<Node2D>): number | undefined {
     return match(node_2d.data.kind.Render.kind)
       .with({ Sprite: P.select() }, ([_, gid]) => gid)
       .with({ Text: P.select() }, () => undefined)
+      .with({ ProgressBar: P.select() }, () => undefined)
       .with({ AnimatedSprite: P.select() }, ([_, gid]) => gid)
       .exhaustive();
   }

@@ -24,7 +24,7 @@ const is_active = ref<boolean>(false);
 function open() {
   is_active.value = true;
 
-  setTimeout(() => {
+  window.setTimeout(() => {
     if (editor.value && script.value) {
       editor_view.value = new EditorView({
         doc: script.value.content,

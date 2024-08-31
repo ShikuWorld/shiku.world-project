@@ -16,6 +16,7 @@ import {
 import {
   create_collider_graphic,
   create_display_object,
+  create_progress_bar,
   ResourceManager,
 } from "@/client/resources";
 import { Container } from "pixi.js";
@@ -53,6 +54,7 @@ declare global {
         brush: number[][],
       ) => void;
       create_display_object: typeof create_display_object;
+      create_progress_bar: typeof create_progress_bar;
       create_collider_graphic: typeof create_collider_graphic;
       toggle_terrain_collisions: () => void;
       create_container: () => Container;

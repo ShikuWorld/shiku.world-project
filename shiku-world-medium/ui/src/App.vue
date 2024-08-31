@@ -64,7 +64,7 @@ const context: Ref<DataContext> = computed(() => {
 const toast_store = use_toast_store();
 
 toast_store.add_toast("test", "Info", 50000);
-setInterval(() => {
+window.setInterval(() => {
   toast_store.add_toast("Some crazy things happened!", "Info", 50000);
 }, 30000);
 

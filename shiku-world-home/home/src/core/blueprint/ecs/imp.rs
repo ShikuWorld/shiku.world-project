@@ -19,8 +19,8 @@ use crate::core::blueprint::ecs::game_node_script::{
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     Collider, ColliderKind, ColliderShape, DynamicRigidBodyProps, GameNodeKind, GameNodeKindClean,
-    KinematicCharacterControllerProps, Node2DKind, Node2DKindClean, RenderKind, RenderKindClean,
-    RigidBodyType, Scene, SceneId, Transform,
+    KinematicCharacterControllerProps, Node2DKind, Node2DKindClean, ProgressBar, RenderKind,
+    RenderKindClean, RigidBodyType, Scene, SceneId, Transform,
 };
 use crate::core::rapier_simulation::def::RapierSimulation;
 use crate::core::timer::Timer;
@@ -69,6 +69,7 @@ impl ECS {
                     render_offset: HashMap::new(),
                     render_layer: HashMap::new(),
                     render_gid: HashMap::new(),
+                    ui_progress_bar: HashMap::new(),
                     render_fadeout_effect: HashMap::new(),
                     render_fadein_effect: HashMap::new(),
                     render_gid_tileset_path: HashMap::new(),
@@ -442,6 +443,14 @@ impl ECS {
                                     .render_gid_tileset_path
                                     .insert(entity, resource_path.clone());
                             }
+                            RenderKind::ProgressBar(progress_bar) => {
+                                ecs.entities
+                                    .render_kind
+                                    .insert(entity, RenderKindClean::ProgressBar);
+                                ecs.entities
+                                    .ui_progress_bar
+                                    .insert(entity, progress_bar.clone());
+                            }
                         }
                     }
                 }
@@ -559,6 +568,14 @@ impl ECS {
         let entity = entity_update.id;
 
         match entity_update.kind {
+            EntityUpdateKind::ProgressBar(progress_bar_update) => {
+                shared
+                    .entities
+                    .ui_progress_bar
+                    .entry(entity)
+                    .or_insert(ProgressBar::new())
+                    .update(progress_bar_update);
+            }
             EntityUpdateKind::DynamicRigidBodyTypeProps(props) => {
                 if let Some(rigid_body_handle) =
                     shared.entities.rigid_body_handle.get(&entity_update.id)
@@ -759,6 +776,13 @@ impl ECS {
                         .entities
                         .render_gid_tileset_path
                         .insert(entity, resource_path.clone());
+                }
+                RenderKind::ProgressBar(progress_bar) => {
+                    shared.entities.ui_progress_bar.insert(entity, progress_bar);
+                    shared
+                        .entities
+                        .render_kind
+                        .insert(entity, RenderKindClean::ProgressBar);
                 }
             },
             EntityUpdateKind::UpdateScriptScope(scope_key, scope_value) => {

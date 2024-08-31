@@ -84,6 +84,7 @@ const game_map = reactive<GameMap>({
     FG08: [1.0, 1.0],
     FG09: [1.0, 1.0],
     FG10: [1.0, 1.0],
+    UI: [1.0, 1.0],
   },
   terrain: {
     BG10: {},
@@ -111,6 +112,7 @@ const game_map = reactive<GameMap>({
     FG08: {},
     FG09: {},
     FG10: {},
+    UI: {},
   },
   tile_height: 16,
   tile_width: 16,

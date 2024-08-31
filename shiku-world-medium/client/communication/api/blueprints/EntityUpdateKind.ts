@@ -5,10 +5,11 @@ import type { FadeinEffect } from "./FadeinEffect";
 import type { FadeoutEffect } from "./FadeoutEffect";
 import type { KinematicCharacterControllerProps } from "./KinematicCharacterControllerProps";
 import type { LayerKind } from "./LayerKind";
+import type { ProgressBarUpdate } from "./ProgressBarUpdate";
 import type { RenderKind } from "./RenderKind";
 import type { RigidBodyType } from "./RigidBodyType";
 import type { ScopeCacheValue } from "./ScopeCacheValue";
 import type { TextRender } from "./TextRender";
 import type { Transform } from "./Transform";
 
-export type EntityUpdateKind = { Transform: Transform } | { Name: string } | { Tags: Array<string> } | { Layer: LayerKind } | { FadeInEffect: [FadeinEffect, number] } | { FadeOutEffect: [FadeoutEffect, number] } | { InstancePath: string } | { ScriptPath: string | null } | { UpdateScriptScope: [string, ScopeCacheValue] } | { SetScriptScope: Record<string, ScopeCacheValue> } | { RigidBodyType: RigidBodyType } | { DynamicRigidBodyTypeProps: DynamicRigidBodyPropsUpdate } | { KinematicCharacterControllerProps: KinematicCharacterControllerProps } | { Collider: Collider } | { PositionRotation: [number, number, number] } | { RenderKind: RenderKind } | { AnimatedSpriteResource: string } | { SpriteTilesetResource: string } | { TextRender: TextRender } | { Gid: number };
+export type EntityUpdateKind = { Transform: Transform } | { Name: string } | { Tags: Array<string> } | { Layer: LayerKind } | { ProgressBar: ProgressBarUpdate } | { FadeInEffect: [FadeinEffect, number] } | { FadeOutEffect: [FadeoutEffect, number] } | { InstancePath: string } | { ScriptPath: string | null } | { UpdateScriptScope: [string, ScopeCacheValue] } | { SetScriptScope: Record<string, ScopeCacheValue> } | { RigidBodyType: RigidBodyType } | { DynamicRigidBodyTypeProps: DynamicRigidBodyPropsUpdate } | { KinematicCharacterControllerProps: KinematicCharacterControllerProps } | { Collider: Collider } | { PositionRotation: [number, number, number] } | { RenderKind: RenderKind } | { AnimatedSpriteResource: string } | { SpriteTilesetResource: string } | { TextRender: TextRender } | { Gid: number };
