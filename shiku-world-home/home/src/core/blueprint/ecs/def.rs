@@ -157,6 +157,20 @@ pub struct ProgressBarUpdate {
     pub height: Option<Real>,
 }
 
+impl ProgressBarUpdate {
+    pub fn progress(progress: Real) -> Self {
+        Self {
+            tileset: None,
+            background: None,
+            fill: None,
+            fill_paddings: None,
+            progress: Some(progress),
+            width: None,
+            height: None,
+        }
+    }
+}
+
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]
 #[ts(export, export_to = "blueprints/")]
 pub enum EntityUpdateKind {

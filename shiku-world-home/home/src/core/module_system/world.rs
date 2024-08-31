@@ -12,8 +12,8 @@ use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
 use crate::core::blueprint::def::CameraSettings;
 use crate::core::blueprint::def::{GameMap, Gid, JsonResource, ResourcePath, TerrainParams};
 use crate::core::blueprint::ecs::def::{
-    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, IntersectEventData, TimerId,
-    TweenId, ECS,
+    ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind, IntersectEventData,
+    ProgressBarUpdate, TimerId, TweenId, ECS,
 };
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, GameNodeScriptFunction};
 use crate::core::blueprint::resource_loader::Blueprint;
@@ -938,6 +938,33 @@ impl World {
                                 GameSystemToGuestEvent::UpdateEntity(EntityUpdate {
                                     id: entity,
                                     kind: EntityUpdateKind::TextRender(text.clone()),
+                                }),
+                            ));
+                        }
+                    }
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        let actor_api_share = actor_api.clone();
+        FuncRegistration::new("set_progressbar_progress").set_into_module(
+            &mut module,
+            move |entity: Entity, progress: f64| {
+                if let (Some(mut shared), Some(mut actor_api)) = (
+                    ecs_shared.try_borrow_mut(),
+                    actor_api_share.try_borrow_mut(),
+                ) {
+                    if let Some(progress_bar) = shared.entities.ui_progress_bar.get_mut(&entity) {
+                        progress_bar.progress = progress as f32;
+                        for actor_id in actor_api.active_set.clone() {
+                            actor_api.game_system_to_guest_events.push((
+                                actor_id,
+                                GameSystemToGuestEvent::UpdateEntity(EntityUpdate {
+                                    id: entity,
+                                    kind: EntityUpdateKind::ProgressBar(
+                                        ProgressBarUpdate::progress(progress_bar.progress),
+                                    ),
                                 }),
                             ));
                         }
