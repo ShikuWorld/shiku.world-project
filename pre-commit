@@ -1,0 +1,83 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const rootDir = path.resolve(__dirname, '../..');
+const containerNixPath = path.join(rootDir, 'infrastructure', 'containers.nix');
+
+const projects = [
+  { name: 'shiku-world-home', imageName: 'shiku-world-home-dev' },
+  { name: 'shiku-world-medium', imageName: 'shiku-world-medium-dev' },
+  { name: 'shiku-world-status', imageName: 'shiku-world-status-dev' }
+];
+
+const checkChanges = (projectName) => {
+  try {
+    const output = execSync('git diff --cached --name-only', { encoding: 'utf-8' });
+    return output.split('\n').some(file => file.startsWith(`${projectName}/`));
+  } catch (error) {
+    console.error(`Error checking for changes in ${projectName}:`, error);
+    process.exit(1);
+  }
+};
+
+const incrementPatchVersion = (version) => {
+  const versionParts = version.split('.');
+  versionParts[2] = parseInt(versionParts[2]) + 1;
+  return versionParts.join('.');
+};
+
+const updateContainerNix = (projectName, imageName, newVersion) => {
+  let containerNixContent = fs.readFileSync(containerNixPath, 'utf-8');
+  const regex = new RegExp(`image = "dreg\\.shiku\\.world\\/${imageName}:\\d+\\.\\d+\\.\\d+";`);
+  containerNixContent = containerNixContent.replace(
+    regex,
+    `image = "dreg.shiku.world/${imageName}:${newVersion}";`
+  );
+  fs.writeFileSync(containerNixPath, containerNixContent);
+};
+
+const updateProjectVersion = (project) => {
+  const projectPath = path.join(rootDir, project.name);
+  const versionFilePath = path.join(projectPath, 'VERSION');
+
+  if (checkChanges(project.name)) {
+    const currentVersion = fs.readFileSync(versionFilePath, 'utf-8').trim();
+    const newVersion = incrementPatchVersion(currentVersion);
+
+    // Update VERSION file
+    fs.writeFileSync(versionFilePath, newVersion);
+
+    // Update container.nix
+    updateContainerNix(project.name, project.imageName, newVersion);
+
+    console.log(`${project.name} version updated to ${newVersion}`);
+
+    // Stage the updated files
+    execSync(`git add ${versionFilePath} ${containerNixPath}`);
+    
+    return true;
+  }
+  
+  return false;
+};
+
+const main = () => {
+  let changesDetected = false;
+  
+  for (const project of projects) {
+    if (updateProjectVersion(project)) {
+      changesDetected = true;
+    }
+  }
+  
+  if (changesDetected) {
+    console.log('All necessary versions have been updated.');
+  } else {
+    console.log('No changes detected in the monitored projects.');
+  }
+};
+
+main();

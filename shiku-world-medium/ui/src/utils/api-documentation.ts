@@ -192,6 +192,12 @@ export const options = [
     detail: "(entity: Entity, new_text: &str) -> void",
 },
 {
+    label: "shiku::nodes::set_progressbar_progress",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity, progress: f64) -> void",
+},
+{
     label: "shiku::animation::get_state",
     type: "function",
     info: "TODO: Add description",

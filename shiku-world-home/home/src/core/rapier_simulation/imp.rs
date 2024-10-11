@@ -426,7 +426,6 @@ impl RapierSimulation {
         rigid_body: &mut RigidBody,
         props: DynamicRigidBodyPropsUpdate,
     ) {
-        debug!("Setting dynamic rigid body props {:?}", props);
         if let Some(gravity_scale) = props.gravity_scale {
             rigid_body.set_gravity_scale(gravity_scale, true);
         }

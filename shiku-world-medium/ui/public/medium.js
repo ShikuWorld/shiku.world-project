@@ -47085,8 +47085,7 @@ This will fail in production.`);
                   if (progress_bar_update.tileset || progress_bar_update.background || progress_bar_update.fill) {
                     const new_progress_bar = window.medium.create_progress_bar(
                       resource_manager,
-                      node2D.kind.Render.kind.ProgressBar,
-                      node2D.kind.Render.kind.ProgressBar.progress
+                      node2D.kind.Render.kind.ProgressBar
                     );
                     render_graph_data.entity_layer_manager.update_container_display_object(
                       render_key(game_node),

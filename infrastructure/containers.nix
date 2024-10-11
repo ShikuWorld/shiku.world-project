@@ -49,12 +49,12 @@ in
       ];
     };
     "shiku-world-medium-dev" = {
-      image = "dreg.shiku.world/shiku-world-medium-dev:0.6.38";
+      image = "dreg.shiku.world/shiku-world-medium-dev:0.6.39";
       login = credentials;
       ports = ["8089:80"];
     };
     "shiku-world-home-dev" = {
-      image = "dreg.shiku.world/shiku-world-home-dev:0.5.23";
+      image = "dreg.shiku.world/shiku-world-home-dev:0.5.24";
       login = credentials;
       ports = ["9001:9001" "3030:3030"];
       dependsOn = [ "shiku-world-home-dev-db" ];
