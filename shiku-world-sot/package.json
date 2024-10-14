@@ -27,5 +27,8 @@
     "vite": "^5.2.0",
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-singlefile": "^2.0.1"
+  },
+  "dependencies": {
+    "strongly-typed-events": "^3.0.11"
   }
 }

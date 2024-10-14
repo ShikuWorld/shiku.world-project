@@ -1,3 +1,5 @@
+import { SimpleEventDispatcher } from 'strongly-typed-events';
+
 export class TextWriter {
   _current_text: string = '';
   current_text_stream_start_index: number = 0;
@@ -6,15 +8,16 @@ export class TextWriter {
   pages: string[] = [];
   current_line_element: HTMLElement = document.createElement('p');
   time_of_last_write = Date.now();
-  max_lines: number = 6;
+  max_lines: number = 4;
   current_sot_index: number = -1;
   current_page_index: number = 0;
-  max_chars_per_line: number = 50;
+  max_chars_per_line: number = 75;
   add_char_delay_in_ms: number = 50;
-  line_delay_in_ms: number = 5000;
+  line_delay_in_ms: number = 4000;
   go_to_next_page_time_in_ms: number = 1000;
   clear_idle_time_in_ms: number = 15000;
   current_span_class: string = '';
+  full_clear = new SimpleEventDispatcher<void>();
   private _next_page_timeout: number | null = null;
   private _character_write_timeout: number | null = null;
   private _new_line_timeout: number | null = null;
@@ -36,6 +39,10 @@ export class TextWriter {
 
   set_delay(delay: number) {
     this.add_char_delay_in_ms = delay;
+  }
+
+  destroy() {
+    this.full_clear.clear();
   }
 
   write_text(text: string, sot_index: number, span_class: string = '') {
@@ -156,9 +163,7 @@ export class TextWriter {
     }
     this._new_line_timeout = setTimeout(() => {
       if (this.current_text.length > 0) {
-        this.current_text += this._text_has_end_marker(this.current_text)
-          ? '\n'
-          : '.\n';
+        this.current_text += '\n';
       }
       this.current_text_stream_start_index = this.current_text.length;
     }, this.line_delay_in_ms);
@@ -189,6 +194,8 @@ export class TextWriter {
       this.current_text = '';
       this.text_box.innerHTML = '';
       this.pages = [];
+      console.log('Full clear!');
+      this.full_clear.dispatch();
     }, this.clear_idle_time_in_ms);
   }
 

@@ -1,38 +1,32 @@
 import './style.css';
 import { TextWriter } from './text-writer.ts';
 
-const app_container = document.querySelector<HTMLDivElement>('#app');
-
-if (!app_container) {
-  throw new Error('App container not found');
-}
-
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
-const text_writer = new TextWriter(app_container);
-
-// Check if the Web Speech API is available
 function start_speech_recognition() {
-  if (SpeechRecognition) {
-    // Create a new instance of the webkitSpeechRecognition object
-    const recognition = new SpeechRecognition();
+  const app_container = document.querySelector<HTMLDivElement>('#app');
 
-    // Set the language of the recognition
+  if (!app_container) {
+    throw new Error('App container not found');
+  }
+  if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    const text_writer = new TextWriter(app_container);
+    text_writer.full_clear.one(() => {
+      recognition.stop();
+    });
     recognition.lang = 'en-US';
 
-    // Set the recognition to continuous, so it keeps listening
     recognition.continuous = true;
 
-    // Set the recognition to return interim results, so we can get results in real-time
     recognition.interimResults = true;
 
-    // Start the recognition
     recognition.start();
 
-    // This event is triggered when the speech recognition service returns a result
     recognition.onresult = function (event) {
       let current_result = '';
+      console.log(event);
       for (let i = event.resultIndex; i < event.results.length; i++) {
         current_result += event.results[i][0].transcript + ' ';
       }
@@ -41,6 +35,8 @@ function start_speech_recognition() {
     };
 
     recognition.onend = function () {
+      recognition.onresult = null;
+      text_writer.destroy();
       start_speech_recognition();
     };
   } else {

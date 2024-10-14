@@ -320,7 +320,6 @@ impl ProgressBar {
         }
         if let Some(progress) = update.progress {
             self.progress = progress;
-            aw
         }
         if let Some(width) = update.width {
             self.width = width;
