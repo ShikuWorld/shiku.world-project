@@ -382,7 +382,7 @@ impl DynamicGameModule {
                                 event_type: ModuleInstanceEvent {
                                     module_id: self.module_id.clone(),
                                     instance_id: self.instance_id.clone(),
-                                    world_id: None,
+                                    world_id: Some(world.world_id.clone()),
                                     event_type: event,
                                 },
                             },
