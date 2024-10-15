@@ -105,9 +105,7 @@ export class ResourceManager {
       await match(asset.kind)
         .with("Image", async () => {
           if (!this.image_texture_map[asset.path]) {
-            console.log("Adding", asset);
             await this.add_loading_to_texture_map(asset.path);
-            console.log("oh oh", asset);
           }
           return Promise.resolve();
         })

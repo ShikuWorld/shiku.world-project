@@ -47047,8 +47047,10 @@ This will fail in production.`);
               if ("Text" in node2D.kind.Render.kind) {
                 node2D.kind.Render.kind.Text = text_render;
                 const container = resource_manager.create_bitmap_text(text_render);
-                render_node.container.removeChildAt(0);
-                render_node.container.addChildAt(container, 0);
+                render_graph_data.entity_layer_manager.update_container_display_object(
+                  render_node.node_id,
+                  container
+                );
               }
             }
           }).with({ Layer: _.select() }, (layer) => {
@@ -47127,6 +47129,9 @@ This will fail in production.`);
         }
         const node_to_insert_generic = get_generic_game_node(node_to_insert);
         if (node_to_insert_generic.entity_id && render_graph_data.entity_node_map[node_to_insert_generic.entity_id]) {
+          console.log(
+            render_graph_data.entity_node_map[node_to_insert_generic.entity_id]
+          );
           console.warn("Node already exists in render graph!");
           return;
         }
@@ -48219,9 +48224,7 @@ This will fail in production.`);
       for (const asset of resource_bundle.assets) {
         await N2(asset.kind).with("Image", async () => {
           if (!this.image_texture_map[asset.path]) {
-            console.log("Adding", asset);
             await this.add_loading_to_texture_map(asset.path);
-            console.log("oh oh", asset);
           }
           return Promise.resolve();
         }).with("Font", async () => {

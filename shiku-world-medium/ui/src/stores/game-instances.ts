@@ -824,8 +824,10 @@ export const use_game_instances_store = defineStore("game-instances", () => {
                 node2D.kind.Render.kind.Text = text_render;
                 const container =
                   resource_manager.create_bitmap_text(text_render);
-                render_node.container.removeChildAt(0);
-                render_node.container.addChildAt(container, 0);
+                render_graph_data.entity_layer_manager.update_container_display_object(
+                  render_node.node_id,
+                  container,
+                );
               }
             }
           })
@@ -929,6 +931,9 @@ export const use_game_instances_store = defineStore("game-instances", () => {
         node_to_insert_generic.entity_id &&
         render_graph_data.entity_node_map[node_to_insert_generic.entity_id]
       ) {
+        console.log(
+          render_graph_data.entity_node_map[node_to_insert_generic.entity_id],
+        );
         console.warn("Node already exists in render graph!");
         return;
       }
