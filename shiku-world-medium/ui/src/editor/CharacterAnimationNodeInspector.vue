@@ -51,6 +51,11 @@
   </div>
   <div v-if="selected_state" class="state-editor">
     <h4>{{ selected_state.name }}</h4>
+    <v-switch
+      label="Loop Animation"
+      v-model="selected_state.loop_animation"
+      @update:model-value="(new_value) => set_loop_animation(new_value)"
+    ></v-switch>
     <v-virtual-scroll :items="selected_state.frames" :height="300">
       <template v-slot:default="{ item, index }">
         <v-number-input
@@ -119,6 +124,24 @@ const character_animation_tileset = computed(() =>
     character_animation.value.tileset_resource,
   ),
 );
+
+const set_loop_animation = (new_value: boolean | null) => {
+  if (new_value === null) {
+    return;
+  }
+  if (selected_state.value) {
+    save_character_animation_server({
+      ...character_animation.value,
+      states: {
+        ...character_animation.value.states,
+        [selected_state_id.value as number]: {
+          ...selected_state.value,
+          loop_animation: new_value,
+        },
+      },
+    });
+  }
+};
 
 const set_frame_duration = (index: number, new_value: number) => {
   if (selected_state.value) {
@@ -305,6 +328,7 @@ const add_state = () => {
         [next_state_key.value]: {
           name: new_state_name.value,
           frames: [],
+          loop_animation: false,
         },
       },
     });

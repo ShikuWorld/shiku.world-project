@@ -23,6 +23,7 @@ pub struct Animation {
     animation_total_duration: Real,
     frames: Vec<CharacterAnimationFrame>,
     current_frame_index: usize,
+    loop_animation: bool,
     running: bool,
     pub done: bool,
 }
@@ -62,7 +63,7 @@ impl From<CharacterAnimationBlueprint> for CharacterAnimation {
             .states
             .iter()
             .map(|(state_id, state)| {
-                let animation = Animation::new(state.frames.clone());
+                let animation = Animation::new(state.frames.clone(), state.loop_animation);
                 (*state_id, animation)
             })
             .collect();
@@ -83,7 +84,7 @@ impl From<CharacterAnimationBlueprint> for CharacterAnimation {
 }
 
 impl Animation {
-    pub fn new(frames: Vec<CharacterAnimationFrame>) -> Animation {
+    pub fn new(frames: Vec<CharacterAnimationFrame>, loop_animation: bool) -> Animation {
         let animation_total_duration: Real = frames.iter().map(|f| f.duration_in_ms).sum();
 
         Animation {
@@ -92,6 +93,7 @@ impl Animation {
             current_frame_index: 0,
             animation_total_duration,
             frames,
+            loop_animation,
             running: false,
             done: false,
         }
@@ -120,7 +122,13 @@ impl Animation {
 
     pub fn run(&mut self, update_time: Real) {
         if self.done {
-            return;
+            if self.loop_animation {
+                self.done = false;
+                self.running = true;
+                self.current_frame_index = 0;
+            } else {
+                return;
+            }
         }
 
         self.current_frame_time_in_ms += update_time;
@@ -132,6 +140,8 @@ impl Animation {
                     self.current_frame_time_in_ms -= current_frame.duration_in_ms;
                     self.current_frame_index += 1;
                 } else {
+                    self.current_frame_time_in_ms -= current_frame.duration_in_ms; // in case we wanna loop
+                    self.current_total_time_in_ms = self.current_frame_time_in_ms; // in case we wanna loop
                     self.done = true;
                     self.running = false;
                 }

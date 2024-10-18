@@ -39,6 +39,7 @@ pub struct CharacterTransitionFunctions {
 #[ts(export, export_to = "blueprints/")]
 pub struct CharacterAnimationState {
     name: String,
+    pub(crate) loop_animation: bool,
     pub(crate) frames: Vec<CharacterAnimationFrame>,
 }
 

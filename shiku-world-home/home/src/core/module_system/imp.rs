@@ -567,8 +567,10 @@ impl DynamicGameModule {
                         }
                         c_a.states.clear();
                         for (state_id, state) in &character_animation.states {
-                            c_a.states
-                                .insert(*state_id, Animation::new(state.frames.clone()));
+                            c_a.states.insert(
+                                *state_id,
+                                Animation::new(state.frames.clone(), state.loop_animation),
+                            );
                         }
                     }
                 }
