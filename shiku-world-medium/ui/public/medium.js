@@ -48542,6 +48542,10 @@ This will fail in production.`);
       container.x = game_node.data.transform.position[0] * RENDER_SCALE;
       container.y = game_node.data.transform.position[1] * RENDER_SCALE;
       container.rotation = game_node.data.transform.rotation;
+      container.scale.set(
+        game_node.data.transform.scale[0],
+        game_node.data.transform.scale[1]
+      );
       N2(game_node.data.kind).with({ Node2D: _.select() }, { Instance: _.select() }, () => {
       }).with({ Render: _.select() }, (render2) => {
         const display_object = N2(render2.kind).with({ Sprite: _.select() }, ([tileset_path, id_in_tileset]) => {

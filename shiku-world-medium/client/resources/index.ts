@@ -513,6 +513,10 @@ export function create_display_object(
       container.x = game_node.data.transform.position[0] * RENDER_SCALE;
       container.y = game_node.data.transform.position[1] * RENDER_SCALE;
       container.rotation = game_node.data.transform.rotation;
+      container.scale.set(
+        game_node.data.transform.scale[0],
+        game_node.data.transform.scale[1],
+      );
 
       match(game_node.data.kind)
         .with({ Node2D: P.select() }, { Instance: P.select() }, () => {
