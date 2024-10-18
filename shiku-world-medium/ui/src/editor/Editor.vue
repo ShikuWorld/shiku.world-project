@@ -904,7 +904,7 @@ function open_resource_editor(resource: BlueprintResource) {
 
 .editor-main-view {
   display: inline-block;
-  flex-grow: 1;
+  width: calc(100% - 500px);
 }
 
 .editor-nav-top {

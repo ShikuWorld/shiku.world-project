@@ -396,9 +396,11 @@ const update_brush_kernel = (
 .tileset-editor__separate_images {
   display: flex;
   flex-wrap: wrap;
+  overflow-y: scroll;
+  max-height: 800px;
 }
 .tileset-editor__independent_tile {
-  width: 200px;
+  width: 120px;
   justify-content: center;
   display: flex;
 }
