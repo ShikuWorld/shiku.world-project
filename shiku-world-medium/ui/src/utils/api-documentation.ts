@@ -90,6 +90,30 @@ export const options = [
     detail: "(entity: Entity, position_x: f64) -> void",
 },
 {
+    label: "shiku::events::publish_event",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity, key: ImmutableString, value: Dynamic) -> void",
+},
+{
+    label: "shiku::events::subscribe",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(subscriber: Entity, entity: Entity) -> void",
+},
+{
+    label: "shiku::events::unsubscribe",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(subscriber: Entity, entity: Entity) -> void",
+},
+{
+    label: "shiku::events::get_last_send_value",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity, key: &str) -> Dynamic",
+},
+{
     label: "shiku::nodes::get_child_animation_entity",
     type: "function",
     info: "TODO: Add description",
@@ -144,6 +168,12 @@ export const options = [
     detail: "(duration: f64) -> Dynamic",
 },
 {
+    label: "shiku::nodes::is_timer_running",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(timer: TimerId) -> Dynamic",
+},
+{
     label: "shiku::nodes::set_timer_duration",
     type: "function",
     info: "TODO: Add description",
@@ -184,6 +214,12 @@ export const options = [
     type: "function",
     info: "TODO: Add description",
     detail: "(tween_id: TweenId) -> Dynamic",
+},
+{
+    label: "shiku::nodes::set_graphic_id",
+    type: "function",
+    info: "TODO: Add description",
+    detail: "(entity: Entity, graphic_id: i64) -> void",
 },
 {
     label: "shiku::nodes::set_text",

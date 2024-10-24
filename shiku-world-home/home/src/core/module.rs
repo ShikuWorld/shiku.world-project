@@ -194,6 +194,7 @@ pub enum TilesetUpdate {
     ChangeTileAnimation(Gid, Option<Vec<SimpleAnimationFrame>>),
     UpdateCollisionShape(Gid, CollisionShape),
     RemoveCollisionShape(Gid),
+    SetTileLooping(Gid, bool),
 }
 
 #[derive(TS, Debug, Serialize, Deserialize, Clone)]

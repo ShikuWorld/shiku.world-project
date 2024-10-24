@@ -30,6 +30,11 @@
         :tileset="tileset"
         :tile_id="tile_id"
       ></TilePreviewAnimation>
+      <v-switch
+        label="Loop Animation"
+        v-model="tile.loop_animation"
+        @update:model-value="(new_value) => update_tile_is_looping(new_value)"
+      ></v-switch>
       <v-virtual-scroll :items="tile.animation" :height="300">
         <template v-slot:default="{ item: frame, index }">
           <v-number-input
@@ -196,6 +201,15 @@ const tile_height = computed(() => {
     ? tileset.value.tile_height
     : tile.value?.image?.height;
 });
+
+function update_tile_is_looping(new_value: boolean | null) {
+  if (new_value === null) {
+    return;
+  }
+  update_tileset_server(tileset_key(tileset.value), {
+    SetTileLooping: [tile_id.value, new_value],
+  });
+}
 
 function update_collider(new_value: KeysOfUnion<CollisionShape> | null) {
   if (tileset.value && tile_id.value != undefined) {

@@ -13,9 +13,8 @@ use crate::core::blueprint::ecs::def::{
     DynamicRigidBodyPropsUpdate, ECSShared, Entity, EntityMaps, EntityUpdate, EntityUpdateKind,
     KinematicCharacter, TimerId, TweenId, ECS,
 };
-use crate::core::blueprint::ecs::game_node_script::{
-    GameNodeScript, GameNodeScriptFunction, ScopeCacheValue,
-};
+use crate::core::blueprint::ecs::entity_communication_system::EntityCommunicationSystem;
+use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, GameNodeScriptFunction};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::{
     Collider, ColliderKind, ColliderShape, DynamicRigidBodyProps, GameNodeKind, GameNodeKindClean,
@@ -85,6 +84,7 @@ impl ECS {
                     dirty: HashMap::new(),
                     view_dirty: HashMap::new(),
                 },
+                entity_communication_system: EntityCommunicationSystem::new(),
                 tween_map: HashMap::new(),
                 timer_map: HashMap::new(),
                 timer_counter: 0,

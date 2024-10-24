@@ -228,17 +228,21 @@ export const use_game_instances_store = defineStore("game-instances", () => {
       resource_manager: ResourceManager,
       gid: number,
     ) {
-      const game_instance_data = this.get_game_instance_data(
-        instance_id,
-        world_id,
-      );
-      if (!game_instance_data?.render_graph_data) {
-        return;
+      try {
+        const game_instance_data = this.get_game_instance_data(
+          instance_id,
+          world_id,
+        );
+        if (!game_instance_data?.render_graph_data) {
+          return;
+        }
+        game_instance_data.render_graph_data.effects_manager.update_animations_for_animated_sprites(
+          resource_manager,
+          gid,
+        );
+      } catch (e) {
+        console.error(e);
       }
-      game_instance_data.render_graph_data.effects_manager.update_animations_for_animated_sprites(
-        resource_manager,
-        gid,
-      );
     },
     render_graph_from_scene(
       scene: Scene,

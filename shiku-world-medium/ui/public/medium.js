@@ -44673,6 +44673,10 @@ This will fail in production.`);
         if (effects_for_gid.main_animation_sprite_key == null) {
           effects_for_gid.main_animation_sprite_key = effects_for_gid.effects.values().next().value;
         }
+        if (!this.sprite_effects_map[effects_for_gid.main_animation_sprite_key]) {
+          return;
+        }
+        this.sprite_effects_map[effects_for_gid.main_animation_sprite_key].sprite.loop = graphics.loop_animation !== false;
         this.sprite_effects_map[effects_for_gid.main_animation_sprite_key].sprite.play();
       }
       if (!is_animated && effects_for_gid.main_animation_sprite_key != null) {
@@ -46583,17 +46587,21 @@ This will fail in production.`);
         );
       },
       update_sprite_animations(instance_id, world_id, resource_manager, gid) {
-        const game_instance_data = this.get_game_instance_data(
-          instance_id,
-          world_id
-        );
-        if (!game_instance_data?.render_graph_data) {
-          return;
+        try {
+          const game_instance_data = this.get_game_instance_data(
+            instance_id,
+            world_id
+          );
+          if (!game_instance_data?.render_graph_data) {
+            return;
+          }
+          game_instance_data.render_graph_data.effects_manager.update_animations_for_animated_sprites(
+            resource_manager,
+            gid
+          );
+        } catch (e3) {
+          console.error(e3);
         }
-        game_instance_data.render_graph_data.effects_manager.update_animations_for_animated_sprites(
-          resource_manager,
-          gid
-        );
       },
       render_graph_from_scene(scene, resource_manager) {
         const game_node_root = get_generic_game_node(scene.root_node);
@@ -48344,6 +48352,7 @@ This will fail in production.`);
             this.tile_set_map[resource_path].tiles[id_in_tileset] = {
               id: id_in_tileset,
               animation: [],
+              loop_animation: null,
               image,
               collision_shape: null
             };
@@ -48355,15 +48364,17 @@ This will fail in production.`);
             delete this.tile_set_map[resource_path].tiles[id_in_tileset];
             delete this.graphic_id_map[this.get_gid_from_local_id(id_in_tileset, resource_path)];
           }).with(
+            { SetTileLooping: _.select() },
+            ([id_in_tileset, loop_animation]) => {
+              if (this.tile_set_map[resource_path] && this.tile_set_map[resource_path].tiles[id_in_tileset]) {
+                this.tile_set_map[resource_path].tiles[id_in_tileset].loop_animation = loop_animation;
+              }
+            }
+          ).with(
             { ChangeTileAnimation: _.select() },
             ([id_in_tileset, simple_animation_frames]) => {
               if (simple_animation_frames !== null) {
-                this.tile_set_map[resource_path].tiles[id_in_tileset] = {
-                  id: id_in_tileset,
-                  animation: simple_animation_frames,
-                  image: null,
-                  collision_shape: null
-                };
+                this.tile_set_map[resource_path].tiles[id_in_tileset].animation = simple_animation_frames;
               }
               if (this.tile_set_map[resource_path] && this.tile_set_map[resource_path].tiles[id_in_tileset] && simple_animation_frames) {
                 this.tile_set_map[resource_path].tiles[id_in_tileset].animation = simple_animation_frames;
@@ -48388,6 +48399,7 @@ This will fail in production.`);
       const sprite = new AnimatedSprite(
         graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures
       );
+      sprite.loop = graphics.loop_animation !== false;
       sprite.anchor.set(0.5, 0.5);
       return sprite;
     }
@@ -48395,6 +48407,7 @@ This will fail in production.`);
       const sprite = new AnimatedSprite(
         graphics.frame_objects.length > 0 ? graphics.frame_objects : graphics.textures
       );
+      sprite.loop = graphics.loop_animation !== false;
       sprite.anchor.set(0.5, 0.5);
       return sprite;
     }
@@ -48464,14 +48477,15 @@ This will fail in production.`);
       if (tileset.image) {
         const texture_source = this.image_texture_map[tileset.image.path]?.source;
         if (!texture_source) {
-          console.log("@@@@@@@@@@", Object.keys(this.image_texture_map));
           graphics.textures.push(this.dummy_texture_loading);
           console.error(
             "No base_texture even though there should be a dummy at the very least!"
           );
           return graphics;
         }
-        const animation_frames = tileset.tiles[id]?.animation ?? [];
+        const tile = tileset.tiles[id];
+        graphics.loop_animation = tile?.loop_animation ?? null;
+        const animation_frames = tile?.animation ?? [];
         if (animation_frames.length === 0) {
           const x3 = (id - 1) % tileset.columns * tileset.tile_width;
           const y3 = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
@@ -48492,7 +48506,9 @@ This will fail in production.`);
           }
         }
       } else {
-        const image_path = tileset.tiles[id]?.image?.path;
+        const tile = tileset.tiles[id];
+        graphics.loop_animation = tile?.loop_animation ?? null;
+        const image_path = tile?.image?.path;
         if (!image_path) {
           graphics.textures.push(this.dummy_texture_loading);
           console.error("Could not find image path for tile!?");

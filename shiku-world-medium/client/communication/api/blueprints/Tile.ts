@@ -3,4 +3,4 @@ import type { CollisionShape } from "./CollisionShape";
 import type { Image } from "./Image";
 import type { SimpleAnimationFrame } from "./SimpleAnimationFrame";
 
-export interface Tile { id: number, image: Image | null, animation: Array<SimpleAnimationFrame> | null, collision_shape: CollisionShape | null, }
+export interface Tile { id: number, image: Image | null, loop_animation: boolean | null, animation: Array<SimpleAnimationFrame> | null, collision_shape: CollisionShape | null, }

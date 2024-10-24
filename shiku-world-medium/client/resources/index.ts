@@ -39,6 +39,7 @@ import { ProgressBar } from "@pixi/ui";
 export interface Graphics {
   textures: Texture[];
   frame_objects: FrameObject[];
+  loop_animation?: boolean | null;
 }
 
 export type ResourceManagerMap = { [module_id: string]: ResourceManager };
@@ -255,6 +256,7 @@ export class ResourceManager {
               this.tile_set_map[resource_path].tiles[id_in_tileset] = {
                 id: id_in_tileset,
                 animation: [],
+                loop_animation: null,
                 image,
                 collision_shape: null,
               };
@@ -275,15 +277,25 @@ export class ResourceManager {
               ];
             })
             .with(
+              { SetTileLooping: P.select() },
+              ([id_in_tileset, loop_animation]) => {
+                if (
+                  this.tile_set_map[resource_path] &&
+                  this.tile_set_map[resource_path].tiles[id_in_tileset]
+                ) {
+                  this.tile_set_map[resource_path].tiles[
+                    id_in_tileset
+                  ].loop_animation = loop_animation;
+                }
+              },
+            )
+            .with(
               { ChangeTileAnimation: P.select() },
               ([id_in_tileset, simple_animation_frames]) => {
                 if (simple_animation_frames !== null) {
-                  this.tile_set_map[resource_path].tiles[id_in_tileset] = {
-                    id: id_in_tileset,
-                    animation: simple_animation_frames,
-                    image: null,
-                    collision_shape: null,
-                  };
+                  this.tile_set_map[resource_path].tiles[
+                    id_in_tileset
+                  ].animation = simple_animation_frames;
                 }
 
                 if (
@@ -320,6 +332,7 @@ export class ResourceManager {
         ? graphics.frame_objects
         : graphics.textures,
     );
+    sprite.loop = graphics.loop_animation !== false;
     sprite.anchor.set(0.5, 0.5);
     return sprite;
   }
@@ -330,6 +343,7 @@ export class ResourceManager {
         ? graphics.frame_objects
         : graphics.textures,
     );
+    sprite.loop = graphics.loop_animation !== false;
     sprite.anchor.set(0.5, 0.5);
     return sprite;
   }
@@ -420,14 +434,15 @@ export class ResourceManager {
       const texture_source: TextureSource | undefined =
         this.image_texture_map[tileset.image.path]?.source;
       if (!texture_source) {
-        console.log("@@@@@@@@@@", Object.keys(this.image_texture_map));
         graphics.textures.push(this.dummy_texture_loading);
         console.error(
           "No base_texture even though there should be a dummy at the very least!",
         );
         return graphics;
       }
-      const animation_frames = tileset.tiles[id]?.animation ?? [];
+      const tile = tileset.tiles[id];
+      graphics.loop_animation = tile?.loop_animation ?? null;
+      const animation_frames = tile?.animation ?? [];
       if (animation_frames.length === 0) {
         const x = ((id - 1) % tileset.columns) * tileset.tile_width;
         const y = Math.floor((id - 1) / tileset.columns) * tileset.tile_height;
@@ -449,7 +464,9 @@ export class ResourceManager {
         }
       }
     } else {
-      const image_path = tileset.tiles[id]?.image?.path;
+      const tile = tileset.tiles[id];
+      graphics.loop_animation = tile?.loop_animation ?? null;
+      const image_path = tile?.image?.path;
       if (!image_path) {
         graphics.textures.push(this.dummy_texture_loading);
         console.error("Could not find image path for tile!?");

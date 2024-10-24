@@ -2,7 +2,6 @@ use crate::core::blueprint::def::{BlueprintError, ResourcePath};
 use crate::core::blueprint::ecs::def::{DynamicMap, Entity};
 use crate::core::blueprint::resource_loader::Blueprint;
 use crate::core::blueprint::scene::def::Script;
-use crate::core::guest::ActorId;
 use log::{debug, error};
 use rhai::{Dynamic, Engine, FuncArgs, ImmutableString, ParseError, Scope, AST};
 use serde::{Deserialize, Serialize};
@@ -35,6 +34,7 @@ pub enum GameNodeScriptFunction {
     IntersectEnd,
     ChildIntersectStart,
     ChildIntersectEnd,
+    EntityEventReceived,
 }
 
 impl GameNodeScriptFunction {
@@ -48,6 +48,12 @@ impl GameNodeScriptFunction {
                 }
                 "update" => {
                     hash_map.insert(GameNodeScriptFunction::Update, "update");
+                }
+                "entity_event_received" => {
+                    hash_map.insert(
+                        GameNodeScriptFunction::EntityEventReceived,
+                        "entity_event_received",
+                    );
                 }
                 "intersect_start" => {
                     hash_map.insert(GameNodeScriptFunction::IntersectStart, "intersect_start");

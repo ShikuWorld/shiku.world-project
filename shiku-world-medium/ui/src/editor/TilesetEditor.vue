@@ -182,6 +182,7 @@ const add_tile = () => {
         path: "",
         width: 0,
       },
+      loop_animation: null,
       animation: null,
       collision_shape: null,
     };

@@ -1,7 +1,7 @@
 use rapier2d::dynamics::RigidBodyHandle;
 use rapier2d::math::Vector;
 use rapier2d::prelude::{ColliderHandle, Real};
-use rhai::{CustomType, Dynamic, TypeBuilder};
+use rhai::{CustomType, Dynamic, ImmutableString, TypeBuilder};
 use serde::{Deserialize, Serialize};
 use smartstring::{LazyCompact, SmartString};
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -13,6 +13,7 @@ use crate::core::basic_kinematic_character_controller::{
 };
 use crate::core::blueprint::def::{Gid, LayerKind, ResourcePath};
 use crate::core::blueprint::ecs::character_animation::CharacterAnimation;
+use crate::core::blueprint::ecs::entity_communication_system::EntityCommunicationSystem;
 use crate::core::blueprint::ecs::game_node_script::{GameNodeScript, ScopeCacheValue};
 use crate::core::blueprint::scene::def::{
     Collider, DynamicRigidBodyProps, FadeinEffect, FadeoutEffect, GameNodeId, GameNodeKindClean,
@@ -73,6 +74,7 @@ pub struct ECSShared {
     pub set_scope_variables: HashMap<Entity, HashMap<String, ScopeCacheValue>>,
     pub removed_entities: Vec<Entity>,
     pub entity_counter: NodeInstanceId,
+    pub entity_communication_system: EntityCommunicationSystem,
     pub tween_map: HashMap<TweenId, Tween>,
     pub timer_map: HashMap<TimerId, Timer>,
     pub timer_counter: TimerId,

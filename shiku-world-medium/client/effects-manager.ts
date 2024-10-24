@@ -49,6 +49,13 @@ export class EffectsManager {
           .values()
           .next().value as string;
       }
+      if (!this.sprite_effects_map[effects_for_gid.main_animation_sprite_key]) {
+        // No main animation sprite key set
+        return;
+      }
+      this.sprite_effects_map[
+        effects_for_gid.main_animation_sprite_key
+      ].sprite.loop = graphics.loop_animation !== false;
       this.sprite_effects_map[
         effects_for_gid.main_animation_sprite_key
       ].sprite.play();

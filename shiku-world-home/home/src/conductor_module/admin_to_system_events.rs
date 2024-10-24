@@ -604,6 +604,11 @@ pub async fn handle_admin_to_system_event(
                     TilesetUpdate::RemoveBrush(i) => {
                         tileset.brushes.remove(*i);
                     }
+                    TilesetUpdate::SetTileLooping(gid, looping) => {
+                        if let Some(tile) = tileset.tiles.get_mut(gid) {
+                            tile.loop_animation = Some(*looping);
+                        }
+                    }
                     TilesetUpdate::UpdateBrush(i, brush_update) => {
                         if let Some(brush) = tileset.brushes.get_mut(*i) {
                             brush.clone_from(brush_update);

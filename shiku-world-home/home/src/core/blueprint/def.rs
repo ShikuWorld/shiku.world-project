@@ -209,6 +209,7 @@ pub struct SimpleAnimationFrame {
 pub struct Tile {
     pub id: u32,
     pub image: Option<Image>,
+    pub loop_animation: Option<bool>,
     pub animation: Option<Vec<SimpleAnimationFrame>>,
     pub collision_shape: Option<CollisionShape>,
 }

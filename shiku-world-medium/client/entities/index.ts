@@ -310,6 +310,7 @@ function get_sprite_from_render(
 
   if (graphics.frame_objects.length > 0) {
     const animated_sprite = new AnimatedSprite(graphics.frame_objects);
+    animated_sprite.loop = graphics.loop_animation !== false;
     animated_sprite.play();
     sprite = animated_sprite;
   } else {

@@ -5,7 +5,8 @@ use log::{debug, error};
 use rand::{thread_rng, Rng};
 use rapier2d::prelude::*;
 use rhai::{
-    exported_module, Dynamic, Engine, EvalAltResult, FuncRegistration, Module as RhaiModule,
+    exported_module, Dynamic, Engine, EvalAltResult, FuncRegistration, ImmutableString,
+    Module as RhaiModule,
 };
 
 use crate::core::blueprint::character_animation::{CharacterDirection, StateId};
@@ -151,6 +152,7 @@ impl World {
         );
         Self::setup_utils_scripting_api(&mut script_engine);
         Self::setup_physics_scripting_api(&mut script_engine, &physics_share, &mut ecs);
+        Self::setup_events_api(&mut script_engine, &mut ecs);
         Self::setup_animation_api(&mut script_engine, &mut ecs);
         Self::setup_actor_api(&mut script_engine, &self.actor_api);
         ecs.process_added_and_removed_entities_and_scope_sets(&script_engine);
@@ -177,6 +179,11 @@ impl World {
                     &mut physics,
                     &mut shared_ecs,
                     &mut self.ecs.intersects_data_tmp,
+                );
+                Self::update_entity_communication_system(
+                    &mut shared_ecs,
+                    &mut self.ecs.entity_scripts,
+                    &self.script_engine,
                 );
             }
         }
@@ -217,6 +224,30 @@ impl World {
 
         self.ecs
             .process_added_and_removed_entities_and_scope_sets(&self.script_engine);
+    }
+
+    fn update_entity_communication_system(
+        shared_ecs: &mut ECSShared,
+        entity_scripts: &mut HashMap<Entity, GameNodeScript>,
+        script_engine: &Engine,
+    ) {
+        for (entity, key, value) in shared_ecs.entity_communication_system.event_queue.drain(..) {
+            if let Some(subscribers) = shared_ecs
+                .entity_communication_system
+                .entity_to_subscribers_map
+                .get(&entity)
+            {
+                for subscriber in subscribers {
+                    if let Some(game_node_script) = entity_scripts.get_mut(subscriber) {
+                        game_node_script.call(
+                            GameNodeScriptFunction::EntityEventReceived,
+                            script_engine,
+                            (entity, key.clone(), value.clone()),
+                        );
+                    }
+                }
+            }
+        }
     }
 
     fn clear_removed_colliders_from_ecs(shared: &mut ECSShared) {
@@ -675,6 +706,61 @@ impl World {
             .register_fn("get_entity_id", |entity: Entity| entity.0);
     }
 
+    fn setup_events_api(engine: &mut Engine, ecs: &mut ECS) {
+        let mut module = RhaiModule::new();
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("publish_event").set_into_module(
+            &mut module,
+            move |entity: Entity, key: ImmutableString, value: Dynamic| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    shared
+                        .entity_communication_system
+                        .publish(entity, key, value);
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("subscribe").set_into_module(
+            &mut module,
+            move |subscriber: Entity, entity: Entity| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    shared
+                        .entity_communication_system
+                        .subscribe(entity, subscriber);
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("unsubscribe").set_into_module(
+            &mut module,
+            move |subscriber: Entity, entity: Entity| {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    shared
+                        .entity_communication_system
+                        .unsubscribe(entity, subscriber);
+                }
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("get_last_send_value").set_into_module(
+            &mut module,
+            move |entity: Entity, key: &str| -> Dynamic {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    return shared
+                        .entity_communication_system
+                        .get_last_cached_value(entity, key);
+                }
+                Dynamic::UNIT
+            },
+        );
+
+        engine.register_static_module("shiku::events", module.into());
+    }
+
     fn setup_nodes_api(
         engine: &mut Engine,
         ecs: &mut ECS,
@@ -839,6 +925,19 @@ impl World {
         );
 
         let ecs_shared = ecs.shared.clone();
+        FuncRegistration::new("is_timer_running").set_into_module(
+            &mut module,
+            move |timer: TimerId| -> Dynamic {
+                if let Some(mut shared) = ecs_shared.try_borrow_mut() {
+                    if let Some(timer) = shared.timer_map.get_mut(&timer) {
+                        return Dynamic::from(timer.is_running());
+                    }
+                }
+                Dynamic::from(false)
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
         FuncRegistration::new("set_timer_duration").set_into_module(
             &mut module,
             move |timer: TimerId, duration: f64| {
@@ -918,6 +1017,29 @@ impl World {
                     }
                 }
                 Dynamic::from(())
+            },
+        );
+
+        let ecs_shared = ecs.shared.clone();
+        let actor_api_share = actor_api.clone();
+        FuncRegistration::new("set_graphic_id").set_into_module(
+            &mut module,
+            move |entity: Entity, graphic_id: i64| {
+                if let (Some(mut shared), Some(mut actor_api)) = (
+                    ecs_shared.try_borrow_mut(),
+                    actor_api_share.try_borrow_mut(),
+                ) {
+                    shared.entities.render_gid.insert(entity, graphic_id as Gid);
+                    for actor_id in actor_api.active_set.clone() {
+                        actor_api.game_system_to_guest_events.push((
+                            actor_id,
+                            GameSystemToGuestEvent::UpdateEntity(EntityUpdate {
+                                id: entity,
+                                kind: EntityUpdateKind::Gid(graphic_id as Gid),
+                            }),
+                        ));
+                    }
+                }
             },
         );
 
